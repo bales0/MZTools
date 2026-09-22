@@ -8,16 +8,16 @@
     <AssemblyName>MZTools</AssemblyName>
     <AssemblyTitle>MZTools</AssemblyTitle>
     <Product>MZTools</Product>
-    <ApplicationIcon>images\QDTool.ico</ApplicationIcon>
+    <ApplicationIcon>images\MZTool.ico</ApplicationIcon>
     <Version>0.9.0-beta</Version>
     <FileVersion>0.9.0</FileVersion>
     <AssemblyVersion>0.9.0</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="QDTool.Tests\**\*.cs" />
+    <Compile Remove="MZTool.Tests\**\*.cs" />
     <Compile Remove="MZTFileReader.cs;MZQFileReader.cs;QDFFileReader.cs" />
-    <Resource Include="images\QDTool.ico" />
+    <Resource Include="images\MZTool.ico" />
   </ItemGroup>
 
   <ItemGroup>

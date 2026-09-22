@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:QDTool"
         mc:Ignorable="d"
-        Title="MZTools" Height="600" Width="1100" MinHeight="480" MinWidth="900" Icon="/images/QDTool.ico"
+        Title="MZTools" Height="600" Width="1100" MinHeight="480" MinWidth="900" Icon="/images/MZTool.ico"
         AllowDrop="True" DragEnter="Window_DragEnter" Drop="Window_Drop">
     <Grid>
         <Grid.ColumnDefinitions>

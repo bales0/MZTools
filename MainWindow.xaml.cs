@@ -147,6 +147,13 @@ namespace QDTool
                 "|LEP pulse file (*.lep)|*.lep|L16 pulse file (*.l16)|*.l16|Wave audio (*.wav)|*.wav";
     }
 
+    internal static class AudioImportPolicy
+    {
+        public static bool ShouldTryStandardDecoder(Exception analysisError) =>
+            analysisError is InvalidDataException &&
+            analysisError.Message.Contains("no safe recovery", StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
@@ -1560,9 +1567,9 @@ namespace QDTool
                         bool standardFallbackUsed = false;
                         if (progressWindow.AnalysisError != null)
                         {
-                            if (progressWindow.AnalysisError is InvalidDataException analysisError &&
-                                analysisError.Message.Contains("no safe recovery", StringComparison.OrdinalIgnoreCase))
+                            if (AudioImportPolicy.ShouldTryStandardDecoder(progressWindow.AnalysisError))
                             {
+                                InvalidDataException analysisError = (InvalidDataException)progressWindow.AnalysisError;
                                 try
                                 {
                                     recordsToAdd.AddRange(SharpTapeImporter.ReadFile(filePath));

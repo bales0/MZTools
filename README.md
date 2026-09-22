@@ -9,7 +9,7 @@ MZTools is a utility for converting, inspecting and editing SHARP MZ QuickDisk a
 
 The goal of this fork is to keep the original application simple for normal MZF/MZT/MZQ/QDF/QuickDisk work, while also providing a more complete toolset for SHARP MZ-700/MZ-800 tape and QuickDisk preservation, conversion and analysis.
 
-<img width="786" height="443" src="/images/QDTool_scr_2026-09-19.png">
+<img width="786" height="443" src="/images/MZQDTool_scr_2026-09-19.png">
 
 ## Main functions
 
@@ -148,7 +148,7 @@ as stored and is not automatically decompressed.
 
 Import is intentionally limited to one self-contained IPL payload. Images with
 data outside the declared program are rejected as possible multipart or boot-menu
-disks. QDTool does not analyze whether the Z80 program later loads data from
+disks. MZTools does not analyze whether the Z80 program later loads data from
 another medium. Imported records can be saved/exported as `.mzf` or `.mzt`, or
 exported again as an IPL `.dsk`. Multi-record documents can also be saved as a
 multi-game `.dsk`.
@@ -156,7 +156,7 @@ multi-game `.dsk`.
 For an opened IPL DSK, the status area shows the image type and unused
 sector capacity in its payload area. The record table also identifies MZTools'
 known self-extracting ZX0 and ZX7 loaders, including their direction and the ZX7
-embedded-loader variant. `None / unknown` means that no known QDTool compression
+embedded-loader variant. `None / unknown` means that no known MZTools compression
 loader was detected; it cannot rule out a foreign or custom compression scheme.
 
 When exactly one record is selected, `Export...` offers an
@@ -296,7 +296,7 @@ European QuickDisk logical format with a simpler structure. It is used by UniCar
 
 ### QD
 
-QuickDisk image container. QDTool detects supported SHARP/MZ legacy, HxC and FlashFloppy QuickDisk variants from their contents.
+QuickDisk image container. MZTools detects supported SHARP/MZ legacy, HxC and FlashFloppy QuickDisk variants from their contents.
 
 ### MZF
 
@@ -426,7 +426,7 @@ The extended functions in this fork were developed and verified using informatio
 - **MZ-SD2CMT by SHARPENTIERS** - original SD-card CMT implementation for the SHARP MZ family and an important reference for tape loaders, formats and metadata  
   https://github.com/SHARPENTIERS/MZ-SD2CMT
 
-- **MZ-SD2CMT2-Reborn** - development/reference fork used while extending loader profiles, tape timing and MFI/MTI behavior. QDTool can generate `.MFI` metadata for `.MZF`, `.MTI` metadata for `.MZT`, and `.LEP`/`.L16` pulse files for use with this project.  
+- **MZ-SD2CMT2-Reborn** - development/reference fork used while extending loader profiles, tape timing and MFI/MTI behavior. MZTools can generate `.MFI` metadata for `.MZF`, `.MTI` metadata for `.MZT`, and `.LEP`/`.L16` pulse files for use with this project.
   https://github.com/bales0/MZ-SD2CMT2-Reborn
 
 - **TapeMZ by Michal Hucik** - SHARP MZ tape archive/file-format reference and related tooling  
