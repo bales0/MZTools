@@ -1,0 +1,87 @@
+<Window x:Class="QDTool.MultiGameIplDskOptionsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MZ-800 multi-game IPL DSK export"
+        Icon="/images/QDTool.ico"
+        Width="1050"
+        Height="560"
+        MinWidth="850"
+        MinHeight="430"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False">
+    <Grid Margin="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Configure menu order, display names and compression. Layout values are calculated automatically."
+                   TextWrapping="Wrap"/>
+
+        <Grid Grid.Row="1" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <DataGrid x:Name="entriesGrid"
+                      ItemsSource="{Binding Entries}"
+                      AllowDrop="True"
+                      PreviewMouseLeftButtonDown="EntriesGrid_PreviewMouseLeftButtonDown"
+                      PreviewMouseMove="EntriesGrid_PreviewMouseMove"
+                      DragOver="EntriesGrid_DragOver"
+                      DragLeave="EntriesGrid_DragLeave"
+                      Drop="EntriesGrid_Drop"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      CanUserSortColumns="False"
+                      SelectionMode="Extended"
+                      SelectionUnit="FullRow">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="#" Binding="{Binding Order}" Width="38" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Menu name" Binding="{Binding MenuName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="130"/>
+                    <DataGridTextColumn Header="Original B" Binding="{Binding OriginalSize}" Width="70" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Packed B" Binding="{Binding PackedSize}" Width="70" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Max IPL B" Binding="{Binding MaxPayloadSize}" Width="75" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Ratio" Binding="{Binding CompressionRatio}" Width="58" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="LOAD" Binding="{Binding LoadHex}" Width="65" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="EXEC" Binding="{Binding ExecHex}" Width="65" IsReadOnly="True"/>
+                    <DataGridTemplateColumn Header="Compression" Width="115">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <ComboBox ItemsSource="{Binding CompressionChoices}"
+                                          SelectedItem="{Binding Compression, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          Padding="2,0"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Start" Binding="{Binding StartBlock}" Width="58" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Sectors" Binding="{Binding Sectors}" Width="58" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Applied" Binding="{Binding AppliedCompression}" Width="*" IsReadOnly="True"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <StackPanel Grid.Column="1" Margin="9,0,0,0">
+                <Button Content="Up" Width="70" Click="UpButton_Click"/>
+                <Button Content="Down" Width="70" Margin="0,7,0,0" Click="DownButton_Click"/>
+            </StackPanel>
+        </Grid>
+
+        <Border Grid.Row="2" BorderBrush="LightGray" BorderThickness="1" Padding="10" Margin="0,10,0,0">
+            <StackPanel>
+                <TextBlock x:Name="analysisTextBlock" TextWrapping="Wrap"/>
+                <ProgressBar x:Name="progressBar" Height="5" Margin="0,8,0,0" IsIndeterminate="True" Visibility="Collapsed"/>
+                <TextBlock x:Name="capacityTextBlock" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,9,0,0"/>
+                <TextBlock Foreground="DarkOrange" Margin="0,8,0,0" TextWrapping="Wrap"
+                           Text="Single-part, self-contained MZF programs only. Multipart cassette programs are not supported."/>
+            </StackPanel>
+        </Border>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button x:Name="saveButton" Content="Save" Width="80" IsDefault="True" IsEnabled="False" Click="SaveButton_Click"/>
+            <Button Content="Cancel" Width="80" Margin="8,0,0,0" IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</Window>

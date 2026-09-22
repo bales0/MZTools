@@ -1,0 +1,38 @@
+<Window x:Class="QDTool.WavImportOptionsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Icon="/images/QDTool.ico"
+        Title="Audio import options"
+        Width="390"
+        Height="165"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <StackPanel>
+            <CheckBox x:Name="heuristicImportCheckBox"
+                      Content="Use heuristic analysis / recovery"
+                      IsChecked="False"/>
+            <TextBlock Text="For noisy, offset, inverted, or stereo cassette recordings."
+                       Foreground="Gray"
+                       TextWrapping="Wrap"
+                       Margin="22,4,0,0"/>
+        </StackPanel>
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right">
+            <Button Content="OK"
+                    Width="78"
+                    Margin="0,0,8,0"
+                    IsDefault="True"
+                    Click="Ok_Click"/>
+            <Button Content="Cancel"
+                    Width="78"
+                    IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</Window>

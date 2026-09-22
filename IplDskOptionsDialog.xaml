@@ -1,0 +1,49 @@
+<Window x:Class="QDTool.IplDskOptionsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:QDTool"
+        Title="MZ-800 IPL DSK export"
+        Icon="/images/QDTool.ico"
+        SizeToContent="WidthAndHeight"
+        MinWidth="500"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False">
+    <StackPanel Margin="16">
+        <TextBlock x:Name="nameTextBlock" FontWeight="SemiBold"/>
+        <TextBlock x:Name="originalTextBlock" Margin="0,6,0,0"/>
+
+        <Grid Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Boot display name:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <TextBox x:Name="bootNameTextBox" Grid.Column="1" MaxLength="12" MinWidth="180"/>
+        </Grid>
+
+        <local:CompressionOptionsControl x:Name="compressionControl"/>
+
+        <Border BorderBrush="LightGray" BorderThickness="1" Padding="10" Margin="0,12,0,0">
+            <StackPanel>
+                <TextBlock Text="Result" FontWeight="SemiBold"/>
+                <TextBlock x:Name="previewTextBlock" TextWrapping="Wrap" Margin="0,5,0,0"/>
+                <ProgressBar x:Name="previewProgressBar"
+                             Height="5"
+                             Margin="0,9,0,0"
+                             IsIndeterminate="True"
+                             Visibility="Collapsed"/>
+            </StackPanel>
+        </Border>
+
+        <TextBlock Foreground="DarkOrange"
+                   TextWrapping="Wrap"
+                   Margin="0,12,0,0"
+                   Text="Single-part MZF only. Programs which load another cassette part at runtime are not supported."/>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+            <Button x:Name="saveButton" Content="Save" Width="80" IsDefault="True" Click="SaveButton_Click"/>
+            <Button Content="Cancel" Width="80" Margin="8,0,0,0" IsCancel="True"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

@@ -1,0 +1,40 @@
+<Window x:Class="QDTool.WavAnalysisProgressWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Icon="/images/QDTool.ico"
+        Title="Heuristic audio analysis"
+        Width="460"
+        Height="190"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        ContentRendered="Window_ContentRendered"
+        Closing="Window_Closing">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock x:Name="stageText" Text="Preparing analysis…"/>
+        <ProgressBar x:Name="progressBar"
+                     Grid.Row="1"
+                     Height="18"
+                     Minimum="0"
+                     Maximum="100"
+                     Margin="0,10,0,6"/>
+        <TextBlock x:Name="progressText"
+                   Grid.Row="2"
+                   Foreground="Gray"
+                   Text="0 %"/>
+        <Button x:Name="cancelButton"
+                Grid.Row="4"
+                Content="Cancel"
+                Width="82"
+                HorizontalAlignment="Right"
+                IsCancel="True"
+                Click="Cancel_Click"/>
+    </Grid>
+</Window>
