@@ -9,7 +9,7 @@ MZTools is a utility for converting, inspecting and editing SHARP MZ QuickDisk a
 
 The goal of this fork is to keep the original application simple for normal MZF/MZT/MZQ/QDF/QuickDisk work, while also providing a more complete toolset for SHARP MZ-700/MZ-800 tape and QuickDisk preservation, conversion and analysis.
 
-<img width="786" height="443" src="/images/MZQDTool_scr_2026-09-19.png">
+<img width="786" height="443" src="/images/MZQDTool_scr_2026-09-23.png">
 
 ## Main functions
 
@@ -75,9 +75,11 @@ The heuristic analyzer is intended mainly for real analogue cassette recordings.
 - tape timing and pulse statistics,
 - selective recovery when a normal decode does not produce a valid payload.
 
-The final result is converted directly into MZTools tape records; no intermediate WAV, MZF or MZT file is required. If heuristic recovery is ambiguous, MZTools also tries the standard decoder and accepts its result only when the tape checksum is valid.
+The final result is converted directly into MZTools tape records; no intermediate WAV, MZF or MZT file is required. Polarity is selected independently for every logical program, while its header and payload must use the same polarity. A complete checksum-valid header/payload pair always takes priority over timing score. Selective recovery scans only unresolved program intervals, so one damaged program does not discard records already recovered safely.
 
-The statistics window shows the selected source, checksum state, loader/profile evidence and measured timing information for recovered records.
+If the structured heuristic result contains unresolved programs, MZTools may also try the standard checksum-validating decoder. Format, decoder availability, truncated input and I/O errors do not trigger this fallback. When several WAV/FLAC files are added together, analysis continues after individual failures and one combined report is shown after the complete batch. The import options offer Summary, Detailed and Do not show report modes; Summary is the default for both one file and a batch.
+
+The statistics window shows the selected source, per-record polarity, checksum state, loader/profile evidence, measured timing information and unresolved-program diagnostics.
 
 ### Tape waveform export
 
@@ -114,21 +116,34 @@ Advanced export supports both selected records and the complete document.
 
 ### ZX0 and ZX7 compression
 
-Advanced `Export...` can create self-extracting MZF/MZT records using integrated
+`Export...` can create self-extracting MZF/MZT records using integrated
 ZX0 or ZX7 compression. No external compressor executable is required. The
 available options are:
 
 - ZX0 optimal or quick compression,
-- ZX0/ZX7 forward or backward decompression,
+- ZX0/ZX7 forward or backward compression,
 - ZX7 decoder embedded in the MZF header,
 - expert partial compression using an existing prefix (forward) or suffix
   (backward),
 - Auto selection of the smallest safe standalone result.
 
 Compression is applied to exported clones and does not modify the open document.
-For MZT export the selected policy is evaluated separately for every record.
-Packed `.mz0` and `.mz7` files can be opened as self-extracting
-MZF files; automatic decompression back to the original MZF is not provided.
+For MZT export the selected policy is evaluated separately for every record and
+the preview lists the resolved compression, original size, packed size and ratio
+for each item. Records containing a known MZTools ZX0/ZX7 loader are marked as
+locked and copied unchanged; they cannot be compressed again or changed to a
+different compression. In the Export dialog, recognized compressed records can
+either be copied unchanged or decompressed in the exported copy. Full forward
+and backward streams are restored to a standard MZF record; the open document is
+not modified.
+For expert partial/skip compression, only the stored segment can be restored:
+the excluded prefix or suffix and the skip count are not present in the packed
+MZF. If the compressed stream refers to those external bytes, MZTools rejects
+the standalone decompression as unsafe. An embedded ZX7 decoder overwrites part
+of the MZF description; those loader bytes
+are cleared during decompression, but the original description text cannot be
+reconstructed. Packed `.mz0` and `.mz7` files can be opened as self-extracting
+MZF files and decompressed during export.
 
 The compression engines and MZF loader builders are ports of
 [mz0](https://github.com/bales0/mz0) and

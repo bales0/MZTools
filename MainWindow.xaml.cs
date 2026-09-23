@@ -3,10 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Reflection.PortableExecutable;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -14,11 +12,9 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
 using System.Windows.Shapes;
 using static QDTool.SharpMzEncoding;
 
@@ -149,9 +145,22 @@ namespace QDTool
 
     internal static class AudioImportPolicy
     {
-        public static bool ShouldTryStandardDecoder(Exception analysisError) =>
-            analysisError is InvalidDataException &&
-            analysisError.Message.Contains("no safe recovery", StringComparison.OrdinalIgnoreCase);
+        public static bool ShouldTryStandardDecoder(WavHeuristicAnalysisResult analysis) =>
+            ShouldTryStandardDecoder(analysis.Failures.Count);
+
+        internal static bool ShouldTryStandardDecoder(int failureCount) => failureCount > 0;
+    }
+
+    internal sealed class AudioFileImportResult
+    {
+        internal required string SourceFile { get; init; }
+        internal required IReadOnlyList<TapeRecord> Records { get; init; }
+        internal WavHeuristicAnalysisResult? Analysis { get; init; }
+        internal bool StandardFallbackUsed { get; init; }
+        internal bool Cancelled { get; init; }
+        internal Exception? Error { get; init; }
+        internal AudioReportMode ReportMode { get; init; } = AudioReportMode.Summary;
+        internal bool Imported => !Cancelled && Error == null && Records.Count > 0;
     }
 
     /// <summary>
@@ -400,14 +409,49 @@ namespace QDTool
 
                 if (files != null && files.Length > 0)
                 {
+                    string[] audioPaths = files
+                        .Where(path => System.IO.Path.GetExtension(path).ToLowerInvariant() is ".wav" or ".flac")
+                        .ToArray();
+                    WavImportMode? audioImportMode = null;
+                    AudioReportMode audioReportMode = AudioReportMode.Summary;
+                    if (audioPaths.Length > 0)
+                    {
+                        string sourceFormat = audioPaths.Length == 1
+                            ? System.IO.Path.GetExtension(audioPaths[0]).TrimStart('.').ToUpperInvariant()
+                            : $"Audio ({audioPaths.Length} files)";
+                        var options = new WavImportOptionsWindow(sourceFormat) { Owner = this };
+                        if (options.ShowDialog() != true)
+                        {
+                            return;
+                        }
+                        audioImportMode = options.ImportMode;
+                        audioReportMode = options.ReportMode;
+                    }
+
                     bool bindAsCurrent = document.Format == TapeDocumentFormat.None && mzfBlocks.Count == 0;
+                    var audioResults = new List<AudioFileImportResult>();
+                    int audioIndex = 0;
                     foreach (var file in files)
                     {
-                        if (AddFile(file, bindAsCurrent))
+                        bool isAudio = System.IO.Path.GetExtension(file).ToLowerInvariant() is ".wav" or ".flac";
+                        if (isAudio)
+                        {
+                            audioIndex++;
+                        }
+                        if (AddFile(
+                            file,
+                            bindAsCurrent,
+                            selectedAudioImportMode: isAudio ? audioImportMode : null,
+                            selectedAudioReportMode: isAudio ? audioReportMode : null,
+                            audioResultSink: audioResults.Add,
+                            deferAudioErrors: audioPaths.Length > 1,
+                            audioFileIndex: audioIndex,
+                            audioFileCount: audioPaths.Length))
                         {
                             bindAsCurrent = false;
                         }
                     }
+                    ShowAudioImportReports(audioResults);
                     saveButton.IsEnabled = true;
                     UpdateStatus();
                 }
@@ -863,9 +907,18 @@ namespace QDTool
             if (openFileDialog.ShowDialog() == true)
             {
                 string filePath = openFileDialog.FileName;
-                if (!AddFile(filePath, bindAsCurrent: true, showIplImportDialog: true))
+                AudioFileImportResult? audioResult = null;
+                if (!AddFile(
+                    filePath,
+                    bindAsCurrent: true,
+                    showIplImportDialog: true,
+                    audioResultSink: result => audioResult = result))
                 {
                     return;
+                }
+                if (audioResult?.Imported == true)
+                {
+                    ShowAudioImportReport(audioResult);
                 }
 
                 saveButton.IsEnabled = true;
@@ -1488,14 +1541,168 @@ namespace QDTool
             }
         }
 
+        private AudioFileImportResult ImportAudioFile(
+            string filePath,
+            WavImportMode importMode,
+            AudioReportMode reportMode,
+            int fileIndex = 0,
+            int fileCount = 0)
+        {
+            if (importMode != WavImportMode.Heuristic)
+            {
+                try
+                {
+                    return new AudioFileImportResult
+                    {
+                        SourceFile = filePath,
+                        Records = SharpTapeImporter.ReadFile(filePath),
+                        ReportMode = reportMode
+                    };
+                }
+                catch (Exception exception)
+                {
+                    return new AudioFileImportResult
+                    {
+                        SourceFile = filePath,
+                        Records = [],
+                        Error = exception,
+                        ReportMode = reportMode
+                    };
+                }
+            }
+
+            var progressWindow = new WavAnalysisProgressWindow(filePath, fileIndex, fileCount)
+            {
+                Owner = this
+            };
+            bool? analysisAccepted = progressWindow.ShowDialog();
+            if (progressWindow.AnalysisError != null)
+            {
+                // Format, decoder and I/O failures deliberately do not enter the
+                // standard-decoder fallback. Recovery failures are represented by
+                // the structured analysis result below.
+                return new AudioFileImportResult
+                {
+                    SourceFile = filePath,
+                    Records = [],
+                    Error = progressWindow.AnalysisError,
+                    ReportMode = reportMode
+                };
+            }
+            if (analysisAccepted != true || progressWindow.AnalysisResult == null)
+            {
+                return new AudioFileImportResult
+                {
+                    SourceFile = filePath,
+                    Records = [],
+                    Cancelled = true,
+                    ReportMode = reportMode
+                };
+            }
+
+            WavHeuristicAnalysisResult analysis = progressWindow.AnalysisResult;
+            IReadOnlyList<TapeRecord> records = analysis.Records;
+            bool fallbackUsed = false;
+            Exception? fallbackError = null;
+            if (AudioImportPolicy.ShouldTryStandardDecoder(analysis))
+            {
+                try
+                {
+                    IReadOnlyList<TapeRecord> standardRecords = SharpTapeImporter.ReadFile(filePath);
+                    if (standardRecords.Count > records.Count)
+                    {
+                        records = standardRecords;
+                        fallbackUsed = true;
+                    }
+                }
+                catch (Exception exception)
+                {
+                    fallbackError = exception;
+                }
+            }
+
+            Exception? error = records.Count == 0
+                ? new InvalidDataException(
+                    fallbackError == null
+                        ? "Heuristic analysis did not recover a checksum-valid program."
+                        : $"Heuristic recovery failed and the standard decoder also failed: {fallbackError.Message}",
+                    fallbackError)
+                : null;
+            return new AudioFileImportResult
+            {
+                SourceFile = filePath,
+                Records = records,
+                Analysis = analysis,
+                StandardFallbackUsed = fallbackUsed,
+                Error = error,
+                ReportMode = reportMode
+            };
+        }
+
+        private void ShowAudioImportReport(AudioFileImportResult result)
+        {
+            if (result.ReportMode == AudioReportMode.None)
+            {
+                return;
+            }
+            if (result.ReportMode == AudioReportMode.Detailed && result.Analysis != null)
+            {
+                new WavAnalysisStatisticsWindow(result.Analysis.Statistics)
+                {
+                    Owner = this
+                }.ShowDialog();
+            }
+            else
+            {
+                new WavAnalysisStatisticsWindow([result])
+                {
+                    Owner = this
+                }.ShowDialog();
+            }
+            if (result.StandardFallbackUsed)
+            {
+                MessageBox.Show(
+                    this,
+                    "The heuristic result was incomplete. The checksum-valid standard decoder recovered more records and its result was imported.",
+                    "Audio imported with standard decoder",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+        }
+
+        private void ShowAudioImportReports(IReadOnlyList<AudioFileImportResult> results)
+        {
+            if (results.Count == 0 || results[0].ReportMode == AudioReportMode.None)
+            {
+                return;
+            }
+            if (results.Count == 1 && results[0].Imported)
+            {
+                ShowAudioImportReport(results[0]);
+                return;
+            }
+            new WavAnalysisStatisticsWindow(
+                results,
+                includeDetails: results[0].ReportMode == AudioReportMode.Detailed)
+            {
+                Owner = this
+            }.ShowDialog();
+        }
+
         private bool AddFile(
             string filePath,
             bool bindAsCurrent = false,
             bool showIplImportDialog = false,
-            WavImportMode? selectedAudioImportMode = null)
+            WavImportMode? selectedAudioImportMode = null,
+            AudioReportMode? selectedAudioReportMode = null,
+            Action<AudioFileImportResult>? audioResultSink = null,
+            bool deferAudioErrors = false,
+            int audioFileIndex = 0,
+            int audioFileCount = 0)
         {
             string fileExtension = System.IO.Path.GetExtension(filePath).ToLowerInvariant();
             WavImportMode wavImportMode = selectedAudioImportMode ?? WavImportMode.Standard;
+            AudioReportMode wavReportMode = selectedAudioReportMode ?? AudioReportMode.Summary;
             if ((fileExtension is ".wav" or ".flac") &&
                 !selectedAudioImportMode.HasValue)
             {
@@ -1506,12 +1713,15 @@ namespace QDTool
                     return false;
                 }
                 wavImportMode = options.ImportMode;
+                wavReportMode = options.ReportMode;
             }
             var recordsToAdd = new List<TapeRecord>();
             byte[] containerTrailing = Array.Empty<byte>();
             string? loadedSidecar = null;
             QuickDiskPhysicalProfile? loadedQdProfile = null;
             Mz800IplDskInfo? loadedIplDskInfo = null;
+            AudioFileImportResult? audioImportResult = null;
+            bool audioResultReported = false;
             TapeDocumentFormat format;
 
             try
@@ -1559,58 +1769,24 @@ namespace QDTool
                 }
                 else if (fileExtension is ".wav" or ".flac" or ".lep" or ".l16")
                 {
-                    if ((fileExtension is ".wav" or ".flac") &&
-                        wavImportMode == WavImportMode.Heuristic)
+                    if (fileExtension is ".wav" or ".flac")
                     {
-                        var progressWindow = new WavAnalysisProgressWindow(filePath) { Owner = this };
-                        bool? analysisAccepted = progressWindow.ShowDialog();
-                        bool standardFallbackUsed = false;
-                        if (progressWindow.AnalysisError != null)
+                        audioImportResult = ImportAudioFile(
+                            filePath,
+                            wavImportMode,
+                            wavReportMode,
+                            audioFileIndex,
+                            audioFileCount);
+                        if (audioImportResult.Cancelled)
                         {
-                            if (AudioImportPolicy.ShouldTryStandardDecoder(progressWindow.AnalysisError))
-                            {
-                                InvalidDataException analysisError = (InvalidDataException)progressWindow.AnalysisError;
-                                try
-                                {
-                                    recordsToAdd.AddRange(SharpTapeImporter.ReadFile(filePath));
-                                    MessageBox.Show(
-                                        this,
-                                        "Heuristic analysis was inconclusive, but the checksum-valid standard decoder imported the audio successfully.",
-                                        "Audio imported with standard decoder",
-                                        MessageBoxButton.OK,
-                                        MessageBoxImage.Information);
-                                    standardFallbackUsed = true;
-                                }
-                                catch (Exception standardException)
-                                {
-                                    throw new InvalidDataException(
-                                        $"Heuristic audio analysis was inconclusive ({analysisError.Message}) " +
-                                        $"and the standard checksum-valid decoder also failed: {standardException.Message}",
-                                        standardException);
-                                }
-                            }
-                            if (!standardFallbackUsed)
-                            {
-                                throw new InvalidDataException(
-                                    $"Heuristic audio analysis failed: {progressWindow.AnalysisError.Message}",
-                                    progressWindow.AnalysisError);
-                            }
-                        }
-                        if (!standardFallbackUsed &&
-                            (analysisAccepted != true || progressWindow.AnalysisResult == null))
-                        {
+                            audioResultSink?.Invoke(audioImportResult);
                             return false;
                         }
-
-                        if (!standardFallbackUsed)
+                        if (audioImportResult.Error != null)
                         {
-                            WavHeuristicAnalysisResult analysis = progressWindow.AnalysisResult!;
-                            recordsToAdd.AddRange(analysis.Records);
-                            new WavAnalysisStatisticsWindow(analysis.Statistics)
-                            {
-                                Owner = this
-                            }.ShowDialog();
+                            throw audioImportResult.Error;
                         }
+                        recordsToAdd.AddRange(audioImportResult.Records);
                     }
                     else
                     {
@@ -1667,11 +1843,29 @@ namespace QDTool
                 {
                     infoText.Content = $"{infoText.Content} Imported IPL payload as a synthetic OBJ MZF; original tape metadata is not recoverable and compressed data remains packed.";
                 }
+                if (audioImportResult != null)
+                {
+                    audioResultSink?.Invoke(audioImportResult);
+                    audioResultReported = true;
+                }
                 return true;
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Error reading file", MessageBoxButton.OK, MessageBoxImage.Error);
+                if ((fileExtension is ".wav" or ".flac") && audioResultSink != null && !audioResultReported)
+                {
+                    audioResultSink(audioImportResult ?? new AudioFileImportResult
+                    {
+                        SourceFile = filePath,
+                        Records = [],
+                        Error = ex,
+                        ReportMode = wavReportMode
+                    });
+                }
+                if (!deferAudioErrors || fileExtension is not (".wav" or ".flac"))
+                {
+                    MessageBox.Show(ex.Message, "Error reading file", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
                 return false;
             }
         }
@@ -1698,6 +1892,7 @@ namespace QDTool
                     .Where(path => System.IO.Path.GetExtension(path).ToLowerInvariant() is ".wav" or ".flac")
                     .ToArray();
                 WavImportMode? audioImportMode = null;
+                AudioReportMode audioReportMode = AudioReportMode.Summary;
                 if (audioPaths.Length > 0)
                 {
                     string sourceFormat = audioPaths.Length == 1
@@ -1709,26 +1904,45 @@ namespace QDTool
                         return;
                     }
                     audioImportMode = options.ImportMode;
+                    audioReportMode = options.ReportMode;
                 }
 
                 bool bindAsCurrent = document.Format == TapeDocumentFormat.None && mzfBlocks.Count == 0;
                 bool addedAny = false;
+                var audioResults = new List<AudioFileImportResult>();
+                int audioIndex = 0;
                 foreach (string filePath in filePaths)
                 {
                     string extension = System.IO.Path.GetExtension(filePath).ToLowerInvariant();
-                    WavImportMode? mode = extension is ".wav" or ".flac"
+                    bool isAudio = extension is ".wav" or ".flac";
+                    if (isAudio)
+                    {
+                        audioIndex++;
+                    }
+                    WavImportMode? mode = isAudio
                         ? audioImportMode
                         : null;
                     if (!AddFile(
                         filePath,
                         bindAsCurrent,
-                        selectedAudioImportMode: mode))
+                        selectedAudioImportMode: mode,
+                        selectedAudioReportMode: isAudio ? audioReportMode : null,
+                        audioResultSink: audioResults.Add,
+                        deferAudioErrors: audioPaths.Length > 1,
+                        audioFileIndex: audioIndex,
+                        audioFileCount: audioPaths.Length))
                     {
+                        if (isAudio && audioPaths.Length > 1)
+                        {
+                            continue;
+                        }
                         return;
                     }
                     bindAsCurrent = false;
                     addedAny = true;
                 }
+
+                ShowAudioImportReports(audioResults);
 
                 if (addedAny)
                 {
@@ -1976,63 +2190,5 @@ namespace QDTool
             RefreshGrid();
         }
 
-        private void button_Click_About(object sender, RoutedEventArgs e)
-        {
-            string version = Assembly.GetExecutingAssembly()
-                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-                .InformationalVersion.Split('+')[0]
-                ?? Assembly.GetExecutingAssembly().GetName().Version?.ToString()
-                ?? "unknown";
-
-            var dialog = new Window
-            {
-                Owner = this,
-                Title = "About",
-                Icon = this.Icon,
-                Width = 300,
-                Height = 175,
-                ResizeMode = ResizeMode.NoResize,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner
-            };
-            var link = new Hyperlink(new Run("www.8bity.cz"))
-            {
-                NavigateUri = new Uri("https://www.8bity.cz")
-            };
-            link.RequestNavigate += (_, eventArgs) =>
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = eventArgs.Uri.AbsoluteUri,
-                    UseShellExecute = true
-                });
-                eventArgs.Handled = true;
-            };
-            var ok = new Button
-            {
-                Content = "OK",
-                HorizontalAlignment = HorizontalAlignment.Right,
-                Margin = new Thickness(0, 10, 0, 0),
-                Width = 70,
-                IsDefault = true
-            };
-            ok.Click += (_, _) => dialog.Close();
-
-            var content = new StackPanel { Margin = new Thickness(10) };
-            content.Children.Add(new TextBlock
-            {
-                Text = "MZTools",
-                FontWeight = FontWeights.Bold,
-                FontSize = 14
-            });
-            content.Children.Add(new TextBlock { Text = $"Version {version}" });
-            content.Children.Add(new TextBlock { Text = "© 2026 Martin Lukasek" });
-            content.Children.Add(new TextBlock { Text = "Simple app to convert SHARP MZ files." });
-            var linkText = new TextBlock();
-            linkText.Inlines.Add(link);
-            content.Children.Add(linkText);
-            content.Children.Add(ok);
-            dialog.Content = content;
-            dialog.ShowDialog();
-        }
     }
 }

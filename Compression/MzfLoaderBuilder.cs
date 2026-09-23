@@ -3,6 +3,24 @@ using System.Buffers.Binary;
 
 namespace QDTool
 {
+    internal sealed record MzfCompressionInfo(
+        MzfCompressionAlgorithm Algorithm,
+        CompressionDirection Direction,
+        bool EmbeddedLoader,
+        int LoaderOffset,
+        int LoaderSize,
+        int DecoderLength,
+        int PayloadOffset,
+        int PayloadLength,
+        ushort RestoredSize,
+        ushort RestoredLoad,
+        ushort RestoredExec)
+    {
+        internal string DisplayName => Algorithm.ToString().ToUpperInvariant() +
+            (Direction == CompressionDirection.Backward ? " (backward" : " (forward") +
+            (EmbeddedLoader ? ", embedded)" : ")");
+    }
+
     // The decoder byte sequences and address formulas below are ported from
     // bales0/mz0 and bales0/mz7. Their original BSD notices are reproduced in
     // THIRD_PARTY_NOTICES.md.
@@ -69,31 +87,60 @@ namespace QDTool
         public static string DetectCompression(TapeRecord record)
         {
             ArgumentNullException.ThrowIfNull(record);
-            if (MatchesLoader(record, Zx0ForwardDecoder, backwards: false, embedded: false))
+            return TryGetCompressionInfo(record, out MzfCompressionInfo? info)
+                ? info!.DisplayName
+                : "None / unknown";
+        }
+
+        internal static bool TryGetCompressionInfo(
+            TapeRecord record,
+            out MzfCompressionInfo? info)
+        {
+            ArgumentNullException.ThrowIfNull(record);
+            if (TryCreateCompressionInfo(record, Zx0ForwardDecoder, MzfCompressionAlgorithm.Zx0, false, false, out info) ||
+                TryCreateCompressionInfo(record, Zx0BackwardDecoder, MzfCompressionAlgorithm.Zx0, true, false, out info) ||
+                TryCreateCompressionInfo(record, Zx7ForwardDecoder, MzfCompressionAlgorithm.Zx7, false, false, out info) ||
+                TryCreateCompressionInfo(record, Zx7BackwardDecoder, MzfCompressionAlgorithm.Zx7, true, false, out info) ||
+                TryCreateCompressionInfo(record, Zx7ForwardEmbeddedDecoder, MzfCompressionAlgorithm.Zx7, false, true, out info) ||
+                TryCreateCompressionInfo(record, Zx7BackwardEmbeddedDecoder, MzfCompressionAlgorithm.Zx7, true, true, out info))
             {
-                return "ZX0 (forward)";
+                return true;
             }
-            if (MatchesLoader(record, Zx0BackwardDecoder, backwards: true, embedded: false))
+            info = null;
+            return false;
+        }
+
+        private static bool TryCreateCompressionInfo(
+            TapeRecord record,
+            byte[] decoderTemplate,
+            MzfCompressionAlgorithm algorithm,
+            bool backwards,
+            bool embedded,
+            out MzfCompressionInfo? info)
+        {
+            if (!MatchesLoader(record, decoderTemplate, backwards, embedded))
             {
-                return "ZX0 (backward)";
+                info = null;
+                return false;
             }
-            if (MatchesLoader(record, Zx7ForwardDecoder, backwards: false, embedded: false))
-            {
-                return "ZX7 (forward)";
-            }
-            if (MatchesLoader(record, Zx7BackwardDecoder, backwards: true, embedded: false))
-            {
-                return "ZX7 (backward)";
-            }
-            if (MatchesLoader(record, Zx7ForwardEmbeddedDecoder, backwards: false, embedded: true))
-            {
-                return "ZX7 (forward, embedded)";
-            }
-            if (MatchesLoader(record, Zx7BackwardEmbeddedDecoder, backwards: true, embedded: true))
-            {
-                return "ZX7 (backward, embedded)";
-            }
-            return "None / unknown";
+            byte[] body = record.Body.MzfBody;
+            int loaderSize = embedded ? 0x15 : 0x20 + decoderTemplate.Length;
+            int loaderOffset = backwards ? body.Length - loaderSize : 0;
+            ReadOnlySpan<byte> prefix = body.AsSpan(loaderOffset, embedded ? 0x15 : 0x20);
+            int payloadOffset = backwards ? 0 : loaderSize;
+            info = new MzfCompressionInfo(
+                algorithm,
+                backwards ? CompressionDirection.Backward : CompressionDirection.Forward,
+                embedded,
+                loaderOffset,
+                loaderSize,
+                decoderTemplate.Length,
+                payloadOffset,
+                body.Length - loaderSize,
+                BinaryPrimitives.ReadUInt16LittleEndian(prefix[1..3]),
+                BinaryPrimitives.ReadUInt16LittleEndian(prefix[7..9]),
+                BinaryPrimitives.ReadUInt16LittleEndian(prefix[13..15]));
+            return true;
         }
 
         private static bool MatchesLoader(

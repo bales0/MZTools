@@ -10,6 +10,7 @@ namespace QDTool
     public partial class WavAnalysisProgressWindow : Window
     {
         private readonly string filePath;
+        private readonly string progressPrefix;
         private readonly CancellationTokenSource cancellation = new();
         private bool analysisStarted;
         private bool analysisFinished;
@@ -17,11 +18,12 @@ namespace QDTool
         internal WavHeuristicAnalysisResult? AnalysisResult { get; private set; }
         internal Exception? AnalysisError { get; private set; }
 
-        internal WavAnalysisProgressWindow(string filePath)
+        internal WavAnalysisProgressWindow(string filePath, int fileIndex = 0, int fileCount = 0)
         {
             this.filePath = filePath;
+            progressPrefix = fileCount > 1 ? $"File {fileIndex} / {fileCount} · " : string.Empty;
             InitializeComponent();
-            stageText.Text = $"Preparing {Path.GetFileName(filePath)}…";
+            stageText.Text = $"{progressPrefix}Preparing {Path.GetFileName(filePath)}…";
         }
 
         private async void Window_ContentRendered(object sender, EventArgs e)
@@ -58,7 +60,7 @@ namespace QDTool
         private void UpdateProgress(WavAnalysisProgress progress)
         {
             double percentage = Math.Clamp(progress.Fraction * 100, 0, 100);
-            stageText.Text = progress.Stage;
+            stageText.Text = $"{progressPrefix}{Path.GetFileName(filePath)} · {progress.Stage}";
             progressBar.Value = percentage;
             progressText.Text =
                 $"{percentage:F1} %  ·  {progress.ProcessedFrames:N0} / {progress.TotalFrames:N0} frames" +

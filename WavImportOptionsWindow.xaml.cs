@@ -8,11 +8,27 @@ namespace QDTool
         Heuristic
     }
 
+    internal enum AudioReportMode
+    {
+        Summary,
+        Detailed,
+        None
+    }
+
     public partial class WavImportOptionsWindow : Window
     {
         internal WavImportMode ImportMode => heuristicImportCheckBox.IsChecked == true
             ? WavImportMode.Heuristic
             : WavImportMode.Standard;
+
+        internal AudioReportMode ReportMode => GetReportMode(reportModeComboBox.SelectedIndex);
+
+        internal static AudioReportMode GetReportMode(int selectedIndex) => selectedIndex switch
+        {
+            1 => AudioReportMode.Detailed,
+            2 => AudioReportMode.None,
+            _ => AudioReportMode.Summary
+        };
 
         internal WavImportOptionsWindow(string sourceFormat = "WAV")
         {

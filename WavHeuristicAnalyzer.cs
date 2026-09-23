@@ -164,6 +164,26 @@ namespace QDTool
         internal required bool ReconstructionUsed { get; init; }
         internal required TapeProfile FinalProfile { get; init; }
         internal Native1xTimingAnalysis? Native1xAnalysis { get; init; }
+        internal bool SelectiveRecoveryUsed { get; init; }
+    }
+
+    internal sealed record WavAnalysisFailure(
+        string SourceFile,
+        string Reason,
+        long StartSample,
+        long EndSample,
+        ushort? ExpectedLength,
+        bool? Inverted,
+        bool HeaderFound,
+        bool PayloadCandidatesFound,
+        bool RecoveryAttempted);
+
+    internal sealed class WavAssemblyResult
+    {
+        internal required IReadOnlyList<TapeRecord> Records { get; init; }
+        internal required IReadOnlyList<WavRecoveryInfo> Recoveries { get; init; }
+        internal required IReadOnlyList<WavAnalysisFailure> Failures { get; init; }
+        internal int ReconstructedRecords => Recoveries.Count(value => value.ReconstructionUsed);
     }
 
     internal readonly record struct WavAnalysisProgress(
@@ -175,6 +195,7 @@ namespace QDTool
 
     internal sealed class WavHeuristicStatistics
     {
+        internal required string SourceFile { get; init; }
         internal required PcmAudioFormat Format { get; init; }
         internal required string SourceFormat { get; init; }
         internal required int HeaderCandidates { get; init; }
@@ -184,6 +205,7 @@ namespace QDTool
         internal required int ReconstructedRecords { get; init; }
         internal required bool SelectiveRecoveryUsed { get; init; }
         internal required IReadOnlyList<WavRecoveryInfo> RecordRecoveries { get; init; }
+        internal required IReadOnlyList<WavAnalysisFailure> Failures { get; init; }
         internal double DurationSeconds => Format.FrameCount / (double)Format.SampleRate;
     }
 
@@ -191,6 +213,7 @@ namespace QDTool
     {
         internal required IReadOnlyList<TapeRecord> Records { get; init; }
         internal required WavHeuristicStatistics Statistics { get; init; }
+        internal required IReadOnlyList<WavAnalysisFailure> Failures { get; init; }
     }
 
     internal static class WavHeuristicAnalyzer
@@ -254,39 +277,55 @@ namespace QDTool
                 channel.Flush(reader.Format.FrameCount);
             }
 
-            bool selectiveRecoveryUsed = false;
-            IReadOnlyList<TapeRecord> records;
-            IReadOnlyList<WavRecoveryInfo> recordRecoveries;
-            int reconstructedRecords;
-            try
+            progress?.Report(new WavAnalysisProgress(
+                "Selecting best blocks",
+                1,
+                reader.Format.FrameCount,
+                reader.Format.FrameCount,
+                candidates.Count));
+            WavAssemblyResult assembly = AssembleRecords(
+                candidates,
+                reader.Format.SampleRate,
+                reader.Format.FrameCount);
+            List<SharpBlockCandidate> recoveryCandidates = [];
+            if (assembly.Failures.Any(value => value.HeaderFound))
             {
-                progress?.Report(new WavAnalysisProgress(
-                    "Selecting best blocks",
-                    1,
-                    reader.Format.FrameCount,
-                    reader.Format.FrameCount,
-                    candidates.Count));
-                records = AssembleRecords(
-                    candidates,
-                    reader.Format.SampleRate,
-                    out reconstructedRecords,
-                    out recordRecoveries);
-            }
-            catch (InvalidDataException) when (
-                candidates.Any(value =>
-                    value.Kind == SharpBlockKind.Header && value.ChecksumValid) &&
-                candidates.Any(value =>
-                    value.Kind == SharpBlockKind.Payload && !value.ChecksumValid))
-            {
-                selectiveRecoveryUsed = true;
-                records = SelectiveRecovery(
+                recoveryCandidates = SelectiveRecovery(
                     reader,
-                    candidates,
+                    assembly.Failures,
                     progress,
-                    cancellationToken,
-                    out reconstructedRecords,
-                    out recordRecoveries);
+                    cancellationToken);
+                if (recoveryCandidates.Count > 0)
+                {
+                    candidates.AddRange(recoveryCandidates);
+                    assembly = AssembleRecords(
+                        candidates,
+                        reader.Format.SampleRate,
+                        reader.Format.FrameCount);
+                }
             }
+
+            bool selectiveRecoveryUsed = recoveryCandidates.Count > 0;
+            var recoveryCandidateSet = recoveryCandidates.ToHashSet();
+            IReadOnlyList<WavRecoveryInfo> recordRecoveries = assembly.Recoveries
+                .Select(value => new WavRecoveryInfo
+                {
+                    Header = value.Header,
+                    Payload = value.Payload,
+                    ReconstructionUsed = value.ReconstructionUsed,
+                    FinalProfile = value.FinalProfile,
+                    Native1xAnalysis = value.Native1xAnalysis,
+                    SelectiveRecoveryUsed = recoveryCandidateSet.Contains(value.Header.Candidate) ||
+                        recoveryCandidateSet.Contains(value.Payload.Candidate)
+                })
+                .ToList();
+            IReadOnlyList<WavAnalysisFailure> failures = assembly.Failures
+                .Select(value => value with
+                {
+                    SourceFile = filePath,
+                    RecoveryAttempted = selectiveRecoveryUsed && value.HeaderFound
+                })
+                .ToList();
 
             progress?.Report(new WavAnalysisProgress(
                 "Completed",
@@ -296,92 +335,113 @@ namespace QDTool
                 candidates.Count));
             return new WavHeuristicAnalysisResult
             {
-                Records = records,
+                Records = assembly.Records,
+                Failures = failures,
                 Statistics = new WavHeuristicStatistics
                 {
+                    SourceFile = filePath,
                     Format = reader.Format,
                     SourceFormat = reader.SourceFormat,
                     HeaderCandidates = candidates.Count(value => value.Kind == SharpBlockKind.Header),
                     PayloadCandidates = candidates.Count(value => value.Kind == SharpBlockKind.Payload),
                     ValidPayloadCandidates = candidates.Count(value =>
                         value.Kind == SharpBlockKind.Payload && value.ChecksumValid),
-                    ResultRecords = records.Count,
-                    ReconstructedRecords = reconstructedRecords,
+                    ResultRecords = assembly.Records.Count,
+                    ReconstructedRecords = assembly.ReconstructedRecords,
                     SelectiveRecoveryUsed = selectiveRecoveryUsed,
-                    RecordRecoveries = recordRecoveries
+                    RecordRecoveries = recordRecoveries,
+                    Failures = failures
                 }
             };
         }
 
-        private static IReadOnlyList<TapeRecord> SelectiveRecovery(
+        private static List<SharpBlockCandidate> SelectiveRecovery(
             IPcmAudioStreamReader reader,
-            List<SharpBlockCandidate> discoveryCandidates,
+            IReadOnlyList<WavAnalysisFailure> failures,
             IProgress<WavAnalysisProgress>? progress,
-            CancellationToken cancellationToken,
-            out int reconstructedRecords,
-            out IReadOnlyList<WavRecoveryInfo> recordRecoveries)
+            CancellationToken cancellationToken)
         {
-            List<SharpBlockCandidate> failures = discoveryCandidates
-                .Where(value => value.Kind == SharpBlockKind.Payload && !value.ChecksumValid)
-                .ToList();
-            long context = reader.Format.SampleRate * 3L;
-            long firstFrame = Math.Max(0, failures.Min(value => value.StartSample) - context);
-            long lastFrame = Math.Min(
-                reader.Format.FrameCount,
-                failures.Max(value => value.EndSample) + context);
-            var expectedLengths = discoveryCandidates
-                .Where(value => value.Kind == SharpBlockKind.Header && value.ChecksumValid)
-                .Select(value => (int)BinaryPrimitives.ReadUInt16LittleEndian(value.Data.AsSpan(18, 2)))
-                .Concat(failures.Select(value => value.Data.Length))
-                .Where(value => value > 0)
+            IReadOnlyList<(long Start, long End)> intervals = GetSelectiveRecoveryIntervals(
+                failures,
+                reader.Format.FrameCount);
+            var expectedLengths = failures
+                .Select(value => (int?)value.ExpectedLength)
+                .Where(value => value is > 0)
+                .Select(value => value!.Value)
                 .Distinct()
                 .ToHashSet();
-
             var recoveryCandidates = new List<SharpBlockCandidate>();
-            var channels = Enumerable.Range(0, reader.Format.Channels)
-                .Select(channel => new ChannelAnalyzer(
-                    channel,
-                    reader.Format.SampleRate,
-                    recoveryCandidates,
-                    expectedLengths,
-                    schmittScale: 0.65))
-                .ToArray();
-            progress?.Report(new WavAnalysisProgress(
-                "Selective recovery",
-                firstFrame / (double)reader.Format.FrameCount,
-                firstFrame,
-                reader.Format.FrameCount,
-                discoveryCandidates.Count));
-            reader.ReadFrames(firstFrame, lastFrame - firstFrame, (sample, left, right) =>
+            foreach ((long firstFrame, long lastFrame) in intervals)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                channels[0].Process(sample, left);
-                if (channels.Length == 2)
+                var channels = Enumerable.Range(0, reader.Format.Channels)
+                    .Select(channel => new ChannelAnalyzer(
+                        channel,
+                        reader.Format.SampleRate,
+                        recoveryCandidates,
+                        expectedLengths,
+                        schmittScale: 0.65))
+                    .ToArray();
+                progress?.Report(new WavAnalysisProgress(
+                    "Selective recovery",
+                    firstFrame / (double)reader.Format.FrameCount,
+                    firstFrame,
+                    reader.Format.FrameCount,
+                    recoveryCandidates.Count));
+                reader.ReadFrames(firstFrame, lastFrame - firstFrame, (sample, left, right) =>
                 {
-                    channels[1].Process(sample, right);
+                    cancellationToken.ThrowIfCancellationRequested();
+                    channels[0].Process(sample, left);
+                    if (channels.Length == 2)
+                    {
+                        channels[1].Process(sample, right);
+                    }
+                });
+                foreach (ChannelAnalyzer channel in channels)
+                {
+                    channel.Flush(lastFrame);
                 }
-            });
-            foreach (ChannelAnalyzer channel in channels)
-            {
-                channel.Flush(lastFrame);
             }
-
-            discoveryCandidates.AddRange(recoveryCandidates);
-            return AssembleRecords(
-                discoveryCandidates,
-                reader.Format.SampleRate,
-                out reconstructedRecords,
-                out recordRecoveries);
+            return recoveryCandidates;
         }
 
-        private static IReadOnlyList<TapeRecord> AssembleRecords(
+        internal static IReadOnlyList<(long Start, long End)> GetSelectiveRecoveryIntervals(
+            IReadOnlyList<WavAnalysisFailure> failures,
+            long totalFrames) => failures
+                .Where(value => value.HeaderFound)
+                .Select(value => (
+                    Math.Max(0, value.StartSample),
+                    Math.Min(totalFrames, value.EndSample)))
+                .Where(value => value.Item2 > value.Item1)
+                .OrderBy(value => value.Item1)
+                .Aggregate(
+                    new List<(long Start, long End)>(),
+                    (merged, interval) =>
+                    {
+                        if (merged.Count == 0 || interval.Item1 > merged[^1].End)
+                        {
+                            merged.Add(interval);
+                        }
+                        else
+                        {
+                            merged[^1] = (merged[^1].Start, Math.Max(merged[^1].End, interval.Item2));
+                        }
+                        return merged;
+                    });
+
+        internal static WavAssemblyResult AssembleCandidatesForTest(
+            IEnumerable<SharpBlockCandidate> candidates,
+            uint sampleRate,
+            long totalFrames) =>
+            AssembleRecords(candidates.ToList(), sampleRate, totalFrames);
+
+        private static WavAssemblyResult AssembleRecords(
             List<SharpBlockCandidate> candidates,
             uint sampleRate,
-            out int reconstructedRecords,
-            out IReadOnlyList<WavRecoveryInfo> recordRecoveries)
+            long totalFrames)
         {
-            reconstructedRecords = 0;
+            var records = new List<TapeRecord>();
             var recoveries = new List<WavRecoveryInfo>();
+            var failures = new List<WavAnalysisFailure>();
             List<SharpBlockCandidate> headers = candidates
                 .Where(value => value.Kind == SharpBlockKind.Header && value.ChecksumValid)
                 .OrderBy(value => value.EndSample)
@@ -393,7 +453,22 @@ namespace QDTool
 
             if (headers.Count == 0)
             {
-                throw new InvalidDataException("No Sharp MZ signal found: no checksum-valid header was detected.");
+                failures.Add(new WavAnalysisFailure(
+                    string.Empty,
+                    "No Sharp MZ signal found: no checksum-valid header was detected.",
+                    0,
+                    totalFrames,
+                    null,
+                    null,
+                    false,
+                    payloads.Count > 0,
+                    false));
+                return new WavAssemblyResult
+                {
+                    Records = records,
+                    Recoveries = recoveries,
+                    Failures = failures
+                };
             }
 
             // First collapse candidates that describe the same physical header pulse train.
@@ -416,72 +491,70 @@ namespace QDTool
                 current!.Add(header);
             }
 
-            List<SharpBlockCandidate> canonicalHeaders = physicalHeaderGroups
-                .Select(SelectBestHeaderCandidate)
-                .OrderBy(value => value.EndSample)
-                .ToList();
-
-            // Now merge the normal duplicate header copies of one recording.  At this
-            // point every physical copy is already represented by its strongest loader
-            // evidence, so IC/TC cannot be outvoted by a generic timing-only candidate.
+            // Merge duplicate physical header copies without discarding either polarity.
             var groups = new List<List<SharpBlockCandidate>>();
-            foreach (SharpBlockCandidate header in canonicalHeaders)
+            foreach (List<SharpBlockCandidate> physicalGroup in physicalHeaderGroups)
             {
                 List<SharpBlockCandidate>? current = groups.LastOrDefault();
                 bool sameRecording = current != null &&
-                    header.EndSample - current[^1].EndSample <= sampleRate * 30L &&
-                    header.Data.AsSpan().SequenceEqual(current[0].Data);
+                    physicalGroup.Min(value => value.EndSample) - current.Max(value => value.EndSample) <= sampleRate * 30L &&
+                    physicalGroup.Any(header => current.Any(existing =>
+                        header.Data.AsSpan().SequenceEqual(existing.Data)));
                 if (!sameRecording)
                 {
                     current = [];
                     groups.Add(current);
                 }
-                current!.Add(header);
+                current!.AddRange(physicalGroup);
             }
 
-            var records = new List<TapeRecord>();
             for (int index = 0; index < groups.Count; index++)
             {
                 List<SharpBlockCandidate> headerGroup = groups[index];
-                SharpBlockCandidate header = SelectBestHeaderCandidate(headerGroup);
-                int expectedLength = BinaryPrimitives.ReadUInt16LittleEndian(header.Data.AsSpan(18, 2));
-                // Do not mistake a checksum-valid duplicate header for a payload
-                // when the real payload also happens to be 128 bytes long.
                 long afterHeader = headerGroup.Max(value => value.EndSample);
                 long beforeNextHeader = index + 1 < groups.Count
-                    ? groups[index + 1].Min(value => value.EndSample)
-                    : long.MaxValue;
-                List<SharpBlockCandidate> matchingPayloads = payloads
-                    .Where(value => value.Data.Length == expectedLength &&
-                        value.Inverted == header.Inverted &&
-                        value.StartSample >= afterHeader && value.StartSample < beforeNextHeader)
+                    ? groups[index + 1].Min(value => value.StartSample)
+                    : totalFrames;
+                List<ProgramPolarityCandidate> polarityCandidates = new[] { false, true }
+                    .Select(inverted => EvaluateProgramPolarity(
+                        headerGroup,
+                        payloads,
+                        inverted,
+                        afterHeader,
+                        beforeNextHeader))
+                    .Where(value => value != null)
+                    .Cast<ProgramPolarityCandidate>()
                     .ToList();
-                if (matchingPayloads.Count == 0)
+                ProgramPolarityCandidate? selected = polarityCandidates
+                    .Where(value => value.Payload != null)
+                    .OrderByDescending(value => value.PayloadReconstructed ? 1 : 2)
+                    .ThenByDescending(value => value.Score)
+                    .FirstOrDefault();
+                if (selected == null)
                 {
+                    ProgramPolarityCandidate? attempted = polarityCandidates
+                        .OrderByDescending(value => value.Score)
+                        .FirstOrDefault();
+                    int expectedLength = attempted?.ExpectedLength ??
+                        BinaryPrimitives.ReadUInt16LittleEndian(headerGroup[0].Data.AsSpan(18, 2));
+                    bool payloadCandidatesFound = polarityCandidates.Any(value => value.PayloadCandidateCount > 0);
+                    failures.Add(new WavAnalysisFailure(
+                        string.Empty,
+                        payloadCandidatesFound
+                            ? "Checksum mismatch with no safe recovery: payload copies disagree or remain ambiguous."
+                            : "Sharp MZ header found, but no matching payload of the same polarity was detected.",
+                        afterHeader,
+                        beforeNextHeader,
+                        checked((ushort)expectedLength),
+                        attempted?.Inverted,
+                        true,
+                        payloadCandidatesFound,
+                        false));
                     continue;
                 }
 
-                SharpBlockCandidate? payload = matchingPayloads
-                    .Where(value => value.ChecksumValid)
-                    .OrderByDescending(value => value.Channel == header.Channel)
-                    .ThenByDescending(Score)
-                    .FirstOrDefault();
-                bool reconstructed = false;
-                if (payload == null)
-                {
-                    payload = TryConsensus(matchingPayloads);
-                    reconstructed = payload != null;
-                    if (reconstructed)
-                    {
-                        reconstructedRecords++;
-                    }
-                }
-                if (payload == null)
-                {
-                    throw new InvalidDataException(
-                        "Checksum mismatch with no safe recovery: payload copies disagree or remain ambiguous.");
-                }
-
+                SharpBlockCandidate header = selected.Header;
+                SharpBlockCandidate payload = selected.Payload!;
                 TapeProfile finalProfile = header.Profile;
                 Native1xTimingAnalysis? native1xAnalysis = null;
                 if (header.ProfileEvidence == SharpProfileEvidence.TimingOnly &&
@@ -509,18 +582,72 @@ namespace QDTool
                 {
                     Header = new WavBlockRecoveryInfo { Candidate = header },
                     Payload = new WavBlockRecoveryInfo { Candidate = payload },
-                    ReconstructionUsed = reconstructed,
+                    ReconstructionUsed = selected.PayloadReconstructed,
                     FinalProfile = finalProfile,
                     Native1xAnalysis = native1xAnalysis
                 });
             }
 
-            if (records.Count == 0)
+            return new WavAssemblyResult
             {
-                throw new InvalidDataException("Sharp MZ header found, but no matching payload was detected.");
+                Records = records,
+                Recoveries = recoveries,
+                Failures = failures
+            };
+        }
+
+        private sealed record ProgramPolarityCandidate(
+            bool Inverted,
+            SharpBlockCandidate Header,
+            SharpBlockCandidate? Payload,
+            bool PayloadReconstructed,
+            int ExpectedLength,
+            int PayloadCandidateCount,
+            double Score);
+
+        private static ProgramPolarityCandidate? EvaluateProgramPolarity(
+            IReadOnlyList<SharpBlockCandidate> headerGroup,
+            IReadOnlyList<SharpBlockCandidate> payloads,
+            bool inverted,
+            long afterHeader,
+            long beforeNextHeader)
+        {
+            List<SharpBlockCandidate> polarityHeaders = headerGroup
+                .Where(value => value.Inverted == inverted)
+                .ToList();
+            if (polarityHeaders.Count == 0)
+            {
+                return null;
             }
-            recordRecoveries = recoveries;
-            return records;
+
+            SharpBlockCandidate header = SelectBestHeaderCandidate(polarityHeaders);
+            int expectedLength = BinaryPrimitives.ReadUInt16LittleEndian(header.Data.AsSpan(18, 2));
+            List<SharpBlockCandidate> matchingPayloads = payloads
+                .Where(value => value.Inverted == inverted &&
+                    value.Data.Length == expectedLength &&
+                    value.StartSample >= afterHeader &&
+                    value.StartSample < beforeNextHeader)
+                .ToList();
+            SharpBlockCandidate? payload = matchingPayloads
+                .Where(value => value.ChecksumValid)
+                .OrderByDescending(value => value.Channel == header.Channel)
+                .ThenByDescending(Score)
+                .FirstOrDefault();
+            bool reconstructed = false;
+            if (payload == null)
+            {
+                payload = TryConsensus(matchingPayloads);
+                reconstructed = payload != null;
+            }
+
+            return new ProgramPolarityCandidate(
+                inverted,
+                header,
+                payload,
+                reconstructed,
+                expectedLength,
+                matchingPayloads.Count,
+                Score(header) + (payload == null ? 0 : Score(payload)));
         }
 
         private static Native1xTimingAnalysis ClassifyNative1xMachine(

@@ -48,6 +48,18 @@ namespace QDTool
             if (compressionTarget.HasValue)
             {
                 compressionOptionsControl.ConfigureTarget(compressionTarget.Value);
+                bool hasCompressedRecords = compressionRecords?.Any(value =>
+                    IsCompressionLocked(value.Record, out _)) == true;
+                if (hasCompressedRecords)
+                {
+                    existingCompressionGroupBox.Visibility = Visibility.Visible;
+                    compressionScopeTextBlock.Visibility = Visibility.Visible;
+                }
+                if (compressionRecords != null && compressionRecords.All(value =>
+                    IsCompressionLocked(value.Record, out _)))
+                {
+                    compressionOptionsControl.IsEnabled = false;
+                }
                 compressionOptionsControl.Visibility = Visibility.Visible;
                 compressionPreviewBorder.Visibility = Visibility.Visible;
                 compressionOptionsControl.OptionsChanged += CompressionOptionsControl_OptionsChanged;
@@ -112,6 +124,9 @@ namespace QDTool
         private async void CompressionOptionsControl_OptionsChanged(object? sender, EventArgs e) =>
             await RefreshCompressionPreviewAsync();
 
+        private async void DecompressKnownCheckBox_Changed(object sender, RoutedEventArgs e) =>
+            await RefreshCompressionPreviewAsync();
+
         private async Task RefreshCompressionPreviewAsync()
         {
             if (!compressionTarget.HasValue || compressionRecords == null)
@@ -127,6 +142,7 @@ namespace QDTool
             PackedRecords = Array.Empty<TapeRecord>();
             saveButton.IsEnabled = false;
             compressionPreviewProgressBar.Visibility = Visibility.Collapsed;
+            compressionDetailsTextBox.Visibility = Visibility.Collapsed;
 
             if (!compressionOptionsControl.TryGetOptions(out MzfCompressionOptions options, out string error))
             {
@@ -134,32 +150,60 @@ namespace QDTool
                 return;
             }
 
-            compressionPreviewTextBlock.Text = GetProgressText(options);
+            bool decompressKnown = decompressKnownCheckBox.IsChecked == true;
+            compressionPreviewTextBlock.Text = GetProgressText(options, decompressKnown);
             compressionPreviewProgressBar.Visibility = Visibility.Visible;
             try
             {
                 var packed = new List<TapeRecord>(compressionRecords.Count);
-                var applied = new List<MzfCompressionOptions>(compressionRecords.Count);
+                var applied = new List<string>(compressionRecords.Count);
+                var details = new List<string>(compressionRecords.Count);
+                int incompleteEmbeddedDescriptions = 0;
+                int row = 0;
                 foreach ((int index, TapeRecord source) in compressionRecords)
                 {
+                    row++;
                     MzfCompressionResult result;
+                    string appliedDescription;
+                    bool compressionLocked = IsCompressionLocked(source, out string existingCompression);
                     try
                     {
-                        result = await MzfCompressionService.CompressAsync(
+                        result = await PrepareCompressionForExportAsync(
                             source,
                             options,
                             compressionTarget.Value,
+                            decompressKnown,
                             token);
                     }
                     catch (Exception exception) when (exception is not OperationCanceledException)
                     {
                         string name = SharpMzEncoding.ConvertMzfNameToASCIIString(source.Header.MzfFname);
                         throw new InvalidOperationException(
-                            $"Compression failed for record {index + 1} \"{name}\": {exception.Message}",
+                            $"Transformation failed for record {index + 1} \"{name}\": {exception.Message}",
                             exception);
                     }
+                    appliedDescription = compressionLocked
+                        ? decompressKnown
+                            ? $"Decompressed {existingCompression}"
+                            : $"{existingCompression} (kept)"
+                        : FormatAlgorithm(result.AppliedOptions);
+                    if (compressionLocked && decompressKnown &&
+                        MzfLoaderBuilder.TryGetCompressionInfo(source, out MzfCompressionInfo? info) &&
+                        info?.EmbeddedLoader == true)
+                    {
+                        incompleteEmbeddedDescriptions++;
+                    }
                     packed.Add(result.Record);
-                    applied.Add(result.AppliedOptions);
+                    applied.Add(appliedDescription);
+                    string recordName = SharpMzEncoding.ConvertMzfNameToASCIIString(source.Header.MzfFname);
+                    int originalRecordSize = source.Body.MzfBody.Length;
+                    int packedRecordSize = result.Record.Body.MzfBody.Length;
+                    double ratio = originalRecordSize == 0
+                        ? 100
+                        : packedRecordSize * 100.0 / originalRecordSize;
+                    details.Add(
+                        $"{row,2}. {recordName,-16}  {appliedDescription,-29}  " +
+                        $"{originalRecordSize,6} -> {packedRecordSize,6} B  ({ratio,5:F1}%)");
                 }
 
                 if (token.IsCancellationRequested)
@@ -170,17 +214,22 @@ namespace QDTool
                 PackedRecords = packed;
                 int originalSize = compressionRecords.Sum(value => value.Record.Body.MzfBody.Length);
                 int packedSize = packed.Sum(value => value.Body.MzfBody.Length);
-                int savedPercent = originalSize == 0
+                int sizeChangePercent = originalSize == 0
                     ? 0
-                    : (int)Math.Round((1.0 - (double)packedSize / originalSize) * 100);
+                    : (int)Math.Round(((double)packedSize / originalSize - 1.0) * 100);
+                string sizeChange = sizeChangePercent.ToString("+0;-0;0") + "%";
                 if (packed.Count == 1)
                 {
                     TapeRecord record = packed[0];
-                    string selection = options.Algorithm == MzfCompressionAlgorithm.Auto
-                        ? $"Auto selected: {FormatAlgorithm(applied[0])}"
-                        : $"Compression: {FormatAlgorithm(applied[0])}";
+                    string selection = applied[0].EndsWith("(kept)", StringComparison.Ordinal)
+                        ? $"Existing compression: {applied[0]}"
+                        : applied[0].StartsWith("Decompressed ", StringComparison.Ordinal)
+                            ? $"Operation: {applied[0]}"
+                        : options.Algorithm == MzfCompressionAlgorithm.Auto
+                            ? $"Auto selected: {applied[0]}"
+                            : $"Compression: {applied[0]}";
                     compressionPreviewTextBlock.Text =
-                        $"{selection}\nOriginal: {originalSize} B   Packed: {packedSize} B   Saved: {savedPercent}%\n" +
+                        $"{selection}\nInput: {originalSize} B   Output: {packedSize} B   Size change: {sizeChange}\n" +
                         $"LOAD ${record.Header.MzfStart:X4}   EXEC ${record.Header.MzfExec:X4}";
                 }
                 else
@@ -189,7 +238,7 @@ namespace QDTool
                     if (options.Algorithm == MzfCompressionAlgorithm.Auto)
                     {
                         string selections = string.Join(", ", applied
-                            .GroupBy(FormatAlgorithm)
+                            .GroupBy(value => value)
                             .Select(group => group.Count() == 1
                                 ? group.Key
                                 : $"{group.Key} ({group.Count()} records)"));
@@ -199,8 +248,21 @@ namespace QDTool
                     {
                         policy = $"Policy: {FormatAlgorithm(options)}.";
                     }
+                    if (compressionRecords.Any(value => IsCompressionLocked(value.Record, out _)))
+                    {
+                        policy += decompressKnown
+                            ? " Recognized compressed records: decompress for export."
+                            : " Recognized compressed records: keep unchanged.";
+                    }
                     compressionPreviewTextBlock.Text =
-                        $"{packed.Count} records   Original: {originalSize} B   Packed: {packedSize} B   Saved: {savedPercent}%\n{policy}";
+                        $"{packed.Count} records   Input: {originalSize} B   Output: {packedSize} B   Size change: {sizeChange}\n{policy}";
+                    compressionDetailsTextBox.Text = string.Join(Environment.NewLine, details);
+                    compressionDetailsTextBox.Visibility = Visibility.Visible;
+                }
+                if (incompleteEmbeddedDescriptions > 0)
+                {
+                    compressionPreviewTextBlock.Text +=
+                        $"\nWarning: {incompleteEmbeddedDescriptions} embedded ZX7 description(s) cannot be reconstructed; loader bytes will be cleared.";
                 }
                 saveButton.IsEnabled = true;
             }
@@ -223,10 +285,48 @@ namespace QDTool
             }
         }
 
-        private static string GetProgressText(MzfCompressionOptions options) =>
-            options.Algorithm == MzfCompressionAlgorithm.None
+        private static string GetProgressText(MzfCompressionOptions options, bool decompressKnown) =>
+            decompressKnown
+                ? "Analyzing decompression and export sizes..."
+                : options.Algorithm == MzfCompressionAlgorithm.None
                 ? "Validating export..."
                 : "Analyzing compression... This may take a while.";
+
+        internal static bool IsCompressionLocked(TapeRecord record, out string compression)
+        {
+            compression = MzfLoaderBuilder.DetectCompression(record);
+            return !string.Equals(compression, "None / unknown", StringComparison.Ordinal);
+        }
+
+        internal static Task<MzfCompressionResult> PrepareCompressionForExportAsync(
+            TapeRecord source,
+            MzfCompressionOptions options,
+            CompressionTarget target,
+            bool decompressKnownCompression = false,
+            CancellationToken cancellationToken = default)
+        {
+            if (IsCompressionLocked(source, out _))
+            {
+                if (decompressKnownCompression)
+                {
+                    return Task.Run(() =>
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        MzfDecompressionResult decompressed = MzfDecompressionService.Decompress(source);
+                        cancellationToken.ThrowIfCancellationRequested();
+                        return new MzfCompressionResult(
+                            decompressed.Record,
+                            new MzfCompressionOptions(MzfCompressionAlgorithm.None),
+                            source.Body.MzfBody.Length);
+                    }, cancellationToken);
+                }
+                return Task.FromResult(new MzfCompressionResult(
+                    source.DeepClone(),
+                    new MzfCompressionOptions(MzfCompressionAlgorithm.None),
+                    source.Body.MzfBody.Length));
+            }
+            return MzfCompressionService.CompressAsync(source, options, target, cancellationToken);
+        }
 
         private static string FormatAlgorithm(MzfCompressionOptions options)
         {

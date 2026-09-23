@@ -60,6 +60,30 @@
         <local:CompressionOptionsControl x:Name="compressionOptionsControl"
                                          Visibility="Collapsed"/>
 
+        <TextBlock x:Name="compressionScopeTextBlock"
+                   Foreground="DimGray"
+                   TextWrapping="Wrap"
+                   Margin="0,6,0,0"
+                   Text="Compression settings apply to uncompressed input records. Recognized compressed records use the policy below."
+                   Visibility="Collapsed"/>
+
+        <GroupBox x:Name="existingCompressionGroupBox"
+                  Header="Recognized compressed records"
+                  Padding="10"
+                  Margin="0,10,0,0"
+                  Visibility="Collapsed">
+            <StackPanel>
+                <CheckBox x:Name="decompressKnownCheckBox"
+                          Content="Decompress ZX0/ZX7 records for export"
+                          Checked="DecompressKnownCheckBox_Changed"
+                          Unchecked="DecompressKnownCheckBox_Changed"/>
+                <TextBlock Foreground="DimGray"
+                           TextWrapping="Wrap"
+                           Margin="0,7,0,0"
+                           Text="When disabled, recognized compressed records are copied unchanged. Decompression affects only the exported copy; embedded ZX7 description bytes and expert partial/skip data may not be recoverable."/>
+            </StackPanel>
+        </GroupBox>
+
         <Border x:Name="compressionPreviewBorder"
                 BorderBrush="LightGray"
                 BorderThickness="1"
@@ -68,6 +92,17 @@
                 Visibility="Collapsed">
             <StackPanel>
                 <TextBlock x:Name="compressionPreviewTextBlock" TextWrapping="Wrap"/>
+                <TextBox x:Name="compressionDetailsTextBox"
+                         Margin="0,9,0,0"
+                         MaxHeight="190"
+                         MinWidth="560"
+                         Padding="4"
+                         FontFamily="Consolas"
+                         IsReadOnly="True"
+                         TextWrapping="NoWrap"
+                         HorizontalScrollBarVisibility="Auto"
+                         VerticalScrollBarVisibility="Auto"
+                         Visibility="Collapsed"/>
                 <ProgressBar x:Name="compressionPreviewProgressBar"
                              Height="5"
                              Margin="0,9,0,0"
