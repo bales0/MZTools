@@ -24,10 +24,16 @@ namespace QDTool
             dinfo = ReadBlock(DinfoBlock);
             int totalBlocks = image.Tracks.Count * 16;
             int declaredLastBlock = BinaryPrimitives.ReadUInt16LittleEndian(dinfo.AsSpan(4, 2));
+            int usedBlocks = BinaryPrimitives.ReadUInt16LittleEndian(dinfo.AsSpan(2, 2));
             if (dinfo[1] < 24 || dinfo[1] >= totalBlocks)
                 throw new InvalidDataException($"FSMZ DINFO has invalid file-area start block {dinfo[1]}.");
             if (declaredLastBlock + 1 > totalBlocks)
-                warnings.Add($"DINFO declares {declaredLastBlock + 1} blocks, but the image contains {totalBlocks}.");
+                throw new InvalidDataException($"FSMZ DINFO declares {declaredLastBlock + 1} blocks, but the image contains only {totalBlocks}.");
+            if (declaredLastBlock < dinfo[1] || usedBlocks > declaredLastBlock + 1)
+                throw new InvalidDataException("FSMZ DINFO contains inconsistent block counters.");
+            byte[] directoryHeader = ReadBlock(DirectoryStart);
+            if (directoryHeader[0] != 0x80 || directoryHeader[1] != 0x01)
+                throw new InvalidDataException("FSMZ directory marker 80 01 is missing from block 16.");
             directoryLimit = (extendedDirectory ?? DetectExtendedDirectory()) ? 127 : 63;
             ValidateAllocations(totalBlocks);
         }

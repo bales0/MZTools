@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:QDTool"
         mc:Ignorable="d"
         Title="MZTools" Height="600" Width="1100" MinHeight="480" MinWidth="900" Icon="/images/MZTool.ico"
-        AllowDrop="True" DragEnter="Window_DragEnter" Drop="Window_Drop">
+        AllowDrop="True" DragEnter="Window_DragEnter" Drop="Window_Drop" Closing="MainWindow_Closing">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
@@ -128,5 +128,8 @@
                 <Label x:Name="infoText" Content="No data loaded" Padding="0"/>
             </StackPanel>
         </Border>
+
+        <local:DskEditorControl x:Name="dskEditorControl" Grid.RowSpan="2" Grid.ColumnSpan="2"
+                                Panel.ZIndex="10" Background="White" Visibility="Collapsed"/>
     </Grid>
 </Window>

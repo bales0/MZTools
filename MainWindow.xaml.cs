@@ -200,6 +200,8 @@ namespace QDTool
             exportButton.IsEnabled = false;
             deleteButton.IsEnabled = false;
             saveButton.IsEnabled = true;
+            dskEditorControl.DocumentStateChanged += (_, _) => Title = dskEditorControl.DocumentTitle;
+            dskEditorControl.CloseRequested += (_, _) => TryLeaveDskMode();
             UpdateQuickDiskFeatureVisibility();
             UpdateStatus();
         }
@@ -1750,7 +1752,7 @@ namespace QDTool
                     DskDocument dskDocument = DskDocument.Open(filePath);
                     if (dskDocument.FileSystem.Type != DskFileSystemType.BootOnly)
                     {
-                        new DskEditorWindow(dskDocument) { Owner = this }.Show();
+                        ShowDskDocument(dskDocument);
                         return false;
                     }
                     try
@@ -1762,7 +1764,7 @@ namespace QDTool
                     }
                     catch (InvalidDataException)
                     {
-                        new DskEditorWindow(dskDocument) { Owner = this }.Show();
+                        ShowDskDocument(dskDocument);
                         return false;
                     }
                 }
@@ -2137,21 +2139,58 @@ namespace QDTool
 
         private void button_Click_NewDsk(object sender, RoutedEventArgs e)
         {
-            string? preset = ChoicePrompt.Show(this, "New DSK", "Filesystem / geometry:",
-                ["FSMZ / IPLDISK (40×2, 16×256)", "CP/M SD (80×2, 9×512)", "CP/M HD (80×2, 18×512)", "MRS (80×2, 9×512)", "Raw (40×2, 16×256)"]);
-            if (preset == null) return;
+            DskNewOptions? options = DskNewDialog.Show(this);
+            if (options == null) return;
             try
             {
-                DskDocument dsk = preset.StartsWith("FSMZ") ? DskDocumentFactory.CreateFsmz() :
-                    preset.StartsWith("CP/M SD") ? DskDocumentFactory.CreateCpm(false) :
-                    preset.StartsWith("CP/M HD") ? DskDocumentFactory.CreateCpm(true) :
-                    preset.StartsWith("MRS") ? DskDocumentFactory.CreateMrs() :
-                    DskDocumentFactory.CreateRaw(40, 2, 16, 256, 1, 0x2A, 0xE5, "MZTools");
-                new DskEditorWindow(dsk) { Owner = this }.Show();
+                DskDocument dsk = options.Format switch
+                {
+                    DskNewFormat.MzBasic => DskDocumentFactory.CreateFsmz(ipldisk: false, options.Tracks, options.Sides),
+                    DskNewFormat.IplDisk => DskDocumentFactory.CreateFsmz(ipldisk: true, options.Tracks, options.Sides),
+                    DskNewFormat.PersonalCpm => DskDocumentFactory.CreatePersonalCpm80(sds400: false),
+                    DskNewFormat.Sds400 => DskDocumentFactory.CreatePersonalCpm80(sds400: true),
+                    DskNewFormat.LecCpmDd => DskDocumentFactory.CreateCpm(highDensity: false, options.Tracks, options.Sides),
+                    DskNewFormat.LecCpmHd => DskDocumentFactory.CreateCpm(highDensity: true, options.Tracks, options.Sides),
+                    DskNewFormat.Mrs => DskDocumentFactory.CreateMrs(options.Tracks, options.Sides),
+                    DskNewFormat.Lemmings => DskDocumentFactory.CreateLemmings(options.Tracks, options.Sides),
+                    DskNewFormat.CustomRaw => DskDocumentFactory.CreateRaw(
+                        options.Tracks, options.Sides, options.Sectors, options.SectorSize, 1,
+                        options.SectorSize == 256 ? (byte)0x2A : (byte)0x4E, options.Filler, "MZTools", options.SectorOrder, options.SectorIds),
+                    _ => throw new ArgumentOutOfRangeException()
+                };
+                ShowDskDocument(dsk);
             }
             catch (Exception exception)
             {
                 MessageBox.Show(this, exception.Message, "New DSK", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ShowDskDocument(DskDocument dsk)
+        {
+            if (dskEditorControl.Visibility == Visibility.Visible && !dskEditorControl.TryCloseDocument())
+            {
+                return;
+            }
+            dskEditorControl.LoadDocument(dsk);
+            dskEditorControl.Visibility = Visibility.Visible;
+            Title = dskEditorControl.DocumentTitle;
+        }
+
+        private bool TryLeaveDskMode()
+        {
+            if (dskEditorControl.Visibility != Visibility.Visible) return true;
+            if (!dskEditorControl.TryCloseDocument()) return false;
+            dskEditorControl.Visibility = Visibility.Collapsed;
+            Title = string.IsNullOrWhiteSpace(actFileName) ? "MZTools" : $"MZTools - {actFileName}";
+            return true;
+        }
+
+        private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (dskEditorControl.Visibility == Visibility.Visible && !dskEditorControl.TryCloseDocument())
+            {
+                e.Cancel = true;
             }
         }
 

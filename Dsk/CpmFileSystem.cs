@@ -8,17 +8,87 @@ using System.Text;
 namespace QDTool
 {
     // C# port of bales0/mzdisk src/libs/mzdsk_cpm (GPL-3.0-or-later).
+    internal readonly record struct CpmSectorAddress(int AbsoluteTrack, int SectorId);
+
     internal sealed record CpmDpb(
         ushort Spt, byte Bsh, byte Blm, byte Exm, ushort Dsm, ushort Drm,
-        byte Al0, byte Al1, ushort Cks, ushort Off, ushort BlockSize, string Name)
+        byte Al0, byte Al1, ushort Cks, ushort Off, ushort BlockSize, string Name,
+        IReadOnlyList<int>? PhysicalTrackMap = null,
+        IReadOnlyList<CpmSectorAddress>? PhysicalSectorMap = null,
+        bool Inverted = false)
     {
-        internal static CpmDpb Sd { get; } = new(36, 4, 15, 0, 350, 127, 0xC0, 0, 32, 4, 2048, "CP/M SD");
+        internal static CpmDpb Dd { get; } = new(36, 4, 15, 0, 350, 127, 0xC0, 0, 32, 4, 2048, "LEC CP/M DD (720 KiB)");
         internal static CpmDpb Hd { get; } = new(72, 5, 31, 1, 350, 127, 0xC0, 0, 32, 4, 4096, "CP/M HD");
+        internal static CpmDpb PersonalCpm80 { get; } = new(
+            32, 4, 15, 1, 155, 63, 0x80, 0, 16, 1, 2048, "P-CP/M80 (MZ-2Z047)",
+            Enumerable.Range(0, 40).Select(cylinder => cylinder * 2)
+                .Concat(Enumerable.Range(1, 39).Reverse().Select(cylinder => cylinder * 2 + 1))
+                .ToArray());
+        internal static CpmDpb Sds400 { get; } = new(
+            80, 4, 15, 1, 191, 127, 0xC0, 0, 32, 1, 2048, "P-CP/M80 SDS 400K",
+            PhysicalSectorMap: Enumerable.Range(1, 39)
+                .SelectMany(cylinder => Enumerable.Range(1, 10)
+                    .Select(sector => new CpmSectorAddress(cylinder * 2 + 1, sector))
+                    .Concat(Enumerable.Range(11, 10)
+                        .Select(sector => new CpmSectorAddress(cylinder * 2, sector))))
+                .ToArray(),
+            Inverted: true);
 
         internal static IEnumerable<CpmDpb> PresetsFor(DskImage image)
         {
-            if (image.Tracks.Where(track => track != null).Any(track => track!.Sectors.Count == 9)) yield return Sd;
-            if (image.Tracks.Where(track => track != null).Any(track => track!.Sectors.Count == 18)) yield return Hd;
+            if (LooksLikeSds400Geometry(image) && LooksLikePersonalCpmBoot(image)) yield return Sds400;
+            if (image.Tracks.Where(track => track != null).Any(track => track!.Sectors.Count == 8) && LooksLikePersonalCpmBoot(image))
+                yield return PersonalCpm80;
+            if (image.Tracks.Where(track => track != null).Any(track => track!.Sectors.Count == 9)) yield return CreateLec(image, highDensity: false);
+            if (image.Tracks.Where(track => track != null).Any(track => track!.Sectors.Count == 18)) yield return CreateLec(image, highDensity: true);
+        }
+
+        internal static CpmDpb CreateLec(DskImage image, bool highDensity)
+        {
+            int sectors = highDensity ? 18 : 9;
+            int blockSize = highDensity ? 4096 : 2048;
+            int bsh = highDensity ? 5 : 4;
+            const int off = 4;
+            int blocks = Math.Max(1, (image.Tracks.Count - off) * sectors * 512 / blockSize);
+            int dsm = blocks - 1;
+            bool widePointers = dsm > 255;
+            int pointerCount = widePointers ? 8 : 16;
+            int exm = Math.Max(0, pointerCount * blockSize / 16384 - 1);
+            long rawBytes = (long)image.Tracks.Count * sectors * 512;
+            string capacity = rawBytes % (1024 * 1024) == 0
+                ? $"{rawBytes / (1024 * 1024.0):0.##} MiB"
+                : $"{rawBytes / 1024} KiB";
+            string name = image.Tracks.Count == 160
+                ? highDensity ? "CP/M HD" : "LEC CP/M DD (720 KiB)"
+                : $"LEC CP/M {(highDensity ? "HD" : "DD")} ({capacity}, {image.SideCount} side{(image.SideCount == 1 ? "" : "s")})";
+            return new CpmDpb(
+                checked((ushort)(sectors * 4)), checked((byte)bsh), checked((byte)((1 << bsh) - 1)), checked((byte)exm),
+                checked((ushort)dsm), 127, 0xC0, 0, 32, off, checked((ushort)blockSize), name);
+        }
+
+        private static bool LooksLikePersonalCpmBoot(DskImage image)
+        {
+            if (image.Tracks.Count <= 1 || image.Tracks[1] == null) return false;
+            DskImage.DskSector? sector = image.Tracks[1]!.Sectors.FirstOrDefault(candidate => candidate.SectorId == 1);
+            if (sector == null || sector.Data.Length != 256) return false;
+            byte[] logical = sector.Data.Select(value => (byte)(value ^ 0xFF)).ToArray();
+            if (logical[0] != 3 || !logical.AsSpan(1, 6).SequenceEqual("IPLPRO"u8)) return false;
+            string name = SharpMzEncoding.ConvertMzfNameToASCIIString(logical.AsSpan(7, 13).ToArray());
+            return name.Contains("P-CP/M", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool LooksLikeSds400Geometry(DskImage image)
+        {
+            if (image.TrackCount != 40 || image.SideCount != 2 || image.Tracks.Count != 80) return false;
+            for (int absoluteTrack = 0; absoluteTrack < image.Tracks.Count; absoluteTrack++)
+            {
+                if (absoluteTrack == 1) continue;
+                DskImage.DskTrack? track = image.Tracks[absoluteTrack];
+                if (track == null || track.Sectors.Count != 10 || track.Sectors.Any(sector => sector.Data.Length != 512)) return false;
+                int firstId = (absoluteTrack & 1) == 0 ? 11 : 1;
+                if (!track.Sectors.Select(sector => (int)sector.SectorId).Order().SequenceEqual(Enumerable.Range(firstId, 10))) return false;
+            }
+            return true;
         }
     }
 
@@ -246,41 +316,54 @@ namespace QDTool
         private byte[] ReadBlock(int block)
         {
             var output = new byte[Dpb.BlockSize];
-            int byteOffset = block * Dpb.BlockSize;
-            int logicalSector = byteOffset / 128;
-            int absoluteTrack = logicalSector / Dpb.Spt + Dpb.Off;
-            int physicalSector = logicalSector % Dpb.Spt / 4 + 1;
-            int offset = logicalSector % 4 * 128;
             int written = 0;
             while (written < output.Length)
             {
-                byte[] sector = device.ReadSector(absoluteTrack, physicalSector);
+                (int absoluteTrack, int physicalSector, int offset) = MapByteOffset(block, written);
+                byte[] sector = device.ReadSector(absoluteTrack, physicalSector, Dpb.Inverted);
                 if (sector.Length != 512) throw new InvalidDataException("CP/M requires 512-byte physical sectors.");
                 int count = Math.Min(512 - offset, output.Length - written);
                 sector.AsSpan(offset, count).CopyTo(output.AsSpan(written));
-                written += count; offset = 0; physicalSector++;
-                if (physicalSector > Dpb.Spt / 4) { physicalSector = 1; absoluteTrack++; }
+                written += count;
             }
             return output;
         }
 
         private void WriteBlock(int block, ReadOnlySpan<byte> data)
         {
-            int byteOffset = block * Dpb.BlockSize;
-            int logicalSector = byteOffset / 128;
-            int absoluteTrack = logicalSector / Dpb.Spt + Dpb.Off;
-            int physicalSector = logicalSector % Dpb.Spt / 4 + 1;
-            int offset = logicalSector % 4 * 128;
             int consumed = 0;
             while (consumed < data.Length)
             {
-                byte[] sector = device.ReadSector(absoluteTrack, physicalSector);
+                (int absoluteTrack, int physicalSector, int offset) = MapByteOffset(block, consumed);
+                byte[] sector = device.ReadSector(absoluteTrack, physicalSector, Dpb.Inverted);
                 int count = Math.Min(512 - offset, data.Length - consumed);
                 data.Slice(consumed, count).CopyTo(sector.AsSpan(offset));
-                device.WriteSector(absoluteTrack, physicalSector, sector);
-                consumed += count; offset = 0; physicalSector++;
-                if (physicalSector > Dpb.Spt / 4) { physicalSector = 1; absoluteTrack++; }
+                device.WriteSector(absoluteTrack, physicalSector, sector, Dpb.Inverted);
+                consumed += count;
             }
+        }
+
+        private (int AbsoluteTrack, int PhysicalSector, int Offset) MapByteOffset(int block, int offsetInBlock)
+        {
+            int byteOffset = checked(block * Dpb.BlockSize + offsetInBlock);
+            int logicalSector = byteOffset / 128;
+            int logicalTrack = logicalSector / Dpb.Spt + Dpb.Off;
+            int sectorInTrack = logicalSector % Dpb.Spt;
+            int offset = sectorInTrack % 4 * 128;
+            if (Dpb.PhysicalSectorMap != null)
+            {
+                int sectorIndex = checked((logicalTrack - Dpb.Off) * (Dpb.Spt / 4) + sectorInTrack / 4);
+                if ((uint)sectorIndex >= Dpb.PhysicalSectorMap.Count)
+                    throw new InvalidDataException($"CP/M logical sector {logicalSector} lies outside the {Dpb.Name} sector map.");
+                CpmSectorAddress address = Dpb.PhysicalSectorMap[sectorIndex];
+                return (address.AbsoluteTrack, address.SectorId, offset);
+            }
+            int absoluteTrack = Dpb.PhysicalTrackMap == null
+                ? logicalTrack
+                : logicalTrack < Dpb.PhysicalTrackMap.Count
+                    ? Dpb.PhysicalTrackMap[logicalTrack]
+                    : throw new InvalidDataException($"CP/M logical track {logicalTrack} lies outside the {Dpb.Name} track map.");
+            return (absoluteTrack, sectorInTrack / 4 + 1, offset);
         }
 
         private void WriteDirectoryEntry(int index, byte[] entry)
@@ -330,7 +413,8 @@ namespace QDTool
         private static bool Matches(byte[] raw, DskFileEntry entry) => raw[0] == entry.User &&
             NamePart(raw, 1, 8).Equals(entry.Name, StringComparison.OrdinalIgnoreCase) &&
             NamePart(raw, 9, 3).Equals(entry.Extension, StringComparison.OrdinalIgnoreCase);
-        private static int ExtentNumber(byte[] raw) => raw[14] * 32 + raw[12];
+        // S2 bit 7 is an internal CP/M flag and is not part of the extent number.
+        private static int ExtentNumber(byte[] raw) => (raw[14] & 0x3F) * 32 + raw[12];
         private static string NamePart(byte[] raw, int offset, int length) => Encoding.ASCII.GetString(raw.Skip(offset).Take(length).Select(value => (byte)(value & 0x7F)).ToArray()).TrimEnd(' ');
         private static void WriteNamePart(byte[] raw, int offset, int length, string value)
         {

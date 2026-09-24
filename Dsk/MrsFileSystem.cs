@@ -10,9 +10,9 @@ namespace QDTool
     // C# port of bales0/mzdisk src/libs/mzdsk_mrs (GPL-3.0-or-later).
     internal sealed class MrsFileSystem : IDskFileSystem
     {
-        private const int TotalBlocks = 1440;
         private const int FatBlock = 36;
         private readonly DskBlockDevice device;
+        private readonly int totalBlocks;
         private readonly List<string> warnings = new();
         private byte[] fat = Array.Empty<byte>();
         private byte[] directory = Array.Empty<byte>();
@@ -24,6 +24,7 @@ namespace QDTool
         private MrsFileSystem(DskImage image)
         {
             device = new DskBlockDevice(image);
+            totalBlocks = image.Tracks.Count * 9;
             Load();
         }
 
@@ -31,7 +32,7 @@ namespace QDTool
         public string DisplayName => "MRS";
         public bool IsReadOnly => warnings.Count != 0;
         public IReadOnlyList<string> Warnings => warnings;
-        public long FreeBytes => fat.Take(TotalBlocks).Count(value => value == 0) * 512L;
+        public long FreeBytes => fat.Take(totalBlocks).Count(value => value == 0) * 512L;
         public long UsedBytes => ReadDirectory().Sum(entry => entry.Blocks) * 512L;
 
         internal static bool TryOpen(DskImage image, out MrsFileSystem? result)
@@ -66,7 +67,7 @@ namespace QDTool
                 ReadOnlySpan<byte> raw = directory.AsSpan(slot * 32, 32);
                 if (raw[0] <= 0x20 || raw[11] == 0 || raw[11] >= 0xFA) continue;
                 int blocks = BinaryPrimitives.ReadUInt16LittleEndian(raw.Slice(14, 2));
-                if (blocks > TotalBlocks) { warnings.Add($"Unsafe: MRS slot {slot} declares {blocks} blocks."); continue; }
+                if (blocks > totalBlocks) { warnings.Add($"Unsafe: MRS slot {slot} declares {blocks} blocks."); continue; }
                 result.Add(new DskFileEntry
                 {
                     Key = slot.ToString(),
@@ -87,7 +88,7 @@ namespace QDTool
         {
             var output = new byte[entry.Blocks * 512];
             int written = 0;
-            for (int block = 0; block < Math.Min(TotalBlocks, fat.Length) && written < output.Length; block++)
+            for (int block = 0; block < Math.Min(totalBlocks, fat.Length) && written < output.Length; block++)
             {
                 if (fat[block] != entry.StartBlock) continue;
                 device.ReadLinear512Block(block, inverted: true).CopyTo(output, written);
@@ -105,7 +106,7 @@ namespace QDTool
             if (directory[slot * 32] != 0x20) throw new IOException("The MRS directory is full.");
             byte fileId = directory[slot * 32 + 11];
             int blocksNeeded = Math.Max(1, (data.Length + 511) / 512);
-            int[] blocks = Enumerable.Range(dataBlock, Math.Min(TotalBlocks, fat.Length) - dataBlock).Where(block => fat[block] == 0).Take(blocksNeeded).ToArray();
+            int[] blocks = Enumerable.Range(dataBlock, Math.Min(totalBlocks, fat.Length) - dataBlock).Where(block => fat[block] == 0).Take(blocksNeeded).ToArray();
             if (blocks.Length != blocksNeeded) throw new IOException("The MRS disk is full.");
             for (int index = 0; index < blocks.Length; index++)
             {
@@ -126,7 +127,7 @@ namespace QDTool
         public void Delete(DskFileEntry entry, bool force = false)
         {
             byte fileId = checked((byte)entry.StartBlock);
-            for (int block = 0; block < Math.Min(TotalBlocks, fat.Length); block++) if (fat[block] == fileId) fat[block] = 0;
+            for (int block = 0; block < Math.Min(totalBlocks, fat.Length); block++) if (fat[block] == fileId) fat[block] = 0;
             Span<byte> raw = directory.AsSpan(int.Parse(entry.Key) * 32, 32);
             raw[..11].Fill(0x20); raw.Slice(12, 16).Clear();
             Flush();

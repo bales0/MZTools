@@ -152,22 +152,37 @@ The compression engines and MZF loader builders are ports of
 
 ### Extended CPC DSK editor
 
-Opening a `.dsk` now uses a shared Extended CPC DSK container model that keeps
+Opening a `.dsk` now switches the main window into an integrated DSK document
+mode backed by a shared Extended CPC DSK container model that keeps
 the original header and track metadata, physical sector order, sector IDs,
 FDC status bytes, padding, missing tracks and variable track sizes. Unchanged
 images round-trip byte-for-byte. Sector sizes 128, 256, 512 and 1024 bytes are
 supported; structurally valid images with an unknown filesystem open in a raw
-sector view instead of being rejected.
+sector view instead of being rejected. Boot-only images expose a valid IPLPRO
+bootstrap as an exportable MZF entry and the remaining XOR-decoded MZ FDD data
+area. Individual physical sectors remain available behind a `Show raw sectors`
+switch. The decoded data area does not infer file boundaries when the disk has
+no recognized directory filesystem.
 
-The editor detects and provides file operations for FSMZ/MZ-BASIC/IPLDISK,
-the CP/M SD and HD presets, and MRS. It can import, export, rename and delete
+The editor detects native single-game and multi-game IPL images, and provides
+file operations for FSMZ/MZ-BASIC/IPLDISK,
+the LEC CP/M DD (720 KiB) and HD (1.44 MiB) presets, Sharp P-CP/M80
+(MZ-2Z047 320 KB and inverted SDS 400K),
+and MRS. Native MZTools
+multi-game IPL images are displayed as a read-only game list with load/execute
+addresses and payload export. The editor can import, export, rename and delete
 files, preserve MZF metadata where the filesystem stores it, show filesystem
 space information, and replace a selected raw sector with an exactly sized
-binary file. New-image presets create FSMZ, CP/M SD/HD, MRS and uniform raw
-images. CP/M and MRS presets use the Sharp mixed boot/data-track geometry and
-physical sector interleave used by `mzdisk`.
+binary file. The New DSK dialog creates separate standard MZ-BASIC/FSMZ and
+extended IPLDISK filesystems, both P-CP/M80 variants, one- or two-sided LEC
+CP/M DD/HD and MRS disks with a selectable track count, and the special Sharp
+Lemmings geometry. Its custom/raw mode accepts 1 or 2 sides, 1-204 absolute
+tracks, 1-29 sectors per track, 128/256/512/1024-byte sectors, a filler byte,
+normal/LEC/LEC-HD interleave or an explicit sector-ID map. CP/M and MRS presets
+use the Sharp mixed boot/data-track geometry and physical sector interleave
+used by `mzdisk`.
 
-Current limitations: custom CP/M DPB entry, interactive custom geometry,
+Current limitations: attaching a custom CP/M DPB to an unknown image,
 filesystem repair/defragmentation, bootstrap metadata editing, CP/M attribute
 editing, MRS address editing and a writable in-place hex editor are not yet
 exposed by the UI. MRS records only a block count, so exported raw data includes

@@ -177,7 +177,7 @@ namespace QDTool
             {
                 throw new ArgumentOutOfRangeException(nameof(tracks), "Sharp CP/M/MRS geometry requires at least three absolute tracks.");
             }
-            if (dataSectorsPerTrack is not (9 or 18))
+            if (dataSectorsPerTrack is not (8 or 9 or 10 or 18))
             {
                 throw new ArgumentOutOfRangeException(nameof(dataSectorsPerTrack));
             }
@@ -221,6 +221,29 @@ namespace QDTool
         }
 
         private List<DskTrack?> TracksInternal => (List<DskTrack?>)Tracks;
+
+        internal void ReplaceTrackGeometry(
+            int absoluteTrack,
+            int sectorCount,
+            int sectorSize,
+            IReadOnlyList<int>? sectorIds,
+            byte gap,
+            byte filler)
+        {
+            if ((uint)absoluteTrack >= Tracks.Count) throw new ArgumentOutOfRangeException(nameof(absoluteTrack));
+            if (sectorIds != null && sectorIds.Count != sectorCount) throw new ArgumentException("The sector ID map must contain one ID per sector.", nameof(sectorIds));
+            int cylinder = absoluteTrack / SideCount;
+            int side = absoluteTrack % SideCount;
+            int rawSize = checked(TrackHeaderSize + sectorCount * sectorSize);
+            int blockSize = (rawSize + 0xFF) & ~0xFF;
+            DskTrack track = DskTrack.Create(cylinder, side, sectorCount, EncodeSectorSize(sectorSize), 1, gap, filler, blockSize, absoluteTrack);
+            if (sectorIds != null)
+            {
+                for (int index = 0; index < sectorIds.Count; index++) track.Sectors[index].SectorId = checked((byte)sectorIds[index]);
+            }
+            TracksInternal[absoluteTrack] = track;
+            rawHeader[0x34 + absoluteTrack] = checked((byte)(blockSize >> 8));
+        }
 
         internal DskTrack GetTrack(int cylinder, int side)
         {
