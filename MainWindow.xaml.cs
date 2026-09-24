@@ -1747,10 +1747,24 @@ namespace QDTool
                 }
                 else if (fileExtension == ".dsk")
                 {
-                    Mz800IplDskReadResult result = Mz800IplDskReader.ReadFile(filePath);
-                    format = TapeDocumentFormat.Mzf;
-                    loadedIplDskInfo = result.DiskInfo;
-                    recordsToAdd.Add(result.Record);
+                    DskDocument dskDocument = DskDocument.Open(filePath);
+                    if (dskDocument.FileSystem.Type != DskFileSystemType.BootOnly)
+                    {
+                        new DskEditorWindow(dskDocument) { Owner = this }.Show();
+                        return false;
+                    }
+                    try
+                    {
+                        Mz800IplDskReadResult result = Mz800IplDskReader.ReadFile(filePath);
+                        format = TapeDocumentFormat.Mzf;
+                        loadedIplDskInfo = result.DiskInfo;
+                        recordsToAdd.Add(result.Record);
+                    }
+                    catch (InvalidDataException)
+                    {
+                        new DskEditorWindow(dskDocument) { Owner = this }.Show();
+                        return false;
+                    }
                 }
                 else if (fileExtension is ".mzf" or ".mz0" or ".mz7")
                 {
@@ -2119,6 +2133,26 @@ namespace QDTool
             Title = "MZTools - New";
             saveButton.IsEnabled = true;
             RefreshGrid();
+        }
+
+        private void button_Click_NewDsk(object sender, RoutedEventArgs e)
+        {
+            string? preset = ChoicePrompt.Show(this, "New DSK", "Filesystem / geometry:",
+                ["FSMZ / IPLDISK (40×2, 16×256)", "CP/M SD (80×2, 9×512)", "CP/M HD (80×2, 18×512)", "MRS (80×2, 9×512)", "Raw (40×2, 16×256)"]);
+            if (preset == null) return;
+            try
+            {
+                DskDocument dsk = preset.StartsWith("FSMZ") ? DskDocumentFactory.CreateFsmz() :
+                    preset.StartsWith("CP/M SD") ? DskDocumentFactory.CreateCpm(false) :
+                    preset.StartsWith("CP/M HD") ? DskDocumentFactory.CreateCpm(true) :
+                    preset.StartsWith("MRS") ? DskDocumentFactory.CreateMrs() :
+                    DskDocumentFactory.CreateRaw(40, 2, 16, 256, 1, 0x2A, 0xE5, "MZTools");
+                new DskEditorWindow(dsk) { Owner = this }.Show();
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(this, exception.Message, "New DSK", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private bool TryChooseNewQuickDiskFormat(out TapeDocumentFormat format)

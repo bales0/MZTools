@@ -1,5 +1,17 @@
 # Third-party notices
 
+## mzdisk
+
+The Extended CPC DSK container, filesystem detection, FSMZ/IPLDISK, CP/M 2.x
+and MRS implementations contain C# ports and adaptations based on
+[mzdisk](https://github.com/bales0/mzdisk), copyright Michal Hucik and its
+contributors. mzdisk is licensed under the GNU General Public License version
+3 or (at your option) any later version. MZTools is distributed under a
+GPL-compatible license; the ported source retains origin comments.
+
+The port is an in-process C# implementation. The mzdisk command-line tools are
+used only as a development reference and are not a runtime dependency.
+
 QDTool contains C# ports of the ZX0 and ZX7 compressors and Z80 decoder/loader
 byte sequences used by these MZF tools:
 

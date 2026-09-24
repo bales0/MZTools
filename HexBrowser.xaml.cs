@@ -339,5 +339,16 @@ namespace QDTool
                 advancedFeaturesEnabled ? body.TrailingData ?? Array.Empty<byte>() : Array.Empty<byte>(),
                 showTrailingSummary: advancedFeaturesEnabled);
         }
+
+        internal void ShowRawData(string heading, byte[] data, byte[]? logicalData = null)
+        {
+            Title = $"Hex Browser - {heading}";
+            contentPanel.Children.Clear();
+            AddSection($"ADDRESS   {heading.ToUpperInvariant()} RAW DATA", data);
+            if (logicalData != null && !data.AsSpan().SequenceEqual(logicalData))
+            {
+                AddSection($"ADDRESS   {heading.ToUpperInvariant()} LOGICAL DATA", logicalData);
+            }
+        }
     }
 }

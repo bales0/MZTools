@@ -99,7 +99,7 @@ namespace QDTool
                 throw new InvalidOperationException("Internal multi-game layout error: menu size changed during block allocation.");
             }
 
-            byte[] image = Mz800DskImage.Create("MZTools Multi");
+            DskImage image = Mz800DskImage.CreateModel("MZTools Multi");
             byte[] ipl = BuildIplBlock(
                 menu.Bytes.Length,
                 entries.Count,
@@ -113,7 +113,7 @@ namespace QDTool
             }
 
             return new MultiGameIplBuildResult(
-                image,
+                image.Serialize(),
                 entries,
                 menu.Bytes.Length,
                 menuSectors,
@@ -228,7 +228,7 @@ namespace QDTool
             return result;
         }
 
-        private static void WriteBytes(byte[] image, int startBlock, ReadOnlySpan<byte> source)
+        private static void WriteBytes(DskImage image, int startBlock, ReadOnlySpan<byte> source)
         {
             int sectorCount = GetSectorCount(source.Length);
             var sector = new byte[Mz800DskImage.SectorSize];

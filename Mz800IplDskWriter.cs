@@ -24,7 +24,7 @@ namespace QDTool
             record = PrepareRecordForIpl(record);
             ValidateRecord(record);
 
-            byte[] image = Mz800DskImage.Create("MZTools IPLDSK");
+            DskImage image = Mz800DskImage.CreateModel("MZTools IPLDSK");
 
             byte[] ipl = BuildIplBlock(record, bootName);
             Mz800DskImage.WriteLogicalBlock(image, 0, ipl);
@@ -41,7 +41,7 @@ namespace QDTool
                 Mz800DskImage.WriteLogicalBlock(image, sectorIndex + 1, logicalSector);
             }
 
-            return image;
+            return image.Serialize();
         }
 
         public static void WriteFile(string path, TapeRecord record, string? bootName = null) =>

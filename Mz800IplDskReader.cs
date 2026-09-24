@@ -34,8 +34,8 @@ namespace QDTool
 
         public static Mz800IplDskReadResult Read(ReadOnlySpan<byte> image)
         {
-            int[,] sectorOffsets = ParseContainer(image);
-            byte[] ipl = ReadLogicalBlock(image, sectorOffsets, 0);
+            DskImage container = ParseContainer(image);
+            byte[] ipl = ReadLogicalBlock(container, 0);
             ValidateIplSignature(ipl);
             if (ipl.AsSpan(0x20, 4).SequenceEqual("QDMG"u8))
             {
@@ -74,13 +74,13 @@ namespace QDTool
             var bodyBytes = new byte[size];
             for (int index = 0; index < sectorCount; index++)
             {
-                byte[] sector = ReadLogicalBlock(image, sectorOffsets, startBlock + index);
+                byte[] sector = ReadLogicalBlock(container, startBlock + index);
                 int destinationOffset = index * Mz800IplDskWriter.SectorSize;
                 int length = Math.Min(Mz800IplDskWriter.SectorSize, size - destinationOffset);
                 sector.AsSpan(0, length).CopyTo(bodyBytes.AsSpan(destinationOffset));
             }
 
-            RejectAdditionalPayload(image, sectorOffsets, startBlock, endBlock);
+            RejectAdditionalPayload(container, startBlock, endBlock);
             string bootName = DecodeBootName(ipl.AsSpan(0x07, 13));
             TapeRecord record = CreateRecord(bootName, size, load, exec, bodyBytes);
             int payloadSectorCapacity = Mz800IplDskWriter.LogicalSectorCount - 1;
@@ -98,19 +98,12 @@ namespace QDTool
                 diskInfo);
         }
 
-        private static int[,] ParseContainer(ReadOnlySpan<byte> image)
+        private static DskImage ParseContainer(ReadOnlySpan<byte> image)
         {
-            if (image.Length < Mz800IplDskWriter.DiskHeaderSize)
-            {
-                throw new InvalidDataException("Invalid DSK: the disk header is truncated.");
-            }
-            if (!image[..34].SequenceEqual("EXTENDED CPC DSK File\r\nDisk-Info\r\n"u8))
-            {
-                throw new InvalidDataException("Invalid DSK: the Extended CPC DSK signature is missing.");
-            }
-
-            int cylinders = image[0x30];
-            int sides = image[0x31];
+            ValidateLegacyIplDescriptorExpectations(image);
+            DskImage container = DskImage.Parse(image.ToArray());
+            int cylinders = container.TrackCount;
+            int sides = container.SideCount;
             if (cylinders != Mz800IplDskWriter.CylinderCount ||
                 sides != Mz800IplDskWriter.SideCount)
             {
@@ -118,115 +111,105 @@ namespace QDTool
                     $"Unsupported DSK geometry: expected {Mz800IplDskWriter.CylinderCount} cylinders and {Mz800IplDskWriter.SideCount} sides, found {cylinders} and {sides}.");
             }
 
-            int trackCount = checked(cylinders * sides);
-            if (0x34 + trackCount > Mz800IplDskWriter.DiskHeaderSize)
-            {
-                throw new InvalidDataException("Invalid DSK: the track-size table exceeds the disk header.");
-            }
-
-            var sectorOffsets = new int[trackCount, Mz800IplDskWriter.SectorsPerTrack];
-            int trackOffset = Mz800IplDskWriter.DiskHeaderSize;
+            int trackCount = cylinders * sides;
             for (int physicalTrack = 0; physicalTrack < trackCount; physicalTrack++)
             {
-                int trackSize = image[0x34 + physicalTrack] * 0x100;
-                if (trackSize != Mz800IplDskWriter.TrackBlockSize)
+                DskImage.DskTrack? track = container.Tracks[physicalTrack];
+                if (track == null || track.BlockSize != Mz800IplDskWriter.TrackBlockSize)
                 {
                     throw new InvalidDataException(
-                        $"Unsupported DSK geometry: track {physicalTrack} has size 0x{trackSize:X}, expected 0x{Mz800IplDskWriter.TrackBlockSize:X}.");
+                        $"Unsupported DSK geometry: track {physicalTrack} has size 0x{track?.BlockSize ?? 0:X}, expected 0x{Mz800IplDskWriter.TrackBlockSize:X}.");
                 }
-                if (trackOffset > image.Length - trackSize)
+
+                int cylinder = physicalTrack / sides;
+                int side = physicalTrack % sides;
+                if (track.Cylinder != cylinder || track.Side != side)
                 {
-                    throw new InvalidDataException($"Invalid DSK: track {physicalTrack} is truncated.");
+                    throw new InvalidDataException(
+                        $"Invalid DSK: track header C/H does not match C={cylinder}, H={side}.");
+                }
+                if (track.DefaultSizeCode != 1 || track.Sectors.Count != Mz800IplDskWriter.SectorsPerTrack)
+                {
+                    throw new InvalidDataException(
+                        $"Unsupported DSK geometry: track C={cylinder}, H={side} must contain 16 sectors with N=1.");
                 }
 
-                ParseTrack(image.Slice(trackOffset, trackSize), physicalTrack, trackOffset, sectorOffsets);
-                trackOffset = checked(trackOffset + trackSize);
+                var seen = new bool[Mz800IplDskWriter.SectorsPerTrack];
+                foreach (DskImage.DskSector sector in track.Sectors)
+                {
+                    int sectorId = sector.SectorId;
+                    if (sector.Cylinder != cylinder || sector.Side != side || sector.SizeCode != 1 || sector.Data.Length != Mz800IplDskWriter.SectorSize)
+                    {
+                        throw new InvalidDataException(
+                            $"Invalid DSK: sector descriptor {sector.PhysicalIndex + 1} on C={cylinder}, H={side} has invalid C/H/N values.");
+                    }
+                    if (sectorId < 1 || sectorId > Mz800IplDskWriter.SectorsPerTrack || seen[sectorId - 1])
+                    {
+                        throw new InvalidDataException($"Invalid DSK: duplicate sector ID {sectorId} on C={cylinder}, H={side}, or the ID is outside 1..16.");
+                    }
+                    seen[sectorId - 1] = true;
+                }
+                if (seen.Any(value => !value))
+                {
+                    throw new InvalidDataException($"Invalid DSK: track C={cylinder}, H={side} has missing sector IDs.");
+                }
             }
-
-            if (trackOffset != image.Length)
+            if (container.ContainerTrailingData.Length != 0)
             {
-                throw new InvalidDataException(
-                    $"Invalid DSK: container length is {image.Length} bytes, but its track table declares {trackOffset} bytes.");
+                throw new InvalidDataException($"Invalid DSK: {container.ContainerTrailingData.Length} undeclared byte(s) follow the track data.");
             }
-            return sectorOffsets;
+            return container;
         }
 
-        private static void ParseTrack(
-            ReadOnlySpan<byte> track,
-            int physicalTrack,
-            int absoluteTrackOffset,
-            int[,] sectorOffsets)
+        private static void ValidateLegacyIplDescriptorExpectations(ReadOnlySpan<byte> image)
         {
-            int cylinder = physicalTrack / Mz800IplDskWriter.SideCount;
-            int side = physicalTrack & 1;
-            if (!track[..12].SequenceEqual("Track-Info\r\n"u8))
+            if (image.Length < Mz800IplDskWriter.DiskHeaderSize ||
+                image[0x30] != Mz800IplDskWriter.CylinderCount ||
+                image[0x31] != Mz800IplDskWriter.SideCount)
             {
-                throw new InvalidDataException($"Invalid DSK: track C={cylinder}, H={side} has no Track-Info signature.");
-            }
-            if (track[0x10] != cylinder || track[0x11] != side)
-            {
-                throw new InvalidDataException($"Invalid DSK: track header C/H does not match C={cylinder}, H={side}.");
-            }
-            if (track[0x14] != 1 || track[0x15] != Mz800IplDskWriter.SectorsPerTrack)
-            {
-                throw new InvalidDataException(
-                    $"Unsupported DSK geometry: track C={cylinder}, H={side} must contain 16 sectors with N=1.");
+                return;
             }
 
-            var seen = new bool[Mz800IplDskWriter.SectorsPerTrack];
-            int dataOffset = TrackHeaderSize;
-            for (int descriptorIndex = 0; descriptorIndex < Mz800IplDskWriter.SectorsPerTrack; descriptorIndex++)
+            int trackOffset = Mz800IplDskWriter.DiskHeaderSize;
+            int trackCount = Mz800IplDskWriter.CylinderCount * Mz800IplDskWriter.SideCount;
+            for (int physicalTrack = 0; physicalTrack < trackCount; physicalTrack++)
             {
-                int descriptorOffset = SectorDescriptorOffset + descriptorIndex * SectorDescriptorSize;
-                ReadOnlySpan<byte> descriptor = track.Slice(descriptorOffset, SectorDescriptorSize);
-                int sectorId = descriptor[2];
-                int actualLength = BinaryPrimitives.ReadUInt16LittleEndian(descriptor[6..8]);
-                if (descriptor[0] != cylinder || descriptor[1] != side || descriptor[3] != 1)
+                int trackSize = image[0x34 + physicalTrack] << 8;
+                if (trackSize != Mz800IplDskWriter.TrackBlockSize ||
+                    trackOffset > image.Length - trackSize)
                 {
-                    throw new InvalidDataException(
-                        $"Invalid DSK: sector descriptor {descriptorIndex + 1} on C={cylinder}, H={side} has invalid C/H/N values.");
+                    return;
                 }
-                if (sectorId < 1 || sectorId > Mz800IplDskWriter.SectorsPerTrack)
+                int cylinder = physicalTrack / Mz800IplDskWriter.SideCount;
+                int side = physicalTrack % Mz800IplDskWriter.SideCount;
+                for (int index = 0; index < Mz800IplDskWriter.SectorsPerTrack; index++)
                 {
-                    throw new InvalidDataException(
-                        $"Invalid DSK: sector ID {sectorId} on C={cylinder}, H={side} is outside 1..16.");
+                    int descriptorOffset = trackOffset + SectorDescriptorOffset + index * SectorDescriptorSize;
+                    ReadOnlySpan<byte> descriptor = image.Slice(descriptorOffset, SectorDescriptorSize);
+                    if (descriptor[0] != cylinder || descriptor[1] != side || descriptor[3] != 1)
+                    {
+                        throw new InvalidDataException(
+                            $"Invalid DSK: sector descriptor {index + 1} on C={cylinder}, H={side} has invalid C/H/N values.");
+                    }
+                    int actualLength = BinaryPrimitives.ReadUInt16LittleEndian(descriptor[6..8]);
+                    if (actualLength != 0 && actualLength != Mz800IplDskWriter.SectorSize)
+                    {
+                        throw new InvalidDataException(
+                            $"Unsupported DSK geometry: sector C={cylinder}, H={side}, R={descriptor[2]} has data length {actualLength}, expected 256.");
+                    }
                 }
-                if (seen[sectorId - 1])
-                {
-                    throw new InvalidDataException(
-                        $"Invalid DSK: duplicate sector ID {sectorId} on C={cylinder}, H={side}.");
-                }
-                if (actualLength != 0 && actualLength != Mz800IplDskWriter.SectorSize)
-                {
-                    throw new InvalidDataException(
-                        $"Unsupported DSK geometry: sector C={cylinder}, H={side}, R={sectorId} has data length {actualLength}, expected 256.");
-                }
-                if (dataOffset > track.Length - Mz800IplDskWriter.SectorSize)
-                {
-                    throw new InvalidDataException(
-                        $"Invalid DSK: sector data for C={cylinder}, H={side}, R={sectorId} is truncated.");
-                }
-
-                seen[sectorId - 1] = true;
-                sectorOffsets[physicalTrack, sectorId - 1] = absoluteTrackOffset + dataOffset;
-                dataOffset += Mz800IplDskWriter.SectorSize;
-            }
-
-            if (seen.Any(value => !value) || dataOffset != track.Length)
-            {
-                throw new InvalidDataException($"Invalid DSK: track C={cylinder}, H={side} has missing or overlapping sector data.");
+                trackOffset += trackSize;
             }
         }
 
-        private static byte[] ReadLogicalBlock(ReadOnlySpan<byte> image, int[,] sectorOffsets, int block)
+        private static byte[] ReadLogicalBlock(DskImage image, int block)
         {
             (int cylinder, int side, int sector) = Mz800IplDskWriter.MapLogicalBlock(block);
-            int physicalTrack = cylinder * Mz800IplDskWriter.SideCount + side;
-            int offset = sectorOffsets[physicalTrack, sector - 1];
+            byte[] data = image.GetSector(cylinder, side, sector).Data;
             var result = new byte[Mz800IplDskWriter.SectorSize];
             for (int index = 0; index < result.Length; index++)
             {
-                result[index] = (byte)(image[offset + index] ^ 0xFF);
+                result[index] = (byte)(data[index] ^ 0xFF);
             }
             return result;
         }
@@ -240,8 +223,7 @@ namespace QDTool
         }
 
         private static void RejectAdditionalPayload(
-            ReadOnlySpan<byte> image,
-            int[,] sectorOffsets,
+            DskImage image,
             int startBlock,
             int endBlock)
         {
@@ -252,7 +234,7 @@ namespace QDTool
                     continue;
                 }
 
-                byte[] sector = ReadLogicalBlock(image, sectorOffsets, block);
+                byte[] sector = ReadLogicalBlock(image, block);
                 if (sector.Any(value => value != 0))
                 {
                     throw new InvalidDataException(

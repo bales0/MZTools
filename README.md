@@ -150,6 +150,32 @@ The compression engines and MZF loader builders are ports of
 [mz7](https://github.com/bales0/mz7). Attribution and license text are in
 `THIRD_PARTY_NOTICES.md`.
 
+### Extended CPC DSK editor
+
+Opening a `.dsk` now uses a shared Extended CPC DSK container model that keeps
+the original header and track metadata, physical sector order, sector IDs,
+FDC status bytes, padding, missing tracks and variable track sizes. Unchanged
+images round-trip byte-for-byte. Sector sizes 128, 256, 512 and 1024 bytes are
+supported; structurally valid images with an unknown filesystem open in a raw
+sector view instead of being rejected.
+
+The editor detects and provides file operations for FSMZ/MZ-BASIC/IPLDISK,
+the CP/M SD and HD presets, and MRS. It can import, export, rename and delete
+files, preserve MZF metadata where the filesystem stores it, show filesystem
+space information, and replace a selected raw sector with an exactly sized
+binary file. New-image presets create FSMZ, CP/M SD/HD, MRS and uniform raw
+images. CP/M and MRS presets use the Sharp mixed boot/data-track geometry and
+physical sector interleave used by `mzdisk`.
+
+Current limitations: custom CP/M DPB entry, interactive custom geometry,
+filesystem repair/defragmentation, bootstrap metadata editing, CP/M attribute
+editing, MRS address editing and a writable in-place hex editor are not yet
+exposed by the UI. MRS records only a block count, so exported raw data includes
+the final block padding and its exact original byte length cannot be recovered.
+The DSK code is a C# port/adaptation of
+[mzdisk](https://github.com/bales0/mzdisk); attribution is in
+`THIRD_PARTY_NOTICES.md`.
+
 ### Direct MZ-800 IPL floppy import/export
 
 `Open...` and `Add...` accept compatible single-program MZ-800 IPL
