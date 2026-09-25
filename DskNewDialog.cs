@@ -9,6 +9,8 @@ namespace QDTool
 {
     internal enum DskNewFormat
     {
+        IplSingle,
+        IplMulti,
         MzBasic,
         IplDisk,
         PersonalCpm,
@@ -45,6 +47,7 @@ namespace QDTool
         private readonly TextBox fillerBox = new() { Text = "FF", MinWidth = 100 };
         private readonly ComboBox orderBox = new() { ItemsSource = new[] { "Normal", "LEC interleave 2", "LEC HD interleave 3", "Custom sector IDs" }, SelectedIndex = 0, MinWidth = 180 };
         private readonly TextBox sectorIdsBox = new() { Text = "1,2,3,4,5,6,7,8,9", MinWidth = 250 };
+        private readonly TextBlock capacityText = new() { FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
         private readonly FrameworkElement[] customControls;
 
         private DskNewDialog(Window owner)
@@ -57,22 +60,27 @@ namespace QDTool
 
             formatBox.ItemsSource = new[]
             {
-                new FormatChoice(DskNewFormat.MzBasic, "MZ-BASIC / FSMZ (63 directory entries)"),
-                new FormatChoice(DskNewFormat.IplDisk, "IPLDISK (127 directory entries)"),
+                new FormatChoice(DskNewFormat.IplSingle, "MZ IPL DSK — single program (320 KiB)"),
+                new FormatChoice(DskNewFormat.IplMulti, "MZTools IPL DSK — multiple programs (320 KiB)"),
+                new FormatChoice(DskNewFormat.MzBasic, "MZ-BASIC / FSMZ — 63 directory entries (standard 320 KiB)"),
+                new FormatChoice(DskNewFormat.IplDisk, "IPLDISK filesystem — 127 directory entries (standard 320 KiB)"),
                 new FormatChoice(DskNewFormat.PersonalCpm, "P-CP/M80 original (320 KiB)"),
-                new FormatChoice(DskNewFormat.Sds400, "P-CP/M80 SDS/400"),
-                new FormatChoice(DskNewFormat.LecCpmDd, "LEC CP/M DD (9×512 B)"),
-                new FormatChoice(DskNewFormat.LecCpmHd, "LEC CP/M HD (18×512 B)"),
-                new FormatChoice(DskNewFormat.Mrs, "MRS"),
-                new FormatChoice(DskNewFormat.Lemmings, "Sharp Lemmings special geometry"),
-                new FormatChoice(DskNewFormat.CustomRaw, "Custom / raw geometry")
+                new FormatChoice(DskNewFormat.Sds400, "P-CP/M80 SDS/400 (400 KiB)"),
+                new FormatChoice(DskNewFormat.LecCpmDd, "LEC CP/M DD — 9×512 B (standard 720 KiB)"),
+                new FormatChoice(DskNewFormat.LecCpmHd, "LEC CP/M HD — 18×512 B (standard 1.44 MiB)"),
+                new FormatChoice(DskNewFormat.Mrs, "MRS (standard 720 KiB)"),
+                new FormatChoice(DskNewFormat.Lemmings, "Sharp Lemmings special geometry (720 KiB)"),
+                new FormatChoice(DskNewFormat.CustomRaw, "Custom / raw geometry (calculated capacity)")
             };
-            formatBox.SelectedIndex = 0;
+            // Keep the existing general-purpose filesystem preset as the default;
+            // the two IPL image builders are additional DSK formats, not a new default.
+            formatBox.SelectedIndex = 2;
 
             var panel = new StackPanel { Margin = new Thickness(14) };
             panel.Children.Add(Row("Format:", formatBox));
             panel.Children.Add(Row("Tracks per side:", tracksBox));
             panel.Children.Add(Row("Sides:", sidesBox));
+            panel.Children.Add(Row("Capacity:", capacityText));
             FrameworkElement sectorsRow = Row("Sectors per track:", sectorsBox);
             FrameworkElement sizeRow = Row("Sector size:", sectorSizeBox);
             FrameworkElement fillerRow = Row("Filler (hex):", fillerBox);
@@ -91,7 +99,15 @@ namespace QDTool
             Content = panel;
 
             formatBox.SelectionChanged += (_, _) => UpdateFields();
-            orderBox.SelectionChanged += (_, _) => sectorIdsBox.IsEnabled = orderBox.SelectedIndex == 3;
+            tracksBox.TextChanged += (_, _) => UpdateCapacity();
+            sidesBox.SelectionChanged += (_, _) => UpdateCapacity();
+            sectorsBox.TextChanged += (_, _) => UpdateCapacity();
+            sectorSizeBox.SelectionChanged += (_, _) => UpdateCapacity();
+            orderBox.SelectionChanged += (_, _) =>
+            {
+                sectorIdsBox.IsEnabled = orderBox.SelectedIndex == 3;
+                UpdateCapacity();
+            };
             UpdateFields();
         }
 
@@ -118,7 +134,8 @@ namespace QDTool
         private void UpdateFields()
         {
             if (formatBox.SelectedItem is not FormatChoice choice) return;
-            bool fixedGeometry = choice.Format is DskNewFormat.PersonalCpm or DskNewFormat.Sds400 or DskNewFormat.Lemmings;
+            bool fixedGeometry = choice.Format is DskNewFormat.IplSingle or DskNewFormat.IplMulti or
+                DskNewFormat.PersonalCpm or DskNewFormat.Sds400 or DskNewFormat.Lemmings;
             bool custom = choice.Format == DskNewFormat.CustomRaw;
             tracksBox.IsEnabled = !fixedGeometry;
             sidesBox.IsEnabled = !fixedGeometry;
@@ -127,6 +144,8 @@ namespace QDTool
 
             switch (choice.Format)
             {
+                case DskNewFormat.IplSingle:
+                case DskNewFormat.IplMulti:
                 case DskNewFormat.MzBasic:
                 case DskNewFormat.IplDisk:
                 case DskNewFormat.PersonalCpm:
@@ -139,6 +158,63 @@ namespace QDTool
                     sidesBox.SelectedIndex = 1;
                     break;
             }
+            UpdateCapacity();
+        }
+
+        private void UpdateCapacity()
+        {
+            if (formatBox.SelectedItem is not FormatChoice choice ||
+                !int.TryParse(tracksBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int tracks) ||
+                sidesBox.SelectedItem is not string sidesValue ||
+                !int.TryParse(sidesValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int sides))
+            {
+                capacityText.Text = "—";
+                return;
+            }
+
+            long bytes;
+            string suffix = string.Empty;
+            switch (choice.Format)
+            {
+                case DskNewFormat.IplSingle:
+                case DskNewFormat.IplMulti:
+                case DskNewFormat.MzBasic:
+                case DskNewFormat.IplDisk:
+                    bytes = (long)tracks * sides * 16 * 256;
+                    break;
+                case DskNewFormat.PersonalCpm:
+                    bytes = 320L * 1024;
+                    break;
+                case DskNewFormat.Sds400:
+                    bytes = 400L * 1024;
+                    break;
+                case DskNewFormat.LecCpmDd:
+                case DskNewFormat.Mrs:
+                case DskNewFormat.Lemmings:
+                    bytes = (long)tracks * sides * 9 * 512;
+                    break;
+                case DskNewFormat.LecCpmHd:
+                    bytes = (long)tracks * sides * 18 * 512;
+                    break;
+                case DskNewFormat.CustomRaw:
+                    if (!int.TryParse(sectorsBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int sectors) ||
+                        sectorSizeBox.SelectedItem is not string sectorSizeValue ||
+                        !int.TryParse(sectorSizeValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out int sectorSize))
+                    {
+                        capacityText.Text = "—";
+                        return;
+                    }
+                    bytes = (long)tracks * sides * sectors * sectorSize;
+                    suffix = " (raw sector data)";
+                    break;
+                default:
+                    capacityText.Text = "—";
+                    return;
+            }
+
+            capacityText.Text = bytes % (1024 * 1024) == 0
+                ? $"{bytes / (1024 * 1024)} MiB / {bytes:N0} B{suffix}"
+                : $"{bytes / 1024.0:0.##} KiB / {bytes:N0} B{suffix}";
         }
 
         private void Create_Click(object sender, RoutedEventArgs e)

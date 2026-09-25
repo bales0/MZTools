@@ -37,11 +37,6 @@ namespace QDTool
             DskImage container = ParseContainer(image);
             byte[] ipl = ReadLogicalBlock(container, 0);
             ValidateIplSignature(ipl);
-            if (ipl.AsSpan(0x20, 4).SequenceEqual("QDMG"u8))
-            {
-                throw new InvalidDataException(
-                    $"Unsupported DSK: MZTools multi-game IPL DSK version {ipl[0x24]} cannot be imported as one MZF record.");
-            }
 
             ushort size = BinaryPrimitives.ReadUInt16LittleEndian(ipl.AsSpan(0x14, 2));
             ushort load = BinaryPrimitives.ReadUInt16LittleEndian(ipl.AsSpan(0x16, 2));
@@ -78,6 +73,13 @@ namespace QDTool
                 int destinationOffset = index * Mz800IplDskWriter.SectorSize;
                 int length = Math.Min(Mz800IplDskWriter.SectorSize, size - destinationOffset);
                 sector.AsSpan(0, length).CopyTo(bodyBytes.AsSpan(destinationOffset));
+            }
+
+            int multiFooterOffset = Mz800MultiGameIplDskWriter.FindMenuFooterOffset(bodyBytes);
+            if (multiFooterOffset >= 0)
+            {
+                throw new InvalidDataException(
+                    $"Unsupported DSK: MZTools multi-game IPL DSK version {bodyBytes[multiFooterOffset + 4]} cannot be imported as one MZF record.");
             }
 
             RejectAdditionalPayload(container, startBlock, endBlock);

@@ -8,17 +8,37 @@
         Title="MZTools" Height="600" Width="1100" MinHeight="480" MinWidth="900" Icon="/images/MZTool.ico"
         AllowDrop="True" DragEnter="Window_DragEnter" Drop="Window_Drop" Closing="MainWindow_Closing">
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="112"/>
-        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
+        <Border Grid.Row="0" Margin="10,10,10,0" Padding="8"
+                BorderBrush="LightGray" BorderThickness="1" CornerRadius="3">
+            <WrapPanel>
+                <Button x:Name="openButton" Content="Open..." Click="button_Click_Open" Style="{StaticResource TopToolbarButton}"/>
+                <Button x:Name="addButton" Content="Add..." Click="button_Click_Add" Style="{StaticResource TopToolbarButton}"/>
+                <Button x:Name="exportButton" Content="Export..." Click="button_Click_Export" Style="{StaticResource TopToolbarButton}"/>
+                <Button x:Name="viewButton" Content="View" Click="button_Click_View" Style="{StaticResource TopToolbarButton}"/>
+                <Button x:Name="deleteButton" Content="Delete" Click="button_Click_Delete" Style="{StaticResource TopToolbarButton}"/>
+                <Button x:Name="saveButton" Content="Save As..." Click="button_Click_Save" Style="{StaticResource TopToolbarButton}"/>
+                <Grid Width="94" Margin="0,0,6,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="6"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Button x:Name="moveUpButton" FontFamily="Segoe UI" Content="&#x2191;" Click="button_Click_Up" Height="28" ToolTip="Move selected rows up"/>
+                    <Button x:Name="moveDownButton" Grid.Column="2" FontFamily="Segoe UI" Content="&#x2193;" Click="button_Click_Down" Height="28" ToolTip="Move selected rows down"/>
+                </Grid>
+                <Border Style="{StaticResource TopToolbarSeparator}"/>
+                <Button x:Name="newQuickDiskButton" Content="New QD..." Click="button_Click_NewQuickDisk" Style="{StaticResource TopToolbarButton}"/>
+                <Button x:Name="newDskButton" Content="New DSK..." Click="button_Click_NewDsk" Style="{StaticResource TopToolbarButton}"/>
+                <Button x:Name="formatQuickDiskButton" Content="Format..." Click="button_Click_FormatQuickDisk" Style="{StaticResource TopToolbarButton}" Visibility="Collapsed"/>
+            </WrapPanel>
+        </Border>
         <DataGrid x:Name="MzfDataGrid" 
-                  Grid.Row="0"
-                  Grid.Column="0"
+                  Grid.Row="1"
                   IsReadOnly="False"
                   AllowDrop="True"
                   PreviewMouseLeftButtonDown="MzfDataGrid_PreviewMouseLeftButtonDown"
@@ -35,7 +55,7 @@
                   HeadersVisibility="Column" 
                   AutoGenerateColumns="False" 
                   CanUserSortColumns="False" 
-                  Margin="10,10,6,8">
+                  Margin="10,8,10,8">
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">
                     <Style.Triggers>
@@ -93,35 +113,7 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <Border Grid.Row="0" Grid.Column="1" Margin="6,10,10,8" Padding="8"
-                BorderBrush="LightGray" BorderThickness="1" CornerRadius="3">
-            <StackPanel>
-                <Button x:Name="openButton" Content="Open..." Click="button_Click_Open" Height="28"/>
-                <Button x:Name="addButton" Content="Add..." Click="button_Click_Add" Height="28" Margin="0,6,0,0"/>
-                <Button x:Name="saveButton" Content="Save As..." Click="button_Click_Save" Height="28" Margin="0,6,0,0"/>
-                <Button x:Name="exportButton" Content="Export..." Click="button_Click_Export" Height="28" Margin="0,6,0,0"/>
-
-                <Separator Margin="0,10,0,8"/>
-                <Button x:Name="viewButton" Content="View" Click="button_Click_View" Height="28"/>
-                <Button x:Name="deleteButton" Content="Delete" Click="button_Click_Delete" Height="28" Margin="0,6,0,0"/>
-                <Grid Margin="0,6,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="6"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Button x:Name="moveUpButton" FontFamily="Segoe UI" Content="&#x2191;" Click="button_Click_Up" Height="28" ToolTip="Move selected rows up"/>
-                    <Button x:Name="moveDownButton" Grid.Column="2" FontFamily="Segoe UI" Content="&#x2193;" Click="button_Click_Down" Height="28" ToolTip="Move selected rows down"/>
-                </Grid>
-
-                <Separator Margin="0,10,0,8"/>
-                <Button x:Name="newQuickDiskButton" Content="New..." Click="button_Click_NewQuickDisk" Height="28"/>
-                <Button x:Name="newDskButton" Content="New DSK..." Click="button_Click_NewDsk" Height="28" Margin="0,6,0,0"/>
-                <Button x:Name="formatQuickDiskButton" Content="Format..." Click="button_Click_FormatQuickDisk" Height="28" Margin="0,6,0,0" Visibility="Collapsed"/>
-            </StackPanel>
-        </Border>
-
-        <Border Grid.Row="1" Grid.ColumnSpan="2" Margin="10,0,10,10" Padding="9,6"
+        <Border Grid.Row="2" Margin="10,0,10,10" Padding="9,6"
                 BorderBrush="LightGray" BorderThickness="1" CornerRadius="3">
             <StackPanel>
                 <TextBlock x:Name="qdInfoText" Text="Quickdisk image type: —" Visibility="Collapsed" TextWrapping="Wrap" Margin="0,0,0,3"/>
@@ -129,7 +121,7 @@
             </StackPanel>
         </Border>
 
-        <local:DskEditorControl x:Name="dskEditorControl" Grid.RowSpan="2" Grid.ColumnSpan="2"
+        <local:DskEditorControl x:Name="dskEditorControl" Grid.RowSpan="3"
                                 Panel.ZIndex="10" Background="White" Visibility="Collapsed"/>
     </Grid>
 </Window>

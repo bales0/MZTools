@@ -13,7 +13,9 @@ namespace QDTool
         private const int EntrySize = Mz800MultiGameIplDskWriter.EntrySize;
         private readonly DskImage image;
         private readonly List<DskFileEntry> entries;
+        private readonly List<MultiGameIplInput> inputs;
         private readonly int usedBlocks;
+        private bool canConfigure = true;
 
         private MultiGameIplFileSystem(DskImage image)
         {
@@ -21,24 +23,32 @@ namespace QDTool
                 throw new InvalidDataException("The image does not use MZ-800 IPL geometry.");
             this.image = image;
             byte[] ipl = ReadBlock(0);
-            if (ipl[0] != 3 || !ipl.AsSpan(1, 6).SequenceEqual("IPLPRO"u8) || !ipl.AsSpan(0x20, 4).SequenceEqual("QDMG"u8))
+            if (ipl[0] != 3 || !ipl.AsSpan(1, 6).SequenceEqual("IPLPRO"u8))
                 throw new InvalidDataException("The MZTools multi-game IPL signature is missing.");
-            if (ipl[0x24] != Mz800MultiGameIplDskWriter.FormatVersion || ipl[0x25] != EntrySize)
-                throw new InvalidDataException($"Unsupported MZTools multi-game IPL format version {ipl[0x24]} or entry size {ipl[0x25]}.");
 
             int menuSize = BinaryPrimitives.ReadUInt16LittleEndian(ipl.AsSpan(0x14, 2));
-            int entryCount = BinaryPrimitives.ReadUInt16LittleEndian(ipl.AsSpan(0x26, 2));
-            int tableOffset = BinaryPrimitives.ReadUInt16LittleEndian(ipl.AsSpan(0x28, 2));
-            int menuSectors = BinaryPrimitives.ReadUInt16LittleEndian(ipl.AsSpan(0x2A, 2));
+            if (menuSize < Mz800MultiGameIplDskWriter.MultiGameFooterSize)
+                throw new InvalidDataException("The MZTools multi-game IPL menu is too short.");
+
+            byte[] menu = ReadBytes(1, menuSize);
+            int metadataOffset = Mz800MultiGameIplDskWriter.FindMenuFooterOffset(menu);
+            if (metadataOffset < 0)
+                throw new InvalidDataException("The MZTools multi-game IPL signature is missing.");
+            if (menu[metadataOffset + 4] != Mz800MultiGameIplDskWriter.FormatVersion || menu[metadataOffset + 5] != EntrySize)
+                throw new InvalidDataException($"Unsupported MZTools multi-game IPL format version {menu[metadataOffset + 4]} or entry size {menu[metadataOffset + 5]}.");
+
+            int entryCount = BinaryPrimitives.ReadUInt16LittleEndian(menu.AsSpan(metadataOffset + 6, 2));
+            int tableOffset = BinaryPrimitives.ReadUInt16LittleEndian(menu.AsSpan(metadataOffset + 8, 2));
+            int menuSectors = BinaryPrimitives.ReadUInt16LittleEndian(menu.AsSpan(metadataOffset + 10, 2));
             if (entryCount is < 1 or > Mz800MultiGameIplDskWriter.MaxEntries || menuSectors < 1 ||
                 menuSize is < 1 or > ushort.MaxValue || menuSectors != BlocksFor(menuSize))
                 throw new InvalidDataException("The MZTools multi-game IPL header contains invalid menu dimensions.");
 
-            byte[] menu = ReadBytes(1, menuSize);
-            if (tableOffset < 0 || tableOffset > menu.Length - checked(entryCount * EntrySize))
+            if (tableOffset < 0 || tableOffset > metadataOffset - checked(entryCount * EntrySize))
                 throw new InvalidDataException("The MZTools multi-game entry table lies outside the menu program.");
 
             entries = new List<DskFileEntry>(entryCount);
+            inputs = new List<MultiGameIplInput>(entryCount);
             var occupied = new HashSet<int>(Enumerable.Range(0, 1 + menuSectors));
             for (int index = 0; index < entryCount; index++)
             {
@@ -53,7 +63,7 @@ namespace QDTool
 
                 string name = SharpMzEncoding.ConvertMzfNameToASCIIString(raw[..16].ToArray()).TrimEnd();
                 byte compression = raw[25];
-                entries.Add(new DskFileEntry
+                var entry = new DskFileEntry
                 {
                     Key = index.ToString(),
                     Name = string.IsNullOrWhiteSpace(name) ? $"GAME {index + 1}" : name,
@@ -64,7 +74,19 @@ namespace QDTool
                     StartBlock = startBlock,
                     Blocks = blocks,
                     Notes = compression switch { 0 => "Uncompressed", 1 => "ZX0", 2 => "ZX7", _ => $"Compression {compression}" }
-                });
+                };
+                entries.Add(entry);
+                byte[] payload = ReadBytes(startBlock, size);
+                MzfCompressionOptions compressionOptions = compression switch
+                {
+                    0 => new MzfCompressionOptions(MzfCompressionAlgorithm.None),
+                    1 => new MzfCompressionOptions(MzfCompressionAlgorithm.Zx0),
+                    2 => new MzfCompressionOptions(MzfCompressionAlgorithm.Zx7),
+                    _ => new MzfCompressionOptions(MzfCompressionAlgorithm.None)
+                };
+                if (compression > 2) canConfigure = false;
+                inputs.Add(new MultiGameIplInput(
+                    CreateRecord(entry, payload), entry.Name, compressionOptions, payload.Length));
             }
             usedBlocks = occupied.Count;
         }
@@ -88,6 +110,15 @@ namespace QDTool
         }
 
         public IReadOnlyList<DskFileEntry> ReadDirectory() => entries;
+
+        internal bool CanConfigure => canConfigure;
+
+        internal IReadOnlyList<MultiGameIplInput> GetInputs()
+        {
+            if (!CanConfigure)
+                throw new NotSupportedException("This multi-program IPL image uses an unknown compression code and cannot be safely rebuilt.");
+            return inputs.Select(input => input with { Record = input.Record.DeepClone() }).ToList();
+        }
 
         public byte[] Extract(DskFileEntry entry) => ReadBytes(entry.StartBlock, checked((int)entry.Size));
 
@@ -122,5 +153,36 @@ namespace QDTool
         }
 
         private static int BlocksFor(int size) => checked((size + Mz800DskImage.SectorSize - 1) / Mz800DskImage.SectorSize);
+
+        private static TapeRecord CreateRecord(DskFileEntry entry, byte[] payload)
+        {
+            var header = new MZQFileHeader
+            {
+                StartSign = MzfFormatSupport.ExpectedStartSign.ToArray(),
+                MzfHeaderSign = 0,
+                DataSize = 0x40,
+                MzfFtype = entry.FileType == 0 ? (byte)1 : entry.FileType,
+                MzfFname = new byte[16],
+                MzfFnameEnd = 0x0D,
+                Unused1 = MzfFormatSupport.ExpectedUnused.ToArray(),
+                MzfSize = checked((ushort)payload.Length),
+                MzfStart = entry.LoadAddress,
+                MzfExec = entry.ExecuteAddress,
+                MzfHeaderDescription = new byte[104],
+                Crc = MzfFormatSupport.ExpectedCrc.ToArray()
+            };
+            byte[] encodedName = SharpMzEncoding.ConvertASCIIStringToSHASCIIBytes(entry.Name);
+            encodedName.AsSpan(0, Math.Min(encodedName.Length, header.MzfFname.Length)).CopyTo(header.MzfFname);
+            var body = new MZQFileBody
+            {
+                StartSign = MzfFormatSupport.ExpectedStartSign.ToArray(),
+                MzfBodySign = 0x05,
+                DataSize = checked((ushort)payload.Length),
+                MzfBody = (byte[])payload.Clone(),
+                Crc = MzfFormatSupport.ExpectedCrc.ToArray(),
+                TrailingData = Array.Empty<byte>()
+            };
+            return TapeRecord.FromLegacy(header, body);
+        }
     }
 }

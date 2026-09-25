@@ -9,22 +9,70 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <WrapPanel Grid.Row="0" Margin="0,0,0,8">
-            <Button x:Name="dskAddButton" Content="Add..." Click="Add_Click" MinWidth="76" Margin="0,0,6,0"/>
-            <Button Content="Export..." Click="Export_Click" MinWidth="76" Margin="0,0,6,0"/>
-            <Button x:Name="dskRenameButton" Content="Rename..." Click="Rename_Click" MinWidth="76" Margin="0,0,6,0"/>
-            <Button x:Name="dskDeleteButton" Content="Delete" Click="Delete_Click" MinWidth="76" Margin="0,0,6,0"/>
-            <Button Content="Hex view" Click="Hex_Click" MinWidth="76" Margin="0,0,18,0"/>
-            <Button Content="Save" Click="Save_Click" MinWidth="76" Margin="0,0,6,0"/>
-            <Button Content="Save As..." Click="SaveAs_Click" MinWidth="76" Margin="0,0,18,0"/>
-            <Button Content="Close DSK" Click="Close_Click" MinWidth="86"/>
+        <Border Grid.Row="0" Padding="8" Margin="0,0,0,8"
+                BorderBrush="LightGray" BorderThickness="1" CornerRadius="3">
+        <WrapPanel>
+            <Button Content="Close DSK" Click="Close_Click" Style="{StaticResource TopToolbarButton}"/>
+            <Button x:Name="dskAddButton" Content="Add..." Click="Add_Click" Style="{StaticResource TopToolbarButton}"/>
+            <Button Content="Export..." Click="Export_Click" Style="{StaticResource TopToolbarButton}"/>
+            <Button Content="Hex view" Click="Hex_Click" Style="{StaticResource TopToolbarButton}"/>
+            <Button x:Name="dskDeleteButton" Content="Delete" Click="Delete_Click" Style="{StaticResource TopToolbarButton}"/>
+            <Button x:Name="dskSaveAsButton" Content="Save As..." Click="SaveAs_Click" Style="{StaticResource TopToolbarButton}"/>
+            <Grid x:Name="dskMoveButtons" Width="94" Margin="0,0,6,0" Visibility="Collapsed">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="6"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Button FontFamily="Segoe UI" Content="&#x2191;" Height="28" ToolTip="Move selected programs up" Click="MoveUp_Click"/>
+                <Button Grid.Column="2" FontFamily="Segoe UI" Content="&#x2193;" Height="28" ToolTip="Move selected programs down" Click="MoveDown_Click"/>
+            </Grid>
+            <Border Style="{StaticResource TopToolbarSeparator}"/>
+            <Button x:Name="dskSaveButton" Content="Save" Click="Save_Click" Style="{StaticResource TopToolbarButton}"/>
+            <Button x:Name="dskRenameButton" Content="Rename..." Click="Rename_Click" Style="{StaticResource TopToolbarButton}"/>
             <CheckBox x:Name="dskShowSectorsCheckBox" Content="Show raw sectors" Margin="18,6,0,0"
                       VerticalAlignment="Center" Visibility="Collapsed" Checked="ShowSectors_Changed" Unchecked="ShowSectors_Changed"/>
         </WrapPanel>
+        </Border>
         <DataGrid x:Name="directoryGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True"
                   SelectionMode="Extended" SelectionUnit="FullRow" CanUserAddRows="False"/>
+        <DataGrid x:Name="multiIplGrid" Grid.Row="1" AutoGenerateColumns="False" Visibility="Collapsed"
+                  SelectionMode="Extended" SelectionUnit="FullRow" CanUserAddRows="False" CanUserDeleteRows="False"
+                  SelectionChanged="MultiIplGrid_SelectionChanged" AllowDrop="True"
+                  PreviewMouseLeftButtonDown="MultiIplGrid_PreviewMouseLeftButtonDown"
+                  PreviewMouseMove="MultiIplGrid_PreviewMouseMove"
+                  DragOver="MultiIplGrid_DragOver" DragLeave="MultiIplGrid_DragLeave" Drop="MultiIplGrid_Drop">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="#" Binding="{Binding Order}" Width="38" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Menu name" Binding="{Binding MenuName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="160"/>
+                <DataGridTextColumn Header="Original B" Binding="{Binding OriginalSize}" Width="80" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Packed B" Binding="{Binding PackedSize}" Width="80" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Ratio" Binding="{Binding CompressionRatio}" Width="65" IsReadOnly="True"/>
+                <DataGridTextColumn Header="LOAD" Binding="{Binding LoadHex}" Width="70" IsReadOnly="True"/>
+                <DataGridTextColumn Header="EXEC" Binding="{Binding ExecHex}" Width="70" IsReadOnly="True"/>
+                <DataGridTemplateColumn Header="Compression" Width="125">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ComboBox ItemsSource="{Binding CompressionChoices}"
+                                      SelectedItem="{Binding Compression, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      IsEnabled="{Binding CanChangeCompression}" Padding="2,0"
+                                      PreviewMouseLeftButtonDown="MultiIplCompression_PreviewMouseLeftButtonDown"
+                                      SelectionChanged="MultiIplCompression_SelectionChanged"
+                                      DropDownClosed="MultiIplCompression_DropDownClosed"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Start" Binding="{Binding StartBlock}" Width="65" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Sectors" Binding="{Binding Sectors}" Width="65" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Applied" Binding="{Binding AppliedCompression}" Width="*" IsReadOnly="True"/>
+            </DataGrid.Columns>
+        </DataGrid>
         <Border Grid.Row="2" BorderBrush="LightGray" BorderThickness="1" Padding="8" Margin="0,8,0,0">
-            <TextBlock x:Name="infoText" TextWrapping="Wrap"/>
+            <StackPanel>
+                <TextBlock x:Name="infoText" TextWrapping="Wrap"/>
+                <ProgressBar x:Name="multiIplProgressBar" Height="5" Margin="0,8,0,0"
+                             IsIndeterminate="True" Visibility="Collapsed"/>
+            </StackPanel>
         </Border>
         <TextBlock Grid.Row="3" x:Name="warningText" Foreground="DarkOrange" TextWrapping="Wrap" Margin="0,6,0,0"/>
     </Grid>

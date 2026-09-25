@@ -11,6 +11,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using Microsoft.Win32;
 
 namespace QDTool
 {
@@ -27,13 +28,26 @@ namespace QDTool
         internal MultiGameIplDskOptionsDialog(IReadOnlyList<TapeRecord> records)
         {
             InitializeComponent();
-            Entries = new ObservableCollection<MultiGameIplRow>(records.Select((record, index) =>
+            InitializeEntries(records.Select((record, index) =>
             {
                 string name = SharpMzEncoding.ConvertMzfNameToASCIIString(record.Header.MzfFname);
-                var row = new MultiGameIplRow(index + 1, record.DeepClone(), name);
-                row.PropertyChanged += Row_PropertyChanged;
-                return row;
+                return new MultiGameIplRow(index + 1, record.DeepClone(), name);
             }));
+        }
+
+        internal MultiGameIplDskOptionsDialog(IReadOnlyList<MultiGameIplInput> inputs)
+        {
+            InitializeComponent();
+            InitializeEntries(inputs.Select((input, index) => new MultiGameIplRow(index + 1, input)));
+        }
+
+        private void InitializeEntries(IEnumerable<MultiGameIplRow> rows)
+        {
+            Entries = new ObservableCollection<MultiGameIplRow>(rows);
+            foreach (MultiGameIplRow row in Entries)
+            {
+                row.PropertyChanged += Row_PropertyChanged;
+            }
             entriesGrid.ItemsSource = Entries;
             DataContext = this;
             capacityTextBlock.Text =
@@ -43,7 +57,7 @@ namespace QDTool
             Loaded += async (_, _) => await RefreshPreviewAsync();
         }
 
-        internal ObservableCollection<MultiGameIplRow> Entries { get; }
+        internal ObservableCollection<MultiGameIplRow> Entries { get; private set; } = new();
 
         internal MultiGameIplBuildResult? BuildResult { get; private set; }
 
@@ -68,6 +82,16 @@ namespace QDTool
             progressBar.Visibility = Visibility.Visible;
             analysisTextBlock.Foreground = SystemColors.ControlTextBrush;
             analysisTextBlock.Text = $"Preparing 0/{Entries.Count} programs...";
+
+            if (Entries.Count == 0)
+            {
+                analysisTextBlock.Text = "Add MZF programs to create the multi-program IPL disk.";
+                capacityTextBlock.Text =
+                    $"Logical disk capacity: {Mz800DskImage.LogicalSectorCount} sectors / " +
+                    $"{Mz800DskImage.LogicalSectorCount * Mz800DskImage.SectorSize:N0} B.";
+                progressBar.Visibility = Visibility.Collapsed;
+                return;
+            }
 
             try
             {
@@ -160,6 +184,53 @@ namespace QDTool
             ListReorder.MoveItems(Entries, indices, indices[^1] + 2);
             UpdateOrder();
             RestoreSelection(selected);
+            await RefreshPreviewAsync();
+        }
+
+        private async void AddButton_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog
+            {
+                Title = "Add programs to multi-program IPL DSK",
+                Filter = "MZF program (*.mzf;*.mz0;*.mz7)|*.mzf;*.mz0;*.mz7|All files (*.*)|*.*",
+                Multiselect = true
+            };
+            if (dialog.ShowDialog(this) != true)
+            {
+                return;
+            }
+
+            try
+            {
+                foreach (string path in dialog.FileNames)
+                {
+                    TapeRecord record = new MZTFileReader().ReadStandaloneMzf(path);
+                    string name = SharpMzEncoding.ConvertMzfNameToASCIIString(record.Header.MzfFname);
+                    var row = new MultiGameIplRow(Entries.Count + 1, record, name);
+                    row.PropertyChanged += Row_PropertyChanged;
+                    Entries.Add(row);
+                }
+                await RefreshPreviewAsync();
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(this, exception.Message, "Multi-program IPL DSK", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void DeleteButton_Click(object sender, RoutedEventArgs e)
+        {
+            MultiGameIplRow[] selected = entriesGrid.SelectedItems.OfType<MultiGameIplRow>().ToArray();
+            if (selected.Length == 0)
+            {
+                return;
+            }
+            foreach (MultiGameIplRow row in selected)
+            {
+                row.PropertyChanged -= Row_PropertyChanged;
+                Entries.Remove(row);
+            }
+            UpdateOrder();
             await RefreshPreviewAsync();
         }
 
@@ -410,6 +481,8 @@ namespace QDTool
         private string compression = "None";
         private string? preparedChoice;
         private MzfCompressionResult? preparedResult;
+        private MzfCompressionResult? lastPreparedResult;
+        private TapeRecord exportFallback;
         private int packedSize;
         private string compressionRatio = "100.0%";
         private string loadHex;
@@ -419,11 +492,55 @@ namespace QDTool
         private string appliedCompression = "—";
 
         public MultiGameIplRow(int order, TapeRecord source, string menuName)
+            : this(order, CreateImportedState(source), menuName)
+        {
+        }
+
+        private MultiGameIplRow(int order, ImportedState imported, string menuName)
+            : this(order, imported.Source, menuName, imported.OriginalSize)
+        {
+            exportFallback = imported.OriginalImported.DeepClone();
+            if (imported.DetectedChoice == null)
+            {
+                return;
+            }
+
+            compression = imported.DetectedChoice;
+            AppliedCompression = imported.AppliedCompression;
+            if (imported.PreparedResult != null)
+            {
+                preparedChoice = compression;
+                preparedResult = imported.PreparedResult;
+                lastPreparedResult = imported.PreparedResult;
+                PackedSize = imported.PreparedResult.PackedSize;
+                LoadHex = $"${imported.PreparedResult.Record.Header.MzfStart:X4}";
+                ExecHex = $"${imported.PreparedResult.Record.Header.MzfExec:X4}";
+            }
+        }
+
+        internal MultiGameIplRow(int order, MultiGameIplInput input)
+            : this(order, input.Record.DeepClone(), input.DisplayName, input.OriginalSize)
+        {
+            compression = input.AppliedCompression.Algorithm switch
+            {
+                MzfCompressionAlgorithm.Zx0 => "ZX0",
+                MzfCompressionAlgorithm.Zx7 => "ZX7",
+                _ => "None"
+            };
+            preparedChoice = compression;
+            preparedResult = new MzfCompressionResult(Source, input.AppliedCompression, input.OriginalSize);
+            lastPreparedResult = preparedResult;
+            AppliedCompression = compression;
+            CanChangeCompression = false;
+        }
+
+        private MultiGameIplRow(int order, TapeRecord source, string menuName, int originalSize)
         {
             this.order = order;
             Source = source;
             this.menuName = Mz800MultiGameIplDskWriter.NormalizeMenuName(menuName);
-            OriginalSize = source.Body.MzfBody.Length;
+            exportFallback = source.DeepClone();
+            OriginalSize = originalSize;
             packedSize = OriginalSize;
             loadHex = $"${source.Header.MzfStart:X4}";
             execHex = $"${source.Header.MzfExec:X4}";
@@ -432,6 +549,8 @@ namespace QDTool
         internal TapeRecord Source { get; }
 
         public IReadOnlyList<string> CompressionChoices => Choices;
+
+        public bool CanChangeCompression { get; } = true;
 
         public int Order
         {
@@ -514,12 +633,13 @@ namespace QDTool
 
         internal async Task<MzfCompressionResult> PrepareAsync(CancellationToken token)
         {
-            if (preparedResult != null && preparedChoice == Compression)
+            string requestedCompression = Compression;
+            if (preparedResult != null && preparedChoice == requestedCompression)
             {
                 return preparedResult;
             }
 
-            MzfCompressionOptions options = Compression switch
+            MzfCompressionOptions options = requestedCompression switch
             {
                 "None" => new(MzfCompressionAlgorithm.None),
                 "ZX0" => new(MzfCompressionAlgorithm.Zx0),
@@ -532,8 +652,12 @@ namespace QDTool
                 options,
                 CompressionTarget.IplDsk,
                 token);
-            preparedChoice = Compression;
-            preparedResult = result;
+            if (Compression == requestedCompression)
+            {
+                preparedChoice = requestedCompression;
+                preparedResult = result;
+                lastPreparedResult = result;
+            }
             return result;
         }
 
@@ -547,6 +671,69 @@ namespace QDTool
             Sectors = entry.SectorCount;
             AppliedCompression = entry.Compression;
         }
+
+        internal void ApplySingle(int startBlock, int sectors, string appliedCompression)
+        {
+            PackedSize = preparedResult?.PackedSize ?? Source.Body.MzfBody.Length;
+            TapeRecord prepared = preparedResult?.Record ?? Source;
+            LoadHex = $"${prepared.Header.MzfStart:X4}";
+            ExecHex = $"${prepared.Header.MzfExec:X4}";
+            StartBlock = startBlock;
+            Sectors = sectors;
+            AppliedCompression = appliedCompression;
+        }
+
+        internal byte[] GetPreparedPayload() =>
+            (byte[])(preparedResult?.Record.Body.MzfBody ?? lastPreparedResult?.Record.Body.MzfBody ?? exportFallback.Body.MzfBody).Clone();
+
+        internal TapeRecord GetPreparedRecord() =>
+            (preparedResult?.Record ?? lastPreparedResult?.Record ?? exportFallback).DeepClone();
+
+        private static ImportedState CreateImportedState(TapeRecord source)
+        {
+            ArgumentNullException.ThrowIfNull(source);
+            TapeRecord imported = source.DeepClone();
+            if (!MzfLoaderBuilder.TryGetCompressionInfo(imported, out MzfCompressionInfo? info) || info == null)
+            {
+                return new ImportedState(imported, imported, imported.Body.MzfBody.Length, null, null, "None / unknown");
+            }
+
+            MzfDecompressionResult decompressed = MzfDecompressionService.Decompress(imported);
+            int originalSize = decompressed.Record.Body.MzfBody.Length;
+            var options = new MzfCompressionOptions(
+                info.Algorithm,
+                info.Direction,
+                Zx7EmbeddedLoader: info.EmbeddedLoader);
+
+            // An embedded ZX7 decoder lives in the MZF header, which a direct
+            // IPL loader does not copy. Rebuild it as ordinary ZX7 on preview.
+            if (info.EmbeddedLoader)
+            {
+                return new ImportedState(
+                    decompressed.Record,
+                    imported,
+                    originalSize,
+                    "ZX7",
+                    null,
+                    info.DisplayName + " (converting for IPL)");
+            }
+
+            return new ImportedState(
+                decompressed.Record,
+                imported,
+                originalSize,
+                info.Algorithm == MzfCompressionAlgorithm.Zx0 ? "ZX0" : "ZX7",
+                new MzfCompressionResult(imported, options, originalSize),
+                info.DisplayName);
+        }
+
+        private sealed record ImportedState(
+            TapeRecord Source,
+            TapeRecord OriginalImported,
+            int OriginalSize,
+            string? DetectedChoice,
+            MzfCompressionResult? PreparedResult,
+            string AppliedCompression);
 
         public event PropertyChangedEventHandler? PropertyChanged;
 

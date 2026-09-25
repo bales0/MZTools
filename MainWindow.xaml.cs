@@ -141,6 +141,10 @@ namespace QDTool
                     ? "|MZ-800 bootable IPL floppy (*.dsk)|*.dsk"
                     : "|MZ-800 multi-game IPL floppy (*.dsk)|*.dsk") +
                 "|LEP pulse file (*.lep)|*.lep|L16 pulse file (*.l16)|*.l16|Wave audio (*.wav)|*.wav";
+
+        public static string GetIplExportFilter() =>
+            "Raw program (*.bin)|*.bin|Single tape file (*.mzf)|*.mzf|" +
+            "LEP pulse file (*.lep)|*.lep|L16 pulse file (*.l16)|*.l16|Wave audio (*.wav)|*.wav";
     }
 
     internal static class AudioImportPolicy
@@ -704,9 +708,19 @@ namespace QDTool
                 .ToList();
         }
 
+        internal void ExportIplRecords(IReadOnlyList<TapeRecord> records, string suggestedFileName)
+        {
+            ArgumentNullException.ThrowIfNull(records);
+            ExportRecords(
+                records.Select((record, index) => (index, record)).ToList(),
+                suggestedFileName,
+                iplOnly: true);
+        }
+
         private void ExportRecords(
             IReadOnlyList<(int Index, TapeRecord Record)> selectedRecords,
-            string suggestedFileName)
+            string suggestedFileName,
+            bool iplOnly = false)
         {
             if (selectedRecords.Count == 0)
             {
@@ -729,10 +743,10 @@ namespace QDTool
             bool multipleRecords = records.Count > 1;
             var saveFileDialog = new SaveFileDialog
             {
-                Filter = GetExportFilter(records.Count),
+                Filter = iplOnly ? FeatureModePolicy.GetIplExportFilter() : GetExportFilter(records.Count),
                 AddExtension = true,
-                DefaultExt = multipleRecords ? ".mzt" : ".mzf",
-                FilterIndex = !multipleRecords ? 2 : 1,
+                DefaultExt = iplOnly ? ".mzf" : multipleRecords ? ".mzt" : ".mzf",
+                FilterIndex = iplOnly ? 2 : !multipleRecords ? 2 : 1,
                 FileName = suggestedFileName
             };
 
@@ -746,6 +760,82 @@ namespace QDTool
 
             try
             {
+                if (iplOnly && fileExtension == ".bin")
+                {
+                    if (records.Count == 1)
+                    {
+                        File.WriteAllBytes(filePath, records[0].Body.MzfBody);
+                        return;
+                    }
+
+                    IReadOnlyList<string> outputPaths =
+                        SharpTapeExporter.GetSeparateOutputPaths(filePath, records);
+                    string[] existingPaths = outputPaths.Where(File.Exists).ToArray();
+                    if (existingPaths.Length > 0)
+                    {
+                        MessageBoxResult overwrite = MessageBox.Show(
+                            this,
+                            $"{existingPaths.Length} separate BIN file(s) already exist. Overwrite them?",
+                            "Overwrite separate files",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Warning);
+                        if (overwrite != MessageBoxResult.Yes) return;
+                    }
+                    for (int index = 0; index < records.Count; index++)
+                    {
+                        File.WriteAllBytes(outputPaths[index], records[index].Body.MzfBody);
+                    }
+                    MessageBox.Show(
+                        this,
+                        $"Created {outputPaths.Count} separate BIN files in:\n{System.IO.Path.GetDirectoryName(outputPaths[0])}",
+                        "Separate export complete",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
+                if (iplOnly && fileExtension == ".mzf")
+                {
+                    if (records.Count == 1)
+                    {
+                        TapeDocumentWriter.SaveMzf(
+                            filePath,
+                            records[0],
+                            preserveTrailing: true,
+                            createSidecar: false);
+                        return;
+                    }
+
+                    IReadOnlyList<string> outputPaths =
+                        SharpTapeExporter.GetSeparateOutputPaths(filePath, records);
+                    string[] existingPaths = outputPaths.Where(File.Exists).ToArray();
+                    if (existingPaths.Length > 0)
+                    {
+                        MessageBoxResult overwrite = MessageBox.Show(
+                            this,
+                            $"{existingPaths.Length} separate MZF file(s) already exist. Overwrite them?",
+                            "Overwrite separate files",
+                            MessageBoxButton.YesNo,
+                            MessageBoxImage.Warning);
+                        if (overwrite != MessageBoxResult.Yes) return;
+                    }
+                    for (int index = 0; index < records.Count; index++)
+                    {
+                        TapeDocumentWriter.SaveMzf(
+                            outputPaths[index],
+                            records[index],
+                            preserveTrailing: true,
+                            createSidecar: false);
+                    }
+                    MessageBox.Show(
+                        this,
+                        $"Created {outputPaths.Count} separate MZF files in:\n{System.IO.Path.GetDirectoryName(outputPaths[0])}",
+                        "Separate export complete",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
                 if (fileExtension == ".dsk")
                 {
                     if (records.Count == 1)
@@ -2139,10 +2229,25 @@ namespace QDTool
 
         private void button_Click_NewDsk(object sender, RoutedEventArgs e)
         {
+            if (!ConfirmTapeDocumentReplacement())
+            {
+                return;
+            }
             DskNewOptions? options = DskNewDialog.Show(this);
             if (options == null) return;
             try
             {
+                if (options.Format == DskNewFormat.IplMulti)
+                {
+                    ShowNewMultiIplEditor();
+                    return;
+                }
+                if (options.Format == DskNewFormat.IplSingle)
+                {
+                    ShowNewSingleIplEditor();
+                    return;
+                }
+
                 DskDocument dsk = options.Format switch
                 {
                     DskNewFormat.MzBasic => DskDocumentFactory.CreateFsmz(ipldisk: false, options.Tracks, options.Sides),
@@ -2158,7 +2263,7 @@ namespace QDTool
                         options.SectorSize == 256 ? (byte)0x2A : (byte)0x4E, options.Filler, "MZTools", options.SectorOrder, options.SectorIds),
                     _ => throw new ArgumentOutOfRangeException()
                 };
-                ShowDskDocument(dsk);
+                ShowDskDocument(dsk, tapeReplacementConfirmed: true);
             }
             catch (Exception exception)
             {
@@ -2166,12 +2271,61 @@ namespace QDTool
             }
         }
 
-        private void ShowDskDocument(DskDocument dsk)
+        private void ShowNewMultiIplEditor()
         {
             if (dskEditorControl.Visibility == Visibility.Visible && !dskEditorControl.TryCloseDocument())
             {
                 return;
             }
+            document.Clear();
+            actFileName = string.Empty;
+            RefreshGrid();
+            dskEditorControl.LoadNewMultiIpl();
+            dskEditorControl.Visibility = Visibility.Visible;
+            Title = dskEditorControl.DocumentTitle;
+        }
+
+        private void ShowNewSingleIplEditor()
+        {
+            if (dskEditorControl.Visibility == Visibility.Visible && !dskEditorControl.TryCloseDocument())
+            {
+                return;
+            }
+            document.Clear();
+            actFileName = string.Empty;
+            RefreshGrid();
+            dskEditorControl.LoadNewSingleIpl();
+            dskEditorControl.Visibility = Visibility.Visible;
+            Title = dskEditorControl.DocumentTitle;
+        }
+
+        private bool ConfirmTapeDocumentReplacement()
+        {
+            if (document.Format == TapeDocumentFormat.None && !document.IsModified && mzfBlocks.Count == 0)
+            {
+                return true;
+            }
+            return MessageBox.Show(this,
+                "Creating or opening a DSK image will close the current QD or tape document. Continue?",
+                "New DSK",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning) == MessageBoxResult.Yes;
+        }
+
+        private void ShowDskDocument(DskDocument dsk, bool tapeReplacementConfirmed = false)
+        {
+            if (dskEditorControl.Visibility == Visibility.Visible && !dskEditorControl.TryCloseDocument())
+            {
+                return;
+            }
+            if (!tapeReplacementConfirmed && !ConfirmTapeDocumentReplacement())
+            {
+                return;
+            }
+
+            document.Clear();
+            actFileName = string.Empty;
+            RefreshGrid();
             dskEditorControl.LoadDocument(dsk);
             dskEditorControl.Visibility = Visibility.Visible;
             Title = dskEditorControl.DocumentTitle;

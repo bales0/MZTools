@@ -46,6 +46,11 @@ namespace QDTool
         }
 
         public IReadOnlyList<DskFileEntry> ReadDirectory() => [entry];
+
+        internal TapeRecord GetRecord() => content.Record.DeepClone();
+
+        internal string BootName => content.BootName;
+
         public byte[] Extract(DskFileEntry selected) => selected.Key == entry.Key
             ? (byte[])content.Record.Body.MzfBody.Clone()
             : throw new FileNotFoundException("The single-game IPL entry was not found.");

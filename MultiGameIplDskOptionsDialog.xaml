@@ -1,7 +1,7 @@
 <Window x:Class="QDTool.MultiGameIplDskOptionsDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="MZ-800 multi-game IPL DSK export"
+        Title="MZ-800 multi-program IPL DSK configuration"
         Icon="/images/MZTool.ico"
         Width="1050"
         Height="560"
@@ -53,6 +53,7 @@
                             <DataTemplate>
                                 <ComboBox ItemsSource="{Binding CompressionChoices}"
                                           SelectedItem="{Binding Compression, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          IsEnabled="{Binding CanChangeCompression}"
                                           Padding="2,0"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
@@ -64,8 +65,15 @@
             </DataGrid>
 
             <StackPanel Grid.Column="1" Margin="9,0,0,0">
-                <Button Content="Up" Width="70" Click="UpButton_Click"/>
-                <Button Content="Down" Width="70" Margin="0,7,0,0" Click="DownButton_Click"/>
+                <Button Content="Add..." Width="88" Height="28" Click="AddButton_Click"/>
+                <Button Content="Delete" Width="88" Height="28" Margin="0,7,0,0" Click="DeleteButton_Click"/>
+                <Separator Margin="0,9,0,9"/>
+                <Button FontFamily="Segoe UI" Content="&#x2191;" Width="70" Height="28"
+                        HorizontalAlignment="Center"
+                        ToolTip="Move selected rows up" Click="UpButton_Click"/>
+                <Button FontFamily="Segoe UI" Content="&#x2193;" Width="70" Height="28" Margin="0,7,0,0"
+                        HorizontalAlignment="Center"
+                        ToolTip="Move selected rows down" Click="DownButton_Click"/>
             </StackPanel>
         </Grid>
 

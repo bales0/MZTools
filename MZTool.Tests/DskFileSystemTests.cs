@@ -291,6 +291,142 @@ public class DskFileSystemTests
     }
 
     [Fact]
+    public void MultiGameIpl_SaveAndReopenPreservesProgramItemsAndPayloads()
+    {
+        byte[] first = Enumerable.Range(0, 321).Select(value => (byte)(value * 5)).ToArray();
+        byte[] second = Enumerable.Range(0, 654).Select(value => (byte)(value * 9)).ToArray();
+        MultiGameIplBuildResult built = Mz800MultiGameIplDskWriter.Build([
+            new(CreateRecord(first, 0x2100, 0x2110), "FIRST", new MzfCompressionOptions(MzfCompressionAlgorithm.None), first.Length),
+            new(CreateRecord(second, 0x4200, 0x4321), "SECOND", new MzfCompressionOptions(MzfCompressionAlgorithm.None), second.Length)
+        ]);
+        string path = Path.Combine(Path.GetTempPath(), $"mztools-{Guid.NewGuid():N}.dsk");
+
+        try
+        {
+            DskDocument document = DskDocument.Open(built.Image);
+            document.Save(path);
+            DskDocument reopened = DskDocument.Open(path);
+            IReadOnlyList<DskFileEntry> entries = reopened.FileSystem.ReadDirectory();
+
+            Assert.Equal(DskFileSystemType.MultiIpl, reopened.FileSystem.Type);
+            Assert.Collection(entries,
+                entry => Assert.Equal("FIRST", entry.Name),
+                entry => Assert.Equal("SECOND", entry.Name));
+            Assert.Equal(first, reopened.FileSystem.Extract(entries[0]));
+            Assert.Equal(second, reopened.FileSystem.Extract(entries[1]));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task SingleGameIpl_ConfigurationRecordCanBeRecompressedAndReopened()
+    {
+        byte[] body = Enumerable.Range(0, 2048).Select(value => (byte)(value & 31)).ToArray();
+        TapeRecord source = CreateRecord(body, 0x4000, 0x4100);
+        TapeRecord packed = MzfCompressionService.Compress(
+            source,
+            new MzfCompressionOptions(MzfCompressionAlgorithm.Zx0, CompressionDirection.Backward),
+            CompressionTarget.IplDsk).Record;
+        DskDocument original = DskDocument.Open(Mz800IplDskWriter.Build(packed, "SINGLE TEST"));
+        SingleGameIplFileSystem fileSystem = Assert.IsType<SingleGameIplFileSystem>(original.FileSystem);
+        var row = new MultiGameIplRow(1, fileSystem.GetRecord(), fileSystem.BootName)
+        {
+            Compression = "None"
+        };
+
+        MzfCompressionResult prepared = await row.PrepareAsync(CancellationToken.None);
+        DskDocument rebuilt = DskDocument.Open(Mz800IplDskWriter.Build(prepared.Record, row.MenuName));
+        DskFileEntry entry = Assert.Single(rebuilt.FileSystem.ReadDirectory());
+
+        Assert.Equal(DskFileSystemType.SingleIpl, rebuilt.FileSystem.Type);
+        Assert.Equal("SINGLE TEST", entry.Name);
+        Assert.Equal(body, rebuilt.FileSystem.Extract(entry));
+        Assert.Equal(0x4000, entry.LoadAddress);
+        Assert.Equal(0x4100, entry.ExecuteAddress);
+    }
+
+    [Theory]
+    [InlineData(false, true, false, 1, true, true, false, true)]
+    [InlineData(false, true, true, 1, true, true, true, true)]
+    [InlineData(false, true, false, 2, false, true, false, true)]
+    [InlineData(false, true, true, 2, false, true, true, true)]
+    [InlineData(true, true, true, 1, true, true, false, false)]
+    [InlineData(false, true, true, 0, false, true, false, false)]
+    [InlineData(false, true, true, 1, true, false, false, false)]
+    public void IplSaveAvailability_RequiresValidLayoutAndEnablesSaveAfterSaveAs(
+        bool busy,
+        bool hasDocument,
+        bool hasPath,
+        int programCount,
+        bool single,
+        bool layoutValid,
+        bool expectedSave,
+        bool expectedSaveAs)
+    {
+        Assert.Equal(
+            (expectedSave, expectedSaveAs),
+            DskEditorControl.GetIplSaveAvailability(
+                busy, hasDocument, hasPath, programCount, single, layoutValid));
+    }
+
+    [Fact]
+    public async Task IplExport_PreservesOriginalRecordWhenIplPreparationOverflowsMemory()
+    {
+        byte[] body = Enumerable.Range(0, 512).Select(value => (byte)value).ToArray();
+        TapeRecord source = CreateRecord(body, 0xFF00, 0xFF00);
+        var row = new MultiGameIplRow(1, source, "OVERFLOW")
+        {
+            Compression = "None"
+        };
+
+        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => row.PrepareAsync(CancellationToken.None));
+        TapeRecord exported = row.GetPreparedRecord();
+
+        Assert.Contains("overflow 16-bit", exception.Message);
+        Assert.Equal(
+            TapeDocumentWriter.SerializeMzf(source, preserveTrailing: true),
+            TapeDocumentWriter.SerializeMzf(exported, preserveTrailing: true));
+    }
+
+    [Fact]
+    public void MultiGameIpl_ConfigurationInputsRebuildWithoutChangingImage()
+    {
+        byte[] first = Enumerable.Range(0, 513).Select(value => (byte)(value * 3)).ToArray();
+        byte[] second = Enumerable.Range(0, 777).Select(value => (byte)(value * 11)).ToArray();
+        MultiGameIplBuildResult original = Mz800MultiGameIplDskWriter.Build([
+            new(CreateRecord(first, 0x2000, 0x2010), "FIRST", new MzfCompressionOptions(MzfCompressionAlgorithm.None), first.Length),
+            new(CreateRecord(second, 0x3000, 0x3010), "SECOND", new MzfCompressionOptions(MzfCompressionAlgorithm.Zx0), 1200)
+        ]);
+
+        DskDocument document = DskDocument.Open(original.Image);
+        MultiGameIplFileSystem fileSystem = Assert.IsType<MultiGameIplFileSystem>(document.FileSystem);
+        MultiGameIplBuildResult rebuilt = Mz800MultiGameIplDskWriter.Build(fileSystem.GetInputs());
+
+        Assert.Equal(original.Image, rebuilt.Image);
+    }
+
+    [Fact]
+    public void ReplaceContents_ChangesOpenDocumentAndMarksItModified()
+    {
+        DskDocument document = DskDocumentFactory.CreateFsmz(ipldisk: false);
+        byte[] payload = Enumerable.Range(0, 300).Select(value => (byte)value).ToArray();
+        byte[] replacement = Mz800MultiGameIplDskWriter.Build([
+            new(CreateRecord(payload, 0x2000, 0x2010), "REPLACED", new MzfCompressionOptions(MzfCompressionAlgorithm.None), payload.Length)
+        ]).Image;
+
+        document.ReplaceContents(replacement);
+
+        Assert.True(document.IsModified);
+        Assert.Equal(DskFileSystemType.MultiIpl, document.FileSystem.Type);
+        Assert.Equal("REPLACED", Assert.Single(document.FileSystem.ReadDirectory()).Name);
+        Assert.Equal(replacement, document.Serialize());
+    }
+
+    [Fact]
     public void PersonalCpm80_CustomTrackOrderRoundTripsFiles()
     {
         DskImage image = DskImage.CreateSharpBootDataDisk(40, 2, 8, highDensityInterleave: false, "P-CP/M test");
@@ -336,14 +472,11 @@ public class DskFileSystemTests
     }
 
     [Fact]
-    public void SuppliedMultiGameFixture_ListsBothGames()
+    public void ObsoleteMultiGameFixture_IsNotRecognizedAsCurrentFormat()
     {
         DskDocument document = DskDocument.Open(FixturePath("multi.dsk"));
-        IReadOnlyList<DskFileEntry> entries = document.FileSystem.ReadDirectory();
 
-        Assert.Equal(DskFileSystemType.MultiIpl, document.FileSystem.Type);
-        Assert.Equal(["FLAPPY ver 1.0A", "Highway Ver 1.02"], entries.Select(entry => entry.Name));
-        Assert.Equal([24331L, 18143L], entries.Select(entry => entry.Size));
+        Assert.NotEqual(DskFileSystemType.MultiIpl, document.FileSystem.Type);
     }
 
     [Fact]

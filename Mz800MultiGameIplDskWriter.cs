@@ -47,7 +47,9 @@ namespace QDTool
         public const int MenuLoadAddress = 0x1200;
         public const int FinalStubAddress = 0x1000;
 
-        private const int MultiGameMetadataOffset = 0x20;
+        // IPLPRO bytes 0x20..0xFF are a comment displayed by the Sharp ROM and
+        // must remain zero. Private metadata is stored in the loaded menu body.
+        internal const int MultiGameFooterSize = 12;
 
         public static MultiGameIplBuildResult Build(IReadOnlyList<MultiGameIplInput> inputs)
         {
@@ -100,11 +102,7 @@ namespace QDTool
             }
 
             DskImage image = Mz800DskImage.CreateModel("MZTools Multi");
-            byte[] ipl = BuildIplBlock(
-                menu.Bytes.Length,
-                entries.Count,
-                menu.TableOffset,
-                menuSectors);
+            byte[] ipl = BuildIplBlock(menu.Bytes.Length);
             Mz800DskImage.WriteLogicalBlock(image, 0, ipl);
             WriteBytes(image, 1, menu.Bytes);
             foreach (PreparedMultiGameIplEntry entry in entries)
@@ -137,6 +135,14 @@ namespace QDTool
             }
             string result = builder.ToString().Trim();
             return result.Length == 0 ? "PROGRAM" : result;
+        }
+
+        internal static int FindMenuFooterOffset(ReadOnlySpan<byte> menu)
+        {
+            int offset = menu.Length - MultiGameFooterSize;
+            return offset >= 0 && menu.Slice(offset, 4).SequenceEqual("QDMG"u8)
+                ? offset
+                : -1;
         }
 
         private static PreparedMultiGameIplEntry ValidateAndCreateEntry(MultiGameIplInput input, int index)
@@ -207,24 +213,18 @@ namespace QDTool
             return result + (options.Direction == CompressionDirection.Backward ? " backward" : " forward");
         }
 
-        private static byte[] BuildIplBlock(int menuSize, int entryCount, int tableOffset, int menuSectors)
+        private static byte[] BuildIplBlock(int menuSize)
         {
             var result = new byte[Mz800DskImage.SectorSize];
             result[0] = 0x03;
             "IPLPRO"u8.CopyTo(result.AsSpan(1, 6));
             result.AsSpan(0x07, 13).Fill(0x0D);
-            SharpMzEncoding.ConvertASCIIStringToSHASCIIBytes("MZTOOLS MULTI").CopyTo(result, 0x07);
+            SharpMzEncoding.ConvertASCIIStringToSHASCIIBytes("MZTOOLS MULT").CopyTo(result, 0x07);
             BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(0x14, 2), checked((ushort)menuSize));
             BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(0x16, 2), MenuLoadAddress);
             BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(0x18, 2), MenuLoadAddress);
             BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(0x1E, 2), 1);
 
-            "QDMG"u8.CopyTo(result.AsSpan(MultiGameMetadataOffset, 4));
-            result[0x24] = FormatVersion;
-            result[0x25] = EntrySize;
-            BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(0x26, 2), checked((ushort)entryCount));
-            BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(0x28, 2), checked((ushort)tableOffset));
-            BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(0x2A, 2), checked((ushort)menuSectors));
             return result;
         }
 
@@ -341,8 +341,18 @@ namespace QDTool
             code.Label("stubSelectedSource");
             code.Emit(stub.Bytes.AsSpan(stub.SelectedDataOffset));
 
-            byte[] bytes = code.Build();
-            return new MenuProgram(bytes, code.GetAddress("entryTable") - MenuLoadAddress);
+            byte[] program = code.Build();
+            int tableOffset = code.GetAddress("entryTable") - MenuLoadAddress;
+            var bytes = new byte[checked(program.Length + MultiGameFooterSize)];
+            program.CopyTo(bytes, 0);
+            int footerOffset = program.Length;
+            "QDMG"u8.CopyTo(bytes.AsSpan(footerOffset, 4));
+            bytes[footerOffset + 4] = FormatVersion;
+            bytes[footerOffset + 5] = EntrySize;
+            BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(footerOffset + 6, 2), checked((ushort)entries.Count));
+            BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(footerOffset + 8, 2), checked((ushort)tableOffset));
+            BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(footerOffset + 10, 2), checked((ushort)GetSectorCount(bytes.Length)));
+            return new MenuProgram(bytes, tableOffset);
         }
 
         private static byte[] BuildPageText(

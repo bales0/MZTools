@@ -64,7 +64,7 @@ namespace QDTool
             FileSystem = fileSystem;
         }
 
-        internal DskImage Image { get; }
+        internal DskImage Image { get; private set; }
         internal IDskFileSystem FileSystem { get; private set; }
         internal string? FilePath { get; private set; }
         internal bool IsModified { get; private set; }
@@ -92,6 +92,15 @@ namespace QDTool
             {
                 throw new InvalidOperationException("This disk was opened read-only because its filesystem is inconsistent or unknown.");
             }
+            IsModified = true;
+        }
+
+        internal void ReplaceContents(byte[] bytes)
+        {
+            DskImage replacement = DskImage.Parse(bytes);
+            IDskFileSystem replacementFileSystem = DskFileSystemDetector.Detect(replacement);
+            Image = replacement;
+            FileSystem = replacementFileSystem;
             IsModified = true;
         }
 
