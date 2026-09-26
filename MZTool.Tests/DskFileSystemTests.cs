@@ -101,6 +101,57 @@ public class DskFileSystemTests
     }
 
     [Fact]
+    public void ImportBootSystemAreaUsesDpbOffAndLeavesDataAreaUntouched()
+    {
+        DskDocument source = DskDocumentFactory.CreateCpm(highDensity: false);
+        DskDocument target = DskDocumentFactory.CreateCpm(highDensity: false);
+        byte[][] originalFirstDataTrack = target.Image.Tracks[4]!.Sectors
+            .Select(sector => (byte[])sector.Data.Clone()).ToArray();
+        for (int trackIndex = 0; trackIndex < 4; trackIndex++)
+        {
+            foreach (DskImage.DskSector sector in source.Image.Tracks[trackIndex]!.Sectors)
+            {
+                Array.Fill(sector.Data, (byte)(0x20 + trackIndex));
+            }
+        }
+
+        DskDocumentFactory.ImportBootSystemArea(target, source);
+
+        Assert.True(target.IsModified);
+        for (int trackIndex = 0; trackIndex < 4; trackIndex++)
+        {
+            Assert.All(target.Image.Tracks[trackIndex]!.Sectors.SelectMany(sector => sector.Data),
+                value => Assert.Equal((byte)(0x20 + trackIndex), value));
+        }
+        Assert.Equal(originalFirstDataTrack, target.Image.Tracks[4]!.Sectors.Select(sector => sector.Data).ToArray());
+    }
+
+    [Fact]
+    public void ImportBootSystemAreaRejectsMismatchedDataGeometry()
+    {
+        DskDocument source = DskDocumentFactory.CreateCpm(highDensity: false);
+        DskDocument target = DskDocumentFactory.CreateCpm(highDensity: true);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(
+            () => DskDocumentFactory.ImportBootSystemArea(target, source));
+
+        Assert.Contains("data geometry differs", exception.Message);
+        Assert.False(target.IsModified);
+    }
+
+    [Fact]
+    public void ClearBootTrackRemovesGeneratedPersonalCpmBootstrap()
+    {
+        DskDocument document = DskDocumentFactory.CreatePersonalCpm80(sds400: false);
+        Assert.Contains(document.Image.Tracks[1]!.Sectors.SelectMany(sector => sector.Data), value => value != 0xFF);
+
+        DskDocumentFactory.ClearBootTrack(document);
+
+        Assert.True(document.IsModified);
+        Assert.All(document.Image.Tracks[1]!.Sectors.SelectMany(sector => sector.Data), value => Assert.Equal(0xFF, value));
+    }
+
+    [Fact]
     public void CpmMzfImportUsesHostEightDotThreeNameInsteadOfLongEmbeddedTitle()
     {
         string path = Path.Combine(AppContext.BaseDirectory, "MZF", "Tc122.mzf");

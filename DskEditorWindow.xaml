@@ -12,13 +12,15 @@
         <Border Grid.Row="0" Padding="8" Margin="0,0,0,8"
                 BorderBrush="LightGray" BorderThickness="1" CornerRadius="3">
         <WrapPanel>
-            <Button Content="Close DSK" Click="Close_Click" Style="{StaticResource TopToolbarButton}"/>
+            <Button Content="Open..." Click="Open_Click" Style="{StaticResource TopToolbarButton}"/>
             <Button x:Name="dskAddButton" Content="Add..." Click="Add_Click" Style="{StaticResource TopToolbarButton}"/>
             <Button Content="Export..." Click="Export_Click" Style="{StaticResource TopToolbarButton}"/>
             <Button Content="Hex view" Click="Hex_Click" Style="{StaticResource TopToolbarButton}"/>
             <Button x:Name="dskDeleteButton" Content="Delete" Click="Delete_Click" Style="{StaticResource TopToolbarButton}"/>
+            <Button x:Name="dskSaveButton" Content="Save" Click="Save_Click" Style="{StaticResource TopToolbarButton}"/>
             <Button x:Name="dskSaveAsButton" Content="Save As..." Click="SaveAs_Click" Style="{StaticResource TopToolbarButton}"/>
-            <Grid x:Name="dskMoveButtons" Width="94" Margin="0,0,6,0" Visibility="Collapsed">
+            <Button Content="Close" Click="Close_Click" Style="{StaticResource TopToolbarButton}"/>
+            <Grid x:Name="dskMoveButtons" Width="94" Margin="0,0,6,0" IsEnabled="False">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="6"/>
@@ -28,14 +30,16 @@
                 <Button Grid.Column="2" FontFamily="Segoe UI" Content="&#x2193;" Height="28" ToolTip="Move selected programs down" Click="MoveDown_Click"/>
             </Grid>
             <Border Style="{StaticResource TopToolbarSeparator}"/>
-            <Button x:Name="dskSaveButton" Content="Save" Click="Save_Click" Style="{StaticResource TopToolbarButton}"/>
-            <Button x:Name="dskRenameButton" Content="Rename..." Click="Rename_Click" Style="{StaticResource TopToolbarButton}"/>
+            <Button Content="New QD..." Click="NewQuickDisk_Click" Style="{StaticResource TopToolbarButton}"/>
+            <Button Content="New DSK..." Click="NewDsk_Click" Style="{StaticResource TopToolbarButton}"/>
             <CheckBox x:Name="dskShowSectorsCheckBox" Content="Show raw sectors" Margin="18,6,0,0"
                       VerticalAlignment="Center" Visibility="Collapsed" Checked="ShowSectors_Changed" Unchecked="ShowSectors_Changed"/>
         </WrapPanel>
         </Border>
-        <DataGrid x:Name="directoryGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True"
-                  SelectionMode="Extended" SelectionUnit="FullRow" CanUserAddRows="False"/>
+        <DataGrid x:Name="directoryGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="False"
+                  SelectionMode="Extended" SelectionUnit="FullRow" CanUserAddRows="False"
+                  BeginningEdit="DirectoryGrid_BeginningEdit" CellEditEnding="DirectoryGrid_CellEditEnding"
+                  PreviewKeyDown="DirectoryGrid_PreviewKeyDown"/>
         <DataGrid x:Name="multiIplGrid" Grid.Row="1" AutoGenerateColumns="False" Visibility="Collapsed"
                   SelectionMode="Extended" SelectionUnit="FullRow" CanUserAddRows="False" CanUserDeleteRows="False"
                   SelectionChanged="MultiIplGrid_SelectionChanged" AllowDrop="True"

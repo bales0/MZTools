@@ -40,6 +40,9 @@ namespace QDTool
 
         internal event EventHandler? DocumentStateChanged;
         internal event EventHandler? CloseRequested;
+        internal event EventHandler? OpenRequested;
+        internal event EventHandler? NewQuickDiskRequested;
+        internal event EventHandler? NewDskRequested;
         private bool IplEditorMode => multiIplEditorMode || singleIplEditorMode;
         internal bool HasDocument => document != null || IplEditorMode;
         private DskDocument CurrentDocument => document ?? throw new InvalidOperationException("No DSK document is loaded.");
@@ -171,7 +174,16 @@ namespace QDTool
             multiIplGrid.Visibility = IplEditorMode ? Visibility.Visible : Visibility.Collapsed;
             if (document == null) return;
             directoryGrid.Columns.Clear();
-            void Add(string header, string property) => directoryGrid.Columns.Add(new DataGridTextColumn { Header = header, Binding = new Binding(property), Width = DataGridLength.Auto });
+            bool canRename = !document.IsReadOnly && document.FileSystem.Type is
+                DskFileSystemType.Fsmz or DskFileSystemType.Cpm or DskFileSystemType.Mrs;
+            void Add(string header, string property, bool editable = false) => directoryGrid.Columns.Add(new DataGridTextColumn
+            {
+                Header = header,
+                Binding = new Binding(property) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.Explicit },
+                Width = DataGridLength.Auto,
+                IsReadOnly = !editable,
+                SortMemberPath = property
+            });
             switch (document.FileSystem.Type)
             {
                 case DskFileSystemType.SingleIpl:
@@ -185,15 +197,15 @@ namespace QDTool
                     Add("Start block", nameof(DskFileEntry.StartBlock)); Add("Blocks", nameof(DskFileEntry.Blocks)); Add("Compression", nameof(DskFileEntry.Notes));
                     break;
                 case DskFileSystemType.Fsmz:
-                    Add("Name", nameof(DskFileEntry.Name)); Add("Type", nameof(DskFileEntry.FileType)); Add("Size", nameof(DskFileEntry.Size));
+                    Add("Name", nameof(DskFileEntry.Name), canRename); Add("Type", nameof(DskFileEntry.FileType)); Add("Size", nameof(DskFileEntry.Size));
                     Add("Load", nameof(DskFileEntry.LoadAddress)); Add("Exec", nameof(DskFileEntry.ExecuteAddress)); Add("Start block", nameof(DskFileEntry.StartBlock)); Add("Locked", nameof(DskFileEntry.Locked));
                     break;
                 case DskFileSystemType.Cpm:
-                    Add("User", nameof(DskFileEntry.User)); Add("Name", nameof(DskFileEntry.Name)); Add("Ext", nameof(DskFileEntry.Extension)); Add("Size", nameof(DskFileEntry.Size));
+                    Add("User", nameof(DskFileEntry.User)); Add("Name", nameof(DskFileEntry.Name), canRename); Add("Ext", nameof(DskFileEntry.Extension), canRename); Add("Size", nameof(DskFileEntry.Size));
                     Add("RO", nameof(DskFileEntry.ReadOnly)); Add("SYS", nameof(DskFileEntry.System)); Add("ARC", nameof(DskFileEntry.Archived)); Add("Extents", nameof(DskFileEntry.Extents)); Add("Blocks", nameof(DskFileEntry.Blocks));
                     break;
                 case DskFileSystemType.Mrs:
-                    Add("Name", nameof(DskFileEntry.Name)); Add("Ext", nameof(DskFileEntry.Extension)); Add("Blocks", nameof(DskFileEntry.Blocks)); Add("Approx. size", nameof(DskFileEntry.Size));
+                    Add("Name", nameof(DskFileEntry.Name), canRename); Add("Ext", nameof(DskFileEntry.Extension), canRename); Add("Blocks", nameof(DskFileEntry.Blocks)); Add("Approx. size", nameof(DskFileEntry.Size));
                     Add("Load", nameof(DskFileEntry.LoadAddress)); Add("Exec", nameof(DskFileEntry.ExecuteAddress)); Add("File ID", nameof(DskFileEntry.StartBlock)); Add("Note", nameof(DskFileEntry.Notes));
                     break;
                 case DskFileSystemType.BootOnly:
@@ -232,9 +244,8 @@ namespace QDTool
             MultiGameIplFileSystem? multiIpl = document.FileSystem as MultiGameIplFileSystem;
             dskAddButton.Content = multiIpl != null ? "Configure..." : "Add...";
             dskAddButton.IsEnabled = multiIpl?.CanConfigure == true || writable && (!bootOnly || showRawSectors);
-            dskRenameButton.IsEnabled = writable && !rawMode;
             dskDeleteButton.IsEnabled = writable && !rawMode;
-            dskMoveButtons.Visibility = Visibility.Collapsed;
+            dskMoveButtons.IsEnabled = false;
             dskSaveButton.IsEnabled = document.FilePath != null;
             dskSaveAsButton.IsEnabled = true;
             multiIplProgressBar.Visibility = Visibility.Collapsed;
@@ -249,8 +260,7 @@ namespace QDTool
             dskAddButton.Content = singleIplEditorMode && multiIplRows.Count > 0 ? "Replace..." : "Add...";
             dskAddButton.IsEnabled = true;
             dskDeleteButton.IsEnabled = multiIplGrid.SelectedItems.Count > 0;
-            dskRenameButton.IsEnabled = false;
-            dskMoveButtons.Visibility = multiIplEditorMode ? Visibility.Visible : Visibility.Collapsed;
+            dskMoveButtons.IsEnabled = multiIplEditorMode;
             UpdateIplSaveButtons();
             if (document == null)
             {
@@ -826,16 +836,59 @@ namespace QDTool
             return null;
         }
 
-        private void Rename_Click(object sender, RoutedEventArgs e)
+        private void DirectoryGrid_BeginningEdit(object sender, DataGridBeginningEditEventArgs e)
         {
-            if (document == null) return;
-            if (!EnsureWritable()) return;
-            if (SelectedEntries.Count != 1) return;
-            DskFileEntry entry = SelectedEntries[0];
-            string? value = TextPrompt.Show(OwnerWindow, "Rename", "New file name:", SuggestedName(entry));
-            if (value == null) return;
-            try { document.FileSystem.Rename(entry, value); document.MarkModified(); RefreshView(); }
-            catch (Exception exception) { ShowError(exception.Message); }
+            e.Cancel = document == null || document.IsReadOnly ||
+                e.Column.SortMemberPath is not (nameof(DskFileEntry.Name) or nameof(DskFileEntry.Extension));
+        }
+
+        private void DirectoryGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+        {
+            if (e.EditAction != DataGridEditAction.Commit || document == null ||
+                e.Column.SortMemberPath is not (nameof(DskFileEntry.Name) or nameof(DskFileEntry.Extension)) ||
+                e.Row.Item is not DskFileEntry entry || e.EditingElement is not TextBox editor)
+            {
+                return;
+            }
+
+            string editedValue = editor.Text.Trim();
+            string baseName = e.Column.SortMemberPath == nameof(DskFileEntry.Name) ? editedValue : entry.Name;
+            string extension = e.Column.SortMemberPath == nameof(DskFileEntry.Extension) ? editedValue : entry.Extension;
+            string newName = document.FileSystem.Type is DskFileSystemType.Cpm or DskFileSystemType.Mrs && extension.Length > 0
+                ? $"{baseName}.{extension}"
+                : baseName;
+            try
+            {
+                document.FileSystem.Rename(entry, newName);
+                document.MarkModified();
+                Dispatcher.BeginInvoke(new Action(RefreshView));
+            }
+            catch (Exception exception)
+            {
+                e.Cancel = true;
+                ShowError(exception.Message);
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    directoryGrid.CancelEdit(DataGridEditingUnit.Cell);
+                    RefreshView();
+                }));
+            }
+        }
+
+        private void DirectoryGrid_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.F2 || directoryGrid.SelectedItem is not DskFileEntry entry)
+            {
+                return;
+            }
+            DataGridColumn? nameColumn = directoryGrid.Columns.FirstOrDefault(column =>
+                !column.IsReadOnly && column.SortMemberPath == nameof(DskFileEntry.Name));
+            if (nameColumn == null)
+            {
+                return;
+            }
+            directoryGrid.CurrentCell = new DataGridCellInfo(entry, nameColumn);
+            e.Handled = directoryGrid.BeginEdit();
         }
 
         private void Hex_Click(object sender, RoutedEventArgs e)
@@ -877,6 +930,12 @@ namespace QDTool
         }
 
         private void Close_Click(object sender, RoutedEventArgs e) => CloseRequested?.Invoke(this, EventArgs.Empty);
+
+        private void Open_Click(object sender, RoutedEventArgs e) => OpenRequested?.Invoke(this, EventArgs.Empty);
+
+        private void NewQuickDisk_Click(object sender, RoutedEventArgs e) => NewQuickDiskRequested?.Invoke(this, EventArgs.Empty);
+
+        private void NewDsk_Click(object sender, RoutedEventArgs e) => NewDskRequested?.Invoke(this, EventArgs.Empty);
 
         private void Control_Drop(object sender, DragEventArgs e)
         {

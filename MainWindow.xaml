@@ -21,7 +21,9 @@
                 <Button x:Name="exportButton" Content="Export..." Click="button_Click_Export" Style="{StaticResource TopToolbarButton}"/>
                 <Button x:Name="viewButton" Content="View" Click="button_Click_View" Style="{StaticResource TopToolbarButton}"/>
                 <Button x:Name="deleteButton" Content="Delete" Click="button_Click_Delete" Style="{StaticResource TopToolbarButton}"/>
-                <Button x:Name="saveButton" Content="Save As..." Click="button_Click_Save" Style="{StaticResource TopToolbarButton}"/>
+                <Button x:Name="saveButton" Content="Save" Click="button_Click_Save" Style="{StaticResource TopToolbarButton}"/>
+                <Button x:Name="saveAsButton" Content="Save As..." Click="button_Click_SaveAs" Style="{StaticResource TopToolbarButton}"/>
+                <Button x:Name="closeButton" Content="Close" Click="button_Click_Close" Style="{StaticResource TopToolbarButton}"/>
                 <Grid Width="94" Margin="0,0,6,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -47,6 +49,7 @@
                   DragLeave="MzfDataGrid_DragLeave"
                   Drop="MzfDataGrid_Drop"
                   PreviewKeyDown="MzfDataGrid_PreviewKeyDown"
+                  CellEditEnding="MzfDataGrid_CellEditEnding"
                   SelectionMode="Extended"
                   SelectionUnit="FullRow"
                   SelectionChanged="MzfDataGrid_SelectionChanged" 
@@ -68,7 +71,9 @@
             </DataGrid.RowStyle>
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Type" Binding="{Binding MzfFtypeName}" Width="Auto" IsReadOnly="True"/>
-                <DataGridTextColumn Header="File name" Binding="{Binding MzfFname}" Width="Auto" MinWidth="140" IsReadOnly="True"/>
+                <DataGridTextColumn x:Name="fileNameColumn" Header="File name"
+                                    Binding="{Binding MzfFname, Mode=TwoWay, UpdateSourceTrigger=Explicit}"
+                                    Width="Auto" MinWidth="140"/>
                 <DataGridTextColumn Header="Size" Binding="{Binding MzfSize}" Width="Auto" IsReadOnly="True"/>
                 <DataGridTextColumn Header="Size(Hex)" Binding="{Binding MzfSizeHex}" Width="Auto" IsReadOnly="True"/>
                 <DataGridTextColumn Header="Trailing" Binding="{Binding TrailingData}" Width="Auto" IsReadOnly="True"/>
@@ -113,7 +118,7 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <Border Grid.Row="2" Margin="10,0,10,10" Padding="9,6"
+        <Border x:Name="statusBorder" Grid.Row="2" Margin="10,0,10,10" Padding="9,6"
                 BorderBrush="LightGray" BorderThickness="1" CornerRadius="3">
             <StackPanel>
                 <TextBlock x:Name="qdInfoText" Text="Quickdisk image type: —" Visibility="Collapsed" TextWrapping="Wrap" Margin="0,0,0,3"/>

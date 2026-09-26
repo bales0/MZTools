@@ -167,6 +167,138 @@ namespace QDTool
             return DskDocument.Open(image.Serialize());
         }
 
+        internal static void ClearBootTrack(DskDocument document)
+        {
+            DskImage.DskTrack bootTrack = RequireSharpBootTrack(document.Image, "target");
+            foreach (DskImage.DskSector sector in bootTrack.Sectors)
+            {
+                Array.Fill(sector.Data, (byte)0xFF);
+            }
+            document.MarkModified();
+        }
+
+        internal static void ImportBootSystemArea(DskDocument target, DskDocument source)
+        {
+            ValidateMatchingDataGeometry(target.Image, source.Image);
+            RequireSharpBootTrack(target.Image, "target");
+            RequireSharpBootTrack(source.Image, "source");
+            if (target.FileSystem is not CpmFileSystem targetCpm || source.FileSystem is not CpmFileSystem sourceCpm)
+            {
+                throw new InvalidDataException("Both the boot source and the new disk must contain a recognized CP/M filesystem.");
+            }
+            ValidateMatchingCpmLayout(targetCpm.Dpb, sourceCpm.Dpb);
+
+            int[] sourceTracks = GetSystemPhysicalTracks(sourceCpm.Dpb, source.Image).ToArray();
+            int[] targetTracks = GetSystemPhysicalTracks(targetCpm.Dpb, target.Image).ToArray();
+            if (sourceTracks.Length != targetTracks.Length)
+            {
+                throw new InvalidDataException("The source and target CP/M system areas use different physical track mappings.");
+            }
+            for (int index = 0; index < sourceTracks.Length; index++)
+            {
+                CopyTrackData(source.Image, sourceTracks[index], target.Image, targetTracks[index]);
+            }
+            target.MarkModified();
+        }
+
+        private static void ValidateMatchingCpmLayout(CpmDpb target, CpmDpb source)
+        {
+            if (target.Spt != source.Spt || target.Bsh != source.Bsh || target.Blm != source.Blm ||
+                target.Exm != source.Exm || target.Dsm != source.Dsm || target.Drm != source.Drm ||
+                target.Al0 != source.Al0 || target.Al1 != source.Al1 || target.Off != source.Off ||
+                target.BlockSize != source.BlockSize || target.Inverted != source.Inverted)
+            {
+                throw new InvalidDataException(
+                    $"The boot source CP/M layout (OFF={source.Off}) does not match the new disk (OFF={target.Off}).");
+            }
+        }
+
+        private static IEnumerable<int> GetSystemPhysicalTracks(CpmDpb dpb, DskImage image)
+        {
+            var tracks = new SortedSet<int> { 1 };
+            for (int logicalTrack = 0; logicalTrack < dpb.Off; logicalTrack++)
+            {
+                int physicalTrack = dpb.PhysicalTrackMap == null
+                    ? logicalTrack
+                    : logicalTrack < dpb.PhysicalTrackMap.Count
+                        ? dpb.PhysicalTrackMap[logicalTrack]
+                        : throw new InvalidDataException($"CP/M system track {logicalTrack} lies outside its physical track map.");
+                if ((uint)physicalTrack >= image.Tracks.Count)
+                {
+                    throw new InvalidDataException($"CP/M system track {physicalTrack} lies outside the disk image.");
+                }
+                tracks.Add(physicalTrack);
+            }
+            return tracks;
+        }
+
+        private static void CopyTrackData(DskImage source, int sourceTrackIndex, DskImage target, int targetTrackIndex)
+        {
+            DskImage.DskTrack sourceTrack = source.Tracks[sourceTrackIndex] ??
+                throw new InvalidDataException($"The boot source is missing physical track {sourceTrackIndex}.");
+            DskImage.DskTrack targetTrack = target.Tracks[targetTrackIndex] ??
+                throw new InvalidDataException($"The new disk is missing physical track {targetTrackIndex}.");
+            if (sourceTrack.Sectors.Count != targetTrack.Sectors.Count)
+            {
+                throw new InvalidDataException($"The system track geometry differs at physical track {sourceTrackIndex}.");
+            }
+            foreach (DskImage.DskSector targetSector in targetTrack.Sectors)
+            {
+                DskImage.DskSector? sourceSector = sourceTrack.Sectors.FirstOrDefault(sector =>
+                    sector.SectorId == targetSector.SectorId && sector.Data.Length == targetSector.Data.Length);
+                if (sourceSector == null)
+                {
+                    throw new InvalidDataException($"The system track geometry differs at physical track {sourceTrackIndex}, sector {targetSector.SectorId}.");
+                }
+                sourceSector.Data.CopyTo(targetSector.Data, 0);
+            }
+        }
+
+        private static DskImage.DskTrack RequireSharpBootTrack(DskImage image, string role)
+        {
+            if (image.Tracks.Count <= 1 || image.Tracks[1] is not DskImage.DskTrack track ||
+                track.Sectors.Count != 16 ||
+                track.Sectors.Any(sector => sector.Data.Length != 256) ||
+                !track.Sectors.Select(sector => (int)sector.SectorId).OrderBy(id => id).SequenceEqual(Enumerable.Range(1, 16)))
+            {
+                throw new InvalidDataException($"The {role} DSK does not contain a Sharp boot track with sectors 1..16 × 256 B at track 0, side 1.");
+            }
+            return track;
+        }
+
+        private static void ValidateMatchingDataGeometry(DskImage target, DskImage source)
+        {
+            if (target.TrackCount != source.TrackCount || target.SideCount != source.SideCount ||
+                target.Tracks.Count != source.Tracks.Count)
+            {
+                throw new InvalidDataException(
+                    $"The boot source geometry ({source.TrackCount} tracks × {source.SideCount} sides) does not match the new disk ({target.TrackCount} × {target.SideCount}).");
+            }
+
+            for (int index = 0; index < target.Tracks.Count; index++)
+            {
+                if (index == 1) continue;
+                DskImage.DskTrack? targetTrack = target.Tracks[index];
+                DskImage.DskTrack? sourceTrack = source.Tracks[index];
+                if (targetTrack == null || sourceTrack == null ||
+                    targetTrack.Sectors.Count != sourceTrack.Sectors.Count)
+                {
+                    throw new InvalidDataException($"The boot source data geometry differs at physical track {index}.");
+                }
+
+                var targetSectors = targetTrack.Sectors.OrderBy(sector => sector.SectorId).ToArray();
+                var sourceSectors = sourceTrack.Sectors.OrderBy(sector => sector.SectorId).ToArray();
+                for (int sectorIndex = 0; sectorIndex < targetSectors.Length; sectorIndex++)
+                {
+                    if (targetSectors[sectorIndex].SectorId != sourceSectors[sectorIndex].SectorId ||
+                        targetSectors[sectorIndex].Data.Length != sourceSectors[sectorIndex].Data.Length)
+                    {
+                        throw new InvalidDataException($"The boot source data geometry differs at physical track {index}.");
+                    }
+                }
+            }
+        }
+
         internal static DskDocument CreateMrs(int tracks = 80, int sides = 2)
         {
             int absoluteTracks = checked(tracks * sides);

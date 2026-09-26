@@ -203,9 +203,14 @@ namespace QDTool
             moveDownButton.IsEnabled = false;
             exportButton.IsEnabled = false;
             deleteButton.IsEnabled = false;
-            saveButton.IsEnabled = true;
+            saveButton.IsEnabled = false;
+            saveAsButton.IsEnabled = false;
+            closeButton.IsEnabled = false;
             dskEditorControl.DocumentStateChanged += (_, _) => Title = dskEditorControl.DocumentTitle;
             dskEditorControl.CloseRequested += (_, _) => TryLeaveDskMode();
+            dskEditorControl.OpenRequested += (_, _) => button_Click_Open(openButton, new RoutedEventArgs());
+            dskEditorControl.NewQuickDiskRequested += (_, _) => button_Click_NewQuickDisk(newQuickDiskButton, new RoutedEventArgs());
+            dskEditorControl.NewDskRequested += (_, _) => button_Click_NewDsk(newDskButton, new RoutedEventArgs());
             UpdateQuickDiskFeatureVisibility();
             UpdateStatus();
         }
@@ -458,7 +463,6 @@ namespace QDTool
                         }
                     }
                     ShowAudioImportReports(audioResults);
-                    saveButton.IsEnabled = true;
                     UpdateStatus();
                 }
             }
@@ -486,6 +490,22 @@ namespace QDTool
 
         private void UpdateStatus()
         {
+            bool documentOpen = document.Format != TapeDocumentFormat.None;
+            MzfDataGrid.Visibility = documentOpen ? Visibility.Visible : Visibility.Collapsed;
+            statusBorder.Visibility = documentOpen ? Visibility.Visible : Visibility.Collapsed;
+            addButton.IsEnabled = documentOpen;
+            saveButton.IsEnabled = CanSaveTapeDocumentInPlace();
+            saveAsButton.IsEnabled = documentOpen;
+            closeButton.IsEnabled = documentOpen;
+            if (!documentOpen)
+            {
+                viewButton.IsEnabled = false;
+                exportButton.IsEnabled = false;
+                deleteButton.IsEnabled = false;
+                moveUpButton.IsEnabled = false;
+                moveDownButton.IsEnabled = false;
+            }
+
             long declaredSize = 0;
             long trailingSize = 0;
             long containerTrailingSize = document.ContainerTrailingData.Length;
@@ -993,6 +1013,10 @@ namespace QDTool
 
         private void button_Click_Open(object sender, RoutedEventArgs e)
         {
+            if (!TryLeaveDskMode())
+            {
+                return;
+            }
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Filter = GetOpenFilter();
 
@@ -1013,13 +1037,126 @@ namespace QDTool
                     ShowAudioImportReport(audioResult);
                 }
 
-                saveButton.IsEnabled = true;
-
                 UpdateStatus();
             }
         }
 
+        private bool CanSaveTapeDocumentInPlace()
+        {
+            if (document.FilePath == null)
+            {
+                return false;
+            }
+            string extension = System.IO.Path.GetExtension(document.FilePath).ToLowerInvariant();
+            return document.Format switch
+            {
+                TapeDocumentFormat.Qdf => extension == ".qdf",
+                TapeDocumentFormat.Mzq => extension == ".mzq",
+                TapeDocumentFormat.QdSharpLegacy or TapeDocumentFormat.QdHxc or TapeDocumentFormat.QdFlashFloppy => extension == ".qd",
+                TapeDocumentFormat.Mzt => extension == ".mzt",
+                TapeDocumentFormat.Mzf => extension == ".mzf",
+                _ => false
+            };
+        }
+
         private void button_Click_Save(object sender, RoutedEventArgs e)
+        {
+            if (!CanSaveTapeDocumentInPlace() || document.FilePath == null)
+            {
+                return;
+            }
+            if (!TryValidateAllBlocks(out string validationError) ||
+                !TryValidateOutputFormat(document.Format, System.IO.Path.GetExtension(document.FilePath).ToLowerInvariant(), out validationError))
+            {
+                MessageBox.Show(validationError, "Cannot save", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            try
+            {
+                SaveNativeTapeDocument(document.FilePath, document.Format);
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(exception.Message, "Error saving file", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void SaveNativeTapeDocument(string filePath, TapeDocumentFormat outputFormat)
+        {
+            bool allowImportedNonStandard = CanPreserveImportedNonStandard(outputFormat);
+            if (outputFormat == TapeDocumentFormat.Mzq)
+            {
+                using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write);
+                var writer = new MZQFileReader();
+                writer.WriteMZQHeaderToFile(fileStream, checked((byte)(mzfBlocks.Count * 2)), allowImportedNonStandard);
+                foreach (TapeRecord record in mzfBlocks)
+                {
+                    writer.WriteMZQFileHeaderToFile(fileStream, record.Header);
+                    writer.WriteMZQFileBodyToFile(fileStream, record.Body);
+                }
+                DiscardMetadataNotStoredByCurrentFormat();
+                SetCurrentDocumentAfterSave(filePath, outputFormat, sidecarPath: null);
+                return;
+            }
+            if (outputFormat == TapeDocumentFormat.Qdf)
+            {
+                File.WriteAllBytes(filePath, QDFFileReader.BuildImage(mzfBlocks, allowImportedNonStandard));
+                DiscardMetadataNotStoredByCurrentFormat();
+                SetCurrentDocumentAfterSave(filePath, outputFormat, sidecarPath: null);
+                return;
+            }
+            if (outputFormat is TapeDocumentFormat.QdHxc or TapeDocumentFormat.QdFlashFloppy or TapeDocumentFormat.QdSharpLegacy)
+            {
+                QdImageFormat qdFormat = outputFormat switch
+                {
+                    TapeDocumentFormat.QdHxc => QdImageFormat.HxcPhysical,
+                    TapeDocumentFormat.QdFlashFloppy => QdImageFormat.FlashFloppyPhysical,
+                    _ => QdImageFormat.SharpLegacyLogical
+                };
+                QuickDiskPhysicalProfile? profile = document.QuickDiskProfile;
+                File.WriteAllBytes(filePath, QdImageReaderWriter.Write(mzfBlocks, qdFormat, profile, allowImportedNonStandard));
+                DiscardMetadataNotStoredByCurrentFormat();
+                SetCurrentDocumentAfterSave(
+                    filePath,
+                    outputFormat,
+                    sidecarPath: null,
+                    profile ?? (qdFormat is QdImageFormat.HxcPhysical or QdImageFormat.FlashFloppyPhysical
+                        ? QuickDiskPhysicalProfile.For(qdFormat)
+                        : null));
+                return;
+            }
+            if (outputFormat == TapeDocumentFormat.Mzf)
+            {
+                if (mzfBlocks.Count != 1)
+                {
+                    throw new InvalidOperationException("An MZF document must contain exactly one file.");
+                }
+                int trailingBytes = mzfBlocks[0].Body.TrailingData?.Length ?? 0;
+                if (!TryChooseTapeSaveOptions(filePath, outputFormat, trailingBytes, out bool preserve, out bool generateSidecar))
+                {
+                    return;
+                }
+                TapeDocumentWriter.SaveMzf(filePath, mzfBlocks[0], preserve, generateSidecar);
+                SetCurrentDocumentAfterSave(filePath, outputFormat, GetExistingSidecarPath(filePath));
+                return;
+            }
+            if (outputFormat == TapeDocumentFormat.Mzt)
+            {
+                bool generateSidecar = false;
+                if (mzfBlocks.Count > 0 && !TryChooseTapeSaveOptions(filePath, outputFormat, 0, out _, out generateSidecar))
+                {
+                    return;
+                }
+                TapeDocumentWriter.SaveMzt(filePath, mzfBlocks, generateSidecar);
+                document.ContainerTrailingData = Array.Empty<byte>();
+                SetCurrentDocumentAfterSave(filePath, outputFormat, GetExistingSidecarPath(filePath));
+                return;
+            }
+            throw new InvalidOperationException("This document cannot be saved back to its source format. Use Save As instead.");
+        }
+
+        private void button_Click_SaveAs(object sender, RoutedEventArgs e)
         {
             SaveFileDialog saveFileDialog = new SaveFileDialog();
             saveFileDialog.Filter = GetSaveFilter();
@@ -1268,6 +1405,79 @@ namespace QDTool
                 button_Click_Delete(deleteButton, new RoutedEventArgs());
                 e.Handled = true;
             }
+            else if (e.Key == Key.F2 && MzfDataGrid.SelectedItem is MzfDisplayData item)
+            {
+                MzfDataGrid.CurrentCell = new DataGridCellInfo(item, fileNameColumn);
+                e.Handled = MzfDataGrid.BeginEdit();
+            }
+        }
+
+        private void MzfDataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+        {
+            if (e.EditAction != DataGridEditAction.Commit || e.Column != fileNameColumn ||
+                e.Row.Item is not MzfDisplayData displayData || e.EditingElement is not TextBox editor)
+            {
+                return;
+            }
+
+            int index = MzfDisplayDataCollection.IndexOf(displayData);
+            if ((uint)index >= mzfBlocks.Count)
+            {
+                return;
+            }
+            try
+            {
+                byte[] encodedName = EncodeMzfFileName(editor.Text);
+                TapeRecord record = mzfBlocks[index];
+                if (record.Header.MzfFname.SequenceEqual(encodedName))
+                {
+                    return;
+                }
+                MZQFileHeader header = record.Header;
+                header.MzfFname = encodedName;
+                header.MzfFnameEnd = 0x0D;
+                record.Header = header;
+                document.IsModified = true;
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    RefreshGrid();
+                    if ((uint)index < MzfDisplayDataCollection.Count)
+                    {
+                        MzfDataGrid.SelectedItem = MzfDisplayDataCollection[index];
+                        MzfDataGrid.CurrentCell = new DataGridCellInfo(MzfDisplayDataCollection[index], fileNameColumn);
+                    }
+                }));
+            }
+            catch (Exception exception)
+            {
+                e.Cancel = true;
+                MessageBox.Show(this, exception.Message, "Rename", MessageBoxButton.OK, MessageBoxImage.Error);
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    MzfDataGrid.CancelEdit(DataGridEditingUnit.Cell);
+                    RefreshGrid();
+                }));
+            }
+        }
+
+        internal static byte[] EncodeMzfFileName(string value)
+        {
+            string name = value.Trim();
+            if (name.Length is < 1 or > 16)
+            {
+                throw new InvalidOperationException("The MZF file name must contain 1 to 16 characters.");
+            }
+            byte[] encoded = ConvertASCIIStringToSHASCIIBytes(name);
+            for (int index = 0; index < name.Length; index++)
+            {
+                if (name[index] > 0x7F || FromSHASCII(encoded[index]) != (byte)name[index])
+                {
+                    throw new InvalidOperationException($"The character '{name[index]}' cannot be represented in a Sharp MZ file name.");
+                }
+            }
+            var result = Enumerable.Repeat((byte)0x0D, 16).ToArray();
+            encoded.CopyTo(result, 0);
+            return result;
         }
 
         private void MzfDataGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -2014,7 +2224,6 @@ namespace QDTool
                 }
 
                 bool bindAsCurrent = document.Format == TapeDocumentFormat.None && mzfBlocks.Count == 0;
-                bool addedAny = false;
                 var audioResults = new List<AudioFileImportResult>();
                 int audioIndex = 0;
                 foreach (string filePath in filePaths)
@@ -2045,15 +2254,10 @@ namespace QDTool
                         return;
                     }
                     bindAsCurrent = false;
-                    addedAny = true;
                 }
 
                 ShowAudioImportReports(audioResults);
 
-                if (addedAny)
-                {
-                    saveButton.IsEnabled = true;
-                }
             }
         }
 
@@ -2195,8 +2399,50 @@ namespace QDTool
             }
         }
 
+        private void button_Click_Close(object sender, RoutedEventArgs e)
+        {
+            if (dskEditorControl.Visibility == Visibility.Visible)
+            {
+                TryLeaveDskMode();
+                return;
+            }
+            if (!TryCloseTapeDocument())
+            {
+                return;
+            }
+
+            Title = "MZTools";
+            RefreshGrid();
+        }
+
+        private bool TryCloseTapeDocument()
+        {
+            if (document.Format == TapeDocumentFormat.None)
+            {
+                return true;
+            }
+            if (document.IsModified && MessageBox.Show(
+                    this,
+                    "The current document contains unsaved changes. Close it and discard the changes?",
+                    "Close",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning) != MessageBoxResult.Yes)
+            {
+                return false;
+            }
+
+            document.Clear();
+            actFileName = string.Empty;
+            MzfDataGrid.SelectedItems.Clear();
+            return true;
+        }
+
         private void button_Click_NewQuickDisk(object sender, RoutedEventArgs e)
         {
+            if (!TryLeaveDskMode())
+            {
+                return;
+            }
             if ((document.Format != TapeDocumentFormat.None || document.IsModified || mzfBlocks.Count > 0) &&
                 MessageBox.Show(
                     "Creating a new image will replace the current document. Continue?",
@@ -2223,12 +2469,15 @@ namespace QDTool
             document.IsModified = true;
             actFileName = format == TapeDocumentFormat.Mzq ? "New.mzq" : "New.qd";
             Title = "MZTools - New";
-            saveButton.IsEnabled = true;
             RefreshGrid();
         }
 
         private void button_Click_NewDsk(object sender, RoutedEventArgs e)
         {
+            if (!TryLeaveDskMode())
+            {
+                return;
+            }
             if (!ConfirmTapeDocumentReplacement())
             {
                 return;
@@ -2263,6 +2512,20 @@ namespace QDTool
                         options.SectorSize == 256 ? (byte)0x2A : (byte)0x4E, options.Filler, "MZTools", options.SectorOrder, options.SectorIds),
                     _ => throw new ArgumentOutOfRangeException()
                 };
+                if (options.Format is DskNewFormat.PersonalCpm or DskNewFormat.Sds400 or
+                    DskNewFormat.LecCpmDd or DskNewFormat.LecCpmHd)
+                {
+                    if (options.BootMode == DskBootMode.Empty)
+                    {
+                        DskDocumentFactory.ClearBootTrack(dsk);
+                    }
+                    else if (options.BootMode == DskBootMode.ImportFromDsk)
+                    {
+                        DskDocument source = DskDocument.Open(options.BootSourcePath ??
+                            throw new InvalidOperationException("No boot source DSK was selected."));
+                        DskDocumentFactory.ImportBootSystemArea(dsk, source);
+                    }
+                }
                 ShowDskDocument(dsk, tapeReplacementConfirmed: true);
             }
             catch (Exception exception)
@@ -2345,6 +2608,11 @@ namespace QDTool
             if (dskEditorControl.Visibility == Visibility.Visible && !dskEditorControl.TryCloseDocument())
             {
                 e.Cancel = true;
+                return;
+            }
+            if (dskEditorControl.Visibility != Visibility.Visible && !TryCloseTapeDocument())
+            {
+                e.Cancel = true;
             }
         }
 
@@ -2413,7 +2681,6 @@ namespace QDTool
             mzfBlocks.Clear();
             document.ContainerTrailingData = Array.Empty<byte>();
             document.IsModified = true;
-            saveButton.IsEnabled = true;
             RefreshGrid();
         }
 
