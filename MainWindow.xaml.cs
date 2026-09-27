@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.PortableExecutable;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -16,7 +17,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using static QDTool.SharpMzEncoding;
+using static MZTools.SharpMzEncoding;
 
 public class MzfDisplayData : INotifyPropertyChanged
 {
@@ -36,7 +37,7 @@ public class MzfDisplayData : INotifyPropertyChanged
     public string TrailingData { get; set; } = string.Empty;
     public string Compression { get; set; } = string.Empty;
 
-    public IReadOnlyList<string> LoaderTypes => QDTool.TapeProfileComponents.LoaderTypes;
+    public IReadOnlyList<string> LoaderTypes => MZTools.TapeProfileComponents.LoaderTypes;
 
     public string LoaderType
     {
@@ -48,7 +49,7 @@ public class MzfDisplayData : INotifyPropertyChanged
                 return;
             }
             loaderType = value;
-            speed = QDTool.TapeProfileComponents.NormalizeSpeed(loaderType, speed);
+            speed = MZTools.TapeProfileComponents.NormalizeSpeed(loaderType, speed);
             OnPropertyChanged();
             OnPropertyChanged(nameof(AvailableSpeeds));
             OnPropertyChanged(nameof(Speed));
@@ -56,14 +57,14 @@ public class MzfDisplayData : INotifyPropertyChanged
     }
 
     public IReadOnlyList<string> AvailableSpeeds =>
-        QDTool.TapeProfileComponents.GetAvailableSpeeds(loaderType);
+        MZTools.TapeProfileComponents.GetAvailableSpeeds(loaderType);
 
     public string Speed
     {
         get => speed;
         set
         {
-            string normalized = QDTool.TapeProfileComponents.NormalizeSpeed(loaderType, value);
+            string normalized = MZTools.TapeProfileComponents.NormalizeSpeed(loaderType, value);
             if (speed == normalized)
             {
                 return;
@@ -73,9 +74,9 @@ public class MzfDisplayData : INotifyPropertyChanged
         }
     }
 
-    internal void SetProfile(QDTool.TapeProfile profile)
+    internal void SetProfile(MZTools.TapeProfile profile)
     {
-        (loaderType, speed) = QDTool.TapeProfileComponents.Split(profile);
+        (loaderType, speed) = MZTools.TapeProfileComponents.Split(profile);
         OnPropertyChanged(nameof(LoaderType));
         OnPropertyChanged(nameof(AvailableSpeeds));
         OnPropertyChanged(nameof(Speed));
@@ -87,7 +88,7 @@ public class MzfDisplayData : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }
 
-namespace QDTool
+namespace MZTools
 {
     internal static class ListReorder
     {
@@ -172,7 +173,10 @@ namespace QDTool
     /// </summary>
     public partial class MainWindow : Window
     {
-        private const string RowDragDataFormat = "QDTool.TapeRecords";
+        private const string RowDragDataFormat = "MZTools.TapeRecords";
+        private const string ApplicationName = "MZTools";
+
+        private static readonly string ApplicationCaption = CreateApplicationCaption();
 
         private static readonly HashSet<string> ReservedWindowsFileNames = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -197,7 +201,7 @@ namespace QDTool
             InitializeComponent();
             MzfDisplayDataCollection = new ObservableCollection<MzfDisplayData>();
             MzfDataGrid.ItemsSource = MzfDisplayDataCollection;
-            this.Title = "MZTools";
+            Title = BuildWindowTitle();
             viewButton.IsEnabled = false; // Zakážem některá tlačítka při spuštění
             moveUpButton.IsEnabled = false;
             moveDownButton.IsEnabled = false;
@@ -206,13 +210,47 @@ namespace QDTool
             saveButton.IsEnabled = false;
             saveAsButton.IsEnabled = false;
             closeButton.IsEnabled = false;
-            dskEditorControl.DocumentStateChanged += (_, _) => Title = dskEditorControl.DocumentTitle;
+            dskEditorControl.DocumentStateChanged += (_, _) => Title = BuildWindowTitle(dskEditorControl.DocumentTitle);
             dskEditorControl.CloseRequested += (_, _) => TryLeaveDskMode();
             dskEditorControl.OpenRequested += (_, _) => button_Click_Open(openButton, new RoutedEventArgs());
             dskEditorControl.NewQuickDiskRequested += (_, _) => button_Click_NewQuickDisk(newQuickDiskButton, new RoutedEventArgs());
             dskEditorControl.NewDskRequested += (_, _) => button_Click_NewDsk(newDskButton, new RoutedEventArgs());
             UpdateQuickDiskFeatureVisibility();
             UpdateStatus();
+        }
+
+        private static string CreateApplicationCaption()
+        {
+            string? version = typeof(MainWindow).Assembly
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+                .InformationalVersion;
+
+            if (string.IsNullOrWhiteSpace(version))
+            {
+                version = typeof(MainWindow).Assembly.GetName().Version?.ToString(3);
+            }
+
+            int metadataSeparator = version?.IndexOf('+') ?? -1;
+            if (metadataSeparator >= 0)
+            {
+                version = version![..metadataSeparator];
+            }
+
+            return string.IsNullOrWhiteSpace(version)
+                ? ApplicationName
+                : $"{ApplicationName}  {version}";
+        }
+
+        private static string BuildWindowTitle(string? documentTitle = null)
+        {
+            if (string.IsNullOrWhiteSpace(documentTitle) || documentTitle == ApplicationName)
+            {
+                return ApplicationCaption;
+            }
+
+            return documentTitle.StartsWith(ApplicationName, StringComparison.Ordinal)
+                ? ApplicationCaption + documentTitle[ApplicationName.Length..]
+                : $"{ApplicationCaption} - {documentTitle}";
         }
 
         private static bool TryValidateBlock(
@@ -1352,7 +1390,7 @@ namespace QDTool
             document.IplDskInfo = null;
             document.IsModified = false;
             actFileName = System.IO.Path.GetFileName(filePath);
-            Title = $"MZTools - {actFileName}";
+            Title = BuildWindowTitle(actFileName);
             RefreshGrid();
         }
 
@@ -2138,7 +2176,7 @@ namespace QDTool
                     document.IplDskInfo = loadedIplDskInfo;
                     document.IsModified = false;
                     actFileName = System.IO.Path.GetFileName(filePath);
-                    Title = $"MZTools - {actFileName}";
+                    Title = BuildWindowTitle(actFileName);
                 }
                 mzfBlocks.AddRange(recordsToAdd);
                 if (!bindAsCurrent && recordsToAdd.Count > 0)
@@ -2411,7 +2449,7 @@ namespace QDTool
                 return;
             }
 
-            Title = "MZTools";
+            Title = BuildWindowTitle();
             RefreshGrid();
         }
 
@@ -2468,7 +2506,7 @@ namespace QDTool
             };
             document.IsModified = true;
             actFileName = format == TapeDocumentFormat.Mzq ? "New.mzq" : "New.qd";
-            Title = "MZTools - New";
+            Title = BuildWindowTitle("New");
             RefreshGrid();
         }
 
@@ -2545,7 +2583,7 @@ namespace QDTool
             RefreshGrid();
             dskEditorControl.LoadNewMultiIpl();
             dskEditorControl.Visibility = Visibility.Visible;
-            Title = dskEditorControl.DocumentTitle;
+            Title = BuildWindowTitle(dskEditorControl.DocumentTitle);
         }
 
         private void ShowNewSingleIplEditor()
@@ -2559,7 +2597,7 @@ namespace QDTool
             RefreshGrid();
             dskEditorControl.LoadNewSingleIpl();
             dskEditorControl.Visibility = Visibility.Visible;
-            Title = dskEditorControl.DocumentTitle;
+            Title = BuildWindowTitle(dskEditorControl.DocumentTitle);
         }
 
         private bool ConfirmTapeDocumentReplacement()
@@ -2591,7 +2629,7 @@ namespace QDTool
             RefreshGrid();
             dskEditorControl.LoadDocument(dsk);
             dskEditorControl.Visibility = Visibility.Visible;
-            Title = dskEditorControl.DocumentTitle;
+            Title = BuildWindowTitle(dskEditorControl.DocumentTitle);
         }
 
         private bool TryLeaveDskMode()
@@ -2599,7 +2637,7 @@ namespace QDTool
             if (dskEditorControl.Visibility != Visibility.Visible) return true;
             if (!dskEditorControl.TryCloseDocument()) return false;
             dskEditorControl.Visibility = Visibility.Collapsed;
-            Title = string.IsNullOrWhiteSpace(actFileName) ? "MZTools" : $"MZTools - {actFileName}";
+            Title = BuildWindowTitle(string.IsNullOrWhiteSpace(actFileName) ? null : actFileName);
             return true;
         }
 

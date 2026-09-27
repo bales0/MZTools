@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
-namespace QDTool
+namespace MZTools
 {
     internal static class Zx0Compressor
     {

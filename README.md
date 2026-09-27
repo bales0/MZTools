@@ -9,7 +9,7 @@ MZTools is a utility for converting, inspecting and editing SHARP MZ QuickDisk a
 
 The goal of this fork is to keep the original application simple for normal MZF/MZT/MZQ/QDF/QuickDisk work, while also providing a more complete toolset for SHARP MZ-700/MZ-800 tape and QuickDisk preservation, conversion and analysis.
 
-<img width="786" height="443" src="/images/MZQDTool_scr_2026-09-23.png">
+<img width="786" height="443" src="/images/MZTools_scr_2026-09-27.png">
 
 ## Main functions
 

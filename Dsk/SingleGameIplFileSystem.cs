@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace QDTool
+namespace MZTools
 {
     internal sealed class SingleGameIplFileSystem : IDskFileSystem
     {

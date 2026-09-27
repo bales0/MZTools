@@ -4,10 +4,10 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
-using static QDTool.SharpMzEncoding;
-using static QDTool.SharpQdCrc;
+using static MZTools.SharpMzEncoding;
+using static MZTools.SharpQdCrc;
 
-namespace QDTool
+namespace MZTools
 {
     /// <summary>
     /// Interaction logic for HexBrowser.xaml

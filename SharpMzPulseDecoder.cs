@@ -1,7 +1,7 @@
 using System;
 using System.Numerics;
 
-namespace QDTool
+namespace MZTools
 {
     internal enum SharpMzDecoderEventType
     {

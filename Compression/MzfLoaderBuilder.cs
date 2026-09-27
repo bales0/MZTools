@@ -1,7 +1,7 @@
 using System;
 using System.Buffers.Binary;
 
-namespace QDTool
+namespace MZTools
 {
     internal sealed record MzfCompressionInfo(
         MzfCompressionAlgorithm Algorithm,

@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace QDTool
+namespace MZTools
 {
     internal sealed record MultiGameIplInput(
         TapeRecord Record,

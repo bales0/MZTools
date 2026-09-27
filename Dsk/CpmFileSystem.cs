@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace QDTool
+namespace MZTools
 {
     // C# port of bales0/mzdisk src/libs/mzdsk_cpm (GPL-3.0-or-later).
     internal readonly record struct CpmSectorAddress(int AbsoluteTrack, int SectorId);

@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace QDTool
+namespace MZTools
 {
     internal readonly record struct PcmAudioFormat(
         ushort Channels,

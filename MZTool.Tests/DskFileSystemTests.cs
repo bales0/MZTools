@@ -1,4 +1,4 @@
-namespace QDTool.Tests;
+namespace MZTools.Tests;
 
 public class DskFileSystemTests
 {

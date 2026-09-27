@@ -13,11 +13,11 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 
-namespace QDTool
+namespace MZTools
 {
     public partial class DskEditorControl : UserControl
     {
-        private const string MultiIplRowDragDataFormat = "QDTool.MultiIplEditorRows";
+        private const string MultiIplRowDragDataFormat = "MZTools.MultiIplEditorRows";
         private DskDocument? document;
         private readonly ObservableCollection<MultiGameIplRow> multiIplRows = new();
         private CancellationTokenSource? multiIplCancellation;

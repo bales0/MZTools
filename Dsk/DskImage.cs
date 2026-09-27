@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace QDTool
+namespace MZTools
 {
     // Extended CPC DSK container port based on bales0/mzdisk src/libs/dsk
     // (GPL-3.0-or-later, Michal Hucik). Filesystem semantics intentionally

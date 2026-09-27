@@ -1,6 +1,6 @@
 using System;
 
-namespace QDTool
+namespace MZTools
 {
     internal static class Mz800DskImage
     {

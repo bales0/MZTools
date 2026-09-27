@@ -1,7 +1,7 @@
-﻿<Application x:Class="QDTool.App"
+﻿<Application x:Class="MZTools.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:QDTool"
+             xmlns:local="clr-namespace:MZTools"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
         <Style x:Key="TopToolbarButton" TargetType="Button">

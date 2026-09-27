@@ -3,7 +3,7 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 
-namespace QDTool
+namespace MZTools
 {
     internal sealed record MzfDecompressionResult(
         TapeRecord Record,

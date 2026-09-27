@@ -1,7 +1,7 @@
 using System.Windows;
 using System.Runtime.CompilerServices;
 
-[assembly: InternalsVisibleTo("QDTool.Tests")]
+[assembly: InternalsVisibleTo("MZTools.Tests")]
 
 [assembly: ThemeInfo(
     ResourceDictionaryLocation.None, //where theme specific resource dictionaries are located

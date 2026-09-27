@@ -1,4 +1,4 @@
-<UserControl x:Class="QDTool.CompressionOptionsControl"
+<UserControl x:Class="MZTools.CompressionOptionsControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <GroupBox Header="Compression" Padding="10" Margin="0,12,0,0">

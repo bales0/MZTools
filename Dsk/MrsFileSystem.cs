@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace QDTool
+namespace MZTools
 {
     // C# port of bales0/mzdisk src/libs/mzdsk_mrs (GPL-3.0-or-later).
     internal sealed class MrsFileSystem : IDskFileSystem

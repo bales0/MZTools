@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\QDTool.csproj" />
+    <ProjectReference Include="..\MZTools.csproj" />
   </ItemGroup>
 
   <ItemGroup>

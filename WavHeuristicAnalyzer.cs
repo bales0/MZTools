@@ -6,7 +6,7 @@ using System.Linq;
 using System.Numerics;
 using System.Threading;
 
-namespace QDTool
+namespace MZTools
 {
     internal enum WavPulseMode
     {
@@ -1374,7 +1374,7 @@ namespace QDTool
                     double.NaN);
             }
 
-            // Connector inversion in QDTool means physical LOW is logical HIGH
+            // Connector inversion in MZTools means physical LOW is logical HIGH
             // and physical HIGH is logical LOW. Convert all four measured header
             // half-waves to microseconds before fitting the Z80 reference table.
             double shortHigh = X8SamplesToMicroseconds(shortPhysicalLowX8, sampleRate);
@@ -1391,7 +1391,7 @@ namespace QDTool
                 .OrderBy(match => match.RelativeError)
                 .ToList();
 
-            // Keep the already proven QDTool speed classifier for 1:2/1:3/1:4.
+            // Keep the already proven MZTools speed classifier for 1:2/1:3/1:4.
             // The four-half-wave ROM/Z80 fit is used as a shape/quality check and
             // specifically resolves the only ambiguous machine family: 1:1.
             if (coarseProfile is TapeProfile.Normal1_2 or TapeProfile.Normal1_3 or TapeProfile.Normal1_4)

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace QDTool
+namespace MZTools
 {
     internal enum SharpPulseTimingSource
     {
@@ -460,7 +460,7 @@ namespace QDTool
     }
 }
 
-namespace QDTool
+namespace MZTools
 {
     internal enum SharpTapeOutputFormat
     {
@@ -1309,7 +1309,7 @@ namespace QDTool
             {
                 // Native-unit quantization can bias the integer LOW IIR toward
                 // the 1:4 reference. The independently averaged HIGH half-wave
-                // keeps QDTool's 1:3 metadata distinct without entering Sharp
+                // keeps MZTools's 1:3 metadata distinct without entering Sharp
                 // pulse classification.
                 if (normalizedHigh >= 61)
                 {

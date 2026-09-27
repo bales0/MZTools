@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.ComponentModel;
 
-namespace QDTool
+namespace MZTools
 {
     public partial class WavAnalysisProgressWindow : Window
     {

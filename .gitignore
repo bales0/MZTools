@@ -12,7 +12,7 @@
 .obj/
 .specification/
 MZTool.Tests/*
-!MZTool.Tests/QDTool.Tests.csproj
+!MZTool.Tests/MZTools.Tests.csproj
 !MZTool.Tests/DskImageTests.cs
 !MZTool.Tests/DskFileSystemTests.cs
 
@@ -370,5 +370,5 @@ FodyWeavers.xsd
 /.vscode
 .gitattributes
 .gitignore
-# /QDTool.Tests
+# /MZTools.Tests
 /acceptance

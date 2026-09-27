@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace QDTool
+namespace MZTools
 {
     internal static class MzfCompressionService
     {

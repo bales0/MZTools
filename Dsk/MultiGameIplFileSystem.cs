@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace QDTool
+namespace MZTools
 {
     // Native MZTools multi-game IPL format (QDMG). The container remains a
     // normal inverted MZ-800 IPL disk; this layer exposes its embedded menu.

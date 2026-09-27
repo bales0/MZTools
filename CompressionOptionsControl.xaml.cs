@@ -2,7 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace QDTool
+namespace MZTools
 {
     public partial class CompressionOptionsControl : UserControl
     {

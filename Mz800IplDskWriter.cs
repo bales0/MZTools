@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace QDTool
+namespace MZTools
 {
     internal static class Mz800IplDskWriter
     {

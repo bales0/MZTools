@@ -3,9 +3,9 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Linq;
 using System.Text;
-using static QDTool.MzfFormatSupport;
+using static MZTools.MzfFormatSupport;
 
-namespace QDTool
+namespace MZTools
 {
     internal sealed record Mz800IplDskReadResult(
         TapeRecord Record,

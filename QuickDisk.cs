@@ -5,9 +5,9 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using static QDTool.MzfFormatSupport;
-using static QDTool.SharpBinary;
-using static QDTool.SharpQdCrc;
+using static MZTools.MzfFormatSupport;
+using static MZTools.SharpBinary;
+using static MZTools.SharpQdCrc;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
 public struct MZQHeader
@@ -55,7 +55,7 @@ public struct MZQFileBody
     public byte[] TrailingData;
 }
 
-namespace QDTool
+namespace MZTools
 {
     internal static class SharpQdCrc
     {

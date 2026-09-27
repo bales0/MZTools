@@ -4,10 +4,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using static QDTool.MzfFormatSupport;
-using static QDTool.SharpBinary;
+using static MZTools.MzfFormatSupport;
+using static MZTools.SharpBinary;
 
-namespace QDTool
+namespace MZTools
 {
     internal static class MzfFormatSupport
     {
@@ -423,7 +423,7 @@ namespace QDTool
     }
 }
 
-namespace QDTool
+namespace MZTools
 {
     internal sealed class MztReadResult
     {
@@ -591,7 +591,7 @@ namespace QDTool
     }
 }
 
-namespace QDTool
+namespace MZTools
 {
     internal static class SidecarService
     {
@@ -738,7 +738,7 @@ namespace QDTool
     }
 }
 
-namespace QDTool
+namespace MZTools
 {
     internal static class TapeDocumentWriter
     {

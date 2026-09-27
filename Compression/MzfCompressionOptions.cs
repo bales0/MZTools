@@ -1,4 +1,4 @@
-namespace QDTool
+namespace MZTools
 {
     internal enum MzfCompressionAlgorithm
     {

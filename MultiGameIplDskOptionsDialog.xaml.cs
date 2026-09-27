@@ -13,11 +13,11 @@ using System.Windows.Input;
 using System.Windows.Media;
 using Microsoft.Win32;
 
-namespace QDTool
+namespace MZTools
 {
     public partial class MultiGameIplDskOptionsDialog : Window
     {
-        private const string RowDragDataFormat = "QDTool.MultiGameIplRows";
+        private const string RowDragDataFormat = "MZTools.MultiGameIplRows";
         private CancellationTokenSource? previewCancellation;
         private bool updatingRows;
         private Point rowDragStartPoint;

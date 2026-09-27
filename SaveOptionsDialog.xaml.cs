@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
-namespace QDTool
+namespace MZTools
 {
     public partial class SaveOptionsDialog : Window
     {

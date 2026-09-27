@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace QDTool
+namespace MZTools
 {
     internal enum WavImportMode
     {

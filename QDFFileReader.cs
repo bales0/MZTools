@@ -7,9 +7,9 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Markup;
-using static QDTool.Utility;
+using static MZTools.Utility;
 
-namespace QDTool
+namespace MZTools
 {
     class QDFFileReader
     {

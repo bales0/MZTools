@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 
-namespace QDTool
+namespace MZTools
 {
     public partial class WavAnalysisStatisticsWindow : Window
     {

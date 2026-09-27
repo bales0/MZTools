@@ -6,9 +6,9 @@ using System.Runtime.InteropServices;
 using System.Security.RightsManagement;
 using System.Text;
 using System.Threading.Tasks;
-using static QDTool.Utility;
+using static MZTools.Utility;
 
-namespace QDTool
+namespace MZTools
 {
     internal class MZTFileReader
     {

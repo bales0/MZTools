@@ -12,7 +12,7 @@ GPL-compatible license; the ported source retains origin comments.
 The port is an in-process C# implementation. The mzdisk command-line tools are
 used only as a development reference and are not a runtime dependency.
 
-QDTool contains C# ports of the ZX0 and ZX7 compressors and Z80 decoder/loader
+MZTools contains C# ports of the ZX0 and ZX7 compressors and Z80 decoder/loader
 byte sequences used by these MZF tools:
 
 - https://github.com/bales0/mz0
