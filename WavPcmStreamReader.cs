@@ -27,7 +27,7 @@ namespace MZTools
     internal sealed class WavPcmStreamReader : IPcmAudioStreamReader
     {
         private static readonly HashSet<uint> SupportedSampleRates =
-            [22050, 44100, 88200, 96000];
+            [22050, 44100, 48000, 88200, 96000];
 
         private readonly FileStream stream;
         public PcmAudioFormat Format { get; }
@@ -167,7 +167,7 @@ namespace MZTools
             if (!SupportedSampleRates.Contains(sampleRate))
             {
                 throw new InvalidDataException(
-                    $"Unsupported WAV sample rate: {sampleRate} Hz; expected 22050, 44100, 88200, or 96000 Hz.");
+                    $"Unsupported WAV sample rate: {sampleRate} Hz; expected 22050, 44100, 48000, 88200, or 96000 Hz.");
             }
 
             ushort expectedAlign = checked((ushort)(channels * (bits / 8)));

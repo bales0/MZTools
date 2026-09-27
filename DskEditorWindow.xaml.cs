@@ -409,22 +409,60 @@ namespace MZTools
             if (document == null) return;
             IReadOnlyList<DskFileEntry> entries = SelectedEntries;
             if (entries.Count == 0) return;
-            var dialog = new SaveFileDialog { Filter = "Raw file|*.bin|MZF file|*.mzf", FileName = SuggestedName(entries[0]) };
+            DskFileSystemType fileSystemType = document.FileSystem.Type;
+            bool canExportMzf = entries.All(entry => DskExportSupport.CanExportMzf(fileSystemType, entry));
+            var dialog = new SaveFileDialog
+            {
+                Filter = DskExportSupport.GetFilter(fileSystemType, canExportMzf),
+                FileName = SuggestedName(entries[0]),
+                AddExtension = canExportMzf,
+                DefaultExt = canExportMzf ? ".bin" : string.Empty,
+                OverwritePrompt = entries.Count == 1
+            };
             if (dialog.ShowDialog(OwnerWindow) != true) return;
             try
             {
-                string folder = Path.GetDirectoryName(dialog.FileName)!;
+                bool exportMzf = canExportMzf && dialog.FilterIndex == 2;
+                string folder = Path.GetDirectoryName(dialog.FileName)
+                    ?? throw new InvalidOperationException("The selected output path has no directory.");
+                IReadOnlyList<string> names = entries.Count == 1
+                    ? [Path.GetFileName(exportMzf ? Path.ChangeExtension(dialog.FileName, ".mzf") : dialog.FileName)]
+                    : DskExportSupport.BuildBatchFileNames(entries, fileSystemType, exportMzf);
+                var outputs = new List<(string Path, byte[] Data)>(entries.Count);
                 for (int index = 0; index < entries.Count; index++)
                 {
                     DskFileEntry entry = entries[index];
-                    string path = entries.Count == 1 ? dialog.FileName : Path.Combine(folder, SuggestedName(entry));
                     byte[] data = document.FileSystem.Extract(entry);
-                    bool bootstrap = document.FileSystem.Type == DskFileSystemType.BootOnly && entry.Key == "iplpro";
-                    if (Path.GetExtension(dialog.FileName).Equals(".mzf", StringComparison.OrdinalIgnoreCase) &&
-                        (bootstrap || document.FileSystem.Type is DskFileSystemType.SingleIpl or DskFileSystemType.MultiIpl or DskFileSystemType.Fsmz or DskFileSystemType.Mrs))
-                        File.WriteAllBytes(Path.ChangeExtension(path, ".mzf"), DskMzfConverter.Serialize(entry, data));
-                    else File.WriteAllBytes(path, data);
+                    outputs.Add((Path.Combine(folder, names[index]), exportMzf
+                        ? DskMzfConverter.Serialize(entry, data)
+                        : data));
                 }
+
+                string[] existingPaths = outputs
+                    .Select(output => output.Path)
+                    .Where(File.Exists)
+                    .ToArray();
+                if (existingPaths.Length > 0 && entries.Count > 1)
+                {
+                    MessageBoxResult overwrite = MessageBox.Show(
+                        OwnerWindow,
+                        $"{existingPaths.Length} target file(s) already exist. Overwrite them?",
+                        "Confirm batch export",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Warning);
+                    if (overwrite != MessageBoxResult.Yes) return;
+                }
+                if (fileSystemType == DskFileSystemType.Mrs)
+                {
+                    MessageBox.Show(
+                        OwnerWindow,
+                        "MRS stores only a count of 512-byte blocks. Exported files may include padding from the final block.",
+                        "MRS export length",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+
+                foreach ((string path, byte[] data) in outputs) File.WriteAllBytes(path, data);
             }
             catch (Exception exception) { ShowError(exception.Message); }
         }
@@ -859,6 +897,14 @@ namespace MZTools
                 : baseName;
             try
             {
+                string currentName = document.FileSystem.Type is DskFileSystemType.Cpm or DskFileSystemType.Mrs && entry.Extension.Length > 0
+                    ? $"{entry.Name}.{entry.Extension}"
+                    : entry.Name;
+                if (currentName.Equals(newName, StringComparison.OrdinalIgnoreCase))
+                {
+                    Dispatcher.BeginInvoke(new Action(RefreshView));
+                    return;
+                }
                 document.FileSystem.Rename(entry, newName);
                 document.MarkModified();
                 Dispatcher.BeginInvoke(new Action(RefreshView));
@@ -1050,13 +1096,87 @@ namespace MZTools
     {
         internal static byte[] Serialize(DskFileEntry entry, byte[] data)
         {
-            var header = new byte[128]; header[0] = entry.FileType == 0 ? (byte)1 : entry.FileType;
+            ArgumentNullException.ThrowIfNull(entry);
+            ArgumentNullException.ThrowIfNull(data);
+            if (data.Length > ushort.MaxValue)
+                throw new InvalidDataException("MZF payloads cannot exceed 65535 bytes; no output file was created.");
+            var header = new byte[128]; header[0] = entry.FileType;
             byte[] name = SharpMzEncoding.ConvertASCIIStringToSHASCIIBytes(entry.Name);
             name.AsSpan(0, Math.Min(16, name.Length)).CopyTo(header.AsSpan(1, 16)); header[17] = 0x0D;
-            System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(header.AsSpan(18, 2), checked((ushort)Math.Min(data.Length, ushort.MaxValue)));
+            System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(header.AsSpan(18, 2), checked((ushort)data.Length));
             System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(header.AsSpan(20, 2), entry.LoadAddress);
             System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(header.AsSpan(22, 2), entry.ExecuteAddress);
-            return header.Concat(data.Take(ushort.MaxValue)).ToArray();
+            return header.Concat(data).ToArray();
+        }
+    }
+
+    internal static class DskExportSupport
+    {
+        internal static bool CanExportMzf(DskFileSystemType type, DskFileEntry entry) =>
+            type is DskFileSystemType.Fsmz or DskFileSystemType.SingleIpl ||
+            type == DskFileSystemType.BootOnly && entry.Key == "iplpro";
+
+        internal static string GetFilter(DskFileSystemType type, bool canExportMzf)
+        {
+            if (type is DskFileSystemType.Cpm or DskFileSystemType.Mrs)
+                return "Original binary file|*.*";
+            if (!canExportMzf) return "Raw payload|*.bin";
+            string mzfLabel = type == DskFileSystemType.Fsmz
+                ? "Native MZF file"
+                : type == DskFileSystemType.BootOnly
+                    ? "Reconstructed IPL bootstrap MZF"
+                    : "Reconstructed MZF from IPL metadata";
+            return $"Raw payload|*.bin|{mzfLabel}|*.mzf";
+        }
+
+        internal static IReadOnlyList<string> BuildBatchFileNames(
+            IReadOnlyList<DskFileEntry> entries,
+            DskFileSystemType type,
+            bool exportMzf)
+        {
+            string[] naturalNames = entries
+                .Select(entry => SanitizeFileName(exportMzf
+                    ? Path.ChangeExtension(SuggestedName(entry), ".mzf")
+                    : SuggestedName(entry)))
+                .ToArray();
+
+            if (type == DskFileSystemType.Cpm)
+            {
+                HashSet<string> duplicates = naturalNames
+                    .GroupBy(name => name, StringComparer.OrdinalIgnoreCase)
+                    .Where(group => group.Count() > 1)
+                    .Select(group => group.Key)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                for (int index = 0; index < naturalNames.Length; index++)
+                {
+                    if (duplicates.Contains(naturalNames[index]))
+                        naturalNames[index] = $"U{entries[index].User:D2}_{naturalNames[index]}";
+                }
+            }
+
+            var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (int index = 0; index < naturalNames.Length; index++)
+            {
+                string candidate = naturalNames[index];
+                string stem = Path.GetFileNameWithoutExtension(candidate);
+                string extension = Path.GetExtension(candidate);
+                int suffix = 2;
+                while (!used.Add(candidate)) candidate = $"{stem}_{suffix++}{extension}";
+                naturalNames[index] = candidate;
+            }
+            return naturalNames;
+        }
+
+        private static string SuggestedName(DskFileEntry entry) => string.IsNullOrEmpty(entry.Extension)
+            ? entry.Name
+            : $"{entry.Name}.{entry.Extension}";
+
+        private static string SanitizeFileName(string value)
+        {
+            char[] invalid = Path.GetInvalidFileNameChars();
+            string result = new(value.Select(character => invalid.Contains(character) ? '_' : character).ToArray());
+            result = result.Trim().TrimEnd('.');
+            return string.IsNullOrWhiteSpace(result) ? "PROGRAM" : result;
         }
     }
 

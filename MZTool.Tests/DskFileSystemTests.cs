@@ -1,5 +1,8 @@
 namespace MZTools.Tests;
 
+using System.Buffers.Binary;
+using NAudio.SoundFile;
+
 public class DskFileSystemTests
 {
     [Fact]
@@ -29,6 +32,22 @@ public class DskFileSystemTests
         reopened.FileSystem.Delete(renamed);
         Assert.Empty(reopened.FileSystem.ReadDirectory());
         Assert.Equal(initialFree, reopened.FileSystem.FreeBytes);
+    }
+
+    [Fact]
+    public void Fsmz_RenameCollisionLeavesDirectoryUnchanged()
+    {
+        DskDocument document = DskDocumentFactory.CreateFsmz();
+        document.FileSystem.Insert("FIRST", [1, 2, 3]);
+        document.FileSystem.Insert("SECOND", [4, 5, 6]);
+        DskFileEntry source = document.FileSystem.ReadDirectory().Single(entry => entry.Name == "FIRST");
+        byte[] before = document.Serialize();
+
+        Assert.Throws<IOException>(() => document.FileSystem.Rename(source, "SECOND"));
+
+        Assert.Equal(before, document.Serialize());
+        Assert.Equal(["FIRST", "SECOND"], document.FileSystem.ReadDirectory()
+            .Select(entry => entry.Name).Order().ToArray());
     }
 
     [Theory]
@@ -77,6 +96,46 @@ public class DskFileSystemTests
         Assert.Equal((length + 127) / 128 * 128, entry.Size);
         Assert.Equal(data, extracted[..data.Length]);
         Assert.All(extracted[data.Length..], value => Assert.Equal(0x1A, value));
+    }
+
+    [Fact]
+    public void Cpm_RenameCollisionLeavesEveryExtentAndPayloadUnchanged()
+    {
+        DskDocument document = DskDocumentFactory.CreateCpm(highDensity: false);
+        byte[] first = Enumerable.Range(0, 40000).Select(index => (byte)(index * 17)).ToArray();
+        byte[] second = Enumerable.Range(0, 900).Select(index => (byte)(index * 29)).ToArray();
+        document.FileSystem.Insert("FIRST.BIN", first, user: 3);
+        document.FileSystem.Insert("SECOND.BIN", second, user: 3);
+        DskFileEntry source = document.FileSystem.ReadDirectory().Single(entry => entry.Name == "FIRST");
+        byte[] before = document.Serialize();
+
+        IOException exception = Assert.Throws<IOException>(
+            () => document.FileSystem.Rename(source, "SECOND.BIN"));
+
+        Assert.Contains("already exists", exception.Message);
+        Assert.Equal(before, document.Serialize());
+        IReadOnlyList<DskFileEntry> entries = document.FileSystem.ReadDirectory();
+        Assert.Equal(2, entries.Count);
+        Assert.True(source.Extents > 1);
+        Assert.Equal(first, document.FileSystem.Extract(entries.Single(entry => entry.Name == "FIRST"))[..first.Length]);
+        Assert.Equal(second, document.FileSystem.Extract(entries.Single(entry => entry.Name == "SECOND"))[..second.Length]);
+    }
+
+    [Fact]
+    public void Cpm_RenameAllowsSameNameInAnotherUserArea()
+    {
+        DskDocument document = DskDocumentFactory.CreateCpm(highDensity: false);
+        document.FileSystem.Insert("FIRST.COM", [1, 2, 3], user: 0);
+        document.FileSystem.Insert("TARGET.COM", [4, 5, 6], user: 1);
+        DskFileEntry source = document.FileSystem.ReadDirectory().Single(entry => entry.User == 0);
+
+        document.FileSystem.Rename(source, "TARGET.COM");
+
+        DskFileEntry[] entries = document.FileSystem.ReadDirectory().OrderBy(entry => entry.User).ToArray();
+        Assert.Equal([0, 1], entries.Select(entry => entry.User));
+        Assert.All(entries, entry => Assert.Equal("TARGET", entry.Name));
+        Assert.Equal(new byte[] { 1, 2, 3 }, document.FileSystem.Extract(entries[0])[..3]);
+        Assert.Equal(new byte[] { 4, 5, 6 }, document.FileSystem.Extract(entries[1])[..3]);
     }
 
     [Theory]
@@ -205,6 +264,219 @@ public class DskFileSystemTests
 
         reopened.FileSystem.Delete(renamed);
         Assert.Empty(reopened.FileSystem.ReadDirectory());
+    }
+
+    [Fact]
+    public void Mrs_InsertAndRenameCompareTheCompleteEightDotThreeName()
+    {
+        DskDocument document = DskDocumentFactory.CreateMrs();
+        document.FileSystem.Insert("GAME.BIN", [1, 2, 3]);
+        document.FileSystem.Insert("GAME.COM", [4, 5, 6]);
+        Assert.Throws<IOException>(() => document.FileSystem.Insert("GAME.BIN", [7]));
+        DskFileEntry source = document.FileSystem.ReadDirectory().Single(entry => entry.Extension == "COM");
+        byte[] before = document.Serialize();
+
+        IOException exception = Assert.Throws<IOException>(
+            () => document.FileSystem.Rename(source, "GAME.BIN"));
+
+        Assert.Contains("already exists", exception.Message);
+        Assert.Equal(before, document.Serialize());
+        Assert.Equal(["BIN", "COM"], document.FileSystem.ReadDirectory()
+            .Select(entry => entry.Extension).Order().ToArray());
+    }
+
+    [Fact]
+    public void Mrs_RenameAllowsSameBaseNameWithDifferentExtension()
+    {
+        DskDocument document = DskDocumentFactory.CreateMrs();
+        document.FileSystem.Insert("GAME.BIN", [1]);
+        document.FileSystem.Insert("OTHER.COM", [2]);
+        DskFileEntry source = document.FileSystem.ReadDirectory().Single(entry => entry.Name == "OTHER");
+
+        document.FileSystem.Rename(source, "GAME.COM");
+
+        Assert.Equal(["GAME.BIN", "GAME.COM"], document.FileSystem.ReadDirectory()
+            .Select(entry => $"{entry.Name}.{entry.Extension}").Order().ToArray());
+    }
+
+    [Fact]
+    public void DskExportPolicyRejectsSyntheticCpmMrsAndMultiIplMzf()
+    {
+        var entry = new DskFileEntry { Key = "1", Name = "GAME", Extension = "COM" };
+
+        Assert.False(DskExportSupport.CanExportMzf(DskFileSystemType.Cpm, entry));
+        Assert.False(DskExportSupport.CanExportMzf(DskFileSystemType.Mrs, entry));
+        Assert.False(DskExportSupport.CanExportMzf(DskFileSystemType.MultiIpl, entry));
+        Assert.True(DskExportSupport.CanExportMzf(DskFileSystemType.Fsmz, entry));
+    }
+
+    [Fact]
+    public void DskBatchExportNamesSeparateCpmUsersAndCaseInsensitiveCollisions()
+    {
+        DskFileEntry[] entries =
+        [
+            new() { Key = "0:A.COM", User = 0, Name = "GAME", Extension = "COM" },
+            new() { Key = "1:A.COM", User = 1, Name = "game", Extension = "com" },
+            new() { Key = "2:A.COM", User = 1, Name = "U00_GAME", Extension = "COM" }
+        ];
+
+        IReadOnlyList<string> names = DskExportSupport.BuildBatchFileNames(
+            entries, DskFileSystemType.Cpm, exportMzf: false);
+
+        Assert.Equal(3, names.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.Equal("U00_GAME.COM", names[0]);
+        Assert.Equal("U01_game.com", names[1]);
+        Assert.Equal("U00_GAME_2.COM", names[2]);
+    }
+
+    [Fact]
+    public void DskMzfSerializationAcceptsMaximumAndRejectsOverflowWithoutTruncation()
+    {
+        var entry = new DskFileEntry
+        {
+            Key = "1",
+            Name = "MAXIMUM",
+            FileType = 0,
+            LoadAddress = 0x1200,
+            ExecuteAddress = 0x1234
+        };
+        byte[] maximum = Enumerable.Range(0, ushort.MaxValue).Select(index => (byte)index).ToArray();
+
+        byte[] mzf = DskMzfConverter.Serialize(entry, maximum);
+
+        Assert.Equal(128 + ushort.MaxValue, mzf.Length);
+        Assert.Equal(0, mzf[0]);
+        Assert.Equal(ushort.MaxValue, System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(mzf.AsSpan(18, 2)));
+        Assert.Equal(maximum, mzf[128..]);
+        Assert.Throws<InvalidDataException>(() => DskMzfConverter.Serialize(entry, new byte[ushort.MaxValue + 1]));
+    }
+
+    [Theory]
+    [InlineData(1, 8)]
+    [InlineData(1, 16)]
+    [InlineData(1, 24)]
+    [InlineData(2, 8)]
+    [InlineData(2, 16)]
+    [InlineData(2, 24)]
+    public void WavStreamingReader_ReadsAndSeeksNative48Khz(ushort channels, ushort bits)
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"mztools-{Guid.NewGuid():N}.wav");
+        try
+        {
+            File.WriteAllBytes(path, CreatePcmWav(channels, bits, 48000, 32));
+            using var reader = new WavPcmStreamReader(path);
+            var indices = new List<long>();
+            reader.ReadFrames(7, 9, (index, _, _) => indices.Add(index));
+
+            Assert.Equal((uint)48000, reader.Format.SampleRate);
+            Assert.Equal(channels, reader.Format.Channels);
+            Assert.Equal(bits, reader.Format.BitsPerSample);
+            Assert.Equal(Enumerable.Range(7, 9).Select(value => (long)value), indices);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void FlacStreamingReader_AcceptsNative48KhzWithoutRelabeling()
+    {
+        string wavPath = Path.Combine(Path.GetTempPath(), $"mztools-{Guid.NewGuid():N}.wav");
+        string flacPath = Path.ChangeExtension(wavPath, ".flac");
+        try
+        {
+            File.WriteAllBytes(wavPath, CreatePcmWav(2, 16, 48000, 32));
+            using (var source = new SoundFileReader(wavPath))
+            {
+                SoundFileWriter.CreateSoundFile(flacPath, source);
+            }
+            using var reader = new FlacPcmStreamReader(flacPath);
+            long frames = 0;
+            reader.ReadFrames((_, _, _) => frames++);
+
+            Assert.Equal((uint)48000, reader.Format.SampleRate);
+            Assert.Equal(2, reader.Format.Channels);
+            Assert.Equal(32, frames);
+        }
+        finally
+        {
+            File.Delete(wavPath);
+            File.Delete(flacPath);
+        }
+    }
+
+    [Fact]
+    public void WavExportSupports22050Keeps44100DefaultAndRejectsOtherRates()
+    {
+        string defaultPath = Path.Combine(Path.GetTempPath(), $"mztools-{Guid.NewGuid():N}.wav");
+        string lowPath = Path.Combine(Path.GetTempPath(), $"mztools-{Guid.NewGuid():N}.wav");
+        string invalidPath = Path.Combine(Path.GetTempPath(), $"mztools-{Guid.NewGuid():N}.wav");
+        TapeRecord record = CreateRecord([1, 2, 3, 4], 0x1200, 0x1234);
+        try
+        {
+            SharpTapeExporter.Export(defaultPath, [record], SharpTapeOutputFormat.Wav);
+            SharpTapeExporter.Export(
+                lowPath,
+                [record],
+                SharpTapeOutputFormat.Wav,
+                SharpTapeMachine.Mz800,
+                SharpTapeExporter.WavLowSampleRate);
+
+            byte[] normal = File.ReadAllBytes(defaultPath);
+            byte[] low = File.ReadAllBytes(lowPath);
+            Assert.Equal((uint)44100, BinaryPrimitives.ReadUInt32LittleEndian(normal.AsSpan(24, 4)));
+            Assert.Equal((uint)22050, BinaryPrimitives.ReadUInt32LittleEndian(low.AsSpan(24, 4)));
+            Assert.Equal((uint)22050, BinaryPrimitives.ReadUInt32LittleEndian(low.AsSpan(28, 4)));
+            Assert.Equal((ushort)1, BinaryPrimitives.ReadUInt16LittleEndian(low.AsSpan(32, 2)));
+            Assert.Equal((ushort)8, BinaryPrimitives.ReadUInt16LittleEndian(low.AsSpan(34, 2)));
+            double normalSeconds = BinaryPrimitives.ReadUInt32LittleEndian(normal.AsSpan(40, 4)) / 44100.0;
+            double lowSeconds = BinaryPrimitives.ReadUInt32LittleEndian(low.AsSpan(40, 4)) / 22050.0;
+            Assert.InRange(Math.Abs(normalSeconds - lowSeconds), 0, 1.0 / 22050);
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => SharpTapeExporter.Export(
+                invalidPath,
+                [record],
+                SharpTapeOutputFormat.Wav,
+                SharpTapeMachine.Mz800,
+                48000));
+            Assert.False(File.Exists(invalidPath));
+
+            WavHeuristicAnalysisResult decoded = WavHeuristicAnalyzer.AnalyzeFile(lowPath);
+            Assert.Equal(record.Body.MzfBody, Assert.Single(decoded.Records).Body.MzfBody);
+        }
+        finally
+        {
+            File.Delete(defaultPath);
+            File.Delete(lowPath);
+            File.Delete(invalidPath);
+        }
+    }
+
+    [Fact]
+    public void WavAnalyzer_DecodesEquivalent44100And48000Recordings()
+    {
+        string sourcePath = Path.Combine(Path.GetTempPath(), $"mztools-{Guid.NewGuid():N}-44100.wav");
+        string convertedPath = Path.Combine(Path.GetTempPath(), $"mztools-{Guid.NewGuid():N}-48000.wav");
+        TapeRecord expected = CreateRecord([9, 8, 7, 6], 0x2000, 0x2010);
+        try
+        {
+            SharpTapeExporter.Export(sourcePath, [expected], SharpTapeOutputFormat.Wav);
+            File.WriteAllBytes(convertedPath, Resample8BitMonoWav(File.ReadAllBytes(sourcePath), 48000));
+
+            WavHeuristicAnalysisResult source = WavHeuristicAnalyzer.AnalyzeFile(sourcePath);
+            WavHeuristicAnalysisResult converted = WavHeuristicAnalyzer.AnalyzeFile(convertedPath);
+
+            Assert.Equal((uint)44100, source.Statistics.Format.SampleRate);
+            Assert.Equal((uint)48000, converted.Statistics.Format.SampleRate);
+            Assert.Equal(expected.Body.MzfBody, Assert.Single(source.Records).Body.MzfBody);
+            Assert.Equal(expected.Body.MzfBody, Assert.Single(converted.Records).Body.MzfBody);
+        }
+        finally
+        {
+            File.Delete(sourcePath);
+            File.Delete(convertedPath);
+        }
     }
 
     [Theory]
@@ -595,6 +867,47 @@ public class DskFileSystemTests
 
     private static string FixturePath(string name) =>
         Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "DSK", name));
+
+    private static byte[] CreatePcmWav(ushort channels, ushort bits, uint sampleRate, int frames)
+    {
+        int bytesPerSample = bits / 8;
+        ushort blockAlign = checked((ushort)(channels * bytesPerSample));
+        byte[] result = new byte[44 + (frames * blockAlign)];
+        "RIFF"u8.CopyTo(result);
+        BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(4, 4), (uint)(result.Length - 8));
+        "WAVEfmt "u8.CopyTo(result.AsSpan(8));
+        BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(16, 4), 16);
+        BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(20, 2), 1);
+        BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(22, 2), channels);
+        BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(24, 4), sampleRate);
+        BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(28, 4), checked(sampleRate * blockAlign));
+        BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(32, 2), blockAlign);
+        BinaryPrimitives.WriteUInt16LittleEndian(result.AsSpan(34, 2), bits);
+        "data"u8.CopyTo(result.AsSpan(36));
+        BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(40, 4), (uint)(frames * blockAlign));
+        if (bits == 8) result.AsSpan(44).Fill(128);
+        return result;
+    }
+
+    private static byte[] Resample8BitMonoWav(byte[] source, uint targetSampleRate)
+    {
+        uint sourceSampleRate = BinaryPrimitives.ReadUInt32LittleEndian(source.AsSpan(24, 4));
+        int sourceLength = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(source.AsSpan(40, 4)));
+        int targetLength = checked((int)Math.Round(sourceLength * targetSampleRate / (double)sourceSampleRate));
+        byte[] result = new byte[44 + targetLength];
+        source.AsSpan(0, 44).CopyTo(result);
+        for (int index = 0; index < targetLength; index++)
+        {
+            int sourceIndex = Math.Min(sourceLength - 1,
+                (int)Math.Round(index * sourceSampleRate / (double)targetSampleRate));
+            result[44 + index] = source[44 + sourceIndex];
+        }
+        BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(4, 4), (uint)(result.Length - 8));
+        BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(24, 4), targetSampleRate);
+        BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(28, 4), targetSampleRate);
+        BinaryPrimitives.WriteUInt32LittleEndian(result.AsSpan(40, 4), (uint)targetLength);
+        return result;
+    }
 
     private static TapeRecord CreateRecord(byte[] data, ushort load, ushort execute)
     {

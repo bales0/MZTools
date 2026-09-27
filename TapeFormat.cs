@@ -486,6 +486,7 @@ namespace MZTools
         // Required output rate. Fractional edge durations are preserved over
         // time by the WavSink quantization-error accumulator.
         internal const int WavSampleRate = 44100;
+        internal const int WavLowSampleRate = 22050;
 
         private enum PulseRegion
         {
@@ -498,7 +499,8 @@ namespace MZTools
             string filePath,
             IReadOnlyList<(MZQFileHeader Header, MZQFileBody Body)> blocks,
             SharpTapeOutputFormat format,
-            SharpTapeMachine machine = SharpTapeMachine.Mz800)
+            SharpTapeMachine machine = SharpTapeMachine.Mz800,
+            int wavSampleRate = WavSampleRate)
         {
             ArgumentNullException.ThrowIfNull(blocks);
             List<TapeRecord> records = blocks.Select(block =>
@@ -510,7 +512,7 @@ namespace MZTools
                 record.MetadataOrigin = MetadataOrigin.CreatedOrModifiedInAdvanced;
                 return record;
             }).ToList();
-            Export(filePath, records, format, machine);
+            Export(filePath, records, format, machine, wavSampleRate);
         }
 
         public static IReadOnlyList<string> GetSeparateOutputPaths(
@@ -546,8 +548,10 @@ namespace MZTools
             IReadOnlyList<TapeRecord> records,
             SharpTapeOutputFormat format,
             SharpTapeMachine machine,
-            bool overwrite)
+            bool overwrite,
+            int wavSampleRate = WavSampleRate)
         {
+            ValidateWavSampleRate(format, wavSampleRate);
             IReadOnlyList<string> paths = GetSeparateOutputPaths(selectedPath, records);
             if (!overwrite)
             {
@@ -564,7 +568,7 @@ namespace MZTools
                 {
                     File.Delete(paths[index]);
                 }
-                Export(paths[index], new[] { records[index] }, format, machine);
+                Export(paths[index], new[] { records[index] }, format, machine, wavSampleRate);
             }
             return paths;
         }
@@ -573,7 +577,8 @@ namespace MZTools
             string filePath,
             IReadOnlyList<TapeRecord> records,
             SharpTapeOutputFormat format,
-            SharpTapeMachine machine = SharpTapeMachine.Mz800)
+            SharpTapeMachine machine = SharpTapeMachine.Mz800,
+            int wavSampleRate = WavSampleRate)
         {
             ArgumentNullException.ThrowIfNull(records);
             ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
@@ -582,6 +587,7 @@ namespace MZTools
             {
                 throw new InvalidOperationException("There are no MZF files to export.");
             }
+            ValidateWavSampleRate(format, wavSampleRate);
 
             // Build every plan before creating the destination so an invalid
             // loader cannot leave a truncated output file behind.
@@ -594,7 +600,7 @@ namespace MZTools
             {
                 SharpTapeOutputFormat.Lep => new EdgeDurationSink(fileStream, 50),
                 SharpTapeOutputFormat.L16 => new EdgeDurationSink(fileStream, 16),
-                SharpTapeOutputFormat.Wav => new WavSink(fileStream, WavSampleRate),
+                SharpTapeOutputFormat.Wav => new WavSink(fileStream, wavSampleRate),
                 _ => throw new ArgumentOutOfRangeException(nameof(format))
             };
 
@@ -607,6 +613,17 @@ namespace MZTools
             }
 
             sink.Complete();
+        }
+
+        private static void ValidateWavSampleRate(SharpTapeOutputFormat format, int wavSampleRate)
+        {
+            if (format == SharpTapeOutputFormat.Wav && wavSampleRate is not WavLowSampleRate and not WavSampleRate)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(wavSampleRate),
+                    wavSampleRate,
+                    $"WAV sample rate must be {WavLowSampleRate} or {WavSampleRate} Hz.");
+            }
         }
 
         public static SharpTapeOutputFormat GetFormat(string extension)

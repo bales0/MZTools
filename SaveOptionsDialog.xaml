@@ -40,6 +40,24 @@
                        Margin="0,7,0,0"
                        Text="Loader and speed are taken from each table row. This machine is used only for records without an explicit profile."/>
 
+            <StackPanel x:Name="sampleRateOptionsPanel" Margin="0,14,0,0" Visibility="Collapsed">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Sample rate:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <ComboBox x:Name="sampleRateComboBox" Grid.Column="1" SelectedIndex="0" MinWidth="130">
+                        <ComboBoxItem Content="44 100 Hz"/>
+                        <ComboBoxItem Content="22 050 Hz"/>
+                    </ComboBox>
+                </Grid>
+                <TextBlock Foreground="DarkGoldenrod"
+                           TextWrapping="Wrap"
+                           Margin="0,7,0,0"
+                           Text="22 050 Hz has lower timing resolution and may not play reliably with very fast loader profiles."/>
+            </StackPanel>
+
             <StackPanel x:Name="layoutOptionsPanel" Margin="0,14,0,0">
                 <TextBlock Text="Output layout:" Margin="0,0,0,4"/>
                 <RadioButton x:Name="unionRadioButton"

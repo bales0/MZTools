@@ -144,7 +144,7 @@ namespace MZTools
                 "|LEP pulse file (*.lep)|*.lep|L16 pulse file (*.l16)|*.l16|Wave audio (*.wav)|*.wav";
 
         public static string GetIplExportFilter() =>
-            "Raw program (*.bin)|*.bin|Single tape file (*.mzf)|*.mzf|" +
+            "Raw prepared program (*.bin)|*.bin|Reconstructed MZF from prepared IPL record (*.mzf)|*.mzf|" +
             "LEP pulse file (*.lep)|*.lep|L16 pulse file (*.l16)|*.l16|Wave audio (*.wav)|*.wav";
     }
 
@@ -674,10 +674,12 @@ namespace MZTools
             string extension,
             int recordCount,
             out SharpTapeMachine machine,
-            out bool separateFiles)
+            out bool separateFiles,
+            out int wavSampleRate)
         {
             machine = SharpTapeMachine.Mz800;
             separateFiles = false;
+            wavSampleRate = SharpTapeExporter.WavSampleRate;
             var dialog = new SaveOptionsDialog(extension, recordCount)
             {
                 Owner = this
@@ -689,6 +691,7 @@ namespace MZTools
 
             machine = dialog.SelectedMachine;
             separateFiles = dialog.SeparateFiles;
+            wavSampleRate = dialog.WavSampleRate;
             return true;
         }
 
@@ -697,13 +700,14 @@ namespace MZTools
             IReadOnlyList<TapeRecord> records,
             SharpTapeOutputFormat format,
             SharpTapeMachine machine,
-            bool separateFiles)
+            bool separateFiles,
+            int wavSampleRate)
         {
             try
             {
                 if (!separateFiles || records.Count == 1)
                 {
-                    SharpTapeExporter.Export(selectedPath, records, format, machine);
+                    SharpTapeExporter.Export(selectedPath, records, format, machine, wavSampleRate);
                     return true;
                 }
 
@@ -731,7 +735,8 @@ namespace MZTools
                     records,
                     format,
                     machine,
-                    overwrite);
+                    overwrite,
+                    wavSampleRate);
                 MessageBox.Show(
                     this,
                     $"Created {outputPaths.Count} separate files in:\n{System.IO.Path.GetDirectoryName(outputPaths[0])}",
@@ -1018,7 +1023,8 @@ namespace MZTools
                         fileExtension,
                         records.Count,
                         out SharpTapeMachine machine,
-                        out bool separateFiles))
+                        out bool separateFiles,
+                        out int wavSampleRate))
                     {
                         return;
                     }
@@ -1028,7 +1034,8 @@ namespace MZTools
                         records,
                         SharpTapeExporter.GetFormat(fileExtension),
                         machine,
-                        separateFiles);
+                        separateFiles,
+                        wavSampleRate);
                     return;
                 }
 
@@ -1348,7 +1355,8 @@ namespace MZTools
                             fileExtension,
                             mzfBlocks.Count,
                             out SharpTapeMachine machine,
-                            out bool separateFiles))
+                            out bool separateFiles,
+                            out int wavSampleRate))
                         {
                             return;
                         }
@@ -1357,7 +1365,8 @@ namespace MZTools
                             mzfBlocks,
                             SharpTapeExporter.GetFormat(fileExtension),
                             machine,
-                            separateFiles);
+                            separateFiles,
+                            wavSampleRate);
                     }
                     else
                     {

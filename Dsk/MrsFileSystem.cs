@@ -101,7 +101,12 @@ namespace MZTools
         public void Insert(string name, byte[] data, byte fileType = 1, ushort loadAddress = 0, ushort executeAddress = 0, int user = 0)
         {
             SplitName(name, out string baseName, out string extension);
-            if (ReadDirectory().Any(entry => entry.Name.Equals(baseName, StringComparison.OrdinalIgnoreCase))) throw new IOException($"MRS file '{baseName}' already exists.");
+            if (ReadDirectory().Any(entry =>
+                    entry.Name.Equals(baseName, StringComparison.OrdinalIgnoreCase) &&
+                    entry.Extension.Equals(extension, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new IOException($"MRS file '{baseName}.{extension}' already exists.");
+            }
             int slot = Enumerable.Range(0, directory.Length / 32).FirstOrDefault(index => directory[index * 32] == 0x20);
             if (directory[slot * 32] != 0x20) throw new IOException("The MRS directory is full.");
             byte fileId = directory[slot * 32 + 11];
@@ -136,6 +141,18 @@ namespace MZTools
         public void Rename(DskFileEntry entry, string newName)
         {
             SplitName(newName, out string baseName, out string extension);
+            if (entry.Name.Equals(baseName, StringComparison.OrdinalIgnoreCase) &&
+                entry.Extension.Equals(extension, StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+            if (ReadDirectory().Any(candidate =>
+                    candidate.Key != entry.Key &&
+                    candidate.Name.Equals(baseName, StringComparison.OrdinalIgnoreCase) &&
+                    candidate.Extension.Equals(extension, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new IOException($"MRS file '{baseName}.{extension}' already exists.");
+            }
             Span<byte> raw = directory.AsSpan(int.Parse(entry.Key) * 32, 32);
             WriteName(raw[..8], baseName); WriteName(raw.Slice(8, 3), extension);
             FlushDirectory();

@@ -9,7 +9,7 @@ namespace MZTools
     internal sealed class FlacPcmStreamReader : IPcmAudioStreamReader
     {
         private static readonly HashSet<uint> SupportedSampleRates =
-            [22050, 44100, 88200, 96000];
+            [22050, 44100, 48000, 88200, 96000];
 
         private readonly SoundFileReader reader;
         public PcmAudioFormat Format { get; }
@@ -164,7 +164,7 @@ namespace MZTools
             if (!SupportedSampleRates.Contains(sampleRate))
             {
                 throw new InvalidDataException(
-                    $"Unsupported FLAC sample rate: {sampleRate} Hz; expected 22050, 44100, 88200, or 96000 Hz.");
+                    $"Unsupported FLAC sample rate: {sampleRate} Hz; expected 22050, 44100, 48000, 88200, or 96000 Hz.");
             }
             if (frames <= 0)
             {

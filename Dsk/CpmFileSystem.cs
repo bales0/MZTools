@@ -255,9 +255,33 @@ namespace MZTools
         public void Rename(DskFileEntry entry, string newName)
         {
             SplitName(newName, out string baseName, out string extension);
-            foreach ((byte[] raw, int index) in ReadRawDirectory().Select((raw, index) => (raw, index)))
+            if (entry.Name.Equals(baseName, StringComparison.OrdinalIgnoreCase) &&
+                entry.Extension.Equals(extension, StringComparison.OrdinalIgnoreCase))
             {
-                if (!Matches(raw, entry)) continue;
+                return;
+            }
+
+            IReadOnlyList<DskFileEntry> currentEntries = ReadDirectory();
+            if (currentEntries.Any(candidate =>
+                    candidate.Key != entry.Key &&
+                    candidate.User == entry.User &&
+                    candidate.Name.Equals(baseName, StringComparison.OrdinalIgnoreCase) &&
+                    candidate.Extension.Equals(extension, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new IOException($"CP/M file '{baseName}.{extension}' already exists in user area {entry.User}.");
+            }
+
+            (byte[] Raw, int Index)[] extents = ReadRawDirectory()
+                .Select((raw, index) => (Raw: raw, Index: index))
+                .Where(pair => Matches(pair.Raw, entry))
+                .ToArray();
+            if (extents.Length == 0)
+            {
+                throw new FileNotFoundException($"CP/M file '{entry.Name}.{entry.Extension}' was not found.");
+            }
+
+            foreach ((byte[] raw, int index) in extents)
+            {
                 bool ro = (raw[9] & 0x80) != 0, sys = (raw[10] & 0x80) != 0, arc = (raw[11] & 0x80) != 0;
                 WriteNamePart(raw, 1, 8, baseName);
                 WriteNamePart(raw, 9, 3, extension);

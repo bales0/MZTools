@@ -151,6 +151,7 @@ namespace MZTools
 
         public void Rename(DskFileEntry entry, string newName)
         {
+            if (entry.Name.Equals(newName, StringComparison.OrdinalIgnoreCase)) return;
             if (ReadDirectory().Any(candidate => candidate.Key != entry.Key && candidate.Name.Equals(newName, StringComparison.OrdinalIgnoreCase)))
                 throw new IOException($"FSMZ file '{newName}' already exists.");
             byte[] raw = ReadDirectorySlot(int.Parse(entry.Key));

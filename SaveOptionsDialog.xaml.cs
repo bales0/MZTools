@@ -73,6 +73,9 @@ namespace MZTools
             tapeOptionsPanel.Visibility = Visibility.Collapsed;
             Title = "Tape export options";
             headingTextBlock.Text = $"{extension.TrimStart('.').ToUpperInvariant()} save options";
+            sampleRateOptionsPanel.Visibility = extension.Equals(".wav", StringComparison.OrdinalIgnoreCase)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
 
             Visibility layoutVisibility = recordCount > 1
                 ? Visibility.Visible
@@ -104,6 +107,10 @@ namespace MZTools
             : SharpTapeMachine.Mz800;
 
         internal bool SeparateFiles => separateRadioButton.IsChecked == true;
+
+        internal int WavSampleRate => sampleRateComboBox.SelectedIndex == 1
+            ? SharpTapeExporter.WavLowSampleRate
+            : SharpTapeExporter.WavSampleRate;
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
