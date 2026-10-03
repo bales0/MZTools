@@ -160,11 +160,22 @@ namespace MZTools
 
         internal void SetAddresses(DskFileEntry entry, ushort load, ushort execute)
         {
+            if (IsReadOnly) throw new InvalidOperationException("Inconsistent MRS filesystem is read-only.");
+            if (!ReadDirectory().Any(e => e.Key == entry.Key && e.Name == entry.Name && e.Extension == entry.Extension && e.StartBlock == entry.StartBlock))
+                throw new FileNotFoundException("The selected MRS file no longer exists.");
             Span<byte> raw = directory.AsSpan(int.Parse(entry.Key) * 32, 32);
             BinaryPrimitives.WriteUInt16LittleEndian(raw.Slice(12, 2), load);
             BinaryPrimitives.WriteUInt16LittleEndian(raw.Slice(22, 2), execute);
             FlushDirectory();
         }
+
+        internal byte[] DirectoryMetadata(DskFileEntry entry) => directory.AsSpan(int.Parse(entry.Key) * 32, 32).ToArray();
+        internal byte[] AllocationSnapshot() => (byte[])fat.Clone();
+        internal byte[] DirectorySnapshot() => (byte[])directory.Clone();
+        internal int FatSectorCount => fatSectors;
+        internal int DirectoryBlock => directoryBlock;
+        internal int DirectorySectorCount => directorySectors;
+        internal int DataBlock => dataBlock;
 
         internal void Format()
         {

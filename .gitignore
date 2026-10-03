@@ -12,23 +12,7 @@
 .obj/
 .specification/
 MZTool.Tests/*
-!MZTool.Tests/MZTools.Tests.csproj
-!MZTool.Tests/DskImageTests.cs
-!MZTool.Tests/DskFileSystemTests.cs
-!MZTool.Tests/DskAnalyzerTests.cs
-!MZTool.Tests/QdmgCompatibilityTests.cs
-!MZTool.Tests/QuickDiskMapTests.cs
-!MZTool.Tests/DskIssueHelpTests.cs
-!MZTool.Tests/Mz800MultiGameIplDskWriterTests.cs
-/build/dsk-map-analyzer/
-/build/qdmg-compatible/
-/build/quickdisk-map/
-/build/quickdisk-map-contrast/
-/build/quickdisk-selection-fix/
-/build/unified-disk-map/
-/build/map-analysis/
-/build/analysis-details/
-/build/selection-buttons/
+/build/
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

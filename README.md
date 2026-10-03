@@ -190,8 +190,7 @@ collisions before writing. MRS stores only a block count, so its last exported
 block may contain padding.
 
 Current limitations: attaching a custom CP/M DPB to an unknown image,
-filesystem repair/defragmentation, bootstrap metadata editing, CP/M attribute
-editing, MRS address editing and a writable in-place hex editor are not yet
+filesystem repair/defragmentation, bootstrap metadata editing and a writable in-place hex editor are not yet
 exposed by the UI.
 The DSK code is a C# port/adaptation of
 [mzdisk](https://github.com/bales0/mzdisk); attribution is in
@@ -625,3 +624,65 @@ The extended functions in this fork were developed and verified using informatio
 - **NAudio.SoundFile / libsndfile** - FLAC decoding used by the Advanced audio import path  
   https://www.nuget.org/packages/NAudio.SoundFile/  
   https://libsndfile.github.io/
+
+## Format-aware Install Boot/System
+
+The DSK editor provides **Disk → Install Boot/System...** for consistent, recognized CP/M images with a supported Sharp boot track. Profiles are tied to the detected DPB and exact physical layout, including sector descriptor order, C/H/R/N, sector sizes, system tracks, allocation parameters and physical track/sector maps. P-CP/M80 original, SDS/400, LEC DD and LEC HD are distinct layouts, not interchangeable systems.
+
+Choose a trusted source DSK with the identical layout. No bundled CP/M version is assumed and no CP/M system bytes are generated. An empty/fill-only boot track or identification-header-only source is rejected; matching layout does not certify the source OS version or its bootability. Until a compatible source is chosen, no system data is available for installation.
+
+Installation is confirmed with the physical system-track list and runs on a private buffer. Only sector payloads in that area are replaced; geometry, descriptors, DPB, filesystem and directory/data allocation are retained. Files are checked after reopening the candidate. Any failure leaves the original document unchanged. Successful installation marks it modified; saving remains a separate action. Analyzer report exports include installer availability.
+
+Single/Multi IPL never offer CP/M installation. FSMZ/IPLDISK, MRS, BootOnly and Raw have no compatible installer; their disabled menu item explains why. Installation is not a universal Make Bootable function and does not convert formats. No CLI, automatic repair or defrag is introduced.
+
+## Format conversion
+
+Open **Disk ▾ → Convert Format...**. The original document and its unsaved edits remain unchanged; output is saved as a separate DSK and cannot overwrite the source path.
+
+- **Related conversion:** MZ-BASIC/FSMZ 63 entries ↔ IPLDISK/extended FSMZ 127 entries, retaining physical geometry, volume, native file metadata and payloads. Directory and allocation are rebuilt transactionally in the new image; data beginning at block 24 is relocated if expansion needs block 32. The source's declared block limit is respected. Shrinking more than 63 occupied entries is refused, not truncated. Boot bytes are retained, but a pre-existing loader's support for the new directory variant is not certified.
+- **File copy to a new medium:** FSMZ ↔ CP/M, FSMZ ↔ MRS, MRS ↔ CP/M and different supported CP/M layouts. Targets are FSMZ 63/127 (320 KiB), P-CP/M80 original, SDS/400, LEC DD/HD and MRS (720 KiB). This is explicitly a file transfer, not an in-place filesystem conversion. Single/Multi IPL, Raw, BootOnly and inconsistent images do not offer conversion.
+
+Preflight builds and reopens a private target, checks directory entries/extents, filename encoding and length, duplicate names (including CP/M users collapsing into a filesystem without users), actual allocation and capacity, and payload preservation. Strict mode refuses the entire conversion if any file fails. No automatic renaming or partial-copy policy is enabled. The scrollable report explains source warnings, failures and metadata changes before **Convert and Save As...** becomes available. Saving writes a private temporary file first and commits the complete output within the destination directory; failed writes do not produce a partially replaced target.
+
+CP/M-to-CP/M copies retain user, RO/SYS/ARC and bytes; extents/block allocation are rebuilt. CP/M-to-FSMZ/MRS loses user and flags. FSMZ-to-CP/M loses type, lock and LOAD/EXEC; MRS-to-CP/M loses LOAD/EXEC and FAT/file-ID metadata. FSMZ-to-MRS preserves LOAD/EXEC but loses type/lock. MRS-to-FSMZ preserves LOAD/EXEC but loses FAT/file ID. Where no source file type exists, FSMZ explicitly uses generic binary type 1; absent LOAD/EXEC are stored as unset (0), not inferred. These policies appear in preflight. Record/block-based targets can append padding, which is also reported; source payload bytes are never truncated.
+
+File-copy conversion never transfers boot/system code. New targets are data-only; a P-CP/M identification header is not an installed OS. Empty native FSMZ directories do not distinguish 63 from 127 entries: MZTools-produced containers retain the explicit choice in their creator field (`MZTools F63` / `MZTools F127`), not an invented native filesystem field. Other images are detected from their existing layout and occupied extended slots where these do not overlap data.
+
+## Boot and system information
+
+The DSK information panel and exported analysis report show **Bootable** and **System**. Recognized single/multi IPL loaders are distinguished from an operating system. Empty boot/system areas and identification-header-only CP/M images are reported as data-only, even when files exist. Other non-fill boot/system bytes are reported as **Unverified**, with the detected CP/M layout or IPL label where available. Layout recognition alone does not prove bootability or a specific OS version; MZTools does not invent either.
+
+## File properties
+
+Select exactly one file and use **Properties...** in the main editor toolbar. File properties are not duplicated in the Disk menu. The command is disabled without a single selection or for unsupported/read-only filesystems. Changes are entered in a dialog, not written through DataGrid binding; Cancel leaves the document untouched.
+
+- **CP/M:** User area (decimal 0–15) and RO/SYS/ARC. Every extent of the logical file is updated consistently. Filename, extension, RC, extent numbering, allocation pointers and payload bytes are unchanged. Moving to a user area that already contains the same name/extension is refused before any write. CP/M does not expose LOAD/EXEC because those are not native directory fields.
+- **MRS:** LOAD and EXEC (hex 0000–FFFF, optional `0x` prefix). The existing native little-endian directory fields are at +0x0C and +0x16 respectively. Editing does not change file ID, block count, FAT ownership or payload. CP/M user/attribute fields are not offered for MRS.
+
+Apply works on a private document, reopens and validates the filesystem/DPB and all file payloads, then replaces the original document only on success. The file list and analyzer/map refresh and the edited file is reselected. A no-op does not mark a previously saved image modified. Saving remains a separate operation.
+
+Boot-install geometry errors report the target and source sector counts, sizes and physical IDs. Such differences still refuse installation: choose a system source for the same detected filesystem, DPB and physical layout. Installation is not a conversion operation.
+
+## Filesystem Structure Inspector
+
+Open **Structure Inspector...** from Disk Map or **Disk ▾ → Filesystem Structure Inspector...**. The read-only, resizable window uses a private snapshot including unsaved edits, with four tabs: Filesystem, Directory, Allocation and Raw structure. Selecting a block or directory slot highlights its physical sectors in the inspector and the editor's Disk Map. All sectors of a block are highlighted, not all blocks belonging to the same file. Details include native offsets and physical image offsets. **Hex view metadata...** shows decoded native metadata without enabling writes.
+
+- **FSMZ:** standard 63 / extended 127 directory, DINFO volume, file-area start, used/last block counters, raw DINFO and 2000-bit LSB-first bitmap, every directory slot (including header/unused), and bitmap state plus directory owners per 256-byte block.
+- **CP/M:** detected DPB (SPT/BSH/BLM/EXM/DSM/DRM/AL0/AL1/CKS/OFF), block size, directory blocks and physical maps; all raw directory entries, user/file grouping, extent number/group, RC, RO/SYS/ARC and 8-/16-bit allocation pointers. Free/used/reserved blocks follow that DPB and its physical mapping. DPB parameters are not presented as a fabricated on-disk record.
+- **MRS:** actual FAT/directory boundaries and data start, reserved blocks, raw FAT and directory area, file IDs, LOAD/EXEC, native padding and each FAT block's owner (including orphan IDs).
+
+Analyzer diagnostics are retained, including for recognized read-only filesystems. Unknown/Raw, BootOnly and dedicated IPL layouts do not offer filesystem decoding; no structures are guessed. Raw metadata buffers are filesystem-decoded (inversion removed where required), while the existing Disk Map sector hex view shows stored physical bytes. This is not a DPB editor, repair or defragmenter.
+
+## DSK Compare
+
+Use **Disk ▾ → Compare with...** and select a second DSK. Comparison is read-only and works on snapshots, including unsaved edits in the open document. Neither image is modified and no merge/apply-patch operation is provided.
+
+The resizable comparison window has three levels and two physical maps. Scrolling either map moves both maps to the same vertical/horizontal offset; a smaller map stops at its own boundary without pulling the larger map back:
+
+- **Container:** cylinder/side counts, creator, complete container header, physical track/block sizes, missing tracks, raw track headers/descriptors, track padding and trailing bytes.
+- **Physical sectors:** paired by physical track index and descriptor index. C/H/R/N, stored descriptor bytes, ST1/ST2, payload length and payload contents are compared at that position. Matching R alone never hides reordered descriptors.
+- **Filesystem:** available for the same safely recognized filesystem family without allocation errors. Files are matched by name/extension (and CP/M user). Content, metadata and allocation are reported separately. CP/M includes DPB/maps, raw extent fields, RC, attributes, slots and allocation pointers; FSMZ includes directory variant, DINFO/volume/bounds/bitmap, slots, native metadata and block ownership; MRS includes raw entries, LOAD/EXEC, file ID and FAT ownership. Unknown, inconsistent or ambiguous filesystems retain physical/container comparison with an explicit explanation instead of guessed logical matches.
+
+Rows show **same**, **changed**, **only in left**, **only in right** or **unavailable**. Unchanged rows are hidden initially and can be shown. Moving a CP/M file between users is shown as removal/addition in the two namespaces, not heuristically paired. Selecting a row highlights its sector or file blocks in both snapshot maps and the corresponding left-side region in the main Disk Map; right-only items highlight only the right snapshot. Clicking a map sector selects its physical comparison row.
+
+**Hex diff...** is enabled for selections containing bytes. It shows differing relative offsets and left/right values (`--` for an absent byte). For metadata-only changes it defaults to descriptor/raw directory bytes; payload and native structure views can be switched. The UI shows up to 10,000 differing offsets per view, explicitly reporting the complete difference count; all bytes are compared. There is no writable hex or patch application in this phase.

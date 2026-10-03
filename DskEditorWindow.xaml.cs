@@ -224,6 +224,16 @@ namespace MZTools
 
         private void RefreshView()
         {
+            compareDiskMenu.IsEnabled = document != null && (!IplEditorMode || multiIplLayoutValid);
+            structureInspectorMenu.IsEnabled = structureInspectorButton.IsEnabled = DskCapabilityService.CanInspectStructure(document) && !IplEditorMode;
+            structureInspectorMenu.ToolTip = structureInspectorButton.ToolTip = structureInspectorMenu.IsEnabled
+                ? "Read-only filesystem, directory, allocation and raw structures."
+                : "Structure decoding is available for recognized FSMZ, CP/M and MRS filesystems only.";
+            UpdateFilePropertyButtons();
+            convertFormatMenu.IsEnabled = document != null && DskCapabilityService.GetAvailableConversions(document).Count > 0;
+            convertFormatMenu.ToolTip = convertFormatMenu.IsEnabled ? "Create a separate image; inspect capacity and metadata changes before saving." : "No safe conversion is available for this detected filesystem/layout.";
+            installBootSystemMenu.IsEnabled = document != null && DskCapabilityService.GetAvailableBootSystems(document).Count > 0;
+            installBootSystemMenu.ToolTip = DskCapabilityService.BootSystemAvailabilityReason(document);
             if (IplEditorMode)
             {
                 RefreshMultiIplView();
@@ -244,6 +254,7 @@ namespace MZTools
                 $"Filesystem: {document.FileSystem.DisplayName} | Sector sizes: {sizes} B | Used: {document.FileSystem.UsedBytes:N0} B | Free: {document.FileSystem.FreeBytes:N0} B";
             if (document.FileSystem is MultiGameIplFileSystem mappedMulti)
                 infoText.Text += "\n" + mappedMulti.MetadataLocationDescription;
+            infoText.Text += "\n" + DskBootInfo.Inspect(document).Summary;
             warningText.Text = document.FileSystem.Warnings.Count == 0 ? string.Empty : string.Join("  ", document.FileSystem.Warnings);
             bool writable = !document.IsReadOnly;
             bool rawMode = document.FileSystem is RawDskFileSystem;
@@ -273,7 +284,8 @@ namespace MZTools
             {
                 string kind = singleIplEditorMode ? "single-program" : "multi-program";
                 infoText.Text = $"Container: Extended CPC DSK | New MZTools {kind} IPL | Capacity: {Mz800DskImage.LogicalSectorCount * Mz800DskImage.SectorSize:N0} B\n" +
-                    "Add MZF programs, edit their menu names and choose compression directly in this table.";
+                    "Add MZF programs, edit their menu names and choose compression directly in this table.\n" +
+                    "Bootable: Not yet — image has not been generated | System: None (IPL program loader will be generated)";
                 warningText.Text = multiIplRows.Count == 0
                     ? singleIplEditorMode ? "Add one program before saving the image." : "Add at least one program before saving the image."
                     : string.Empty;
@@ -285,6 +297,7 @@ namespace MZTools
                     $"Filesystem: {document.FileSystem.DisplayName} | Programs: {multiIplRows.Count} | Used: {document.FileSystem.UsedBytes:N0} B | Free: {document.FileSystem.FreeBytes:N0} B";
                 if (document.FileSystem is MultiGameIplFileSystem mappedMulti)
                     infoText.Text += "\n" + mappedMulti.MetadataLocationDescription;
+                infoText.Text += "\n" + DskBootInfo.Inspect(document).Summary;
             }
             DocumentStateChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -413,8 +426,37 @@ namespace MZTools
                 ? multiIplGrid.SelectedItems.OfType<MultiGameIplRow>().Select(row => multiIplRows.IndexOf(row).ToString())
                 : directoryGrid.SelectedItems.OfType<DskFileEntry>().Select(entry => entry.Key));
             UpdateMapSelectionButtons();
+            UpdateFilePropertyButtons();
         }
         private void MapOrder_Changed(object sender, SelectionChangedEventArgs e) => diskMap?.SetLogical(mapOrderBox.SelectedIndex == 1);
+
+        private void UpdateFilePropertyButtons()
+        {
+            if (dskPropertiesButton == null || directoryGrid == null) return;
+            bool available = DskCapabilityService.GetFilePropertyKind(document) != DskFilePropertyKind.None;
+            bool enabled = available && directoryGrid.SelectedItems.Count == 1;
+            dskPropertiesButton.IsEnabled = enabled;
+            string reason = available ? "Select exactly one file to edit its native properties." :
+                "Editable properties are available only for consistent CP/M (User/RO/SYS/ARC) and MRS (LOAD/EXEC) images.";
+            dskPropertiesButton.ToolTip = reason;
+        }
+
+        private void FileProperties_Click(object sender, RoutedEventArgs e)
+        {
+            if (document == null || SelectedEntries.Count != 1) return;
+            var kind = DskCapabilityService.GetFilePropertyKind(document);
+            if (kind == DskFilePropertyKind.None) return;
+            var entry = SelectedEntries[0];
+            var properties = DskFilePropertiesDialog.Show(OwnerWindow, kind, entry);
+            if (properties == null) return;
+            try
+            {
+                var edited = DskFilePropertyService.Apply(document, entry, properties);
+                RefreshView();
+                directoryGrid.SelectedItem = directoryGrid.Items.OfType<DskFileEntry>().FirstOrDefault(e => e.Key == edited.Key);
+            }
+            catch (Exception exception) { ShowError(exception.Message); }
+        }
         private void MapZoom_Changed(object sender, RoutedPropertyChangedEventArgs<double> e) => diskMap?.SetZoom(e.NewValue);
         private void SectorHex_Click(object sender, RoutedEventArgs e)
         {
@@ -486,14 +528,116 @@ namespace MZTools
         private void CopyAnalysis_Click(object sender, RoutedEventArgs e)
         {
             if (diskLayout == null) return;
-            try { Clipboard.SetText(diskLayout.Report()); } catch (Exception exception) { ShowError(exception.Message); }
+            try { Clipboard.SetText(AnalysisReportWithCapabilities()); } catch (Exception exception) { ShowError(exception.Message); }
+        }
+
+        private string AnalysisReportWithCapabilities() => (diskLayout?.Report() ?? string.Empty) +
+            (document == null ? string.Empty : "\n\n" + DskCapabilityService.Summary(document));
+
+        private void DiskMenu_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.ContextMenu != null)
+            {
+                button.ContextMenu.PlacementTarget = button;
+                button.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+                button.ContextMenu.IsOpen = true;
+            }
+        }
+
+        private void ConvertFormat_Click(object sender, RoutedEventArgs e)
+        {
+            if (document == null) return;
+            var result = DskConversionDialog.Show(OwnerWindow, document);
+            if (result?.CanConvert != true) return;
+            var save = new SaveFileDialog { Filter = "DSK image|*.dsk", FileName = "converted.dsk", Title = "Convert and Save As — original remains unchanged" };
+            if (save.ShowDialog(OwnerWindow) != true) return;
+            if (document.FilePath != null && Path.GetFullPath(save.FileName).Equals(Path.GetFullPath(document.FilePath), StringComparison.OrdinalIgnoreCase))
+            { ShowError("Conversion must be saved under a different path; the source image cannot be overwritten."); return; }
+            try
+            {
+                DskFileTransferService.SaveConvertedImage(result, save.FileName, document.FilePath);
+                MessageBox.Show(OwnerWindow, $"Converted image saved to:\n{save.FileName}\n\nThe original document remains open and unchanged.", "Convert Format", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception exception) { ShowError(exception.Message); }
+        }
+
+        private void StructureInspector_Click(object sender, RoutedEventArgs e)
+        {
+            if (document == null || !structureInspectorMenu.IsEnabled) return;
+            try { new DskStructureWindow(OwnerWindow, DskStructureService.Build(document), SelectStructureItem).ShowDialog(); }
+            catch (Exception exception) { ShowError(exception.Message); }
+        }
+
+        private void SelectStructureItem(DskStructureItem? item)
+        {
+            ClearMapSelection();
+            if (item == null || diskLayout == null) return;
+            dskViews.SelectedItem = mapTab;
+            SelectLayoutSector(diskLayout.Sectors.FirstOrDefault(s => item.Addresses.Contains(s.Address)));
+            diskMap.HighlightFiles(item.Addresses.Select(a => $"{a.Track}:{a.Sector}"));
+            sectorDetailText.Text = $"{item.Name}: {item.Value}\n{item.Detail}";
+        }
+
+        private void CompareDisk_Click(object sender, RoutedEventArgs e)
+        {
+            if (document == null || !compareDiskMenu.IsEnabled) return;
+            var picker = new OpenFileDialog { Filter = "DSK image|*.dsk", Title = "Compare current DSK snapshot with..." };
+            if (picker.ShowDialog(OwnerWindow) != true) return;
+            try
+            {
+                var comparison = DskCompareService.Compare(document, DskDocument.Open(picker.FileName));
+                new DskCompareWindow(OwnerWindow, comparison, SelectComparisonItem).ShowDialog();
+            }
+            catch (Exception exception) { ShowError(exception.Message); }
+        }
+
+        private void SelectComparisonItem(DskDiffItem? item)
+        {
+            ClearMapSelection();
+            if (item == null || diskLayout == null) return;
+            dskViews.SelectedItem = mapTab;
+            if (item.LeftFileKey != null)
+            {
+                if (IplEditorMode && int.TryParse(item.LeftFileKey, out int index) && index >= 0 && index < multiIplRows.Count)
+                    multiIplGrid.SelectedItem = multiIplRows[index];
+                else directoryGrid.SelectedItem = directoryGrid.Items.OfType<DskFileEntry>().FirstOrDefault(e => e.Key == item.LeftFileKey);
+                diskMap.HighlightFiles([item.LeftFileKey]);
+            }
+            else if (item.LeftAddress != null) SelectLayoutSector(diskLayout.Sectors.FirstOrDefault(s => s.Address == item.LeftAddress));
+            sectorDetailText.Text = item.Detail;
+        }
+
+        private void InstallBootSystem_Click(object sender, RoutedEventArgs e)
+        {
+            if (document == null) return;
+            var profiles = DskCapabilityService.GetAvailableBootSystems(document);
+            if (profiles.Count == 0) { ShowError(DskCapabilityService.BootSystemAvailabilityReason(document)); return; }
+            var picker = new OpenFileDialog { Filter = "DSK image|*.dsk", Title = profiles[0].DisplayName };
+            if (picker.ShowDialog(OwnerWindow) != true) return;
+            try
+            {
+                var source = DskDocument.Open(picker.FileName);
+                var check = DskCapabilityService.CanInstallBootSystem(document, source);
+                if (!check.IsCompatible) { ShowError(check.Reason); return; }
+                string tracks = string.Join(", ", profiles[0].RequiredSystemTracks);
+                if (MessageBox.Show(OwnerWindow,
+                    $"Target: {document.FileSystem.DisplayName}\nSource: {picker.FileName}\n\n" +
+                    $"Replace sector data in physical system tracks: {tracks}.\n" +
+                    "Filesystem, DPB, geometry, directory and file data will remain unchanged.\n\n" +
+                    "Compatibility is verified, but the source OS version and whether it actually boots are not certified. " +
+                    "Use a trusted system DSK. No system bytes are generated.\n\nInstall into the open document? Save is a separate operation.",
+                    "Install Boot/System", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+                DskBootSystemService.Install(document, source);
+                RefreshView();
+            }
+            catch (Exception exception) { ShowError(exception.Message); }
         }
         private void SaveAnalysis_Click(object sender, RoutedEventArgs e)
         {
             if (diskLayout == null) return;
             var dialog = new SaveFileDialog { Filter = "Text report|*.txt", FileName = "dsk-analysis.txt" };
             if (dialog.ShowDialog(OwnerWindow) != true) return;
-            try { File.WriteAllText(dialog.FileName, diskLayout.Report()); } catch (Exception exception) { ShowError(exception.Message); }
+            try { File.WriteAllText(dialog.FileName, AnalysisReportWithCapabilities()); } catch (Exception exception) { ShowError(exception.Message); }
         }
 
         private static bool IsRawSectorEntry(DskFileEntry entry)

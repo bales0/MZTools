@@ -34,7 +34,11 @@ namespace MZTools
             byte[] directoryHeader = ReadBlock(DirectoryStart);
             if (directoryHeader[0] != 0x80 || directoryHeader[1] != 0x01)
                 throw new InvalidDataException("FSMZ directory marker 80 01 is missing from block 16.");
-            directoryLimit = (extendedDirectory ?? DetectExtendedDirectory()) ? 127 : 63;
+            // Empty extended directories are indistinguishable natively. MZTools-produced
+            // containers retain an explicit creator hint; occupied extended slots still win.
+            directoryLimit = (extendedDirectory ?? (image.Creator == "MZTools F127" || DetectExtendedDirectory())) ? 127 : 63;
+            if (dinfo[1] < DirectoryStart + (directoryLimit + 1) / 8)
+                throw new InvalidDataException("FSMZ directory overlaps its declared file area.");
             ValidateAllocations(totalBlocks);
         }
 
@@ -47,6 +51,7 @@ namespace MZTools
         internal int DirectoryLimit => directoryLimit;
         internal byte VolumeNumber => dinfo[0];
         internal int FileAreaBlock => dinfo[1];
+        internal int LastBlock => BinaryPrimitives.ReadUInt16LittleEndian(dinfo.AsSpan(4, 2));
 
         internal static bool HasGeometry(DskImage image) =>
             image.Tracks.Count >= 2 && image.Tracks.Where(track => track != null).All(track =>
@@ -165,8 +170,41 @@ namespace MZTools
         internal byte[] ReadIplPro() => ReadBlock(0);
         internal void WriteIplPro(ReadOnlySpan<byte> data) => WriteBlock(0, data);
 
+        internal byte[] DirectoryMetadata(DskFileEntry entry) => ReadDirectorySlot(int.Parse(entry.Key));
+        internal byte[] DinfoSnapshot() => (byte[])dinfo.Clone();
+
+        internal void RestoreDirectoryMetadata(DskFileEntry target, byte[] original)
+        {
+            if (original.Length != 32) throw new ArgumentException("Expected a 32-byte FSMZ directory slot.");
+            var raw = (byte[])original.Clone();
+            BinaryPrimitives.WriteUInt16LittleEndian(raw.AsSpan(30, 2), checked((ushort)target.StartBlock));
+            WriteDirectorySlot(int.Parse(target.Key), raw);
+        }
+
+        internal void SetLocked(DskFileEntry entry, bool locked)
+        {
+            var raw = ReadDirectorySlot(int.Parse(entry.Key)); raw[18] = locked ? (byte)1 : (byte)0;
+            WriteDirectorySlot(int.Parse(entry.Key), raw);
+        }
+
+        internal void SetVolume(byte volume) { dinfo[0] = volume; WriteBlock(DinfoBlock, dinfo); }
+
+        internal void SetRebuiltBounds(int fileArea, int lastBlock)
+        {
+            int directoryEnd = DirectoryStart + (directoryLimit + 1) / 8;
+            if (fileArea < directoryEnd || fileArea > byte.MaxValue || lastBlock < fileArea || lastBlock - fileArea >= 2000)
+                throw new InvalidDataException("Target directory/data bounds are not representable without losing capacity or overlapping metadata.");
+            dinfo[1] = checked((byte)fileArea);
+            BinaryPrimitives.WriteUInt16LittleEndian(dinfo.AsSpan(2, 2), checked((ushort)fileArea));
+            BinaryPrimitives.WriteUInt16LittleEndian(dinfo.AsSpan(4, 2), checked((ushort)lastBlock));
+            WriteBlock(DinfoBlock, dinfo);
+        }
+
         private bool DetectExtendedDirectory()
         {
+            // Standard BASIC images may start file data at block 24, where the
+            // extended directory would reside. Those payload bytes are not entries.
+            if (dinfo[1] < 32) return false;
             for (int slot = 64; slot <= 127; slot++) if (ReadDirectorySlot(slot)[0] != 0) return true;
             return false;
         }
@@ -208,7 +246,7 @@ namespace MZTools
             WriteBlock(DinfoBlock, dinfo);
         }
 
-        private byte[] ReadDirectorySlot(int slot)
+        internal byte[] ReadDirectorySlot(int slot)
         {
             byte[] block = ReadBlock(DirectoryStart + slot / 8);
             return block.AsSpan((slot & 7) * 32, 32).ToArray();

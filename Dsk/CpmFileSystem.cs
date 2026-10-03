@@ -293,10 +293,22 @@ namespace MZTools
         }
 
         internal void SetAttributes(DskFileEntry entry, bool readOnly, bool system, bool archived)
+            => UpdateAttributes(entry, entry.User, readOnly, system, archived);
+
+        internal void UpdateAttributes(DskFileEntry entry, int user, bool readOnly, bool system, bool archived)
         {
-            foreach ((byte[] raw, int index) in ReadRawDirectory().Select((raw, index) => (raw, index)))
+            if (IsReadOnly) throw new InvalidOperationException("Inconsistent CP/M filesystem is read-only.");
+            if (user is < 0 or > 15) throw new ArgumentOutOfRangeException(nameof(user), "CP/M user area must be 0..15.");
+            var directory = ReadRawDirectory();
+            var extents = directory.Select((raw, index) => (raw, index)).Where(p => Matches(p.raw, entry)).ToArray();
+            if (extents.Length == 0) throw new FileNotFoundException("The selected CP/M file no longer exists.");
+            if (user != entry.User && directory.Any(raw => raw[0] == user &&
+                NamePart(raw, 1, 8).Equals(entry.Name, StringComparison.OrdinalIgnoreCase) &&
+                NamePart(raw, 9, 3).Equals(entry.Extension, StringComparison.OrdinalIgnoreCase)))
+                throw new IOException($"CP/M user area {user} already contains '{entry.Name}.{entry.Extension}'.");
+            foreach ((byte[] raw, int index) in extents)
             {
-                if (!Matches(raw, entry)) continue;
+                raw[0] = checked((byte)user);
                 raw[9] = (byte)((raw[9] & 0x7F) | (readOnly ? 0x80 : 0));
                 raw[10] = (byte)((raw[10] & 0x7F) | (system ? 0x80 : 0));
                 raw[11] = (byte)((raw[11] & 0x7F) | (archived ? 0x80 : 0));
@@ -311,6 +323,9 @@ namespace MZTools
                 if ((allocation & (1 << bit)) != 0) WriteBlock(15 - bit, Enumerable.Repeat((byte)0xE5, Dpb.BlockSize).ToArray());
         }
 
+        internal IReadOnlyList<(int Index, byte[] Raw)> DirectoryEntriesFor(DskFileEntry entry) =>
+            ReadRawDirectory().Select((raw, index) => (Index: index, Raw: raw)).Where(p => Matches(p.Raw, entry)).ToArray();
+
         private void ValidateDirectory(byte[][] directory)
         {
             foreach (byte[] entry in directory)
@@ -322,7 +337,7 @@ namespace MZTools
             }
         }
 
-        private byte[][] ReadRawDirectory()
+        internal byte[][] ReadRawDirectory()
         {
             var result = new List<byte[]>();
             int allocation = (Dpb.Al0 << 8) | Dpb.Al1;

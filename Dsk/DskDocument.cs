@@ -128,7 +128,7 @@ namespace MZTools
         internal static DskDocument CreateFsmz(bool ipldisk = true, int tracks = 40, int sides = 2)
         {
             if (checked(tracks * sides) < 4) throw new ArgumentOutOfRangeException(nameof(tracks), "FSMZ requires at least four absolute tracks.");
-            DskImage image = DskImage.CreateUniform(tracks, sides, 16, 256, 1, 0x2A, 0xFF, "MZTools");
+            DskImage image = DskImage.CreateUniform(tracks, sides, 16, 256, 1, 0x2A, 0xFF, ipldisk ? "MZTools F127" : "MZTools F63");
             FsmzFileSystem.Format(image, ipldisk);
             byte[] bytes = image.Serialize();
             return new DskDocument(image, bytes, null, new FsmzFileSystem(image, ipldisk));
@@ -179,6 +179,11 @@ namespace MZTools
 
         internal static void ImportBootSystemArea(DskDocument target, DskDocument source)
         {
+            DskBootSystemService.Install(target, source);
+        }
+
+        internal static void ValidateBootSystemSource(DskDocument target, DskDocument source)
+        {
             ValidateMatchingDataGeometry(target.Image, source.Image);
             RequireSharpBootTrack(target.Image, "target");
             RequireSharpBootTrack(source.Image, "source");
@@ -194,18 +199,13 @@ namespace MZTools
             {
                 throw new InvalidDataException("The source and target CP/M system areas use different physical track mappings.");
             }
-            for (int index = 0; index < sourceTracks.Length; index++)
-            {
-                CopyTrackData(source.Image, sourceTracks[index], target.Image, targetTracks[index]);
-            }
-            target.MarkModified();
         }
 
         private static void ValidateMatchingCpmLayout(CpmDpb target, CpmDpb source)
         {
             if (target.Spt != source.Spt || target.Bsh != source.Bsh || target.Blm != source.Blm ||
                 target.Exm != source.Exm || target.Dsm != source.Dsm || target.Drm != source.Drm ||
-                target.Al0 != source.Al0 || target.Al1 != source.Al1 || target.Off != source.Off ||
+                target.Al0 != source.Al0 || target.Al1 != source.Al1 || target.Cks != source.Cks || target.Off != source.Off ||
                 target.BlockSize != source.BlockSize || target.Inverted != source.Inverted)
             {
                 throw new InvalidDataException(
@@ -230,28 +230,6 @@ namespace MZTools
                 tracks.Add(physicalTrack);
             }
             return tracks;
-        }
-
-        private static void CopyTrackData(DskImage source, int sourceTrackIndex, DskImage target, int targetTrackIndex)
-        {
-            DskImage.DskTrack sourceTrack = source.Tracks[sourceTrackIndex] ??
-                throw new InvalidDataException($"The boot source is missing physical track {sourceTrackIndex}.");
-            DskImage.DskTrack targetTrack = target.Tracks[targetTrackIndex] ??
-                throw new InvalidDataException($"The new disk is missing physical track {targetTrackIndex}.");
-            if (sourceTrack.Sectors.Count != targetTrack.Sectors.Count)
-            {
-                throw new InvalidDataException($"The system track geometry differs at physical track {sourceTrackIndex}.");
-            }
-            foreach (DskImage.DskSector targetSector in targetTrack.Sectors)
-            {
-                DskImage.DskSector? sourceSector = sourceTrack.Sectors.FirstOrDefault(sector =>
-                    sector.SectorId == targetSector.SectorId && sector.Data.Length == targetSector.Data.Length);
-                if (sourceSector == null)
-                {
-                    throw new InvalidDataException($"The system track geometry differs at physical track {sourceTrackIndex}, sector {targetSector.SectorId}.");
-                }
-                sourceSector.Data.CopyTo(targetSector.Data, 0);
-            }
         }
 
         private static DskImage.DskTrack RequireSharpBootTrack(DskImage image, string role)
@@ -283,7 +261,7 @@ namespace MZTools
                 if (targetTrack == null || sourceTrack == null ||
                     targetTrack.Sectors.Count != sourceTrack.Sectors.Count)
                 {
-                    throw new InvalidDataException($"The boot source data geometry differs at physical track {index}.");
+                    throw new InvalidDataException($"The boot source data geometry differs at physical track {index}.\nTarget: {TrackGeometry(targetTrack)}\nSource: {TrackGeometry(sourceTrack)}\nChoose a source system DSK for the same filesystem, DPB and physical layout; installation does not convert disk geometry.");
                 }
 
                 var targetSectors = targetTrack.Sectors.OrderBy(sector => sector.SectorId).ToArray();
@@ -293,11 +271,14 @@ namespace MZTools
                     if (targetSectors[sectorIndex].SectorId != sourceSectors[sectorIndex].SectorId ||
                         targetSectors[sectorIndex].Data.Length != sourceSectors[sectorIndex].Data.Length)
                     {
-                        throw new InvalidDataException($"The boot source data geometry differs at physical track {index}.");
+                        throw new InvalidDataException($"The boot source data geometry differs at physical track {index}.\nTarget: {TrackGeometry(targetTrack)}\nSource: {TrackGeometry(sourceTrack)}\nChoose a source system DSK for the same filesystem, DPB and physical layout; installation does not convert disk geometry.");
                     }
                 }
             }
         }
+
+        internal static string TrackGeometry(DskImage.DskTrack? track) => track == null ? "missing track" :
+            $"C={track.Cylinder}, H={track.Side}; {track.Sectors.Count} sectors; sizes {string.Join(",", track.Sectors.Select(s => s.Data.Length).Distinct())} B; physical sector IDs [{string.Join(",", track.Sectors.Select(s => s.SectorId))}]";
 
         internal static DskDocument CreateMrs(int tracks = 80, int sides = 2)
         {
