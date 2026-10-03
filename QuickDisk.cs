@@ -619,6 +619,23 @@ namespace MZTools
                 return image;
             }
 
+            internal static byte[] BuildCompactImage(IReadOnlyList<TapeRecord> records)
+            {
+                if (!QuickDiskLimits.TryValidateForSave(records.Count, false, out string error))
+                    throw new InvalidDataException(error);
+                byte[] image = new byte[checked(LogicalHeaderSize + records.Sum(record => 84 + record.Body.DataSize))];
+                ExpectedStartSign.CopyTo(image, 0);
+                image[4] = checked((byte)(records.Count * 2));
+                ExpectedCrc.CopyTo(image, 5);
+                int position = LogicalHeaderSize;
+                foreach (TapeRecord record in records)
+                {
+                    WriteHeader(image, ref position, record.Header);
+                    WriteBody(image, ref position, record.Body);
+                }
+                return image;
+            }
+
             public static bool TryValidateCapacity(IReadOnlyList<TapeRecord> records, out string error)
             {
                 int required = LogicalHeaderSize + records.Sum(record => 84 + record.Body.DataSize) + MinimumFormattingTailSize;

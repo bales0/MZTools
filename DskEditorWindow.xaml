@@ -1,6 +1,7 @@
 <UserControl x:Class="MZTools.DskEditorControl"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:MZTools"
         AllowDrop="True" Drop="Control_Drop">
     <Grid Margin="10">
         <Grid.RowDefinitions>
@@ -36,11 +37,13 @@
                       VerticalAlignment="Center" Visibility="Collapsed" Checked="ShowSectors_Changed" Unchecked="ShowSectors_Changed"/>
         </WrapPanel>
         </Border>
-        <DataGrid x:Name="directoryGrid" Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="False"
+        <TabControl x:Name="dskViews" Grid.Row="1">
+        <TabItem x:Name="filesTab" Header="Files"><Grid>
+        <DataGrid x:Name="directoryGrid" AutoGenerateColumns="False" IsReadOnly="False"
                   SelectionMode="Extended" SelectionUnit="FullRow" CanUserAddRows="False"
                   BeginningEdit="DirectoryGrid_BeginningEdit" CellEditEnding="DirectoryGrid_CellEditEnding"
-                  PreviewKeyDown="DirectoryGrid_PreviewKeyDown"/>
-        <DataGrid x:Name="multiIplGrid" Grid.Row="1" AutoGenerateColumns="False" Visibility="Collapsed"
+                  PreviewKeyDown="DirectoryGrid_PreviewKeyDown" SelectionChanged="Files_SelectionChanged"/>
+        <DataGrid x:Name="multiIplGrid" AutoGenerateColumns="False" Visibility="Collapsed"
                   SelectionMode="Extended" SelectionUnit="FullRow" CanUserAddRows="False" CanUserDeleteRows="False"
                   SelectionChanged="MultiIplGrid_SelectionChanged" AllowDrop="True"
                   PreviewMouseLeftButtonDown="MultiIplGrid_PreviewMouseLeftButtonDown"
@@ -71,6 +74,81 @@
                 <DataGridTextColumn Header="Applied" Binding="{Binding AppliedCompression}" Width="*" IsReadOnly="True"/>
             </DataGrid.Columns>
         </DataGrid>
+        </Grid></TabItem>
+        <TabItem x:Name="mapTab" Header="Disk Map">
+            <Grid Margin="8" Background="Transparent" PreviewMouseLeftButtonDown="MapBackground_MouseDown">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="3*" MinWidth="200"/><ColumnDefinition Width="6"/><ColumnDefinition Width="2*" MinWidth="240"/></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="56"/><RowDefinition Height="Auto"/><RowDefinition Height="*" MinHeight="100"/></Grid.RowDefinitions>
+                <TextBlock x:Name="analysisSummaryText" Grid.ColumnSpan="3" TextWrapping="Wrap"
+                           ToolTip="Automatic read-only analysis. Schematic descriptor order, not flux/timing. Metadata: orange; data: green; selected: blue."/>
+                <WrapPanel Grid.Row="1" Grid.ColumnSpan="3" Margin="0,0,0,6">
+                        <TextBlock Text="Order:" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="mapOrderBox" SelectedIndex="0" SelectionChanged="MapOrder_Changed" Width="115" Margin="6,0,12,0">
+                            <ComboBoxItem Content="Physical"/><ComboBoxItem x:Name="logicalMapOption" Content="Logical"/>
+                        </ComboBox>
+                        <TextBlock Text="Zoom:" VerticalAlignment="Center"/>
+                        <Slider Minimum="0.6" Maximum="2" Value="1" Width="100" ValueChanged="MapZoom_Changed" Margin="6,0,12,0"/>
+                        <Button x:Name="dskMapHexButton" Content="Hex view block" Click="SectorHex_Click" IsEnabled="False" Margin="4,0"/>
+                        <Button x:Name="dskClearSelectionButton" Content="Clear selection" Click="ClearMapSelection_Click" IsEnabled="False"/>
+                        <Button Content="Copy report" Click="CopyAnalysis_Click" Margin="6,0"/>
+                        <Button Content="Save report..." Click="SaveAnalysis_Click"/>
+                </WrapPanel>
+                <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="Transparent">
+                    <local:DskDiskMapControl x:Name="diskMap" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                </ScrollViewer>
+                <GridSplitter Grid.Row="2" Grid.Column="1" Width="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="LightGray"/>
+                <Grid Grid.Row="2" Grid.Column="2" Margin="6,0,0,0">
+                    <Grid.RowDefinitions><RowDefinition Height="42"/><RowDefinition Height="*"/><RowDefinition Height="110"/></Grid.RowDefinitions>
+                    <UniformGrid Columns="5" Margin="0,0,0,4">
+                        <Button x:Name="analysisAllButton" Content="All" Tag="0" Click="AnalysisCount_Click" FontSize="11"/>
+                        <Button x:Name="analysisErrorsButton" Content="Errors" Tag="1" Click="AnalysisCount_Click" FontSize="11"/>
+                        <Button x:Name="analysisUnsafeButton" Content="Unsafe" Tag="4" Click="AnalysisCount_Click" FontSize="11"/>
+                        <Button x:Name="analysisWarningsButton" Content="Warn." Tag="2" Click="AnalysisCount_Click" FontSize="11"/>
+                        <Button x:Name="analysisInfoButton" Content="Info" Tag="3" Click="AnalysisCount_Click" FontSize="11"/>
+                    </UniformGrid>
+                    <TabControl x:Name="mapInspectorTabs" Grid.Row="1">
+                    <TabItem Header="Blocks">
+                    <DataGrid x:Name="mapBlocksGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column" SelectionMode="Single" SelectionChanged="MapBlocks_SelectionChanged">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Track" Binding="{Binding Track}" Width="55"/>
+                            <DataGridTextColumn Header="R" Binding="{Binding R}" Width="40"/>
+                            <DataGridTextColumn Header="Role" Binding="{Binding Role}" Width="100"/>
+                            <DataGridTextColumn Header="File / details" Binding="{Binding Files}" Width="*" MinWidth="150"/>
+                            <DataGridTextColumn Header="Bytes" Binding="{Binding DataLength}" Width="65"/>
+                            <DataGridTextColumn Header="Offset" Binding="{Binding FileOffset, StringFormat=0x{0:X}}" Width="90"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    </TabItem>
+                    <TabItem Header="Issues">
+                        <DockPanel>
+                            <WrapPanel DockPanel.Dock="Top" Margin="4">
+                                <TextBlock Text="Severity:" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <ComboBox x:Name="analysisFilterBox" Width="100" SelectedIndex="0" SelectionChanged="AnalysisFilter_Changed">
+                                    <ComboBoxItem Content="All"/><ComboBoxItem Content="Errors"/><ComboBoxItem Content="Warnings"/><ComboBoxItem Content="Info"/><ComboBoxItem Content="Unsafe"/>
+                                </ComboBox>
+                            </WrapPanel>
+                            <ScrollViewer DockPanel.Dock="Top" Height="64" VerticalScrollBarVisibility="Auto" Margin="4,0,4,4">
+                                <TextBlock x:Name="analysisSeverityText" TextWrapping="Wrap" FontSize="11"/>
+                            </ScrollViewer>
+                            <DataGrid x:Name="issuesGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+                                      HeadersVisibility="Column" SelectionMode="Single" SelectionChanged="Issue_SelectionChanged">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Severity" Binding="{Binding Severity}" Width="75"/>
+                                    <DataGridTextColumn Header="Code" Binding="{Binding Code}" Width="130"/>
+                                    <DataGridTextColumn Header="Location" Binding="{Binding Location}" Width="110"/>
+                                    <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*" MinWidth="180">
+                                        <DataGridTextColumn.CellStyle><Style TargetType="DataGridCell"><Setter Property="ToolTip" Value="{Binding Explanation}"/></Style></DataGridTextColumn.CellStyle>
+                                    </DataGridTextColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                    </TabItem>
+                    </TabControl>
+                    <TextBox x:Name="sectorDetailText" Grid.Row="2" Margin="0,6,0,0" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+                </Grid>
+            </Grid>
+        </TabItem>
+        </TabControl>
         <Border Grid.Row="2" BorderBrush="LightGray" BorderThickness="1" Padding="8" Margin="0,8,0,0">
             <StackPanel>
                 <TextBlock x:Name="infoText" TextWrapping="Wrap"/>

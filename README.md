@@ -197,6 +197,64 @@ The DSK code is a C# port/adaptation of
 [mzdisk](https://github.com/bales0/mzdisk); attribution is in
 `THIRD_PARTY_NOTICES.md`.
 
+### DSK Disk Map and Analyzer
+
+The integrated DSK editor provides only `Files` and `Disk Map` tabs. Analysis
+runs automatically when the image is opened or updated and is integrated into
+Disk Map, with an always-visible summary and `Blocks` / `Issues` inspector pages.
+Disk Map draws one row per physical track and one cell per sector in the
+DSK descriptor order, including interleave, unusual sector IDs, variable track
+sizes and explicit missing-track rows. It is a schematic container view, not a
+flux/MFM recording or a representation of magnetic timing. Zoom and scrolling
+support large images without creating a separate WPF control for each sector.
+
+Selecting a file highlights its sectors. Clicking a map cell shows C/H/R/N,
+physical indices, raw byte length, ST1/ST2, the actual sector-data offset in the
+current serialized DSK, filesystem roles, allocation blocks and file ownership.
+Use the block inspector or `Hex view block` for further inspection. The Hex
+buffer contains the raw on-disk bytes, including inversion where applicable.
+The optional Logical order sorts mapped sectors within each physical track;
+it is unavailable when no logical mapping is known.
+
+The shared, WPF-independent snapshot backend overlays FSMZ DINFO/directory and
+bitmap allocation, CP/M DPB and directory extents, MRS FAT file IDs, and known
+IPL boot/menu/program ranges. CP/M mappings reuse the filesystem reader's
+physical track/sector maps for LEC DD/HD, P-CP/M80 and SDS/400. Ownership records
+retain individual 128-byte logical ranges within physical 512-byte sectors.
+Unrecognized filesystems retain a physical map with unknown roles. Candidate
+CP/M layouts recovered from damaged directories are explicitly identified in
+the report; such identification is diagnostic evidence, not guaranteed recovery.
+
+The map's Issues inspector lists structured issues with stable codes, severity,
+location and detail, with All/Errors/Warnings/Info filters. Selecting an issue
+highlights its map sector and file where known and shows the issue and block
+details in the fixed-height inspector. Reports can be copied or saved as text
+directly from the map toolbar. There is no separate sector view, Analyze tab or
+external Analyze DSK command. Subsequent document edits refresh the snapshot for
+the open image. Analysis and map inspection never rewrite sectors or mark an image as
+modified; existing edit operations continue to work in Files.
+
+Clickable `All`, `Errors`, `Unsafe`, `Warnings` and `Info` counts open the Issues
+inspector with the corresponding filter. Errors includes Unsafe; the Unsafe
+count is a subset, not an additional count to add to Errors. Severity help
+explains structural/controller errors, edit-risk diagnostics, suspicious
+metadata and informational observations. Each finding has a location,
+code-specific explanation, possible impact, recommended checks and original
+evidence, available in the inspector, its tooltip and the exported text report.
+FDC findings also decode preserved ST1/ST2 flags: they are capture metadata,
+not a new hardware read test or a recalculated physical CRC. No automatic
+repair is performed.
+
+Checks include duplicate addresses, C/H and N/size mismatches, FDC status,
+container boundaries and trailing data, FSMZ bitmap/counter/range conflicts,
+CP/M cross-links, invalid extents/RC, directory overlaps and physical-map
+conflicts, and MRS orphan FAT IDs, block-count mismatches and reserved-area
+allocations. CP/M has no persistent free bitmap, so orphan allocations cannot
+be inferred from arbitrary nonzero payload bytes. Empty FSMZ variants have no
+unambiguous on-disk 63/127-entry discriminator; the existing reader's detection
+is used. Custom CP/M DPBs, repair/defrag and a writable hex editor remain
+unsupported. This feature adds no Make Bootable operation or automatic repair.
+
 ### Direct MZ-800 IPL floppy import/export
 
 `Open...` and `Add...` accept compatible single-program MZ-800 IPL
@@ -237,6 +295,21 @@ IPL output because the IPL loads only the program body, not the MZF header or an
 external prefix/suffix.
 
 ### Multi-game MZ-800 IPL floppy export
+
+MZTools reads QDMG metadata both from the menu-program footer and from the
+historical IPLPRO comment position (decoded logical block 0, offset `0x20`).
+Both are shown as `MZTools multi-game IPL`; the information panel reports the
+metadata position and menu entry-table offset. A present menu footer takes
+precedence. Signature, version, entry size/count, table bounds, menu dimensions,
+payload allocation, overlaps and LOAD/SIZE are validated for both variants.
+Unknown compression or flags remain readable/exportable but disable rebuild.
+
+Opening and inspecting either layout preserves the original image. Rebuilding,
+or saving the IPLPRO-metadata variant through the configurable multi-program
+editor, writes the current canonical menu-footer layout. Payload bytes,
+names, LOAD/EXEC and compression metadata are retained; new IPLPRO comment
+areas stay clear. This is read/import compatibility; new images always use
+the menu footer.
 
 `Save As...` offers
 `MZ-800 multi-game IPL floppy (*.dsk)` for the whole document. It opens a
@@ -345,6 +418,46 @@ The application also provides:
 - detection and preservation of imported images containing more than the standard 34 MZ-800 directory entries.
 
 Standard editing uses the normal SHARP MZ-800 limit of 34 directory entries. MZTools can identify and retain compatible imported images containing approximately 35-50 entries without silently discarding their existing contents.
+
+### QuickDisk Disk Map
+
+QuickDisk documents (`.qd`, `.qdf`, `.mzq`) have `Files` and `Disk Map` tabs.
+The map wraps the sequential stream over eight rows and distinguishes FNBLK,
+file headers, payloads, body framing/CRC, sync/gaps/unassigned data and space
+outside the physical data window. Gaps are not automatically free capacity.
+Select a region or a block in the list to see its file name, payload size,
+LOAD/EXEC and exact position; matching files/regions are highlighted. Zoom
+helps inspect smaller regions, which can also be selected in the block list.
+Every region has a dark outline. Selected regions/files use a blue fill
+with a contrasting black/white frame; body framing/CRC is pale yellow, so
+selection is distinct from the normal header, payload and framing colors.
+Clearing the file/block selection restores the original role colors. Clicking
+the selected region again or clicking outside the track clears its selection;
+changing images also discards all old highlights.
+
+DSK and QuickDisk maps share the same map-left, inspector-right layout,
+resizable divider, fixed-height scrolling details, blue selection and orange
+headers/system metadata. Detail changes do not resize the map. Both offer
+`Clear selection` and `Hex view block`; clicking blank space around the map
+also clears selection without interfering with toolbar controls or scrolling.
+QuickDisk hex view displays original/preview image bytes for logical formats,
+decoded MFM bytes for physical file blocks, and packed raw LSB-first bitcells
+for physical gaps/outside-window regions. The viewer identifies the position
+and encoding. DSK hex view shows raw bytes of the selected sector.
+
+HxC and FlashFloppy maps use actual track bitcell positions (LSB-first), the
+container's track offset and data-window boundaries. Frame positions start on
+the first data bitcell, not its preceding MFM clock cell. QDF and compact
+MZQ/Sharp logical QD maps show byte offsets in the image, not invented physical
+sector or track positions. QDF/physical frames use validated CRCs; compact
+formats contain literal CRC markers instead.
+
+Opening and inspecting a map never rebuilds the source: the original image
+is retained as a read-only snapshot. After edits or for a new document, the map
+shows an explicitly labeled **preview of the rebuilt image**, using the same
+format/profile as saving. Capacity/format errors clear the map and display an
+explanation, without changing the document. Saving refreshes the original-image
+snapshot and positions. Non-QuickDisk tape documents do not show the map tab.
 
 ## Supported file formats
 

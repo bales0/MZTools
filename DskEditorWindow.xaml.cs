@@ -19,6 +19,8 @@ namespace MZTools
     {
         private const string MultiIplRowDragDataFormat = "MZTools.MultiIplEditorRows";
         private DskDocument? document;
+        private DskLayoutModel? diskLayout;
+        private DskSectorLayout? selectedMapSector;
         private readonly ObservableCollection<MultiGameIplRow> multiIplRows = new();
         private CancellationTokenSource? multiIplCancellation;
         private bool multiIplEditorMode;
@@ -36,6 +38,7 @@ namespace MZTools
         {
             InitializeComponent();
             multiIplGrid.ItemsSource = multiIplRows;
+            diskMap.SectorSelected += SelectLayoutSector;
         }
 
         internal event EventHandler? DocumentStateChanged;
@@ -226,6 +229,7 @@ namespace MZTools
                 RefreshMultiIplView();
                 return;
             }
+            RefreshDiskLayout();
             if (document == null) return;
             IReadOnlyList<DskFileEntry> entries = document.FileSystem.ReadDirectory();
             bool bootOnly = document.FileSystem.Type == DskFileSystemType.BootOnly;
@@ -238,6 +242,8 @@ namespace MZTools
             string sizes = string.Join(", ", image.Tracks.Where(track => track != null).SelectMany(track => track!.Sectors).Select(sector => sector.Data.Length).Distinct().Order());
             infoText.Text = $"Container: Extended CPC DSK | Creator: {image.Creator} | Tracks: {image.TrackCount} | Sides: {image.SideCount} | Physical tracks: {image.Tracks.Count} | Image: {image.Serialize().Length:N0} B\n" +
                 $"Filesystem: {document.FileSystem.DisplayName} | Sector sizes: {sizes} B | Used: {document.FileSystem.UsedBytes:N0} B | Free: {document.FileSystem.FreeBytes:N0} B";
+            if (document.FileSystem is MultiGameIplFileSystem mappedMulti)
+                infoText.Text += "\n" + mappedMulti.MetadataLocationDescription;
             warningText.Text = document.FileSystem.Warnings.Count == 0 ? string.Empty : string.Join("  ", document.FileSystem.Warnings);
             bool writable = !document.IsReadOnly;
             bool rawMode = document.FileSystem is RawDskFileSystem;
@@ -254,6 +260,7 @@ namespace MZTools
 
         private void RefreshMultiIplView()
         {
+            RefreshDiskLayout();
             directoryGrid.Visibility = Visibility.Collapsed;
             multiIplGrid.Visibility = Visibility.Visible;
             dskShowSectorsCheckBox.Visibility = Visibility.Collapsed;
@@ -276,6 +283,8 @@ namespace MZTools
                 DskImage image = document.Image;
                 infoText.Text = $"Container: Extended CPC DSK | Creator: {image.Creator} | Tracks: {image.TrackCount} | Sides: {image.SideCount} | Image: {image.Serialize().Length:N0} B\n" +
                     $"Filesystem: {document.FileSystem.DisplayName} | Programs: {multiIplRows.Count} | Used: {document.FileSystem.UsedBytes:N0} B | Free: {document.FileSystem.FreeBytes:N0} B";
+                if (document.FileSystem is MultiGameIplFileSystem mappedMulti)
+                    infoText.Text += "\n" + mappedMulti.MetadataLocationDescription;
             }
             DocumentStateChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -309,6 +318,182 @@ namespace MZTools
         private void ShowSectors_Changed(object sender, RoutedEventArgs e)
         {
             if (document != null) RefreshView();
+        }
+
+        private void RefreshDiskLayout()
+        {
+            diskLayout = document == null ? null : DskAnalyzer.Analyze(document);
+            selectedMapSector = null;
+            diskMap.SetLayout(diskLayout);
+            mapBlocksGrid.ItemsSource = diskLayout?.Sectors.ToArray();
+            dskMapHexButton.IsEnabled = false;
+            analysisSummaryText.Text = diskLayout?.Summary ?? "Add programs to generate the IPL image before analysis.";
+            UpdateAnalysisCounts();
+            sectorDetailText.Text = string.Empty;
+            logicalMapOption.IsEnabled = diskLayout?.Sectors.Any(s => s.LogicalBlocks.Count != 0) == true;
+            if (!logicalMapOption.IsEnabled) mapOrderBox.SelectedIndex = 0;
+            UpdateAnalysisFilter();
+            HighlightSelectedFiles();
+        }
+
+        private bool synchronizingMapSelection;
+        private void SelectLayoutSector(DskSectorLayout? sector)
+        {
+            if (sector == null) { ClearMapSelection(); return; }
+            if (!synchronizingMapSelection)
+            {
+                synchronizingMapSelection = true;
+                try { issuesGrid.SelectedItem = null; }
+                finally { synchronizingMapSelection = false; }
+            }
+            selectedMapSector = sector;
+            sectorDetailText.Text = sector.Detail;
+            diskMap.SelectSector(sector);
+            if (!ReferenceEquals(mapBlocksGrid.SelectedItem, sector)) mapBlocksGrid.SelectedItem = sector;
+            UpdateMapSelectionButtons();
+        }
+
+        private void UpdateMapSelectionButtons()
+        {
+            if (dskClearSelectionButton == null || dskMapHexButton == null) return;
+            dskMapHexButton.IsEnabled = selectedMapSector != null;
+            dskClearSelectionButton.IsEnabled = diskLayout != null &&
+                (selectedMapSector != null || issuesGrid?.SelectedItem != null ||
+                 directoryGrid?.SelectedItems.Count > 0 || multiIplGrid?.SelectedItems.Count > 0);
+        }
+
+        private void ClearMapSelection(bool clearIssue = true)
+        {
+            if (synchronizingMapSelection) return;
+            synchronizingMapSelection = true;
+            try
+            {
+                selectedMapSector = null;
+                diskMap.SelectSector(null);
+                diskMap.HighlightFiles(Array.Empty<string>());
+                mapBlocksGrid.SelectedItem = null;
+                if (clearIssue) issuesGrid.SelectedItem = null;
+                directoryGrid.SelectedItems.Clear();
+                multiIplGrid.SelectedItems.Clear();
+                sectorDetailText.Text = string.Empty;
+                dskMapHexButton.IsEnabled = false;
+            }
+            finally { synchronizingMapSelection = false; UpdateMapSelectionButtons(); }
+        }
+        private void ClearMapSelection_Click(object sender, RoutedEventArgs e) => ClearMapSelection();
+        private void MapBackground_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (DiskMapVisuals.IsBlankClick(e.OriginalSource as DependencyObject)) ClearMapSelection();
+        }
+        private void MapBlocks_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (synchronizingMapSelection) return;
+            SelectLayoutSector(mapBlocksGrid.SelectedItem as DskSectorLayout);
+        }
+
+        private void Files_SelectionChanged(object sender, SelectionChangedEventArgs e) => HighlightSelectedFiles();
+        private void HighlightSelectedFiles()
+        {
+            if (diskMap == null || directoryGrid == null) return;
+            if (!synchronizingMapSelection)
+            {
+                synchronizingMapSelection = true;
+                try
+                {
+                    selectedMapSector = null;
+                    diskMap.SelectSector(null);
+                    mapBlocksGrid.SelectedItem = null;
+                    issuesGrid.SelectedItem = null;
+                    sectorDetailText.Text = string.Empty;
+                    dskMapHexButton.IsEnabled = false;
+                }
+                finally { synchronizingMapSelection = false; }
+            }
+            diskMap.HighlightFiles(IplEditorMode
+                ? multiIplGrid.SelectedItems.OfType<MultiGameIplRow>().Select(row => multiIplRows.IndexOf(row).ToString())
+                : directoryGrid.SelectedItems.OfType<DskFileEntry>().Select(entry => entry.Key));
+            UpdateMapSelectionButtons();
+        }
+        private void MapOrder_Changed(object sender, SelectionChangedEventArgs e) => diskMap?.SetLogical(mapOrderBox.SelectedIndex == 1);
+        private void MapZoom_Changed(object sender, RoutedPropertyChangedEventArgs<double> e) => diskMap?.SetZoom(e.NewValue);
+        private void SectorHex_Click(object sender, RoutedEventArgs e)
+        {
+            if (selectedMapSector == null) return;
+            var browser = new HexBrowser { Owner = OwnerWindow };
+            browser.ShowRawData($"Track {selectedMapSector.Track}, sector index {selectedMapSector.PhysicalIndex}, R={selectedMapSector.R} (raw on-disk bytes)", selectedMapSector.Data);
+            browser.Show();
+        }
+        private void AnalysisFilter_Changed(object sender, SelectionChangedEventArgs e) => UpdateAnalysisFilter();
+        private void UpdateAnalysisCounts()
+        {
+            analysisAllButton.Content = $"All\n{diskLayout?.Issues.Count ?? 0}";
+            analysisErrorsButton.Content = $"Errors\n{diskLayout?.Errors ?? 0}";
+            analysisUnsafeButton.Content = $"Unsafe\n{diskLayout?.Unsafe ?? 0}";
+            analysisWarningsButton.Content = $"Warn.\n{diskLayout?.Warnings ?? 0}";
+            analysisInfoButton.Content = $"Info\n{diskLayout?.Information ?? 0}";
+            analysisAllButton.ToolTip = DskIssueHelp.FilterMeaning(0);
+            analysisErrorsButton.ToolTip = DskIssueHelp.FilterMeaning(1);
+            analysisUnsafeButton.ToolTip = DskIssueHelp.FilterMeaning(4);
+            analysisWarningsButton.ToolTip = DskIssueHelp.FilterMeaning(2);
+            analysisInfoButton.ToolTip = DskIssueHelp.FilterMeaning(3);
+        }
+        private void AnalysisCount_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button button || !int.TryParse(button.Tag?.ToString(), out int filter)) return;
+            analysisFilterBox.SelectedIndex = filter;
+            mapInspectorTabs.SelectedIndex = 1;
+        }
+        private void UpdateAnalysisFilter()
+        {
+            if (issuesGrid == null || analysisFilterBox == null) return;
+            analysisSeverityText.Text = DskIssueHelp.FilterMeaning(analysisFilterBox.SelectedIndex);
+            issuesGrid.ItemsSource = diskLayout?.Issues.Where(i => analysisFilterBox.SelectedIndex switch {
+                1 => i.Severity is DskIssueSeverity.Error or DskIssueSeverity.Unsafe,
+                2 => i.Severity == DskIssueSeverity.Warning, 3 => i.Severity == DskIssueSeverity.Info,
+                4 => i.Severity == DskIssueSeverity.Unsafe, _ => true }).ToArray();
+        }
+        private void Issue_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (synchronizingMapSelection) return;
+            if (issuesGrid.SelectedItem is not DskAnalysisIssue issue) { ClearMapSelection(false); return; }
+            ClearMapSelection(false);
+            synchronizingMapSelection = true;
+            try
+            {
+                var sector = issue.Track is int track
+                    ? diskLayout?.Sectors.FirstOrDefault(s => s.Track == track && (issue.Sector == null || s.PhysicalIndex == issue.Sector))
+                    : issue.FileKey != null ? diskLayout?.Sectors.FirstOrDefault(s => s.Owners.Any(o => o.FileKey == issue.FileKey)) : null;
+                if (sector != null)
+                {
+                    SelectLayoutSector(sector);
+                    mapBlocksGrid.ScrollIntoView(sector);
+                }
+                if (issue.FileKey != null)
+                {
+                    if (IplEditorMode && int.TryParse(issue.FileKey, out int index) && index >= 0 && index < multiIplRows.Count)
+                        multiIplGrid.SelectedItem = multiIplRows[index];
+                    else
+                    {
+                        var file = directoryGrid.Items.OfType<DskFileEntry>().FirstOrDefault(f => f.Key == issue.FileKey);
+                        if (file != null) directoryGrid.SelectedItem = file;
+                    }
+                }
+                sectorDetailText.Text = issue.Explanation +
+                    (sector == null ? "" : $"\n\n{sector.Detail}");
+            }
+            finally { synchronizingMapSelection = false; UpdateMapSelectionButtons(); }
+        }
+        private void CopyAnalysis_Click(object sender, RoutedEventArgs e)
+        {
+            if (diskLayout == null) return;
+            try { Clipboard.SetText(diskLayout.Report()); } catch (Exception exception) { ShowError(exception.Message); }
+        }
+        private void SaveAnalysis_Click(object sender, RoutedEventArgs e)
+        {
+            if (diskLayout == null) return;
+            var dialog = new SaveFileDialog { Filter = "Text report|*.txt", FileName = "dsk-analysis.txt" };
+            if (dialog.ShowDialog(OwnerWindow) != true) return;
+            try { File.WriteAllText(dialog.FileName, diskLayout.Report()); } catch (Exception exception) { ShowError(exception.Message); }
         }
 
         private static bool IsRawSectorEntry(DskFileEntry entry)
@@ -689,6 +874,7 @@ namespace MZTools
         private void MultiIplGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (IplEditorMode) dskDeleteButton.IsEnabled = multiIplGrid.SelectedItems.Count > 0;
+            HighlightSelectedFiles();
         }
 
         private void MultiIplCompression_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -963,7 +1149,7 @@ namespace MZTools
             if (IplEditorMode && !multiIplLayoutValid) { ShowError("Wait for a valid IPL layout before saving."); return; }
             if (document == null) { ShowError("Add at least one program before saving the image."); return; }
             if (document.FilePath == null) { SaveAs_Click(sender, e); return; }
-            try { document.Save(); multiIplDraftModified = false; RefreshView(); } catch (Exception exception) { ShowError(exception.Message); }
+            try { CanonicalizeMultiIplForSave(); document.Save(); multiIplDraftModified = false; RefreshView(); } catch (Exception exception) { ShowError(exception.Message); }
         }
 
         private void SaveAs_Click(object sender, RoutedEventArgs e)
@@ -972,7 +1158,16 @@ namespace MZTools
             if (document == null) { ShowError("Add at least one program before saving the image."); return; }
             var dialog = new SaveFileDialog { Filter = "Extended CPC DSK|*.dsk", FileName = Path.GetFileName(document.FilePath) ?? "disk.dsk" };
             if (dialog.ShowDialog(OwnerWindow) != true) return;
-            try { document.Save(dialog.FileName); multiIplDraftModified = false; RefreshView(); } catch (Exception exception) { ShowError(exception.Message); }
+            try { CanonicalizeMultiIplForSave(); document.Save(dialog.FileName); multiIplDraftModified = false; RefreshView(); } catch (Exception exception) { ShowError(exception.Message); }
+        }
+
+        private void CanonicalizeMultiIplForSave()
+        {
+            if (document?.FileSystem is not MultiGameIplFileSystem multi ||
+                multi.Metadata.Layout != MultiGameMetadataLayout.IplProComment || !IplEditorMode) return;
+            byte[] canonical = Mz800MultiGameIplDskWriter.Build(multi.GetInputs()).Image;
+            document.ReplaceContents(canonical);
+            LoadDocument(document);
         }
 
         private void Close_Click(object sender, RoutedEventArgs e) => CloseRequested?.Invoke(this, EventArgs.Empty);

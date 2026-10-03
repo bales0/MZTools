@@ -6,11 +6,19 @@ using System.Linq;
 
 namespace MZTools
 {
+    internal enum MultiGameMetadataLayout { MenuFooter, IplProComment }
+
+    internal sealed record MultiGameMetadata(MultiGameMetadataLayout Layout, int Offset,
+        int Version, int EntrySize, int EntryCount, int TableOffset, int MenuSectorCount);
+
     // Native MZTools multi-game IPL format (QDMG). The container remains a
     // normal inverted MZ-800 IPL disk; this layer exposes its embedded menu.
     internal sealed class MultiGameIplFileSystem : IDskFileSystem
     {
         private const int EntrySize = Mz800MultiGameIplDskWriter.EntrySize;
+        // Verified against multi.dsk: historical metadata occupies exactly
+        // decoded IPLPRO bytes 0x20..0x2B. Never scan arbitrary comment text.
+        internal const int IplProMetadataOffset = 0x20;
         private readonly DskImage image;
         private readonly List<DskFileEntry> entries;
         private readonly List<MultiGameIplInput> inputs;
@@ -21,6 +29,8 @@ namespace MZTools
         {
             if (!FsmzFileSystem.HasGeometry(image))
                 throw new InvalidDataException("The image does not use MZ-800 IPL geometry.");
+            if (image.Tracks.Any(track => track == null || !track.Sectors.Select(sector => (int)sector.SectorId).Order().SequenceEqual(Enumerable.Range(1, 16))))
+                throw new InvalidDataException("The multi-game IPL sector map is missing or ambiguous.");
             this.image = image;
             byte[] ipl = ReadBlock(0);
             if (ipl[0] != 3 || !ipl.AsSpan(1, 6).SequenceEqual("IPLPRO"u8))
@@ -29,23 +39,13 @@ namespace MZTools
             int menuSize = BinaryPrimitives.ReadUInt16LittleEndian(ipl.AsSpan(0x14, 2));
             if (menuSize < Mz800MultiGameIplDskWriter.MultiGameFooterSize)
                 throw new InvalidDataException("The MZTools multi-game IPL menu is too short.");
+            if (BinaryPrimitives.ReadUInt16LittleEndian(ipl.AsSpan(0x1E, 2)) != 1 ||
+                BinaryPrimitives.ReadUInt16LittleEndian(ipl.AsSpan(0x16, 2)) + menuSize > 0x10000)
+                throw new InvalidDataException("The multi-game IPL menu load range or start block is invalid.");
 
             byte[] menu = ReadBytes(1, menuSize);
-            int metadataOffset = Mz800MultiGameIplDskWriter.FindMenuFooterOffset(menu);
-            if (metadataOffset < 0)
-                throw new InvalidDataException("The MZTools multi-game IPL signature is missing.");
-            if (menu[metadataOffset + 4] != Mz800MultiGameIplDskWriter.FormatVersion || menu[metadataOffset + 5] != EntrySize)
-                throw new InvalidDataException($"Unsupported MZTools multi-game IPL format version {menu[metadataOffset + 4]} or entry size {menu[metadataOffset + 5]}.");
-
-            int entryCount = BinaryPrimitives.ReadUInt16LittleEndian(menu.AsSpan(metadataOffset + 6, 2));
-            int tableOffset = BinaryPrimitives.ReadUInt16LittleEndian(menu.AsSpan(metadataOffset + 8, 2));
-            int menuSectors = BinaryPrimitives.ReadUInt16LittleEndian(menu.AsSpan(metadataOffset + 10, 2));
-            if (entryCount is < 1 or > Mz800MultiGameIplDskWriter.MaxEntries || menuSectors < 1 ||
-                menuSize is < 1 or > ushort.MaxValue || menuSectors != BlocksFor(menuSize))
-                throw new InvalidDataException("The MZTools multi-game IPL header contains invalid menu dimensions.");
-
-            if (tableOffset < 0 || tableOffset > metadataOffset - checked(entryCount * EntrySize))
-                throw new InvalidDataException("The MZTools multi-game entry table lies outside the menu program.");
+            Metadata = ReadMetadata(ipl, menu);
+            int entryCount = Metadata.EntryCount, tableOffset = Metadata.TableOffset, menuSectors = Metadata.MenuSectorCount;
 
             entries = new List<DskFileEntry>(entryCount);
             inputs = new List<MultiGameIplInput>(entryCount);
@@ -58,6 +58,8 @@ namespace MZTools
                 int blocks = BlocksFor(size);
                 if (size < 1 || startBlock < 1 + menuSectors || startBlock + blocks > Mz800DskImage.LogicalSectorCount)
                     throw new InvalidDataException($"Multi-game IPL entry {index + 1} references blocks outside the image.");
+                if (BinaryPrimitives.ReadUInt16LittleEndian(raw.Slice(20, 2)) + size > 0x10000)
+                    throw new InvalidDataException($"Multi-game IPL entry {index + 1} exceeds the 16-bit load area.");
                 for (int block = startBlock; block < startBlock + blocks; block++)
                     if (!occupied.Add(block)) throw new InvalidDataException($"Multi-game IPL entry {index + 1} overlaps another payload.");
 
@@ -84,7 +86,8 @@ namespace MZTools
                     2 => new MzfCompressionOptions(MzfCompressionAlgorithm.Zx7),
                     _ => new MzfCompressionOptions(MzfCompressionAlgorithm.None)
                 };
-                if (compression > 2) canConfigure = false;
+                if (compression > 2 || raw[24] != (compression == 0 ? 0 : 1) || size > Mz800IplDskWriter.MaxIplStagedSize)
+                    canConfigure = false;
                 inputs.Add(new MultiGameIplInput(
                     CreateRecord(entry, payload), entry.Name, compressionOptions, payload.Length));
             }
@@ -93,6 +96,10 @@ namespace MZTools
 
         public DskFileSystemType Type => DskFileSystemType.MultiIpl;
         public string DisplayName => "MZTools multi-game IPL";
+        internal MultiGameMetadata Metadata { get; }
+        internal string MetadataLocationDescription => Metadata.Layout == MultiGameMetadataLayout.MenuFooter
+            ? $"QDMG metadata: menu footer at byte offset 0x{Metadata.Offset:X}; logical block {1 + Metadata.Offset / 256}, offset 0x{Metadata.Offset % 256:X2}. Entry table: menu offset 0x{Metadata.TableOffset:X}."
+            : $"QDMG metadata: IPLPRO logical block 0, byte offset 0x{Metadata.Offset:X2}. Entry table: menu offset 0x{Metadata.TableOffset:X}.";
         public bool IsReadOnly => true;
         public long UsedBytes => usedBlocks * Mz800DskImage.SectorSize;
         public long FreeBytes => (Mz800DskImage.LogicalSectorCount - usedBlocks) * Mz800DskImage.SectorSize;
@@ -116,7 +123,7 @@ namespace MZTools
         internal IReadOnlyList<MultiGameIplInput> GetInputs()
         {
             if (!CanConfigure)
-                throw new NotSupportedException("This multi-program IPL image uses an unknown compression code and cannot be safely rebuilt.");
+                throw new NotSupportedException("This multi-program IPL image uses unsupported compression, flags or payload dimensions and cannot be safely rebuilt.");
             return inputs.Select(input => input with { Record = input.Record.DeepClone() }).ToList();
         }
 
@@ -153,6 +160,30 @@ namespace MZTools
         }
 
         private static int BlocksFor(int size) => checked((size + Mz800DskImage.SectorSize - 1) / Mz800DskImage.SectorSize);
+
+        private static MultiGameMetadata ReadMetadata(byte[] ipl, byte[] menu)
+        {
+            int footer = Mz800MultiGameIplDskWriter.FindMenuFooterOffset(menu);
+            // A present menu footer is authoritative. Invalid current metadata
+            // must not be masked by unrelated IPLPRO comment bytes.
+            var layout = footer >= 0 ? MultiGameMetadataLayout.MenuFooter : MultiGameMetadataLayout.IplProComment;
+            int offset = footer >= 0 ? footer : IplProMetadataOffset;
+            ReadOnlySpan<byte> raw = (footer >= 0 ? menu : ipl).AsSpan(offset, Mz800MultiGameIplDskWriter.MultiGameFooterSize);
+            if (!raw[..4].SequenceEqual("QDMG"u8))
+                throw new InvalidDataException("The MZTools multi-game IPL signature is missing.");
+            var metadata = new MultiGameMetadata(layout, offset, raw[4], raw[5],
+                BinaryPrimitives.ReadUInt16LittleEndian(raw.Slice(6, 2)),
+                BinaryPrimitives.ReadUInt16LittleEndian(raw.Slice(8, 2)),
+                BinaryPrimitives.ReadUInt16LittleEndian(raw.Slice(10, 2)));
+            if (metadata.Version != Mz800MultiGameIplDskWriter.FormatVersion || metadata.EntrySize != EntrySize)
+                throw new InvalidDataException($"Unsupported QDMG version {metadata.Version} or entry size {metadata.EntrySize}.");
+            if (metadata.EntryCount is < 1 or > Mz800MultiGameIplDskWriter.MaxEntries || metadata.MenuSectorCount != BlocksFor(menu.Length))
+                throw new InvalidDataException("The QDMG header contains invalid menu dimensions.");
+            int tableLimit = footer >= 0 ? footer : menu.Length;
+            if (metadata.TableOffset > tableLimit - metadata.EntryCount * EntrySize)
+                throw new InvalidDataException("The QDMG entry table lies outside the menu program.");
+            return metadata;
+        }
 
         private static TapeRecord CreateRecord(DskFileEntry entry, byte[] payload)
         {

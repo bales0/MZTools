@@ -331,10 +331,12 @@ namespace MZTools
                 this.padding = padding;
                 PhysicalIndex = physicalIndex;
                 FileOffset = fileOffset;
+                DeclaredBlockSize = TrackHeaderSize + sectors.Sum(sector => sector.Data.Length) + padding.Length;
             }
 
             internal int PhysicalIndex { get; }
             internal int FileOffset { get; }
+            internal int DeclaredBlockSize { get; }
             internal int BlockSize => TrackHeaderSize + Sectors.Sum(sector => sector.Data.Length) + padding.Length;
             internal byte Cylinder { get => rawHeader[0x10]; set => rawHeader[0x10] = value; }
             internal byte Side { get => rawHeader[0x11]; set => rawHeader[0x11] = value; }
@@ -454,6 +456,7 @@ namespace MZTools
             internal byte SizeCode { get => descriptor[3]; set => descriptor[3] = value; }
             internal byte FdcStatus1 { get => descriptor[4]; set => descriptor[4] = value; }
             internal byte FdcStatus2 { get => descriptor[5]; set => descriptor[5] = value; }
+            internal int DeclaredDataLength => BinaryPrimitives.ReadUInt16LittleEndian(descriptor.AsSpan(6, 2));
             internal byte[] Data { get; set; }
 
             internal byte[] SerializeDescriptor()

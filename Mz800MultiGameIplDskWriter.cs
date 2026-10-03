@@ -49,6 +49,8 @@ namespace MZTools
 
         // IPLPRO bytes 0x20..0xFF are a comment displayed by the Sharp ROM and
         // must remain zero. Private metadata is stored in the loaded menu body.
+        // The reader also accepts historical IPLPRO metadata at 0x20; new
+        // images and rebuilds always use the menu footer below.
         internal const int MultiGameFooterSize = 12;
 
         public static MultiGameIplBuildResult Build(IReadOnlyList<MultiGameIplInput> inputs)

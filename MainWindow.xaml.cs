@@ -186,6 +186,9 @@ namespace MZTools
         };
 
         private readonly TapeDocument document = new();
+        private QuickDiskLayout? quickDiskLayout;
+        private bool quickDiskMapDirty = true;
+        private bool synchronizingQuickDiskSelection;
         private List<TapeRecord> mzfBlocks => document.Records;
         private string actFileName = string.Empty;
         private bool updatingProfileEditors;
@@ -201,6 +204,12 @@ namespace MZTools
             InitializeComponent();
             MzfDisplayDataCollection = new ObservableCollection<MzfDisplayData>();
             MzfDataGrid.ItemsSource = MzfDisplayDataCollection;
+            quickDiskMap.RegionSelected += region =>
+            {
+                if (ReferenceEquals(quickDiskBlocks.SelectedItem, region)) SynchronizeQuickDiskBlockSelection();
+                else quickDiskBlocks.SelectedItem = region;
+                if (region != null) quickDiskBlocks.ScrollIntoView(region);
+            };
             Title = BuildWindowTitle();
             viewButton.IsEnabled = false; // Zakážem některá tlačítka při spuštění
             moveUpButton.IsEnabled = false;
@@ -529,6 +538,7 @@ namespace MZTools
         private void UpdateStatus()
         {
             bool documentOpen = document.Format != TapeDocumentFormat.None;
+            tapeViews.Visibility = documentOpen ? Visibility.Visible : Visibility.Collapsed;
             MzfDataGrid.Visibility = documentOpen ? Visibility.Visible : Visibility.Collapsed;
             statusBorder.Visibility = documentOpen ? Visibility.Visible : Visibility.Collapsed;
             addButton.IsEnabled = documentOpen;
@@ -571,6 +581,110 @@ namespace MZTools
                 ? GetIplDskAdvancedStatus(iplInfo)
                 : GetQdAdvancedStatus(document.Format, mzfBlocks.Count);
             UpdateQuickDiskFeatureVisibility();
+            quickDiskMapDirty = true;
+            quickDiskMapTab.Visibility = document.IsQuickDisk ? Visibility.Visible : Visibility.Collapsed;
+            if (!document.IsQuickDisk)
+            {
+                tapeViews.SelectedIndex = 0;
+                quickDiskLayout = null;
+                quickDiskMap.SetLayout(null);
+                quickDiskBlocks.ItemsSource = null;
+                quickDiskMapSummary.Text = string.Empty;
+            }
+            else if (quickDiskMapTab.IsSelected) RefreshQuickDiskMap();
+            UpdateQuickDiskSelectionButtons();
+        }
+
+        private void TapeViews_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (ReferenceEquals(e.Source, tapeViews) && quickDiskMapTab?.IsSelected == true)
+                RefreshQuickDiskMap();
+        }
+
+        private void RefreshQuickDiskMap()
+        {
+            if (!document.IsQuickDisk || !quickDiskMapDirty || quickDiskMap == null) return;
+            quickDiskMapDirty = false;
+            quickDiskMapDetail.Text = "* Length is in the units shown above. Gaps are not necessarily free space.";
+            try
+            {
+                quickDiskLayout = QuickDiskLayoutBuilder.Build(document);
+                quickDiskMap.SetLayout(quickDiskLayout);
+                quickDiskBlocks.ItemsSource = quickDiskLayout.Regions;
+                quickDiskMapSummary.Text = quickDiskLayout.Summary;
+                quickDiskMap.HighlightFiles(GetSelectedGridIndices());
+            }
+            catch (Exception ex) when (ex is InvalidDataException or ArgumentException or NotSupportedException or OverflowException)
+            {
+                quickDiskLayout = null;
+                quickDiskMap.SetLayout(null);
+                quickDiskBlocks.ItemsSource = null;
+                quickDiskMapSummary.Text = $"Disk Map unavailable: {ex.Message}";
+                quickDiskMapDetail.Text = "The document has not been changed. Resolve capacity or format errors to view a rebuilt layout.";
+            }
+            UpdateQuickDiskSelectionButtons();
+        }
+
+        private void QuickDiskMapZoom_Changed(object sender, RoutedPropertyChangedEventArgs<double> e) =>
+            quickDiskMap?.SetZoom(e.NewValue);
+
+        private void QuickDiskBlocks_SelectionChanged(object sender, SelectionChangedEventArgs e) =>
+            SynchronizeQuickDiskBlockSelection();
+
+        private void SynchronizeQuickDiskBlockSelection()
+        {
+            if (synchronizingQuickDiskSelection) return;
+            synchronizingQuickDiskSelection = true;
+            try
+            {
+                var region = quickDiskBlocks.SelectedItem as QuickDiskRegion;
+                quickDiskMap.Select(region);
+                quickDiskMapDetail.Text = region != null && quickDiskLayout != null ? quickDiskLayout.Detail(region) :
+                    "* Length is in the units shown above. Gaps are not necessarily free space.";
+                MzfDataGrid.SelectedItems.Clear();
+                if (region != null && region.FileIndex >= 0 && region.FileIndex < MzfDisplayDataCollection.Count)
+                {
+                    MzfDataGrid.SelectedItem = MzfDisplayDataCollection[region.FileIndex];
+                    MzfDataGrid.ScrollIntoView(MzfDataGrid.SelectedItem);
+                }
+                quickDiskMap.HighlightFiles(GetSelectedGridIndices());
+            }
+            finally { synchronizingQuickDiskSelection = false; UpdateQuickDiskSelectionButtons(); }
+        }
+
+        private void UpdateQuickDiskSelectionButtons()
+        {
+            if (quickDiskClearSelectionButton == null || quickDiskHexButton == null) return;
+            bool blockSelected = quickDiskBlocks?.SelectedItem is QuickDiskRegion;
+            quickDiskHexButton.IsEnabled = document.IsQuickDisk && quickDiskLayout != null && blockSelected;
+            quickDiskClearSelectionButton.IsEnabled = document.IsQuickDisk &&
+                (blockSelected || MzfDataGrid.SelectedItems.Count > 0);
+        }
+
+        private void ClearQuickDiskSelection()
+        {
+            quickDiskBlocks.SelectedItem = null;
+            SynchronizeQuickDiskBlockSelection();
+        }
+        private void ClearQuickDiskSelection_Click(object sender, RoutedEventArgs e) => ClearQuickDiskSelection();
+        private void MapBackground_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (quickDiskMapTab?.IsSelected == true && DiskMapVisuals.IsBlankClick(e.OriginalSource as DependencyObject))
+                ClearQuickDiskSelection();
+        }
+        internal (string Title, byte[] Bytes)? GetSelectedQuickDiskHexBlock()
+        {
+            if (quickDiskLayout == null || quickDiskBlocks.SelectedItem is not QuickDiskRegion region) return null;
+            string encoding = !quickDiskLayout.IsPhysical ? "image bytes" :
+                region.Kind is QuickDiskRegionKind.Gap or QuickDiskRegionKind.OutsideWindow ? "raw track bitcells packed LSB-first" : "decoded MFM bytes";
+            return ($"{quickDiskLayout.Detail(region)}\n{encoding}; {(quickDiskLayout.IsPreview ? "rebuilt preview" : "original image")}", quickDiskLayout.GetBlockBytes(region));
+        }
+        private void QuickDiskHex_Click(object sender, RoutedEventArgs e)
+        {
+            if (GetSelectedQuickDiskHexBlock() is not { } block) return;
+            var browser = new HexBrowser { Owner = this };
+            browser.ShowRawData(block.Title, block.Bytes);
+            browser.Show();
         }
 
         internal static string GetIplDskAdvancedStatus(Mz800IplDskInfo info) =>
@@ -1132,13 +1246,15 @@ namespace MZTools
             bool allowImportedNonStandard = CanPreserveImportedNonStandard(outputFormat);
             if (outputFormat == TapeDocumentFormat.Mzq)
             {
-                using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write);
-                var writer = new MZQFileReader();
-                writer.WriteMZQHeaderToFile(fileStream, checked((byte)(mzfBlocks.Count * 2)), allowImportedNonStandard);
-                foreach (TapeRecord record in mzfBlocks)
+                using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
                 {
-                    writer.WriteMZQFileHeaderToFile(fileStream, record.Header);
-                    writer.WriteMZQFileBodyToFile(fileStream, record.Body);
+                    var writer = new MZQFileReader();
+                    writer.WriteMZQHeaderToFile(fileStream, checked((byte)(mzfBlocks.Count * 2)), allowImportedNonStandard);
+                    foreach (TapeRecord record in mzfBlocks)
+                    {
+                        writer.WriteMZQFileHeaderToFile(fileStream, record.Header);
+                        writer.WriteMZQFileBodyToFile(fileStream, record.Body);
+                    }
                 }
                 DiscardMetadataNotStoredByCurrentFormat();
                 SetCurrentDocumentAfterSave(filePath, outputFormat, sidecarPath: null);
@@ -1396,6 +1512,7 @@ namespace MZTools
             document.Format = format;
             document.SidecarPath = sidecarPath;
             document.QuickDiskProfile = quickDiskProfile;
+            document.QuickDiskSourceImage = document.IsQuickDisk ? File.ReadAllBytes(filePath) : null;
             document.IplDskInfo = null;
             document.IsModified = false;
             actFileName = System.IO.Path.GetFileName(filePath);
@@ -1436,8 +1553,22 @@ namespace MZTools
             deleteButton.IsEnabled = MzfDataGrid.SelectedItem != null;
 
             int[] selectedIndices = GetSelectedGridIndices();
+            quickDiskMap?.HighlightFiles(selectedIndices);
+            if (!synchronizingQuickDiskSelection && quickDiskBlocks != null)
+            {
+                synchronizingQuickDiskSelection = true;
+                try
+                {
+                    quickDiskBlocks.SelectedItem = null;
+                    quickDiskMap?.Select(null);
+                    quickDiskHexButton.IsEnabled = false;
+                    quickDiskMapDetail.Text = "* Length is in the units shown above. Gaps are not necessarily free space.";
+                }
+                finally { synchronizingQuickDiskSelection = false; }
+            }
             moveUpButton.IsEnabled = selectedIndices.Length > 0 && selectedIndices[0] > 0;
             moveDownButton.IsEnabled = selectedIndices.Length > 0 && selectedIndices[^1] < mzfBlocks.Count - 1;
+            UpdateQuickDiskSelectionButtons();
         }
 
         private void MzfDataGrid_PreviewKeyDown(object sender, KeyEventArgs e)
@@ -2176,12 +2307,16 @@ namespace MZTools
 
                 if (bindAsCurrent)
                 {
+                    byte[]? quickDiskSource = format is TapeDocumentFormat.Mzq or TapeDocumentFormat.Qdf or
+                        TapeDocumentFormat.QdSharpLegacy or TapeDocumentFormat.QdHxc or TapeDocumentFormat.QdFlashFloppy
+                        ? File.ReadAllBytes(filePath) : null;
                     document.Clear();
                     document.FilePath = System.IO.Path.GetFullPath(filePath);
                     document.Format = format;
                     document.ContainerTrailingData = containerTrailing;
                     document.SidecarPath = loadedSidecar;
                     document.QuickDiskProfile = loadedQdProfile;
+                    document.QuickDiskSourceImage = quickDiskSource;
                     document.IplDskInfo = loadedIplDskInfo;
                     document.IsModified = false;
                     actFileName = System.IO.Path.GetFileName(filePath);

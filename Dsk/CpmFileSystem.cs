@@ -368,6 +368,9 @@ namespace MZTools
         }
 
         private (int AbsoluteTrack, int PhysicalSector, int Offset) MapByteOffset(int block, int offsetInBlock)
+            => MapByteOffset(Dpb, block, offsetInBlock);
+
+        internal static (int AbsoluteTrack, int PhysicalSector, int Offset) MapByteOffset(CpmDpb Dpb, int block, int offsetInBlock)
         {
             int byteOffset = checked(block * Dpb.BlockSize + offsetInBlock);
             int logicalSector = byteOffset / 128;

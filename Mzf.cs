@@ -290,6 +290,9 @@ namespace MZTools
 
         public QuickDiskPhysicalProfile? QuickDiskProfile { get; set; }
 
+        // Snapshot for read-only layout inspection; never reconstructed while viewing.
+        public byte[]? QuickDiskSourceImage { get; set; }
+
         public byte[] ContainerTrailingData { get; set; } = Array.Empty<byte>();
 
         public string? SidecarPath { get; set; }
@@ -312,6 +315,7 @@ namespace MZTools
             Format = TapeDocumentFormat.None;
             IsModified = false;
             QuickDiskProfile = null;
+            QuickDiskSourceImage = null;
             ContainerTrailingData = Array.Empty<byte>();
             SidecarPath = null;
             IplDskInfo = null;

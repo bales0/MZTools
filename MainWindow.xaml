@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MZTools"
         mc:Ignorable="d"
-        Title="MZTools" Height="600" Width="1100" MinHeight="480" MinWidth="900" Icon="/images/MZTool.ico"
-        AllowDrop="True" DragEnter="Window_DragEnter" Drop="Window_Drop" Closing="MainWindow_Closing">
+        Title="MZTools" Height="600" Width="1100" MinHeight="480" MinWidth="900" Icon="/MZTools;component/images/MZTool.ico"
+        AllowDrop="True" DragEnter="Window_DragEnter" Drop="Window_Drop" Closing="MainWindow_Closing" PreviewMouseLeftButtonDown="MapBackground_MouseDown">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -39,8 +39,9 @@
                 <Button x:Name="formatQuickDiskButton" Content="Format..." Click="button_Click_FormatQuickDisk" Style="{StaticResource TopToolbarButton}" Visibility="Collapsed"/>
             </WrapPanel>
         </Border>
+        <TabControl x:Name="tapeViews" Grid.Row="1" Margin="10,8,10,8" SelectionChanged="TapeViews_SelectionChanged">
+        <TabItem Header="Files">
         <DataGrid x:Name="MzfDataGrid" 
-                  Grid.Row="1"
                   IsReadOnly="False"
                   AllowDrop="True"
                   PreviewMouseLeftButtonDown="MzfDataGrid_PreviewMouseLeftButtonDown"
@@ -58,7 +59,7 @@
                   HeadersVisibility="Column" 
                   AutoGenerateColumns="False" 
                   CanUserSortColumns="False" 
-                  Margin="10,8,10,8">
+                  Margin="0">
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">
                     <Style.Triggers>
@@ -117,6 +118,46 @@
                 </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
+        </TabItem>
+        <TabItem x:Name="quickDiskMapTab" Header="Disk Map" Visibility="Collapsed">
+            <Grid Margin="8" Background="Transparent" PreviewMouseLeftButtonDown="MapBackground_MouseDown">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="3*" MinWidth="200"/><ColumnDefinition Width="6"/><ColumnDefinition Width="2*" MinWidth="240"/></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="42"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*" MinHeight="100"/>
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="quickDiskMapSummary" Grid.ColumnSpan="3" TextWrapping="Wrap" Margin="0,0,0,6"/>
+                <WrapPanel Grid.Row="1" Grid.ColumnSpan="3" Margin="0,0,0,6">
+                    <TextBlock Text="Zoom" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <Slider x:Name="quickDiskMapZoom" Minimum="1" Maximum="4" Value="1" Width="150" ValueChanged="QuickDiskMapZoom_Changed"/>
+                    <Button x:Name="quickDiskHexButton" Content="Hex view block" Click="QuickDiskHex_Click" IsEnabled="False" Margin="12,0,6,0"/>
+                    <Button x:Name="quickDiskClearSelectionButton" Content="Clear selection" Click="ClearQuickDiskSelection_Click" IsEnabled="False"/>
+                </WrapPanel>
+                <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="Transparent">
+                    <local:QuickDiskMapControl x:Name="quickDiskMap"/>
+                </ScrollViewer>
+                <GridSplitter Grid.Row="2" Grid.Column="1" Width="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="LightGray"/>
+                <Grid Grid.Row="2" Grid.Column="2" Margin="6,0,0,0">
+                <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="110"/></Grid.RowDefinitions>
+                <DataGrid x:Name="quickDiskBlocks" AutoGenerateColumns="False" IsReadOnly="True"
+                          CanUserAddRows="False" HeadersVisibility="Column" SelectionMode="Single" SelectionChanged="QuickDiskBlocks_SelectionChanged">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Role" Binding="{Binding Kind}" Width="Auto" MinWidth="100"/>
+                        <DataGridTextColumn Header="#" Binding="{Binding FileNumber}" Width="32"/>
+                        <DataGridTextColumn Header="File / details" Binding="{Binding Name}" Width="*" MinWidth="200"/>
+                        <DataGridTextColumn Header="Start" Binding="{Binding Offset}" Width="Auto" MinWidth="100"/>
+                        <DataGridTextColumn Header="Length*" Binding="{Binding Length}" Width="Auto" MinWidth="90"/>
+                        <DataGridTextColumn Header="Payload B" Binding="{Binding Size}" Width="Auto" MinWidth="80"/>
+                        <DataGridTextColumn Header="LOAD" Binding="{Binding LoadText}" Width="75"/>
+                        <DataGridTextColumn Header="EXEC" Binding="{Binding ExecuteText}" Width="75"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <TextBox x:Name="quickDiskMapDetail" Grid.Row="1" Margin="0,6,0,0" IsReadOnly="True" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" Text="* Length is in the units shown above. Gaps are not necessarily free space."/>
+                </Grid>
+            </Grid>
+        </TabItem>
+        </TabControl>
 
         <Border x:Name="statusBorder" Grid.Row="2" Margin="10,0,10,10" Padding="9,6"
                 BorderBrush="LightGray" BorderThickness="1" CornerRadius="3">

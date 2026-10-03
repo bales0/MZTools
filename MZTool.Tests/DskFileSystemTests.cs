@@ -820,11 +820,12 @@ public class DskFileSystemTests
     }
 
     [Fact]
-    public void ObsoleteMultiGameFixture_IsNotRecognizedAsCurrentFormat()
+    public void IplProMetadataMultiGameFixture_IsRecognized()
     {
         DskDocument document = DskDocument.Open(FixturePath("multi.dsk"));
 
-        Assert.NotEqual(DskFileSystemType.MultiIpl, document.FileSystem.Type);
+        Assert.Equal(DskFileSystemType.MultiIpl, document.FileSystem.Type);
+        Assert.Equal(MultiGameMetadataLayout.IplProComment, Assert.IsType<MultiGameIplFileSystem>(document.FileSystem).Metadata.Layout);
     }
 
     [Fact]

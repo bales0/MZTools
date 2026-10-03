@@ -213,7 +213,7 @@ namespace MZTools
             }
         }
 
-        private static IEnumerable<int> GetSystemPhysicalTracks(CpmDpb dpb, DskImage image)
+        internal static IEnumerable<int> GetSystemPhysicalTracks(CpmDpb dpb, DskImage image)
         {
             var tracks = new SortedSet<int> { 1 };
             for (int logicalTrack = 0; logicalTrack < dpb.Off; logicalTrack++)
