@@ -190,6 +190,13 @@ namespace MZTools
                     };
                 bootBox.SelectedIndex = 0;
             }
+            else
+            {
+                // Boot import is a CP/M option. Clear it when the control is
+                // hidden so it cannot leak into an IPL or other format.
+                bootBox.ItemsSource = null;
+                bootBox.SelectedIndex = -1;
+            }
             UpdateBootPathVisibility();
 
             switch (choice.Format)
@@ -322,9 +329,10 @@ namespace MZTools
                         ids = parsed;
                     }
                 }
-                DskBootMode bootMode = bootBox.SelectedItem is BootChoice bootChoice
+                DskBootMode selectedBootMode = bootBox.SelectedItem is BootChoice bootChoice
                     ? bootChoice.Mode
                     : DskBootMode.FormatDefault;
+                DskBootMode bootMode = GetEffectiveBootMode(choice.Format, selectedBootMode);
                 string? bootSourcePath = null;
                 if (bootMode == DskBootMode.ImportFromDsk)
                 {
@@ -342,6 +350,9 @@ namespace MZTools
                 MessageBox.Show(this, exception.Message, "New DSK", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+        internal static DskBootMode GetEffectiveBootMode(DskNewFormat format, DskBootMode selectedMode) =>
+            IsCpmFormat(format) ? selectedMode : DskBootMode.FormatDefault;
 
         private static int ParseRange(string value, string label, int minimum, int maximum)
         {

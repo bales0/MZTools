@@ -5,6 +5,31 @@ using NAudio.SoundFile;
 
 public class DskFileSystemTests
 {
+    [Theory]
+    [InlineData((int)DskNewFormat.IplSingle)]
+    [InlineData((int)DskNewFormat.IplMulti)]
+    [InlineData((int)DskNewFormat.MzBasic)]
+    [InlineData((int)DskNewFormat.IplDisk)]
+    [InlineData((int)DskNewFormat.CustomRaw)]
+    public void NewDskNonCpmFormatIgnoresPreviousCpmBootImport(int format)
+    {
+        Assert.Equal(DskBootMode.FormatDefault,
+            DskNewDialog.GetEffectiveBootMode((DskNewFormat)format, DskBootMode.ImportFromDsk));
+        Assert.Equal(DskBootMode.FormatDefault,
+            DskNewDialog.GetEffectiveBootMode((DskNewFormat)format, DskBootMode.Empty));
+    }
+
+    [Theory]
+    [InlineData((int)DskNewFormat.PersonalCpm)]
+    [InlineData((int)DskNewFormat.Sds400)]
+    [InlineData((int)DskNewFormat.LecCpmDd)]
+    [InlineData((int)DskNewFormat.LecCpmHd)]
+    public void NewDskCpmFormatRetainsBootImport(int format)
+    {
+        Assert.Equal(DskBootMode.ImportFromDsk,
+            DskNewDialog.GetEffectiveBootMode((DskNewFormat)format, DskBootMode.ImportFromDsk));
+    }
+
     [Fact]
     public void Fsmz_InsertRenameDeleteAndReopen_PreservesDataAndSpaceAccounting()
     {
