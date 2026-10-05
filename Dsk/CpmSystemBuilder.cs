@@ -22,14 +22,22 @@ internal sealed record CpmSystemBuildReport(
     DskGeometrySignature Geometry,
     CpmDpbSignature Dpb,
     BootLoaderKind BootLoader,
-    CpmTransferMode TransferMode,
+    CpmTransferMode? TransferMode,
     IReadOnlyList<int> SystemPhysicalTracks,
     IReadOnlyList<CpmSystemChangedRange> ChangedRanges,
     IReadOnlyList<string> BrandingChanges,
     string SourceSha256,
     string OriginalTargetSha256,
-    string ResultSha256)
+    string ResultSha256,
+    string SystemAreaSha256,
+    CpmRuntimeVerification Verification)
 {
+    internal CpmSystemStorageKind Storage { get; init; } = CpmSystemStorageKind.HiddenSystemTracks;
+    internal CpmFileBasedSystemFingerprint? SystemFileFingerprint { get; init; }
+    internal int? SystemFileDirectorySlot { get; init; }
+    internal int? RelocatedFirstEntrySlot { get; init; }
+    internal IReadOnlyList<int> SystemFileAllocationBlocks { get; init; } = [];
+    internal bool OtherTargetFilesPreserved { get; init; }
     internal string ToText()
     {
         var text = new StringBuilder()
@@ -38,16 +46,27 @@ internal sealed record CpmSystemBuildReport(
             .AppendLine($"Target profile: {TargetProfile}")
             .AppendLine($"Geometry: {Geometry.Cylinders} cylinders × {Geometry.Sides} sides; {Geometry.PhysicalTracks} physical tracks; descriptor SHA-256 {Geometry.DescriptorSha256}")
             .AppendLine($"DPB: SPT={Dpb.Spt}, BSH={Dpb.Bsh}, BLM={Dpb.Blm}, EXM={Dpb.Exm}, DSM={Dpb.Dsm}, DRM={Dpb.Drm}, AL0={Dpb.Al0:X2}, AL1={Dpb.Al1:X2}, CKS={Dpb.Cks}, OFF={Dpb.Off}, block={Dpb.BlockSize}, inverted={Dpb.Inverted}")
-            .AppendLine($"Boot loader: {BootLoader}")
-            .AppendLine($"Transfer mode: {TransferMode}")
+            .AppendLine($"Boot loader: {(BootLoader == BootLoaderKind.Unknown ? "Unverified" : BootLoader.ToString())}")
+            .AppendLine($"Transfer mode: {TransferMode?.ToString() ?? "Unverified"}")
             .AppendLine($"System physical tracks: {string.Join(", ", SystemPhysicalTracks)}")
             .AppendLine($"Source SHA-256: {SourceSha256}")
+            .AppendLine($"Source system-area SHA-256: {SystemAreaSha256}")
+            .AppendLine($"Verification: {(Verification == CpmRuntimeVerification.None ? "Unverified" : Verification.ToString())}; no runtime boot certification inferred")
             .AppendLine($"Original target SHA-256: {OriginalTargetSha256}")
             .AppendLine($"Result SHA-256: {ResultSha256}")
             .AppendLine($"Changed byte ranges: {ChangedRanges.Count}");
         foreach (CpmSystemChangedRange range in ChangedRanges)
             text.AppendLine($"  track {range.PhysicalTrack}, descriptor {range.DescriptorIndex}, C/H/R/N={range.C}/{range.H}/{range.R}/{range.N}, bytes {range.Offset}..{range.Offset + range.Length - 1}, {range.OriginalSha256} -> {range.ReplacementSha256}");
-        text.AppendLine("Branding changes: " + (BrandingChanges.Count == 0 ? "none (verified template bytes preserved)" : string.Join("; ", BrandingChanges)));
+        text.AppendLine("Branding changes: " + (BrandingChanges.Count == 0 ? "none (source boot/system bytes preserved)" : string.Join("; ", BrandingChanges)));
+        text.AppendLine($"System storage: {Storage}");
+        if (SystemFileFingerprint is { } file)
+        {
+            text.AppendLine($"System file: {file.SystemFileName}; user {file.User}; SYS={file.SystemAttribute}; {file.SystemFileSize} B; payload SHA-256 {file.SystemFileSha256}");
+            text.AppendLine($"PCPM.SYS directory slot: {SystemFileDirectorySlot}")
+                .AppendLine($"Previous slot 0 entry relocated: {(RelocatedFirstEntrySlot is int slot ? $"yes (to slot {slot})" : "no")}")
+                .AppendLine($"PCPM.SYS allocation blocks: {string.Join(", ", SystemFileAllocationBlocks)}")
+                .AppendLine($"Other target files preserved: {(OtherTargetFilesPreserved ? "yes" : "no")}");
+        }
         return text.ToString();
     }
 }
@@ -61,6 +80,10 @@ internal static class CpmSystemBuilder
         CpmSystemBuildOptions? options = null)
     {
         options ??= new();
+        if (profile.Storage == CpmSystemStorageKind.BootTrackPlusSystemFile)
+            return PersonalCpmSystemInstaller.Preflight(target, source, profile, options);
+        if (PersonalCpmSystemInstaller.IsPersonalLayout(target) || PersonalCpmSystemInstaller.IsPersonalLayout(source))
+            return new(false, ["Native P-CP/M80 requires the file-based IPL + PCPM.SYS installer."], "Install rejected: native P-CP/M80 cannot use hidden system tracks.");
         var errors = new List<string>();
         if (target.FileSystem is not CpmFileSystem) errors.Add("Target is not a recognized CP/M filesystem.");
         if (source.FileSystem is not CpmFileSystem) errors.Add("Source is not a recognized CP/M filesystem.");
@@ -69,15 +92,24 @@ internal static class CpmSystemBuilder
         if (options.PreserveBranding != profile.BrandingPolicy)
             errors.Add("This profile supports only its default preserve-branding policy; explicit branding replacement is not configured.");
 
-        string sourceSha = Sha(source.Serialize());
-        if (!profile.VerifiedTemplateSha256.Equals(sourceSha, StringComparison.OrdinalIgnoreCase))
-            errors.Add($"Source SHA-256 {sourceSha} does not match verified profile {profile.VerifiedTemplateSha256}.");
+        try
+        {
+            string sourceSha = CpmSystemFingerprint.HashSystemArea(source.Image, profile.SystemPhysicalTracks);
+            if (!profile.SystemAreaSha256.Equals(sourceSha, StringComparison.OrdinalIgnoreCase))
+                errors.Add($"System-area SHA-256 {sourceSha} does not match profile {profile.SystemAreaSha256}.");
+            if (source.FileSystem is CpmFileSystem fs && !profile.SystemPhysicalTracks.SequenceEqual(
+                DskDocumentFactory.GetSystemPhysicalTracks(fs.Dpb, source.Image)))
+                errors.Add("Source system-track list does not match the profile.");
+        }
+        catch (InvalidDataException exception) { errors.Add(exception.Message); }
         if (DskGeometrySignature.From(source.Image) != profile.Geometry)
             errors.Add("Source physical geometry or descriptor order does not match the profile.");
         if (source.FileSystem is CpmFileSystem sourceFs && CpmDpbSignature.From(sourceFs.Dpb) != profile.Dpb)
             errors.Add("Source CP/M DPB or physical map does not match the profile.");
         if (target.FileSystem is CpmFileSystem targetFs)
         {
+            if (!profile.SystemPhysicalTracks.SequenceEqual(DskDocumentFactory.GetSystemPhysicalTracks(targetFs.Dpb, target.Image)))
+                errors.Add("Target system-track list does not match the profile.");
             if (DskGeometrySignature.From(target.Image) != profile.Geometry)
                 errors.Add("Target physical geometry or descriptor order does not match the profile.");
             if (CpmDpbSignature.From(targetFs.Dpb) != profile.Dpb)
@@ -108,10 +140,33 @@ internal static class CpmSystemBuilder
         CpmSystemBuildPreflight preflight = Preflight(target, source, profile, options);
         if (!preflight.CanBuild) throw new InvalidDataException(preflight.Report);
 
+        return profile.Storage == CpmSystemStorageKind.BootTrackPlusSystemFile
+            ? PersonalCpmSystemInstaller.Build(target, source, profile)
+            : BuildCore(target, source, profile.SystemPhysicalTracks, profile);
+    }
+
+    internal static CpmSystemBuildResult BuildCompatible(DskDocument target, DskDocument source)
+    {
+        var check = DskCapabilityService.CanInstallBootSystem(target, source);
+        if (!check.IsCompatible) throw new InvalidDataException(check.Reason);
+        if (PersonalCpmSystemInstaller.IsPersonalLayout(target))
+            return PersonalCpmSystemInstaller.Build(target, source, CpmSystemProfileRegistry.TryResolveVerifiedSource(source));
+        var tracks = DskDocumentFactory.GetSystemPhysicalTracks(((CpmFileSystem)target.FileSystem).Dpb, target.Image).ToArray();
+        var errors = new List<string>();
+        ValidateSystemAllocationSeparation(target, ((CpmFileSystem)target.FileSystem).Dpb, tracks, errors);
+        AddAnalysisErrors("Target", target, errors); AddAnalysisErrors("Source", source, errors);
+        if (errors.Count != 0) throw new InvalidDataException(string.Join("\n", errors));
+        return BuildCore(target, source, tracks, null);
+    }
+
+    private static CpmSystemBuildResult BuildCore(DskDocument target, DskDocument source,
+        IReadOnlyList<int> tracks, CpmSystemProfile? profile)
+    {
+
         byte[] original = target.Serialize();
         byte[] working = (byte[])original.Clone();
         DskImage workingImage = DskImage.Parse(working);
-        foreach (int trackIndex in profile.SystemPhysicalTracks)
+        foreach (int trackIndex in tracks)
         {
             DskImage.DskTrack targetTrack = workingImage.Tracks[trackIndex]!;
             DskImage.DskTrack sourceTrack = source.Image.Tracks[trackIndex]!;
@@ -124,9 +179,9 @@ internal static class CpmSystemBuilder
         }
 
         DskDocument candidate = DskDocument.Open(working);
-        ValidateCandidate(target, candidate, original, profile);
+        ValidateCandidate(target, candidate, original, tracks);
         byte[] result = candidate.Serialize();
-        CpmSystemBuildReport report = CreateReport(target, source, candidate, profile, original, result, options);
+        CpmSystemBuildReport report = CreateReport(target, source, candidate, profile, tracks, original, result);
         return new(result, report);
     }
 
@@ -139,42 +194,13 @@ internal static class CpmSystemBuilder
         return result.Report;
     }
 
-    internal static void SaveValidatedResult(CpmSystemBuildResult result, string path)
-    {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("An output path is required.", nameof(path));
-        string fullPath = Path.GetFullPath(path);
-        string? directory = Path.GetDirectoryName(fullPath);
-        if (string.IsNullOrEmpty(directory) || !Directory.Exists(directory))
-            throw new DirectoryNotFoundException("The output directory does not exist.");
-        if (!Sha(result.ImageBytes).Equals(result.Report.ResultSha256, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidDataException("The build result no longer matches its report SHA-256.");
-        DskDocument verification = DskDocument.Open(result.ImageBytes);
-        if (verification.IsReadOnly || DskAnalyzer.Analyze(verification).Errors != 0)
-            throw new InvalidDataException("The build result failed final save validation.");
-
-        string temporary = Path.Combine(directory, $".{Path.GetFileName(fullPath)}.{Guid.NewGuid():N}.tmp");
-        try
-        {
-            File.WriteAllBytes(temporary, result.ImageBytes);
-            byte[] written = File.ReadAllBytes(temporary);
-            if (!Sha(written).Equals(result.Report.ResultSha256, StringComparison.OrdinalIgnoreCase))
-                throw new IOException("The temporary output file failed SHA-256 verification.");
-            _ = DskDocument.Open(written);
-            File.Move(temporary, fullPath, overwrite: true);
-        }
-        finally
-        {
-            if (File.Exists(temporary)) File.Delete(temporary);
-        }
-    }
-
     private static void ValidateCandidate(DskDocument originalDocument, DskDocument candidate,
-        byte[] originalBytes, CpmSystemProfile profile)
+        byte[] originalBytes, IReadOnlyList<int> tracks)
     {
         if (candidate.IsReadOnly || candidate.FileSystem is not CpmFileSystem)
             throw new InvalidDataException("Built image no longer has a consistent writable CP/M filesystem.");
-        if (DskGeometrySignature.From(candidate.Image) != profile.Geometry ||
-            CpmDpbSignature.From(((CpmFileSystem)candidate.FileSystem).Dpb) != profile.Dpb)
+        if (DskGeometrySignature.From(candidate.Image) != DskGeometrySignature.From(originalDocument.Image) ||
+            CpmDpbSignature.From(((CpmFileSystem)candidate.FileSystem).Dpb) != CpmDpbSignature.From(((CpmFileSystem)originalDocument.FileSystem).Dpb))
             throw new InvalidDataException("Build changed the target geometry, descriptor order or DPB.");
         DskLayoutModel analysis = DskAnalyzer.Analyze(candidate);
         if (analysis.Errors != 0)
@@ -183,7 +209,7 @@ internal static class CpmSystemBuilder
         if (!candidate.Image.Serialize().AsSpan().SequenceEqual(candidate.Serialize()))
             throw new InvalidDataException("Built container is not byte-preserving after reopen/serialize.");
 
-        HashSet<int> systemTracks = profile.SystemPhysicalTracks.ToHashSet();
+        HashSet<int> systemTracks = tracks.ToHashSet();
         DskImage originalImage = DskImage.Parse(originalBytes);
         for (int trackIndex = 0; trackIndex < originalImage.Tracks.Count; trackIndex++)
         {
@@ -210,12 +236,12 @@ internal static class CpmSystemBuilder
         }
     }
 
-    private static CpmSystemBuildReport CreateReport(DskDocument target, DskDocument source,
-        DskDocument candidate, CpmSystemProfile profile, byte[] original, byte[] result,
-        CpmSystemBuildOptions options)
+    internal static CpmSystemBuildReport CreateReport(DskDocument target, DskDocument source,
+        DskDocument candidate, CpmSystemProfile? profile, IReadOnlyList<int> tracks, byte[] original, byte[] result,
+        IReadOnlyList<int>? changedTracks = null)
     {
         var ranges = new List<CpmSystemChangedRange>();
-        foreach (int trackIndex in profile.SystemPhysicalTracks)
+        foreach (int trackIndex in changedTracks ?? tracks)
         {
             DskImage.DskTrack beforeTrack = target.Image.Tracks[trackIndex]!;
             DskImage.DskTrack afterTrack = candidate.Image.Tracks[trackIndex]!;
@@ -237,9 +263,11 @@ internal static class CpmSystemBuilder
                 }
             }
         }
-        return new(profile.DisplayName, profile.Layout.ToString(), profile.Geometry, profile.Dpb,
-            profile.BootLoader, profile.TransferMode, profile.SystemPhysicalTracks, ranges,
-            [], Sha(source.Serialize()), Sha(original), Sha(result));
+        return new(profile?.DisplayName ?? "Compatible source DSK — OS/version unverified", target.FileSystem.DisplayName,
+            DskGeometrySignature.From(target.Image), CpmDpbSignature.From(((CpmFileSystem)target.FileSystem).Dpb),
+            profile?.BootLoader ?? BootLoaderKind.Unknown, profile?.TransferMode, tracks, ranges,
+            [], Sha(source.Serialize()), Sha(original), Sha(result), CpmSystemFingerprint.HashSystemArea(source.Image, tracks),
+            profile?.Verification ?? CpmRuntimeVerification.None);
     }
 
     private static void AddAnalysisErrors(string role, DskDocument document, List<string> errors)

@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using Microsoft.Win32;
 
 namespace MZTools
 {
@@ -24,13 +22,6 @@ namespace MZTools
         CustomRaw
     }
 
-    internal enum DskBootMode
-    {
-        FormatDefault,
-        Empty,
-        ImportFromDsk
-    }
-
     internal sealed record DskNewOptions(
         DskNewFormat Format,
         int Tracks,
@@ -39,18 +30,11 @@ namespace MZTools
         int SectorSize = 256,
         byte Filler = 0xFF,
         DskDocumentFactory.RawSectorOrder SectorOrder = DskDocumentFactory.RawSectorOrder.Normal,
-        IReadOnlyList<int>? SectorIds = null,
-        DskBootMode BootMode = DskBootMode.FormatDefault,
-        string? BootSourcePath = null);
+        IReadOnlyList<int>? SectorIds = null);
 
     internal sealed class DskNewDialog : Window
     {
         private sealed record FormatChoice(DskNewFormat Format, string Label)
-        {
-            public override string ToString() => Label;
-        }
-
-        private sealed record BootChoice(DskBootMode Mode, string Label)
         {
             public override string ToString() => Label;
         }
@@ -64,11 +48,6 @@ namespace MZTools
         private readonly ComboBox orderBox = new() { ItemsSource = new[] { "Normal", "LEC interleave 2", "LEC HD interleave 3", "Custom sector IDs" }, SelectedIndex = 0, MinWidth = 180 };
         private readonly TextBox sectorIdsBox = new() { Text = "1,2,3,4,5,6,7,8,9", MinWidth = 250 };
         private readonly TextBlock capacityText = new() { FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
-        private readonly ComboBox bootBox = new() { MinWidth = 390 };
-        private readonly TextBox bootPathBox = new() { MinWidth = 320, IsReadOnly = true };
-        private readonly Button bootBrowseButton = new() { Content = "Browse...", MinWidth = 80, Margin = new Thickness(8, 0, 0, 0) };
-        private readonly FrameworkElement bootRow;
-        private readonly FrameworkElement bootPathRow;
         private readonly FrameworkElement[] customControls;
 
         private DskNewDialog(Window owner)
@@ -102,13 +81,6 @@ namespace MZTools
             panel.Children.Add(Row("Tracks per side:", tracksBox));
             panel.Children.Add(Row("Sides:", sidesBox));
             panel.Children.Add(Row("Capacity:", capacityText));
-            bootRow = Row("Boot track:", bootBox);
-            var bootPathPanel = new StackPanel { Orientation = Orientation.Horizontal };
-            bootPathPanel.Children.Add(bootPathBox);
-            bootPathPanel.Children.Add(bootBrowseButton);
-            bootPathRow = Row("Boot source DSK:", bootPathPanel);
-            panel.Children.Add(bootRow);
-            panel.Children.Add(bootPathRow);
             FrameworkElement sectorsRow = Row("Sectors per track:", sectorsBox);
             FrameworkElement sizeRow = Row("Sector size:", sectorSizeBox);
             FrameworkElement fillerRow = Row("Filler (hex):", fillerBox);
@@ -127,8 +99,6 @@ namespace MZTools
             Content = panel;
 
             formatBox.SelectionChanged += (_, _) => UpdateFields();
-            bootBox.SelectionChanged += (_, _) => UpdateBootPathVisibility();
-            bootBrowseButton.Click += BootBrowse_Click;
             tracksBox.TextChanged += (_, _) => UpdateCapacity();
             sidesBox.SelectionChanged += (_, _) => UpdateCapacity();
             sectorsBox.TextChanged += (_, _) => UpdateCapacity();
@@ -167,37 +137,10 @@ namespace MZTools
             bool fixedGeometry = choice.Format is DskNewFormat.IplSingle or DskNewFormat.IplMulti or
                 DskNewFormat.PersonalCpm or DskNewFormat.Sds400 or DskNewFormat.Lemmings;
             bool custom = choice.Format == DskNewFormat.CustomRaw;
-            bool cpm = IsCpmFormat(choice.Format);
             tracksBox.IsEnabled = !fixedGeometry;
             sidesBox.IsEnabled = !fixedGeometry;
             foreach (FrameworkElement control in customControls) control.Visibility = custom ? Visibility.Visible : Visibility.Collapsed;
             sectorIdsBox.IsEnabled = custom && orderBox.SelectedIndex == 3;
-            bootRow.Visibility = cpm ? Visibility.Visible : Visibility.Collapsed;
-            if (cpm)
-            {
-                bool generatedDefault = choice.Format is DskNewFormat.PersonalCpm or DskNewFormat.Sds400;
-                bootBox.ItemsSource = generatedDefault
-                    ? new[]
-                    {
-                        new BootChoice(DskBootMode.FormatDefault, "Generated IPLPRO header (default)"),
-                        new BootChoice(DskBootMode.Empty, "Empty boot track"),
-                        new BootChoice(DskBootMode.ImportFromDsk, "Import bootable CP/M system area from DSK...")
-                    }
-                    : new[]
-                    {
-                        new BootChoice(DskBootMode.FormatDefault, "Empty boot track (default)"),
-                        new BootChoice(DskBootMode.ImportFromDsk, "Import bootable CP/M system area from DSK...")
-                    };
-                bootBox.SelectedIndex = 0;
-            }
-            else
-            {
-                // Boot import is a CP/M option. Clear it when the control is
-                // hidden so it cannot leak into an IPL or other format.
-                bootBox.ItemsSource = null;
-                bootBox.SelectedIndex = -1;
-            }
-            UpdateBootPathVisibility();
 
             switch (choice.Format)
             {
@@ -216,30 +159,6 @@ namespace MZTools
                     break;
             }
             UpdateCapacity();
-        }
-
-        private static bool IsCpmFormat(DskNewFormat format) => format is
-            DskNewFormat.PersonalCpm or DskNewFormat.Sds400 or
-            DskNewFormat.LecCpmDd or DskNewFormat.LecCpmHd;
-
-        private void UpdateBootPathVisibility()
-        {
-            bool visible = bootRow.Visibility == Visibility.Visible &&
-                bootBox.SelectedItem is BootChoice { Mode: DskBootMode.ImportFromDsk };
-            bootPathRow.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
-        }
-
-        private void BootBrowse_Click(object sender, RoutedEventArgs e)
-        {
-            var dialog = new OpenFileDialog
-            {
-                Title = "Select a bootable CP/M system DSK",
-                Filter = "DSK disk images (*.dsk)|*.dsk|All files (*.*)|*.*"
-            };
-            if (dialog.ShowDialog(this) == true)
-            {
-                bootPathBox.Text = dialog.FileName;
-            }
         }
 
         private void UpdateCapacity()
@@ -329,20 +248,7 @@ namespace MZTools
                         ids = parsed;
                     }
                 }
-                DskBootMode selectedBootMode = bootBox.SelectedItem is BootChoice bootChoice
-                    ? bootChoice.Mode
-                    : DskBootMode.FormatDefault;
-                DskBootMode bootMode = GetEffectiveBootMode(choice.Format, selectedBootMode);
-                string? bootSourcePath = null;
-                if (bootMode == DskBootMode.ImportFromDsk)
-                {
-                    bootSourcePath = bootPathBox.Text.Trim();
-                    if (bootSourcePath.Length == 0 || !File.Exists(bootSourcePath))
-                    {
-                        throw new InvalidOperationException("Select an existing DSK image containing the boot track.");
-                    }
-                }
-                Options = new DskNewOptions(choice.Format, tracks, sides, sectors, sectorSize, filler, order, ids, bootMode, bootSourcePath);
+                Options = new DskNewOptions(choice.Format, tracks, sides, sectors, sectorSize, filler, order, ids);
                 DialogResult = true;
             }
             catch (Exception exception)
@@ -350,9 +256,6 @@ namespace MZTools
                 MessageBox.Show(this, exception.Message, "New DSK", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-
-        internal static DskBootMode GetEffectiveBootMode(DskNewFormat format, DskBootMode selectedMode) =>
-            IsCpmFormat(format) ? selectedMode : DskBootMode.FormatDefault;
 
         private static int ParseRange(string value, string label, int minimum, int maximum)
         {

@@ -28,7 +28,7 @@ internal sealed class DskHexEditSession
     internal IReadOnlyList<DskHexSegment> Segments { get; }
     internal byte[] OriginalBuffer => (byte[])buffer.Clone();
     internal byte[] OriginalImage => (byte[])image.Clone();
-    internal bool IsSensitive => (Role & (DskSectorRole.Boot | DskSectorRole.System | DskSectorRole.Directory |
+    internal bool IsSensitive => (Role & (DskSectorRole.Boot | DskSectorRole.System | DskSectorRole.SystemFile | DskSectorRole.Directory |
         DskSectorRole.Fat | DskSectorRole.AllocationMap)) != 0;
 }
 

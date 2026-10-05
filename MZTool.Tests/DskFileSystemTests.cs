@@ -5,18 +5,11 @@ using NAudio.SoundFile;
 
 public class DskFileSystemTests
 {
-    [Theory]
-    [InlineData((int)DskNewFormat.IplSingle)]
-    [InlineData((int)DskNewFormat.IplMulti)]
-    [InlineData((int)DskNewFormat.MzBasic)]
-    [InlineData((int)DskNewFormat.IplDisk)]
-    [InlineData((int)DskNewFormat.CustomRaw)]
-    public void NewDskNonCpmFormatIgnoresPreviousCpmBootImport(int format)
+    [Fact]
+    public void NewDskOptionsCannotRequestSystemImportOrAutomaticInstallation()
     {
-        Assert.Equal(DskBootMode.FormatDefault,
-            DskNewDialog.GetEffectiveBootMode((DskNewFormat)format, DskBootMode.ImportFromDsk));
-        Assert.Equal(DskBootMode.FormatDefault,
-            DskNewDialog.GetEffectiveBootMode((DskNewFormat)format, DskBootMode.Empty));
+        Assert.Null(typeof(DskNewOptions).GetProperty("BootMode"));
+        Assert.Null(typeof(DskNewOptions).GetProperty("BootSourcePath"));
     }
 
     [Theory]
@@ -24,10 +17,18 @@ public class DskFileSystemTests
     [InlineData((int)DskNewFormat.Sds400)]
     [InlineData((int)DskNewFormat.LecCpmDd)]
     [InlineData((int)DskNewFormat.LecCpmHd)]
-    public void NewDskCpmFormatRetainsBootImport(int format)
+    public void NewCpmDiskHasNoInstalledSystem(int format)
     {
-        Assert.Equal(DskBootMode.ImportFromDsk,
-            DskNewDialog.GetEffectiveBootMode((DskNewFormat)format, DskBootMode.ImportFromDsk));
+        var document = (DskNewFormat)format switch
+        {
+            DskNewFormat.PersonalCpm => DskDocumentFactory.CreatePersonalCpm80(false),
+            DskNewFormat.Sds400 => DskDocumentFactory.CreatePersonalCpm80(true),
+            DskNewFormat.LecCpmDd => DskDocumentFactory.CreateCpm(false),
+            _ => DskDocumentFactory.CreateCpm(true)
+        };
+        Assert.Empty(document.FileSystem.ReadDirectory());
+        Assert.False(DskBootInfo.Inspect(document).HasSystemBytes);
+        Assert.Equal(DskFileSystemType.Cpm, DskDocument.Open(document.Serialize()).FileSystem.Type);
     }
 
     [Fact]

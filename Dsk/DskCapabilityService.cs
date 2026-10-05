@@ -83,6 +83,8 @@ internal static class DskCapabilityService
         if (document.IsReadOnly || document.FileSystem is not CpmFileSystem cpm) return [];
         try
         {
+            if (PersonalCpmSystemInstaller.IsPersonalLayout(document))
+                PersonalCpmSystemInstaller.ValidateGeometry(document);
             DskDocumentFactory.ValidateBootSystemSource(document, document);
             // Reject missing tracks, duplicate IDs, weak/variable-length sectors and FDC errors.
             foreach (var track in document.Image.Tracks)
@@ -122,12 +124,22 @@ internal static class DskCapabilityService
 
     internal static DskCompatibilityResult CanInstallBootSystem(DskDocument target, DskDocument source)
     {
+        if (PersonalCpmSystemInstaller.IsPersonalLayout(target) || PersonalCpmSystemInstaller.IsPersonalLayout(source))
+            return PersonalCpmSystemInstaller.CheckCompatibility(target, source);
         if (GetAvailableBootSystems(target).Count == 0) return new(false, BootSystemAvailabilityReason(target));
-        if (GetAvailableBootSystems(source).Count == 0) return new(false, "The source DSK is not a supported, consistent CP/M system layout.");
+        if (GetAvailableBootSystems(source).Count == 0)
+        {
+            string issues = string.Join("; ", DskAnalyzer.Analyze(source).Issues
+                .Where(i => i.Severity is DskIssueSeverity.Error or DskIssueSeverity.Unsafe).Select(i => i.Code + ": " + i.Description));
+            return new(false, "The source DSK is not a supported, consistent CP/M system layout. " + issues);
+        }
         try { DskDocumentFactory.ValidateBootSystemSource(target, source); }
         catch (InvalidDataException ex) { return new(false, ex.Message); }
         if (CompatibilityKey(target) != CompatibilityKey(source))
             return new(false, "Source physical sector order, C/H/R/N, geometry, DPB or physical allocation map differs from the target.");
+        if (!DskDocumentFactory.GetSystemPhysicalTracks(((CpmFileSystem)target.FileSystem).Dpb, target.Image).SequenceEqual(
+            DskDocumentFactory.GetSystemPhysicalTracks(((CpmFileSystem)source.FileSystem).Dpb, source.Image)))
+            return new(false, "Source system physical-track list differs from the target.");
         var boot = source.Image.Tracks[1]!;
         if (boot.Sectors.All(s => s.Data.All(b => b is 0 or 0xFF or 0xE5)))
             return new(false, "The source boot track contains only fill bytes; no system image is available.");
@@ -146,35 +158,12 @@ internal static class DskCapabilityService
 internal static class DskBootSystemService
 {
     internal static void Install(DskDocument target, DskDocument source)
+        => InstallWithReport(target, source);
+
+    internal static CpmSystemBuildReport InstallWithReport(DskDocument target, DskDocument source)
     {
-        var check = DskCapabilityService.CanInstallBootSystem(target, source);
-        if (!check.IsCompatible) throw new InvalidDataException(check.Reason);
-        string originalKey = DskCapabilityService.CompatibilityKey(target);
-        // Patch a private byte buffer only, retaining container headers, descriptors and padding.
-        byte[] bytes = target.Serialize();
-        var snapshot = DskImage.Parse(bytes);
-        var cpm = (CpmFileSystem)target.FileSystem;
-        foreach (int t in DskDocumentFactory.GetSystemPhysicalTracks(cpm.Dpb, snapshot))
-        {
-            var track = snapshot.Tracks[t]!;
-            int offset = track.FileOffset + DskImage.TrackHeaderSize;
-            for (int s = 0; s < track.Sectors.Count; s++)
-            {
-                byte[] data = source.Image.Tracks[t]!.Sectors[s].Data;
-                data.CopyTo(bytes, offset);
-                offset += track.Sectors[s].Data.Length;
-            }
-        }
-        var candidate = DskDocument.Open(bytes);
-        if (candidate.IsReadOnly || DskCapabilityService.CompatibilityKey(candidate) != originalKey)
-            throw new InvalidDataException("Installation would change filesystem detection or DPB; the original document was not changed.");
-        if (!candidate.Image.Serialize().AsSpan().SequenceEqual(bytes))
-            throw new InvalidDataException("The target container cannot be saved byte-preservingly; installation was cancelled.");
-        var before = target.FileSystem.ReadDirectory();
-        var after = candidate.FileSystem.ReadDirectory();
-        if (before.Count != after.Count || before.Where((entry, i) => entry.Key != after[i].Key ||
-            !target.FileSystem.Extract(entry).AsSpan().SequenceEqual(candidate.FileSystem.Extract(after[i]))).Any())
-            throw new InvalidDataException("Installation would change files; the original document was not changed.");
-        target.ReplaceContents(bytes);
+        var result = CpmSystemBuilder.BuildCompatible(target, source);
+        target.ReplaceContents(result.ImageBytes);
+        return result.Report;
     }
 }

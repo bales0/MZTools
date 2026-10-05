@@ -775,14 +775,17 @@ namespace MZTools
         }
 
         private void InstallBootSystem_Click(object sender, RoutedEventArgs e)
+            => ShowBootSystemInstaller();
+
+        internal void ShowBootSystemInstaller()
         {
             if (document == null || !installBootSystemMenu.IsEnabled) return;
             try
             {
                 var dialog = new CpmSystemBuilderDialog(OwnerWindow, document);
+                dialog.SystemInstalled += (_, _) => RefreshView();
                 dialog.ShowDialog();
-                if (dialog.SavedImagePath != null) LoadDocument(DskDocument.Open(dialog.SavedImagePath));
-                else if (dialog.Installed) LoadDocument(document);
+                if (dialog.Installed) RefreshView();
             }
             catch (Exception exception) { ShowError(exception.Message); }
         }

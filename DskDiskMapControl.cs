@@ -51,7 +51,7 @@ public sealed class DskDiskMapControl : FrameworkElement
                 var rect = new Rect((LabelWidth + col * CellWidth) * zoom, y * zoom, (CellWidth - 2) * zoom, (RowHeight - 2) * zoom);
                 bool highlight = sector == selectedSector || sector.Owners.Any(o => selectedFiles.Contains(o.FileKey)) || selectedFiles.Contains($"{sector.Track}:{sector.PhysicalIndex}");
                 Brush fill = highlight ? DiskMapVisuals.Selection : sector.HasIssue ? Brushes.Khaki :
-                    (sector.Role & (DskSectorRole.Boot | DskSectorRole.System | DskSectorRole.Directory | DskSectorRole.Fat | DskSectorRole.AllocationMap)) != 0 ? DiskMapVisuals.Metadata :
+                    (sector.Role & (DskSectorRole.Boot | DskSectorRole.System | DskSectorRole.SystemFile | DskSectorRole.Directory | DskSectorRole.Fat | DskSectorRole.AllocationMap)) != 0 ? DiskMapVisuals.Metadata :
                     sector.Role.HasFlag(DskSectorRole.Data) ? DiskMapVisuals.Data : SystemColors.WindowBrush;
                 dc.DrawRectangle(fill, new Pen(Brushes.DarkSlateGray, 1), rect);
                 if (highlight) DiskMapVisuals.DrawSelection(dc, rect, sector == selectedSector);

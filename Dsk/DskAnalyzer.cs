@@ -239,13 +239,14 @@ internal sealed class DskAnalyzer
     private void Cpm(CpmDpb dpb)
     {
         model.FileSystem = dpb.Name;
+        bool native = CpmDpbSignature.From(dpb) == CpmDpbSignature.From(CpmDpb.PersonalCpm80);
         if (dpb.Spt == 0 || dpb.Spt % 4 != 0 || dpb.BlockSize == 0 || dpb.BlockSize % 128 != 0 || dpb.Blm != (1 << dpb.Bsh) - 1)
             throw new InvalidDataException("CP/M DPB geometry is inconsistent.");
         var directoryBlocks = Enumerable.Range(0, 16).Where(b => (((dpb.Al0 << 8) | dpb.Al1) & (1 << (15 - b))) != 0).ToHashSet();
         if (directoryBlocks.Count * dpb.BlockSize < (dpb.Drm + 1) * 32)
             Issue("CPM_DIRECTORY_ALLOCATION", DskIssueSeverity.Unsafe, "DPB directory blocks do not cover DRM.");
         foreach (int t in DskDocumentFactory.GetSystemPhysicalTracks(dpb, image))
-            foreach (var s in model.Tracks[t].Sectors) Mark(s, t == 1 ? DskSectorRole.Boot | DskSectorRole.Reserved : DskSectorRole.System | DskSectorRole.Reserved);
+            foreach (var s in model.Tracks[t].Sectors) Mark(s, t == 1 ? DskSectorRole.Boot | DskSectorRole.Reserved | (native ? DskSectorRole.NativeIpl : 0) : DskSectorRole.System | DskSectorRole.Reserved);
         var blockSectors = new Dictionary<int, List<(DskSectorLayout Sector, int Offset, int Logical)>>();
         var physicalRanges = new Dictionary<(int Track, int Index, int Offset), int>();
         for (int b = 0; b <= dpb.Dsm; b++)
@@ -309,10 +310,29 @@ internal sealed class DskAnalyzer
                 claimed[b] = key;
                 if (!blockSectors.TryGetValue(b, out var parts)) continue;
                 foreach (var (s, offset, logical) in parts)
-                { Mark(s, DskSectorRole.Data); s.Owners.Add(new(key, display, b, logical, offset, 128, group * (dpb.Dsm <= 255 ? 16 : 8) + i, extent, raw[0])); }
+                { Mark(s, DskSectorRole.Data | (native && key == "0:PCPM.SYS" ? DskSectorRole.SystemFile : 0)); s.Owners.Add(new(key, display, b, logical, offset, 128, group * (dpb.Dsm <= 255 ? 16 : 8) + i, extent, raw[0])); }
             }
         }
         model.FileCount = extents.Count;
+        if (native)
+        {
+            bool present = extents.ContainsKey("0:PCPM.SYS");
+            bool sys = Enumerable.Range(0, directory.Length / 32).Any(slot => directory[slot * 32] == 0 &&
+                Encoding.ASCII.GetString(directory, slot * 32 + 1, 8) == "PCPM    " &&
+                new string(directory.Skip(slot * 32 + 9).Take(3).Select(b => (char)(b & 127)).ToArray()) == "SYS" && (directory[slot * 32 + 10] & 128) != 0);
+            Issue("PCPM_SYSTEM_FILE", DskIssueSeverity.Info, $"Native IPL expects PCPM.SYS; user 0 present: {(present ? "Yes" : "No")}; SYS attribute: {(sys ? "Yes" : "No")}.");
+            var systemEntries = Enumerable.Range(0, directory.Length / 32)
+                .Select(slot => directory.AsSpan(slot * 32, 32).ToArray())
+                .Where(entry => PersonalCpmSystemInstaller.IsSystemDirectoryEntry(entry)).ToArray();
+            if (present && !PersonalCpmSystemInstaller.IsSystemDirectoryEntry(directory.AsSpan(0, 32)))
+                Issue("PCPM_SYS_NOT_FIRST_DIRECTORY_ENTRY", DskIssueSeverity.Warning,
+                    "PCPM.SYS is not directory entry #0; native P-CP/M80 cannot boot.",
+                    "The IPL reads only user 0 PCPM.SYS in the first entry. Installation must safely relocate the existing first extent without changing its allocation/data.", file: "0:PCPM.SYS");
+            if (systemEntries.Length > 1 || systemEntries.Any(entry => (entry[12] & ~dpb.Exm) != 0 || (entry[14] & 63) != 0))
+                Issue("PCPM_SYS_INVALID_EXTENTS", DskIssueSeverity.Unsafe,
+                    "Native PCPM.SYS has duplicate/multiple or noninitial extents.",
+                    "The native IPL uses the allocation list of directory entry 0, not subsequent directory extents. Do not merge or discard entries heuristically.", file: "0:PCPM.SYS");
+        }
         foreach (var (key, groups) in extents)
             if (groups.Count != 0 && (groups.Min != 0 || groups.Max + 1 != groups.Count))
                 Issue("CPM_EXTENT_GAP", DskIssueSeverity.Warning, "File has missing logical extent groups.", file: key);

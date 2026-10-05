@@ -14,9 +14,7 @@ internal sealed class CpmSystemBuilderDialog : Window
     private readonly TextBox report = new() { IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.NoWrap,
         VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
         FontFamily = new System.Windows.Media.FontFamily("Consolas") };
-    private readonly Button build = new() { Content = "Build and Save As...", MinWidth = 145, IsEnabled = false };
     private readonly Button install = new() { Content = "Install into current disk", MinWidth = 145, IsEnabled = false };
-    private readonly ComboBox sourceMode = new() { Margin = new Thickness(0, 0, 0, 6) };
     private readonly Button copyReport = new() { Content = "Copy report", MinWidth = 95, IsEnabled = false };
     private readonly Button saveReport = new() { Content = "Save report...", MinWidth = 95, IsEnabled = false };
     private DskDocument? source;
@@ -44,10 +42,6 @@ internal sealed class CpmSystemBuilderDialog : Window
         root.Children.Add(targetPanel);
 
         var sourcePanel = Section("System source");
-        sourceMode.Items.Add("Verified template — exact registered SHA-256");
-        sourceMode.Items.Add("Compatible source DSK — system/version unverified");
-        sourceMode.SelectedIndex = CpmSystemProfileRegistry.SupportsTarget(target) ? 0 : 1;
-        sourcePanel.Children.Add(sourceMode);
         var sourceRow = new DockPanel();
         var browse = new Button { Content = "Browse...", MinWidth = 85, Margin = new Thickness(8, 0, 0, 0) };
         DockPanel.SetDock(browse, Dock.Right); sourceRow.Children.Add(browse); sourceRow.Children.Add(sourcePath);
@@ -55,20 +49,16 @@ internal sealed class CpmSystemBuilderDialog : Window
         profileText.Margin = new Thickness(0, 6, 0, 0); sourcePanel.Children.Add(profileText);
         Grid.SetRow(sourcePanel, 1); root.Children.Add(sourcePanel);
 
-        var policyPanel = Section("Build policy");
-        policyPanel.Children.Add(new TextBlock { Text = "Drive configuration: Profile default (no unreviewed patch)", TextWrapping = TextWrapping.Wrap });
-        var checks = new WrapPanel { Margin = new Thickness(0, 5, 0, 0) };
-        checks.Children.Add(PolicyCheck("Preserve source boot name"));
-        checks.Children.Add(PolicyCheck("Preserve source system logo"));
-        checks.Children.Add(PolicyCheck("Preserve source version strings"));
-        policyPanel.Children.Add(checks);
-        policyPanel.Children.Add(new CheckBox { Content = "Explicit branding replacement (not configured)", IsEnabled = false, Margin = new Thickness(0, 4, 0, 0) });
+        var policyPanel = Section("Installation policy");
+        policyPanel.Children.Add(new TextBlock { Text = PersonalCpmSystemInstaller.IsPersonalLayout(target)
+            ? "Native SHARP IPL and PCPM.SYS (user 0, SYS) will be installed at directory entry #0 using free allocation blocks.\nThe previous first file extent will be relocated without moving its data. Other target files will be preserved; existing user 0 PCPM.SYS will be replaced.\nNothing is saved automatically: use Save / Save As in the editor."
+            : "Source boot/system bytes and branding will be preserved exactly.\nOnly boot/system area will be installed. Target files will be preserved.\nNothing is saved automatically: use Save / Save As in the editor.", TextWrapping = TextWrapping.Wrap });
         Grid.SetRow(policyPanel, 2); root.Children.Add(policyPanel);
 
         var reportPanel = new Grid { Margin = new Thickness(0, 0, 0, 10) };
         reportPanel.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         reportPanel.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        reportPanel.Children.Add(new TextBlock { Text = "Preflight / build report", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 4) });
+        reportPanel.Children.Add(new TextBlock { Text = "Preflight / installation report", FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 4) });
         Grid.SetRow(report, 1); reportPanel.Children.Add(report);
         Grid.SetRow(reportPanel, 3); root.Children.Add(reportPanel);
 
@@ -76,36 +66,29 @@ internal sealed class CpmSystemBuilderDialog : Window
         buttons.Children.Add(copyReport); saveReport.Margin = new Thickness(8, 0, 0, 0); buttons.Children.Add(saveReport);
         var close = new Button { Content = "Close", IsCancel = true, MinWidth = 85, Margin = new Thickness(8, 0, 0, 0) };
         DockPanel.SetDock(close, Dock.Right); buttons.Children.Add(close);
-        build.Margin = new Thickness(8, 0, 0, 0); DockPanel.SetDock(build, Dock.Right); buttons.Children.Add(build);
         install.Margin = new Thickness(8, 0, 0, 0); DockPanel.SetDock(install, Dock.Right); buttons.Children.Add(install);
         Grid.SetRow(buttons, 4); root.Children.Add(buttons);
 
         browse.Click += Browse_Click;
-        build.Click += Build_Click;
         install.Click += Install_Click;
-        sourceMode.SelectionChanged += (_, _) =>
-        {
-            if (source == null) return;
-            try { LoadSource(source, CpmSystemProfileRegistry.ResolveVerifiedSource, sourcePath.Text); }
-            catch (Exception exception) { RejectSource(sourcePath.Text, exception.Message); }
-        };
         copyReport.Click += (_, _) => CopyCurrentReport();
         saveReport.Click += (_, _) => SaveCurrentReport();
         close.Click += (_, _) => Close();
-        report.Text = "Select one of the exact registered CP/M system DSK templates. No system bytes are generated or guessed.";
+        report.Text = "Browse for a trusted CP/M source. Registered system areas are identified automatically; compatible unknown systems remain unverified. No system bytes are generated or guessed.";
     }
 
-    internal string? SavedImagePath { get; private set; }
     internal bool Installed { get; private set; }
-    internal bool CanBuild => build.IsEnabled;
     internal bool CanInstall => install.IsEnabled;
     internal string ReportText => report.Text;
+    internal string IdentificationText => profileText.Text;
+    internal event EventHandler? SystemInstalled;
 
     private void Browse_Click(object sender, RoutedEventArgs e)
     {
         var picker = new OpenFileDialog { Filter = "DSK image|*.dsk", Title = "Select a CP/M system source DSK" };
         if (picker.ShowDialog(this) != true) return;
-        try { LoadSource(DskDocument.Open(picker.FileName), CpmSystemProfileRegistry.ResolveVerifiedSource, picker.FileName); }
+        ResetSource(picker.FileName);
+        try { LoadSource(DskDocument.Open(picker.FileName), CpmSystemProfileRegistry.TryResolveVerifiedSource, picker.FileName); }
         catch (Exception exception) { RejectSource(picker.FileName, exception.Message); }
     }
 
@@ -114,89 +97,76 @@ internal sealed class CpmSystemBuilderDialog : Window
 
     internal void SetCompatibleSourceForTesting(DskDocument value)
     {
-        sourceMode.SelectedIndex = 1;
-        LoadSource(value, CpmSystemProfileRegistry.ResolveVerifiedSource, "compatible-test.dsk");
+        LoadSource(value, CpmSystemProfileRegistry.TryResolveVerifiedSource, "compatible-test.dsk");
     }
 
-    private void LoadSource(DskDocument value, Func<DskDocument, CpmSystemProfile> resolver, string displayPath)
+    internal void LoadSource(DskDocument value, Func<DskDocument, CpmSystemProfile?>? resolver = null, string displayPath = "source.dsk")
     {
-        if (sourceMode.SelectedIndex == 1)
+        ResetSource(displayPath);
+        try
         {
-            var compatibility = DskCapabilityService.CanInstallBootSystem(target, value);
-            source = value; profile = null; completedReport = null; SavedImagePath = null;
-            sourcePath.Text = displayPath;
-            profileText.Text = "Compatible source DSK. Layout is checked; OS version and bootability are unverified.";
-            report.Text = compatibility.IsCompatible ? "Ready to install: " + compatibility.Reason : "Install rejected:\n" + compatibility.Reason;
-            install.IsEnabled = compatibility.IsCompatible; build.IsEnabled = false;
-            copyReport.IsEnabled = saveReport.IsEnabled = true;
-            return;
+            CpmSystemProfile? resolved = (resolver ?? CpmSystemProfileRegistry.TryResolveVerifiedSource)(value);
+            if (resolved == null)
+            {
+                var compatibility = DskCapabilityService.CanInstallBootSystem(target, value);
+                source = value; profile = null;
+                profileText.Text = "Identification: " + (compatibility.IsCompatible ? "Compatible source DSK" : "Unregistered source — incompatible") +
+                    "\nOS/version: Unverified | Transfer mode: Unverified | Loader: Unverified\nBootability is unverified.\nCompatibility: " + (compatibility.IsCompatible ? "OK" : "Rejected — see report");
+                report.Text = compatibility.IsCompatible
+                    ? "Ready to install: Compatible source DSK — OS/version/transfer unverified.\n" + compatibility.Reason +
+                        "\nSystem physical tracks: " + string.Join(", ", DskDocumentFactory.GetSystemPhysicalTracks(((CpmFileSystem)value.FileSystem).Dpb, value.Image))
+                    : "Install rejected:\n" + compatibility.Reason;
+                install.IsEnabled = compatibility.IsCompatible;
+                if (PersonalCpmSystemInstaller.IsPersonalLayout(value))
+                    profileText.Text += "\nSource kind: P-CP/M80-style source — version unverified\nSystem storage: PCPM.SYS (user 0)\nNative SHARP IPL: " + (PersonalCpmSystemInstaller.HasNativeLoader(value) ? "Yes" : "No") +
+                        "\nSystem file: " + (PersonalCpmSystemInstaller.FindSystemFile(value)?.Size.ToString() ?? "missing") + " B" +
+                        "\nPCPM.SYS directory entry #0: " + (PersonalCpmSystemInstaller.IsSystemFirst(value) ? "Yes" : "No — source is not currently bootable");
+                return;
+            }
+            CpmSystemBuildPreflight preflight = CpmSystemBuilder.Preflight(target, value, resolved);
+            source = value; profile = resolved;
+            profileText.Text = $"Identification: Registered exact {(resolved.Storage == CpmSystemStorageKind.BootTrackPlusSystemFile ? "IPL + system-file" : "system-area")} match\n{resolved.DisplayName}\nLayout: {resolved.Layout} | Transfer: {resolved.TransferMode?.ToString() ?? "Unverified"} | Loader: {resolved.BootLoader}\nVerification: {resolved.Verification} (not runtime boot certification)\nSystem tracks: {string.Join(", ", resolved.SystemPhysicalTracks)}\nSystem-area SHA-256: {resolved.SystemAreaSha256}\nCompatibility: {(preflight.CanBuild ? "OK" : "Rejected — see report")}";
+            report.Text = preflight.Report;
+            if (resolved.Storage == CpmSystemStorageKind.BootTrackPlusSystemFile)
+                profileText.Text += $"\nSystem storage: PCPM.SYS | System file: {resolved.FileBasedFingerprint!.SystemFileSize} B\nNative SHARP IPL: Yes | Transfer mode: Unverified\nPCPM.SYS directory slot: 0";
+            install.IsEnabled = preflight.CanBuild;
         }
-        CpmSystemProfile resolved = resolver(value);
-        CpmSystemBuildPreflight preflight = CpmSystemBuilder.Preflight(target, value, resolved);
-        source = value; profile = resolved; completedReport = null; SavedImagePath = null;
-        sourcePath.Text = displayPath;
-        profileText.Text = $"{resolved.DisplayName}\nLayout: {resolved.Layout} | Transfer: {resolved.TransferMode} | Loader: {resolved.BootLoader}\nSystem tracks: {string.Join(", ", resolved.SystemPhysicalTracks)}\nTemplate SHA-256: {resolved.VerifiedTemplateSha256}";
-        report.Text = preflight.Report;
-        build.IsEnabled = preflight.CanBuild;
-        install.IsEnabled = preflight.CanBuild;
+        catch (Exception exception) { RejectSource(displayPath, exception.Message); }
+    }
+
+    private void ResetSource(string path)
+    {
+        source = null; profile = null; completedReport = null; install.IsEnabled = false;
+        sourcePath.Text = path; profileText.Text = "No validated source selected."; report.Clear();
         copyReport.IsEnabled = saveReport.IsEnabled = true;
     }
 
-    private void RejectSource(string path, string reason)
+    internal void RejectSource(string path, string reason)
     {
-        source = null; profile = null; completedReport = null; SavedImagePath = null;
-        sourcePath.Text = path; profileText.Text = "Source is not an exact registered template.";
-        report.Text = "Build rejected:\n- " + reason;
-        build.IsEnabled = false; copyReport.IsEnabled = saveReport.IsEnabled = true;
-        install.IsEnabled = false;
+        ResetSource(path); profileText.Text = "Source rejected."; report.Text = "Install rejected:\n- " + reason;
     }
 
     private void Install_Click(object sender, RoutedEventArgs e)
     {
         if (source == null || !install.IsEnabled) return;
-        if (MessageBox.Show(this, "Replace the current disk's boot/system area with the selected source? File data will be validated and retained. Save is a separate operation.",
+        string confirmation = PersonalCpmSystemInstaller.IsPersonalLayout(target)
+            ? "Install native SHARP IPL and user 0 PCPM.SYS at directory entry #0? Its previous file extent will be relocated without moving its data. An existing user 0 PCPM.SYS will be replaced; all other files and metadata will be retained. Save is a separate operation."
+            : "Replace the current disk's boot/system area with the selected source? File data will be validated and retained. Save is a separate operation.";
+        if (MessageBox.Show(this, confirmation,
             Title, MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
         try
         {
-            if (profile != null)
-            {
-                completedReport = CpmSystemBuilder.Apply(target, source, profile);
-                report.Text = completedReport.ToText();
-            }
-            else
-            {
-                DskBootSystemService.Install(target, source);
-                report.Text = "Compatible boot/system area installed; source system/version remains unverified. Save the current disk to persist changes.";
-            }
-            Installed = true; SavedImagePath = null;
+            InstallCurrentSource();
         }
-        catch (Exception exception) { MessageBox.Show(this, exception.Message, Title, MessageBoxButton.OK, MessageBoxImage.Error); }
+        catch (Exception exception) { RejectSource(sourcePath.Text, exception.Message); MessageBox.Show(this, exception.Message, Title, MessageBoxButton.OK, MessageBoxImage.Error); }
     }
 
-    private void Build_Click(object sender, RoutedEventArgs e)
+    internal void InstallCurrentSource()
     {
-        if (source == null || profile == null) return;
-        var save = new SaveFileDialog { Filter = "Extended CPC DSK|*.dsk", DefaultExt = ".dsk", AddExtension = true,
-            FileName = SuggestedName(profile), Title = "Build and Save Bootable CP/M System" };
-        if (save.ShowDialog(this) != true) return;
-        try
-        {
-            string destination = Path.GetFullPath(save.FileName);
-            if ((target.FilePath != null && destination.Equals(Path.GetFullPath(target.FilePath), StringComparison.OrdinalIgnoreCase)) ||
-                (source.FilePath != null && destination.Equals(Path.GetFullPath(source.FilePath), StringComparison.OrdinalIgnoreCase)))
-                throw new InvalidOperationException("Build and Save As requires a separate path from the current disk and system source.");
-            CpmSystemBuildResult result = CpmSystemBuilder.Build(target, source, profile);
-            CpmSystemBuilder.SaveValidatedResult(result, save.FileName);
-            completedReport = result.Report; SavedImagePath = Path.GetFullPath(save.FileName);
-            report.Text = result.Report.ToText(); copyReport.IsEnabled = saveReport.IsEnabled = true;
-            build.Content = "Build again...";
-            MessageBox.Show(this, $"Validated system image saved to:\n{SavedImagePath}", Title, MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-        catch (Exception exception)
-        {
-            report.Text = "Build failed; the open document was not changed.\n\n" + exception.Message;
-            MessageBox.Show(this, exception.Message, Title, MessageBoxButton.OK, MessageBoxImage.Error);
-        }
+        if (source == null || !install.IsEnabled) throw new InvalidOperationException("Select a compatible source first.");
+        completedReport = profile == null ? DskBootSystemService.InstallWithReport(target, source) : CpmSystemBuilder.Apply(target, source, profile);
+        report.Text = completedReport.ToText() + "\nDocument modified. Use Save / Save As in the editor; nothing was saved automatically.";
+        Installed = true; install.IsEnabled = false; SystemInstalled?.Invoke(this, EventArgs.Empty);
     }
 
     private void CopyCurrentReport()
@@ -207,13 +177,13 @@ internal sealed class CpmSystemBuilderDialog : Window
 
     private void SaveCurrentReport()
     {
-        var save = new SaveFileDialog { Filter = "Text report|*.txt", DefaultExt = ".txt", AddExtension = true, FileName = "cpm-system-build.txt" };
+        var save = new SaveFileDialog { Filter = "Text report|*.txt", DefaultExt = ".txt", AddExtension = true, FileName = "cpm-system-install.txt" };
         if (save.ShowDialog(this) != true) return;
         try { File.WriteAllText(save.FileName, CurrentReport()); }
         catch (Exception exception) { MessageBox.Show(this, exception.Message, Title, MessageBoxButton.OK, MessageBoxImage.Error); }
     }
 
-    private string CurrentReport() => completedReport?.ToText() ?? report.Text;
+    private string CurrentReport() => report.Text;
 
     private static StackPanel Section(string heading) => new()
     {
@@ -221,10 +191,6 @@ internal sealed class CpmSystemBuilderDialog : Window
         Children = { new TextBlock { Text = heading, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 4) } }
     };
 
-    private static CheckBox PolicyCheck(string text) => new()
-    {
-        Content = text, IsChecked = true, IsEnabled = false, Margin = new Thickness(0, 0, 18, 0)
-    };
 
     private static string TargetDescription(DskDocument document)
     {
@@ -232,5 +198,4 @@ internal sealed class CpmSystemBuilderDialog : Window
         return $"{document.FileSystem.DisplayName} | {document.Image.TrackCount} cylinders × {document.Image.SideCount} sides | DPB OFF={cpm.Dpb.Off}, block={cpm.Dpb.BlockSize} B";
     }
 
-    private static string SuggestedName(CpmSystemProfile value) => value.Id + "-system.dsk";
 }

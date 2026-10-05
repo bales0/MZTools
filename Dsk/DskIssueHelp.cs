@@ -64,6 +64,12 @@ internal static class DskIssueHelp
             ("A directory record uses a user/status value other than a normal file entry.", "Known metadata records can be informational; unrecognized values may indicate damaged or nonstandard directory data.", "Review the exact record type and bytes instead of treating every non-file record as a deleted or corrupt file."),
         "CPM_BROKEN_EXTENT" or "CPM_SIZE_ALLOCATION_MISMATCH" or "CPM_EXTENT_GAP" =>
             ("CP/M extent fields, record counts or allocation lists cannot describe a consistent complete file.", "File size or segment order may be wrong, and data may be missing. Rebuilding an Unsafe extent can lose data.", "Compare EX/S2/RC and allocation pointers for every extent of the same user/name; preserve raw directory records."),
+        "PCPM_SYSTEM_FILE" =>
+            ("Native SHARP P-CP/M80 IPL reads directory entry 0 and requires user 0 PCPM.SYS there.", "The file elsewhere in the directory cannot boot with this loader. A SYS flag alone does not verify its version or runtime bootability.", "Install native IPL and PCPM.SYS from a trusted matching source. Preserve entry 0's old file extent by relocating it; system data may use any safe free blocks."),
+        "PCPM_SYS_NOT_FIRST_DIRECTORY_ENTRY" =>
+            ("PCPM.SYS exists, but it is not the first physical CP/M directory entry.", "The native MZ-2Z047 IPL compares entry 0 only and will report No system file even when a later entry has the correct filename.", "Use the native installer to place PCPM.SYS at entry 0 and safely relocate its previous occupant. This is a native boot constraint, not a general CP/M filesystem error."),
+        "PCPM_SYS_INVALID_EXTENTS" =>
+            ("The native system file has multiple, duplicate or noninitial directory extents.", "The native IPL follows only the first directory entry's allocation list. Multiple entries must not be merged or replaced heuristically.", "Keep the original image and use a consistent single-extent PCPM.SYS from a trusted native reference. Installation rejects the inconsistent source/target."),
         "CPM_FREE_DERIVED" =>
             ("CP/M has no stored allocation bitmap; free blocks are computed from directory extents and reserved DPB blocks.", "Arbitrary bytes in an unclaimed block are not enough to prove an orphan file or occupied allocation.", "Use the directory-derived allocation view, but retain unclaimed bytes when preserving or recovering an image."),
         "MRS_FAT_COVERAGE" or "MRS_INVALID_FAT_MARKER" =>

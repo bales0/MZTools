@@ -147,6 +147,9 @@ namespace MZTools
         {
             int sectors = sds400 ? 10 : 8;
             DskImage image = DskImage.CreateSharpBootDataDisk(40, 2, sectors, highDensityInterleave: false, "MZTools");
+            if (!sds400)
+                for (int index = 0; index < 16; index++)
+                    image.Tracks[1]!.Sectors[index].SectorId = (byte)(index / 2 + 1 + (index % 2) * 8);
             if (sds400)
             {
                 for (int absoluteTrack = 0; absoluteTrack < image.Tracks.Count; absoluteTrack += 2)

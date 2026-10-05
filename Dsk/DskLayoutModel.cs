@@ -9,7 +9,8 @@ namespace MZTools;
 internal enum DskSectorRole
 {
     Unknown = 0, Boot = 1, System = 2, Directory = 4, AllocationMap = 8,
-    Fat = 16, Data = 32, Free = 64, Reserved = 128, Padding = 256, Missing = 512, Invalid = 1024
+    Fat = 16, Data = 32, Free = 64, Reserved = 128, Padding = 256, Missing = 512, Invalid = 1024,
+    NativeIpl = 2048, SystemFile = 4096
 }
 
 internal enum DskIssueSeverity { Info, Warning, Error, Unsafe }

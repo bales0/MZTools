@@ -2751,20 +2751,6 @@ namespace MZTools
                         options.SectorSize == 256 ? (byte)0x2A : (byte)0x4E, options.Filler, "MZTools", options.SectorOrder, options.SectorIds),
                     _ => throw new ArgumentOutOfRangeException()
                 };
-                if (options.Format is DskNewFormat.PersonalCpm or DskNewFormat.Sds400 or
-                    DskNewFormat.LecCpmDd or DskNewFormat.LecCpmHd)
-                {
-                    if (options.BootMode == DskBootMode.Empty)
-                    {
-                        DskDocumentFactory.ClearBootTrack(dsk);
-                    }
-                    else if (options.BootMode == DskBootMode.ImportFromDsk)
-                    {
-                        DskDocument source = DskDocument.Open(options.BootSourcePath ??
-                            throw new InvalidOperationException("No boot source DSK was selected."));
-                        DskDocumentFactory.ImportBootSystemArea(dsk, source);
-                    }
-                }
                 ShowDskDocument(dsk, tapeReplacementConfirmed: true);
             }
             catch (Exception exception)

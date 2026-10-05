@@ -23,6 +23,29 @@ internal sealed record DskBootInfo(string Bootable, string System, bool HasSyste
 
         if (document.FileSystem is CpmFileSystem cpm)
         {
+            if (PersonalCpmSystemInstaller.IsPersonalLayout(document))
+            {
+                try
+                {
+                    PersonalCpmSystemInstaller.ValidateGeometry(document);
+                    if (document.IsReadOnly || DskAnalyzer.Analyze(document).Errors != 0)
+                        return new("No — inconsistent native filesystem", "P-CP/M80 image has filesystem/container errors");
+                    if (!PersonalCpmSystemInstaller.HasNativeLoader(document))
+                        return new("No — identification header only, no native loader", "None (data-only native P-CP/M80)");
+                    var file = PersonalCpmSystemInstaller.FindSystemFile(document);
+                    if (file == null || file.Size == 0)
+                        return new("No — incomplete system; missing user 0 PCPM.SYS", "Native P-CP/M80 IPL expects PCPM.SYS");
+                    if (!PersonalCpmSystemInstaller.IsSystemFirst(document))
+                        return new("No — PCPM.SYS is not the first directory entry", "Native P-CP/M80 IPL reads directory slot 0 only");
+                    bool known = PersonalCpmSystemInstaller.Fingerprint(document) == PersonalCpmSystemInstaller.RegisteredFingerprint;
+                    return new(known ? "Yes — registered native IPL + PCPM.SYS (runtime unverified)" : "Unverified — native boot candidate",
+                        known ? "P-CP/M80 (MZ-2Z047); file-based system" : "P-CP/M80-style IPL + PCPM.SYS; OS/version unverified", true);
+                }
+                catch (System.IO.InvalidDataException)
+                {
+                    return new("No — invalid native geometry/system file", "P-CP/M80 layout is inconsistent");
+                }
+            }
             bool systemData = DskDocumentFactory.GetSystemPhysicalTracks(cpm.Dpb, document.Image)
                 .Any(t => document.Image.Tracks[t]?.Sectors.Any(s => NonFill(s.Data, ipl && ReferenceEquals(s, first) ? 128 : 0)) == true);
             if (!systemData)

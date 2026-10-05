@@ -326,6 +326,45 @@ namespace MZTools
         internal IReadOnlyList<(int Index, byte[] Raw)> DirectoryEntriesFor(DskFileEntry entry) =>
             ReadRawDirectory().Select((raw, index) => (Index: index, Raw: raw)).Where(p => Matches(p.Raw, entry)).ToArray();
 
+        internal byte[] ReadRawDirectoryEntry(int index)
+        {
+            ValidateDirectoryIndex(index);
+            return ReadRawDirectory()[index];
+        }
+
+        // Internal only: exact position is a native IPL constraint, not a general CP/M/UI operation.
+        internal void WriteRawDirectoryEntry(int index, ReadOnlySpan<byte> entry)
+        {
+            ValidateDirectoryIndex(index);
+            if (entry.Length != 32) throw new ArgumentException("A CP/M directory entry is exactly 32 bytes.", nameof(entry));
+            WriteDirectoryEntry(index, entry.ToArray());
+        }
+
+        internal int FindFreeDirectorySlot(int startIndex = 0)
+        {
+            if (startIndex < 0 || startIndex > Dpb.Drm + 1) throw new ArgumentOutOfRangeException(nameof(startIndex));
+            var entries = ReadRawDirectory();
+            for (int index = startIndex; index < entries.Length; index++)
+                if (entries[index][0] == 0xE5) return index;
+            return -1;
+        }
+
+        internal void MoveDirectoryEntry(int from, int to)
+        {
+            byte[] source = ReadRawDirectoryEntry(from), destination = ReadRawDirectoryEntry(to);
+            if (source[0] > 15) throw new InvalidDataException("Only a live file extent can be relocated.");
+            if (from == to) return;
+            if (destination[0] != 0xE5) throw new InvalidDataException("Directory relocation must not overwrite an occupied entry.");
+            WriteRawDirectoryEntry(to, source);
+            source[0] = 0xE5;
+            WriteRawDirectoryEntry(from, source);
+        }
+
+        private void ValidateDirectoryIndex(int index)
+        {
+            if (index < 0 || index > Dpb.Drm) throw new ArgumentOutOfRangeException(nameof(index));
+        }
+
         private void ValidateDirectory(byte[][] directory)
         {
             foreach (byte[] entry in directory)

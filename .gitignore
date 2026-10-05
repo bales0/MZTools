@@ -13,6 +13,7 @@
 .specification/
 MZTool.Tests/*
 !MZTool.Tests/CpmSystemBuilderTests.cs
+!MZTool.Tests/PersonalCpmSystemTests.cs
 !MZTool.Tests/DskHexEditTests.cs
 !MZTool.Tests/DskFilePropertyTests.cs
 !MZTool.Tests/DskPatchTests.cs
