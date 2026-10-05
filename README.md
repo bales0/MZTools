@@ -204,8 +204,9 @@ Disk Map, with an always-visible summary and `Blocks` / `Issues` inspector pages
 Disk Map draws one row per physical track and one cell per sector in the
 DSK descriptor order, including interleave, unusual sector IDs, variable track
 sizes and explicit missing-track rows. It is a schematic container view, not a
-flux/MFM recording or a representation of magnetic timing. Zoom and scrolling
-support large images without creating a separate WPF control for each sector.
+flux/MFM recording or a representation of magnetic timing. Scrolling supports
+large images without creating a separate WPF control for each sector; there
+is no zoom control. Arrow keys move through sectors in the map or block list.
 
 Selecting a file highlights its sectors. Clicking a map cell shows C/H/R/N,
 physical indices, raw byte length, ST1/ST2, the actual sector-data offset in the
@@ -251,8 +252,9 @@ conflicts, and MRS orphan FAT IDs, block-count mismatches and reserved-area
 allocations. CP/M has no persistent free bitmap, so orphan allocations cannot
 be inferred from arbitrary nonzero payload bytes. Empty FSMZ variants have no
 unambiguous on-disk 63/127-entry discriminator; the existing reader's detection
-is used. Custom CP/M DPBs, repair/defrag and a writable hex editor remain
-unsupported. This feature adds no Make Bootable operation or automatic repair.
+is used. Custom CP/M DPBs and repair/defrag remain unsupported. Validated raw
+hex editing and boot/system installation are described below; analysis never
+performs an automatic repair.
 
 ### Direct MZ-800 IPL floppy import/export
 
@@ -425,8 +427,10 @@ The map wraps the sequential stream over eight rows and distinguishes FNBLK,
 file headers, payloads, body framing/CRC, sync/gaps/unassigned data and space
 outside the physical data window. Gaps are not automatically free capacity.
 Select a region or a block in the list to see its file name, payload size,
-LOAD/EXEC and exact position; matching files/regions are highlighted. Zoom
-helps inspect smaller regions, which can also be selected in the block list.
+LOAD/EXEC and exact position; matching files/regions are highlighted. Arrow
+keys move between regions in the map or block list, including tiny regions.
+There is no zoom control. The selected list row stays strongly highlighted
+even when keyboard focus remains in the map.
 Every region has a dark outline. Selected regions/files use a blue fill
 with a contrasting black/white frame; body framing/CRC is pale yellow, so
 selection is distinct from the normal header, payload and framing colors.
@@ -627,11 +631,21 @@ The extended functions in this fork were developed and verified using informatio
 
 ## Format-aware Install Boot/System
 
-The DSK editor provides **Disk → Install Boot/System...** for consistent, recognized CP/M images with a supported Sharp boot track. Profiles are tied to the detected DPB and exact physical layout, including sector descriptor order, C/H/R/N, sector sizes, system tracks, allocation parameters and physical track/sector maps. P-CP/M80 original, SDS/400, LEC DD and LEC HD are distinct layouts, not interchangeable systems.
+The DSK editor provides one **Disk → Make Bootable / Install CP/M System...** dialog for consistent, recognized CP/M images with a supported Sharp boot track. Choose either an exact registered **Verified template** or a **Compatible source DSK** whose system/version remains unverified. Profiles are tied to the detected DPB and exact physical layout, including sector descriptor order, C/H/R/N, sector sizes, system tracks, allocation parameters and physical track/sector maps. P-CP/M80 original, SDS/400, LEC DD and LEC HD are distinct layouts, not interchangeable systems.
 
 Choose a trusted source DSK with the identical layout. No bundled CP/M version is assumed and no CP/M system bytes are generated. An empty/fill-only boot track or identification-header-only source is rejected; matching layout does not certify the source OS version or its bootability. Until a compatible source is chosen, no system data is available for installation.
 
 Installation is confirmed with the physical system-track list and runs on a private buffer. Only sector payloads in that area are replaced; geometry, descriptors, DPB, filesystem and directory/data allocation are retained. Files are checked after reopening the candidate. Any failure leaves the original document unchanged. Successful installation marks it modified; saving remains a separate action. Analyzer report exports include installer availability.
+
+### CP/M System Profiles and System Builder backend
+
+The UI-independent System Builder backend has a registry of exact, SHA-256-bound templates for CP/M 2.3 DD polling, CP/M 4.1 DD/HD IRQ and CP/M 4.2 DD/HD polling. Transfer mode is trusted profile metadata for a specific verified image; it is never inferred from an opcode sequence or a reference to FDC port `DFh`. System image files are not bundled with MZTools.
+
+Preflight checks the complete physical descriptor signature, CP/M DPB and maps, system-track list, source hash, presence of system bytes, allocation separation and Analyzer results. Build operates on a private byte copy, reopens and analyzes the result, verifies that non-system sectors and all CP/M files remain byte-identical, and only then allows the caller to replace the document. Its text report contains the profile, layout, DPB, loader/transfer mode, system tracks, exact changed byte ranges and SHA-256 hashes.
+
+In **Disk ▾ → Make Bootable / Install CP/M System...**, choose **Verified template** on a consistent writable 720 KiB DD or 1.44 MiB HD CP/M target. Select an exact registered source image to see its profile, transfer mode, boot loader, system tracks and preflight report. **Install into current disk** changes the open document after validation; saving remains separate. **Build and Save As...** validates a private result, writes and verifies a temporary file in the destination directory, and only after success opens the saved result in the editor. Build output must use a different path from both input disks. The report can be copied or saved as text.
+
+All boot name, logo and displayed-version bytes are preserved from the source template. Explicit branding replacement and drive-configuration patching remain disabled until a profile supplies reviewed patch definitions. **Compatible source DSK** retains the existing installer validation for custom trusted system images and offers installation without claiming a verified version or polling/IRQ profile.
 
 Single/Multi IPL never offer CP/M installation. FSMZ/IPLDISK, MRS, BootOnly and Raw have no compatible installer; their disabled menu item explains why. Installation is not a universal Make Bootable function and does not convert formats. No CLI, automatic repair or defrag is introduced.
 
@@ -654,10 +668,10 @@ The DSK information panel and exported analysis report show **Bootable** and **S
 
 ## File properties
 
-Select exactly one file and use **Properties...** in the main editor toolbar. File properties are not duplicated in the Disk menu. The command is disabled without a single selection or for unsupported/read-only filesystems. Changes are entered in a dialog, not written through DataGrid binding; Cancel leaves the document untouched.
+Native properties are displayed and edited directly in the **Files** browser rows, without a separate side panel. Confirm a cell with Enter or leave the cell to apply it; Escape cancels editing. Only consistent, writable CP/M and MRS images expose editable native cells. Values are applied through the validated properties service; typing alone does not change the document. Each edit applies to its row, not to all selected files.
 
-- **CP/M:** User area (decimal 0–15) and RO/SYS/ARC. Every extent of the logical file is updated consistently. Filename, extension, RC, extent numbering, allocation pointers and payload bytes are unchanged. Moving to a user area that already contains the same name/extension is refused before any write. CP/M does not expose LOAD/EXEC because those are not native directory fields.
-- **MRS:** LOAD and EXEC (hex 0000–FFFF, optional `0x` prefix). The existing native little-endian directory fields are at +0x0C and +0x16 respectively. Editing does not change file ID, block count, FAT ownership or payload. CP/M user/attribute fields are not offered for MRS.
+- **CP/M:** User area (decimal 0–15) and clickable RO/SYS/ARC checkboxes. Every extent of the logical file is updated consistently. Checkbox bindings never write directory bytes directly: clicks use the same validated transaction as text properties. Filename, extension, RC, extent numbering, allocation pointers and payload bytes are unchanged. Moving to a user area that already contains the same name/extension is refused before any write. CP/M does not expose LOAD/EXEC because those are not native directory fields.
+- **MRS:** LOAD and EXEC display as `0x0000`–`0xFFFF`. Enter `0x`-prefixed hexadecimal or plain decimal. The existing native little-endian directory fields are at +0x0C and +0x16 respectively. Editing does not change file ID, block count, FAT ownership or payload. CP/M user/attribute fields are not offered for MRS.
 
 Apply works on a private document, reopens and validates the filesystem/DPB and all file payloads, then replaces the original document only on success. The file list and analyzer/map refresh and the edited file is reselected. A no-op does not mark a previously saved image modified. Saving remains a separate operation.
 
@@ -665,7 +679,7 @@ Boot-install geometry errors report the target and source sector counts, sizes a
 
 ## Filesystem Structure Inspector
 
-Open **Structure Inspector...** from Disk Map or **Disk ▾ → Filesystem Structure Inspector...**. The read-only, resizable window uses a private snapshot including unsaved edits, with four tabs: Filesystem, Directory, Allocation and Raw structure. Selecting a block or directory slot highlights its physical sectors in the inspector and the editor's Disk Map. All sectors of a block are highlighted, not all blocks belonging to the same file. Details include native offsets and physical image offsets. **Hex view metadata...** shows decoded native metadata without enabling writes.
+Open **Disk ▾ → Filesystem Structure Inspector...** (the duplicate Disk Map button has been removed). The read-only, resizable window uses a private snapshot including unsaved edits, with four tabs: Filesystem, Directory, Allocation and Raw structure. Selecting a block or directory slot highlights its physical sectors in the inspector and the editor's Disk Map. All sectors of a block are highlighted, not all blocks belonging to the same file. Details include native offsets and physical image offsets. **Hex view metadata...** shows decoded native metadata without enabling writes.
 
 - **FSMZ:** standard 63 / extended 127 directory, DINFO volume, file-area start, used/last block counters, raw DINFO and 2000-bit LSB-first bitmap, every directory slot (including header/unused), and bitmap state plus directory owners per 256-byte block.
 - **CP/M:** detected DPB (SPT/BSH/BLM/EXM/DSM/DRM/AL0/AL1/CKS/OFF), block size, directory blocks and physical maps; all raw directory entries, user/file grouping, extent number/group, RC, RO/SYS/ARC and 8-/16-bit allocation pointers. Free/used/reserved blocks follow that DPB and its physical mapping. DPB parameters are not presented as a fabricated on-disk record.
@@ -673,9 +687,90 @@ Open **Structure Inspector...** from Disk Map or **Disk ▾ → Filesystem Struc
 
 Analyzer diagnostics are retained, including for recognized read-only filesystems. Unknown/Raw, BootOnly and dedicated IPL layouts do not offer filesystem decoding; no structures are guessed. Raw metadata buffers are filesystem-decoded (inversion removed where required), while the existing Disk Map sector hex view shows stored physical bytes. This is not a DPB editor, repair or defragmenter.
 
+## Physical QuickDisk host identification
+
+`.QD` is not only a SHARP format. MZTools can inspect physical HxC and
+FlashFloppy QuickDisk containers from multiple host systems. The container
+representation remains separate from content-derived host identification:
+SHARP MZ, Roland, Akai S612/S700 family, Thomson MO5, or unknown physical
+QuickDisk. Device names are probable origins supported by evidence, not
+hardware guarantees; filenames never influence detection.
+
+Recognized non-SHARP and unknown physical images open read-only in the
+existing Files view, with container/profile metadata, confidence, evidence,
+warnings, decoded blocks/sectors and separate read-only hex inspection.
+Disk Map retains physical positions and host-specific regions. Both views
+offer text reports; the inspector offers decoded-block/sector binary export
+and MO5 raw 51200-byte export only for 400 unique checksum-valid sectors.
+Selecting a host unit shows its structure, framing/CRC ranges and track position;
+Roland exposes shared SHARP header fields, window-relative start and inter-block
+spacing. Akai shows subformat/marker information; MO5 shows physical/logical IDs
+and checksums. Block export includes decoded sync/framing/CRC; sector export
+contains only sector payload. No byte-identical image-copy action is offered;
+Save As as a format converter remains future work.
+MZF add/delete/rename, normal Save/Save As and SHARP rebuilding are disabled.
+Non-SHARP support is read-only unless documented otherwise.
+
+Blank physical media have unknown origin, not an assumed SHARP identity.
+Formatted zero-file SHARP media are recognized from a validated FNBLK/CRC;
+residual syncs and partially valid Roland blocks do not override that evidence.
+The explicit Format Quickdisk command may initialize a proven blank image
+as SHARP after its existing confirmation; nonblank non-SHARP images cannot
+be formatted through that command. Native SHARP editing/writers are unchanged.
+
+Roland can share valid FNBLK/header/body framing with SHARP. Validated
+Roland S10 metadata plus the three fixed CRC regions provide more specific
+evidence; an otherwise wire-compatible layout with conflicting host evidence
+is kept unknown/read-only instead of guessing its origin.
+
+Deterministic synthetic tests run without media fixtures. Optional full-image
+integration tests use these local files in `specification` (not automatically
+committed): `DSKA0001_Roland.QD`, `DSKA0002_MO5_CQ90-028_formatted.QD`,
+`DSKA0003_Akai_formatted.QD`. The test project copies them into `QDReference`
+when present. Run `dotnet test MZTool.Tests/MZTools.Tests.csproj --filter
+QuickDiskHostDetectionTests`. Equivalent synthetic FlashFloppy wrappers test
+container-independent detection, not emulator/hardware compatibility.
+
+## Writable Hex Editor
+
+In **Disk Map**, select a sector or block, then explicitly click **Hex editor...** to open a **separate modeless window**. Selection alone never opens it. Once open, one window follows subsequent sector/block selections. The map retains its full height and remains usable. The buffer selector offers the physical sector and any mapped CP/M allocation blocks; while the window is closed it only chooses what to open. The title identifies the active track/descriptor or allocation block. **Cancel** discards unapplied bytes and closes the window without reopening it. Switching buffers or closing the window with unapplied edits requires confirmation; declining preserves both the active editor and selection. Sector editing shows stored bytes; CP/M block editing shows filesystem-decoded bytes and writes storage inversion back correctly. Dedicated single/multi-program IPL images display sector bytes read-only.
+
+The workflow is **Unlock editing → edit two-digit hex bytes → Preview changes → Apply**. The original and new buffers appear side by side with HEX, ASCII and MZ (SHASCII) columns. Scrolling either buffer scrolls both, vertically and horizontally. Character views update from valid edited bytes; incomplete or invalid HEX is indicated explicitly. MZ uses the existing SHASCII display mapping, not a pixel-exact hardware font. The preview includes exact byte changes, sector role, filesystem re-detection and Analyzer results. Boot/System/Directory/FAT/AllocationMap buffers warn explicitly. Buffer size cannot change. Revert and Cancel leave the document untouched, and changing the text invalidates the previous preview.
+
+In the DSK file browser, select multiple files with Ctrl/Shift and edit a native
+property. Clicking RO/SYS/ARC sets the same flag for the whole selection;
+editing User or MRS LOAD/EXEC sets that value on all selected files. Other fields
+retain their individual values. The complete batch is validated on a private
+copy; a collision or invalid value leaves every file unchanged. Renaming remains
+a single-file operation.
+The selection remains strongly highlighted when the browser loses focus after
+editing. Sectors belonging to selected files retain their blue map fill and are
+also highlighted in the side Block View, independently of its single active row.
+
+HEX entry uses fixed-position overwrite, not text insertion: only hexadecimal
+digits are accepted, separators and buffer length stay unchanged, and the caret
+advances across digit positions. Backspace moves back without deleting a byte;
+Delete/Enter/Space cannot reshape the buffer. Paste accepts complete bytes
+(`AA BB` or `AABB`) starting at the current byte; malformed or oversized input
+is rejected atomically. Native cut and drag/drop cannot modify the buffer.
+
+QuickDisk report copy/save actions are available only in Disk Map. The non-SHARP
+Files inspector exports a selected decoded block/sector for supported hosts.
+MO5 additionally exports a complete logical raw image (51200 bytes), only when
+all 400 unique sectors have valid checksums. This is not a container copy or
+a speculative logical image conversion for Roland/Akai.
+
+Each edit uses captured private image bytes, modifies only the mapped payload, serializes, reopens and analyzes the candidate before replacing the current document. Container errors are rejected. Filesystem damage or a detection/layout change requires explicit confirmation; the resulting bytes remain available for Save As and raw inspection even if detection changes to Raw/BootOnly. A changed document invalidates a pending hex edit. Apply marks the document modified; saving remains a separate action. The first version does not edit whole images or container descriptors; non-CP/M filesystem blocks are accessible as physical sectors.
+
 ## DSK Compare
 
-Use **Disk ▾ → Compare with...** and select a second DSK. Comparison is read-only and works on snapshots, including unsaved edits in the open document. Neither image is modified and no merge/apply-patch operation is provided.
+Use **Disk ▾ → Compare with...** and select a second DSK. Comparison works on snapshots, including unsaved edits in the open document. Comparing and exporting a patch do not modify either image. **Preview patch** and **Export patch...** describe the changes from the left snapshot to the right.
+
+### DSK Patch Format
+
+Version 1 `.mzpatch.json` files contain source/target SHA-256, source/target geometry signatures and sector byte ranges addressed by physical track, descriptor index, C/H/R/N and offset. Every range includes expected original bytes, their SHA-256 and equal-length replacement bytes. Matching only a sector ID is never sufficient.
+
+In **Disk Map**, use **Apply DSK patch...** to preview a patch against the current document. Source SHA-256, geometry, original bytes and hashes, descriptor identity, range bounds and overlap are checked. The private result is reopened, serialized, analyzed and verified against the exact target SHA-256 before Apply. Any mismatch leaves the document unchanged; saving remains separate. Filesystem damage is rejected. Version 1 supports only sector payload changes with identical physical layout; header/descriptor, padding, trailing-data and geometry changes cannot be exported. Patch JSON is limited to 16 MiB. Semantic patches are not implemented.
 
 The resizable comparison window has three levels and two physical maps. Scrolling either map moves both maps to the same vertical/horizontal offset; a smaller map stops at its own boundary without pulling the larger map back:
 

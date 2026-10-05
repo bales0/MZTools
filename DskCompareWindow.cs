@@ -4,6 +4,8 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.IO;
+using Microsoft.Win32;
 
 namespace MZTools;
 
@@ -25,7 +27,7 @@ internal sealed class DskCompareWindow : Window
     internal DskCompareWindow(Window? owner, DskComparison comparison, Action<DskDiffItem?>? selectInEditor = null)
     {
         Owner = owner; this.comparison = comparison; this.selectInEditor = selectInEditor;
-        Title = "DSK Compare — read-only"; Width = 1180; Height = 820; MinWidth = 800; MinHeight = 620;
+        Title = "DSK Compare — snapshots / patch export"; Width = 1180; Height = 820; MinWidth = 800; MinHeight = 620;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         var root = new Grid { Margin = new Thickness(12) }; Content = root;
         foreach (var height in new[] { GridLength.Auto, new GridLength(1, GridUnitType.Star), new GridLength(5), new GridLength(240), new GridLength(115), GridLength.Auto })
@@ -67,10 +69,31 @@ internal sealed class DskCompareWindow : Window
         Grid.SetRow(maps, 3); root.Children.Add(maps);
         detail.Margin = new Thickness(0, 8, 0, 0); Grid.SetRow(detail, 4); root.Children.Add(detail);
         var controls = new DockPanel { Margin = new Thickness(0, 10, 0, 0) }; controls.Children.Add(hex); controls.Children.Add(showSame);
+        var previewPatch = new Button { Content = "Preview patch", Margin = new Thickness(8, 0, 0, 0) };
+        var exportPatch = new Button { Content = "Export patch...", Margin = new Thickness(8, 0, 0, 0) };
+        controls.Children.Add(previewPatch); controls.Children.Add(exportPatch);
+        previewPatch.Click += (_, _) => Patch(false);
+        exportPatch.Click += (_, _) => Patch(true);
         var close = new Button { Content = "Close", IsCancel = true, MinWidth = 90, HorizontalAlignment = HorizontalAlignment.Right };
         close.Click += (_, _) => Close(); controls.Children.Add(close); Grid.SetRow(controls, 5); root.Children.Add(controls);
         hex.Click += (_, _) => { if (selected?.HasHexDiff == true) new DskHexDiffWindow(this, selected).ShowDialog(); };
         showSame.Checked += (_, _) => RefreshRows(); showSame.Unchecked += (_, _) => RefreshRows(); RefreshRows();
+    }
+
+    private void Patch(bool export)
+    {
+        try
+        {
+            var patch = DskPatchService.Export(comparison.LeftImage, comparison.RightImage);
+            if (!export)
+            {
+                var preview = DskPatchService.Preview(DskDocument.Open(comparison.LeftImage), patch);
+                new DskPatchPreviewWindow(this, preview.Report).ShowDialog(); return;
+            }
+            var save = new SaveFileDialog { Filter = "MZTools sector patch|*.mzpatch.json", DefaultExt = ".mzpatch.json", AddExtension = true, FileName = "dsk-changes.mzpatch.json" };
+            if (save.ShowDialog(this) == true) File.WriteAllText(save.FileName, DskPatchService.ToJson(patch));
+        }
+        catch (Exception exception) { MessageBox.Show(this, exception.Message, "Sector patch export", MessageBoxButton.OK, MessageBoxImage.Error); }
     }
 
     private void SyncMapScroll(object sender, ScrollChangedEventArgs e)
@@ -106,7 +129,7 @@ internal sealed class DskCompareWindow : Window
     }
     internal void Select(DskDiffItem? item)
     {
-        selected = item; hex.IsEnabled = item?.HasHexDiff == true; detail.Text = item?.Detail ?? "Select a row or a physical sector to inspect both snapshots. No merge/apply operation is provided.";
+        selected = item; hex.IsEnabled = item?.HasHexDiff == true; detail.Text = item?.Detail ?? "Select a row or a physical sector to inspect both snapshots. Export patch describes left → right; apply it from Disk Map.";
         void Highlight(DskDiskMapControl map, DskLayoutModel layout, DskSectorAddress? address, string? file)
         {
             map.SelectSector(file == null && address != null ? layout.Sectors.FirstOrDefault(s => s.Address == address) : null);

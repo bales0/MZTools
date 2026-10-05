@@ -131,6 +131,7 @@ namespace MZTools
             IReadOnlyList<TapeRecord> Records,
             QuickDiskPhysicalProfile? PhysicalProfile = null)
         {
+            internal QuickDiskHostAnalysis Analysis { get; init; } = QuickDiskHostAnalysis.Sharp(Records);
             public TapeDocumentFormat DocumentFormat => Format switch
             {
                 QdImageFormat.SharpLegacyLogical => TapeDocumentFormat.QdSharpLegacy,
@@ -1586,24 +1587,7 @@ namespace MZTools
         {
             public static IReadOnlyList<TapeRecord> Read(QuickDiskContainer container)
             {
-                IReadOnlyList<SharpQdFrame> frames = QuickDiskMfmCodec.FindSharpFrames(container.Track);
-                if (frames.Count == 0)
-                {
-                    if (IsBlankTrack(container.Track))
-                    {
-                        return Array.Empty<TapeRecord>();
-                    }
-                    if (QuickDiskMfmCodec.ContainsPlausibleSharpFrame(container.Track))
-                    {
-                        throw new InvalidDataException("CRC error or corrupt Sharp QD frame.");
-                    }
-                    throw new InvalidDataException(
-                        "The QD container is valid, but it does not contain a supported Sharp MZ QuickDisk image.");
-                }
-
-                return SharpQdFrameCodec.DecodeRecords(frames)
-                    .Select(block => TapeRecord.FromLegacy(block.Item1, block.Item2))
-                    .ToList();
+                return QuickDiskHostDetector.Detect(container.Track).Records;
             }
 
             internal static bool IsBlankTrack(ReadOnlySpan<byte> track)
@@ -1868,7 +1852,8 @@ namespace MZTools
                 if (format is QdImageFormat.HxcPhysical or QdImageFormat.FlashFloppyPhysical)
                 {
                     QuickDiskContainer container = HxcFlashFloppyQdContainer.Parse(image, format);
-                    return new QdReadResult(format, QuickDiskPhysicalReader.Read(container), container.Profile);
+                    var analysis = QuickDiskHostDetector.Detect(container.Track);
+                    return new QdReadResult(format, analysis.Records, container.Profile) { Analysis = analysis };
                 }
                 throw new InvalidDataException("Unknown .QD format.");
             }

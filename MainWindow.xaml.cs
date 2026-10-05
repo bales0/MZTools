@@ -202,6 +202,7 @@ namespace MZTools
         public MainWindow()
         {
             InitializeComponent();
+            MapInteraction.EmphasizeSelection(quickDiskBlocks);
             MzfDisplayDataCollection = new ObservableCollection<MzfDisplayData>();
             MzfDataGrid.ItemsSource = MzfDisplayDataCollection;
             quickDiskMap.RegionSelected += region =>
@@ -314,6 +315,11 @@ namespace MZTools
 
         private bool TryValidateOutputFormat(TapeDocumentFormat outputFormat, string extension, out string error)
         {
+            if (document.IsReadOnlyQuickDisk)
+            {
+                error = "Non-SHARP/unknown QuickDisk is read-only. Use the inspector's decoded-data export.";
+                return false;
+            }
             if (mzfBlocks.Count == 0 && !SupportsEmptyDocument(outputFormat))
             {
                 error = $"The {extension.ToUpperInvariant()} format requires one file.";
@@ -539,12 +545,19 @@ namespace MZTools
         {
             bool documentOpen = document.Format != TapeDocumentFormat.None;
             tapeViews.Visibility = documentOpen ? Visibility.Visible : Visibility.Collapsed;
-            MzfDataGrid.Visibility = documentOpen ? Visibility.Visible : Visibility.Collapsed;
+            MzfDataGrid.Visibility = documentOpen && !document.IsReadOnlyQuickDisk ? Visibility.Visible : Visibility.Collapsed;
+            quickDiskInspectorHost.Visibility = document.IsReadOnlyQuickDisk ? Visibility.Visible : Visibility.Collapsed;
             statusBorder.Visibility = documentOpen ? Visibility.Visible : Visibility.Collapsed;
-            addButton.IsEnabled = documentOpen;
+            addButton.IsEnabled = documentOpen && !document.IsReadOnlyQuickDisk;
             saveButton.IsEnabled = CanSaveTapeDocumentInPlace();
-            saveAsButton.IsEnabled = documentOpen;
+            saveAsButton.IsEnabled = documentOpen && !document.IsReadOnlyQuickDisk;
             closeButton.IsEnabled = documentOpen;
+            MzfDataGrid.IsReadOnly = document.IsReadOnlyQuickDisk;
+            if (document.IsReadOnlyQuickDisk)
+            {
+                viewButton.IsEnabled = exportButton.IsEnabled = deleteButton.IsEnabled = false;
+                moveUpButton.IsEnabled = moveDownButton.IsEnabled = false;
+            }
             if (!documentOpen)
             {
                 viewButton.IsEnabled = false;
@@ -580,6 +593,13 @@ namespace MZTools
             qdInfoText.Text = document.IplDskInfo is { } iplInfo
                 ? GetIplDskAdvancedStatus(iplInfo)
                 : GetQdAdvancedStatus(document.Format, mzfBlocks.Count);
+            if (document.QuickDiskReadResult is { } qdResult && !document.IsModified)
+            {
+                var identity = qdResult.Analysis.Identification;
+                qdInfoText.Text = $"Container: {qdResult.Format} | Host: {identity.DisplayName} | Confidence: {identity.Confidence} | Probable origin: {identity.Origin.ProbableDevice ?? "Unknown"} | Native SHARP MZ: {(identity.IsNativeSharpMz ? "Yes" : "No / not detected")}";
+                if (document.IsReadOnlyQuickDisk)
+                    infoText.Content = "Read-only physical QuickDisk inspection. This is not an identified native SHARP MZ-800 format; MZF editing and SHARP rebuilding are disabled.";
+            }
             UpdateQuickDiskFeatureVisibility();
             quickDiskMapDirty = true;
             quickDiskMapTab.Visibility = document.IsQuickDisk ? Visibility.Visible : Visibility.Collapsed;
@@ -625,8 +645,10 @@ namespace MZTools
             UpdateQuickDiskSelectionButtons();
         }
 
-        private void QuickDiskMapZoom_Changed(object sender, RoutedPropertyChangedEventArgs<double> e) =>
-            quickDiskMap?.SetZoom(e.NewValue);
+        private void QuickDiskBlocks_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (MapInteraction.MoveGridSelection(quickDiskBlocks, e.Key)) e.Handled = true;
+        }
 
         private void QuickDiskBlocks_SelectionChanged(object sender, SelectionChangedEventArgs e) =>
             SynchronizeQuickDiskBlockSelection();
@@ -667,6 +689,23 @@ namespace MZTools
             SynchronizeQuickDiskBlockSelection();
         }
         private void ClearQuickDiskSelection_Click(object sender, RoutedEventArgs e) => ClearQuickDiskSelection();
+
+        private string QuickDiskReport() => document.IsQdImage
+            ? QuickDiskAnalysisReport.Build(QdImageReaderWriter.Read(document.IsModified || document.QuickDiskSourceImage == null
+                ? QuickDiskLayoutBuilder.BuildPreviewImage(document) : document.QuickDiskSourceImage))
+            : quickDiskLayout?.Summary ?? "No QuickDisk image.";
+        private void QuickDiskCopyReport_Click(object sender, RoutedEventArgs e)
+        {
+            try { Clipboard.SetText(QuickDiskReport()); }
+            catch (Exception exception) { MessageBox.Show(this, exception.Message, "QuickDisk report", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
+        private void QuickDiskSaveReport_Click(object sender, RoutedEventArgs e)
+        {
+            var picker = new SaveFileDialog { Filter = "Text report|*.txt", FileName = "quickdisk-analysis.txt" };
+            if (picker.ShowDialog(this) != true) return;
+            try { File.WriteAllText(picker.FileName, QuickDiskReport()); }
+            catch (Exception exception) { MessageBox.Show(this, exception.Message, "QuickDisk report", MessageBoxButton.OK, MessageBoxImage.Error); }
+        }
         private void MapBackground_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (quickDiskMapTab?.IsSelected == true && DiskMapVisuals.IsBlankClick(e.OriginalSource as DependencyObject))
@@ -719,7 +758,7 @@ namespace MZTools
                 document.IplDskInfo != null;
             qdInfoText.Visibility = diskInfoAvailable ? Visibility.Visible : Visibility.Collapsed;
             formatQuickDiskButton.Visibility = quickDiskAvailable ? Visibility.Visible : Visibility.Collapsed;
-            formatQuickDiskButton.IsEnabled = quickDiskAvailable;
+            formatQuickDiskButton.IsEnabled = quickDiskAvailable && (!document.IsReadOnlyQuickDisk || document.QuickDiskReadResult?.Analysis.Identification.IsBlank == true);
         }
 
         private bool TryChooseTapeSaveOptions(
@@ -1202,6 +1241,7 @@ namespace MZTools
 
         private bool CanSaveTapeDocumentInPlace()
         {
+            if (document.IsReadOnlyQuickDisk) return false;
             if (document.FilePath == null)
             {
                 return false;
@@ -1243,6 +1283,7 @@ namespace MZTools
 
         private void SaveNativeTapeDocument(string filePath, TapeDocumentFormat outputFormat)
         {
+            if (document.IsReadOnlyQuickDisk) throw new InvalidOperationException("Non-SHARP/unknown QuickDisk cannot be saved by a SHARP writer.");
             bool allowImportedNonStandard = CanPreserveImportedNonStandard(outputFormat);
             if (outputFormat == TapeDocumentFormat.Mzq)
             {
@@ -1319,6 +1360,7 @@ namespace MZTools
 
         private void button_Click_SaveAs(object sender, RoutedEventArgs e)
         {
+            if (document.IsReadOnlyQuickDisk) return;
             SaveFileDialog saveFileDialog = new SaveFileDialog();
             saveFileDialog.Filter = GetSaveFilter();
             string filenameWithoutExtension = System.IO.Path.GetFileNameWithoutExtension(actFileName);
@@ -2180,6 +2222,11 @@ namespace MZTools
             int audioFileIndex = 0,
             int audioFileCount = 0)
         {
+            if (!bindAsCurrent && document.IsReadOnlyQuickDisk)
+            {
+                MessageBox.Show(this, "Non-SHARP/unknown physical QuickDisk is read-only.", "QuickDisk", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
             string fileExtension = System.IO.Path.GetExtension(filePath).ToLowerInvariant();
             WavImportMode wavImportMode = selectedAudioImportMode ?? WavImportMode.Standard;
             AudioReportMode wavReportMode = selectedAudioReportMode ?? AudioReportMode.Summary;
@@ -2199,6 +2246,8 @@ namespace MZTools
             byte[] containerTrailing = Array.Empty<byte>();
             string? loadedSidecar = null;
             QuickDiskPhysicalProfile? loadedQdProfile = null;
+            QdReadResult? loadedQdResult = null;
+            byte[]? loadedQdSource = null;
             Mz800IplDskInfo? loadedIplDskInfo = null;
             AudioFileImportResult? audioImportResult = null;
             bool audioResultReported = false;
@@ -2220,7 +2269,11 @@ namespace MZTools
                 }
                 else if (fileExtension == ".qd")
                 {
-                    QdReadResult result = QdImageReaderWriter.ReadFile(filePath);
+                    loadedQdSource = File.ReadAllBytes(filePath);
+                    QdReadResult result = QdImageReaderWriter.Read(loadedQdSource);
+                    if (!bindAsCurrent && !result.Analysis.Identification.IsNativeSharpMz)
+                        throw new InvalidDataException("Non-SHARP/unknown physical QuickDisk cannot be imported as MZF records. Open it for read-only inspection.");
+                    loadedQdResult = result;
                     format = result.DocumentFormat;
                     loadedQdProfile = result.PhysicalProfile;
                     recordsToAdd.AddRange(result.Records);
@@ -2309,14 +2362,17 @@ namespace MZTools
                 {
                     byte[]? quickDiskSource = format is TapeDocumentFormat.Mzq or TapeDocumentFormat.Qdf or
                         TapeDocumentFormat.QdSharpLegacy or TapeDocumentFormat.QdHxc or TapeDocumentFormat.QdFlashFloppy
-                        ? File.ReadAllBytes(filePath) : null;
+                        ? loadedQdSource ?? File.ReadAllBytes(filePath) : null;
                     document.Clear();
                     document.FilePath = System.IO.Path.GetFullPath(filePath);
                     document.Format = format;
                     document.ContainerTrailingData = containerTrailing;
                     document.SidecarPath = loadedSidecar;
                     document.QuickDiskProfile = loadedQdProfile;
+                    document.QuickDiskReadResult = loadedQdResult;
                     document.QuickDiskSourceImage = quickDiskSource;
+                    quickDiskInspectorHost.Content = loadedQdResult != null && !loadedQdResult.Analysis.Identification.IsNativeSharpMz && quickDiskSource != null
+                        ? new QuickDiskInspectorControl(loadedQdResult, quickDiskSource) : null;
                     document.IplDskInfo = loadedIplDskInfo;
                     document.IsModified = false;
                     actFileName = System.IO.Path.GetFileName(filePath);
@@ -2560,6 +2616,7 @@ namespace MZTools
 
         private void button_Click_Delete(object sender, RoutedEventArgs e)
         {
+            if (document.IsReadOnlyQuickDisk) return;
             int[] selectedIndices = GetSelectedGridIndices();
             if (selectedIndices.Length == 0)
             {
@@ -2847,7 +2904,7 @@ namespace MZTools
 
         private void button_Click_FormatQuickDisk(object sender, RoutedEventArgs e)
         {
-            if (!document.IsQdImage)
+            if (!document.IsQdImage || document.IsReadOnlyQuickDisk && document.QuickDiskReadResult?.Analysis.Identification.IsBlank != true)
             {
                 return;
             }
@@ -2861,6 +2918,9 @@ namespace MZTools
             }
 
             mzfBlocks.Clear();
+            // Formatting a proven blank disk is an explicit choice to create a SHARP layout.
+            document.QuickDiskReadResult = null;
+            quickDiskInspectorHost.Content = null;
             document.ContainerTrailingData = Array.Empty<byte>();
             document.IsModified = true;
             RefreshGrid();

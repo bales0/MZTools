@@ -19,8 +19,17 @@ namespace MZTools
     {
         private const string MultiIplRowDragDataFormat = "MZTools.MultiIplEditorRows";
         private DskDocument? document;
+        private bool synchronizingEditSelectors;
+        private sealed record HexBufferChoice(int? Block, string Label);
+        private DskSectorAddress? activeHexSector;
+        private int? activeHexBlock;
+        // The host belongs to the separate, modeless window, not the Disk Map layout.
+        private readonly ContentControl editHexHost = new();
+        private Window? hexWindow;
+        internal Func<bool>? ConfirmDiscardHexChanges { get; set; }
         private DskLayoutModel? diskLayout;
         private DskSectorLayout? selectedMapSector;
+        private readonly HashSet<DskSectorAddress> relatedMapSectors = new();
         private readonly ObservableCollection<MultiGameIplRow> multiIplRows = new();
         private CancellationTokenSource? multiIplCancellation;
         private bool multiIplEditorMode;
@@ -33,10 +42,16 @@ namespace MZTools
         private bool multiIplDragInProgress;
         private DataGridRow? multiIplDropTarget;
         private List<MultiGameIplRow>? multiIplCompressionTargets;
+        private DskFileEntry[]? propertyEditTargets;
+        private string? propertyEditAnchor;
 
         public DskEditorControl()
         {
             InitializeComponent();
+            MapInteraction.EmphasizeSelection(mapBlocksGrid);
+            MapInteraction.EmphasizeSelection(directoryGrid);
+            mapBlocksGrid.LoadingRow += (_, e) => MapInteraction.SetIsRelated(e.Row,
+                e.Row.Item is DskSectorLayout sector && relatedMapSectors.Contains(sector.Address));
             multiIplGrid.ItemsSource = multiIplRows;
             diskMap.SectorSelected += SelectLayoutSector;
         }
@@ -62,6 +77,9 @@ namespace MZTools
             CancelMultiIplRefresh();
             warningText.Text = string.Empty;
             document = value;
+            editHexHost.Content = null;
+            activeHexSector = null;
+            activeHexBlock = null;
             dskShowSectorsCheckBox.IsChecked = false;
             if (value.FileSystem is MultiGameIplFileSystem multiIpl && multiIpl.CanConfigure)
             {
@@ -94,6 +112,7 @@ namespace MZTools
             CancelMultiIplRefresh();
             warningText.Text = string.Empty;
             document = null;
+            editHexHost.Content = null; activeHexSector = null; activeHexBlock = null;
             multiIplEditorMode = true;
             singleIplEditorMode = false;
             multiIplDraftModified = true;
@@ -110,6 +129,7 @@ namespace MZTools
             CancelMultiIplRefresh();
             warningText.Text = string.Empty;
             document = null;
+            editHexHost.Content = null; activeHexSector = null; activeHexBlock = null;
             multiIplEditorMode = false;
             singleIplEditorMode = true;
             multiIplDraftModified = true;
@@ -179,14 +199,29 @@ namespace MZTools
             directoryGrid.Columns.Clear();
             bool canRename = !document.IsReadOnly && document.FileSystem.Type is
                 DskFileSystemType.Fsmz or DskFileSystemType.Cpm or DskFileSystemType.Mrs;
+            bool canEditProperties = DskCapabilityService.GetFilePropertyKind(document) != DskFilePropertyKind.None;
             void Add(string header, string property, bool editable = false) => directoryGrid.Columns.Add(new DataGridTextColumn
             {
                 Header = header,
-                Binding = new Binding(property) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.Explicit },
+                Binding = new Binding(property) { Mode = BindingMode.TwoWay, UpdateSourceTrigger = UpdateSourceTrigger.Explicit,
+                    StringFormat = property is nameof(DskFileEntry.LoadAddress) or nameof(DskFileEntry.ExecuteAddress) ? "0x{0:X4}" : null },
                 Width = DataGridLength.Auto,
                 IsReadOnly = !editable,
                 SortMemberPath = property
             });
+            void AddFlag(string header, string property)
+            {
+                var checkbox = new FrameworkElementFactory(typeof(CheckBox));
+                checkbox.SetBinding(CheckBox.IsCheckedProperty, new Binding(property) { Mode = BindingMode.OneWay });
+                checkbox.SetValue(FrameworkElement.TagProperty, property);
+                checkbox.SetValue(UIElement.IsEnabledProperty, canEditProperties);
+                checkbox.SetValue(FrameworkElement.HorizontalAlignmentProperty, HorizontalAlignment.Center);
+                checkbox.SetValue(FrameworkElement.VerticalAlignmentProperty, VerticalAlignment.Center);
+                checkbox.SetValue(FrameworkElement.ToolTipProperty, "Click to toggle " + header + ". The change is validated before applying.");
+                checkbox.AddHandler(CheckBox.ClickEvent, new RoutedEventHandler(FileFlag_Click));
+                directoryGrid.Columns.Add(new DataGridTemplateColumn { Header = header, SortMemberPath = property,
+                    IsReadOnly = true, Width = 48, CellTemplate = new DataTemplate { VisualTree = checkbox } });
+            }
             switch (document.FileSystem.Type)
             {
                 case DskFileSystemType.SingleIpl:
@@ -204,12 +239,12 @@ namespace MZTools
                     Add("Load", nameof(DskFileEntry.LoadAddress)); Add("Exec", nameof(DskFileEntry.ExecuteAddress)); Add("Start block", nameof(DskFileEntry.StartBlock)); Add("Locked", nameof(DskFileEntry.Locked));
                     break;
                 case DskFileSystemType.Cpm:
-                    Add("User", nameof(DskFileEntry.User)); Add("Name", nameof(DskFileEntry.Name), canRename); Add("Ext", nameof(DskFileEntry.Extension), canRename); Add("Size", nameof(DskFileEntry.Size));
-                    Add("RO", nameof(DskFileEntry.ReadOnly)); Add("SYS", nameof(DskFileEntry.System)); Add("ARC", nameof(DskFileEntry.Archived)); Add("Extents", nameof(DskFileEntry.Extents)); Add("Blocks", nameof(DskFileEntry.Blocks));
+                    Add("User", nameof(DskFileEntry.User), canEditProperties); Add("Name", nameof(DskFileEntry.Name), canRename); Add("Ext", nameof(DskFileEntry.Extension), canRename); Add("Size", nameof(DskFileEntry.Size));
+                    AddFlag("RO", nameof(DskFileEntry.ReadOnly)); AddFlag("SYS", nameof(DskFileEntry.System)); AddFlag("ARC", nameof(DskFileEntry.Archived)); Add("Extents", nameof(DskFileEntry.Extents)); Add("Blocks", nameof(DskFileEntry.Blocks));
                     break;
                 case DskFileSystemType.Mrs:
                     Add("Name", nameof(DskFileEntry.Name), canRename); Add("Ext", nameof(DskFileEntry.Extension), canRename); Add("Blocks", nameof(DskFileEntry.Blocks)); Add("Approx. size", nameof(DskFileEntry.Size));
-                    Add("Load", nameof(DskFileEntry.LoadAddress)); Add("Exec", nameof(DskFileEntry.ExecuteAddress)); Add("File ID", nameof(DskFileEntry.StartBlock)); Add("Note", nameof(DskFileEntry.Notes));
+                    Add("Load", nameof(DskFileEntry.LoadAddress), canEditProperties); Add("Exec", nameof(DskFileEntry.ExecuteAddress), canEditProperties); Add("File ID", nameof(DskFileEntry.StartBlock)); Add("Note", nameof(DskFileEntry.Notes));
                     break;
                 case DskFileSystemType.BootOnly:
                     Add("Program / data", nameof(DskFileEntry.Name)); Add("Size", nameof(DskFileEntry.Size));
@@ -225,11 +260,10 @@ namespace MZTools
         private void RefreshView()
         {
             compareDiskMenu.IsEnabled = document != null && (!IplEditorMode || multiIplLayoutValid);
-            structureInspectorMenu.IsEnabled = structureInspectorButton.IsEnabled = DskCapabilityService.CanInspectStructure(document) && !IplEditorMode;
-            structureInspectorMenu.ToolTip = structureInspectorButton.ToolTip = structureInspectorMenu.IsEnabled
+            structureInspectorMenu.IsEnabled = DskCapabilityService.CanInspectStructure(document) && !IplEditorMode;
+            structureInspectorMenu.ToolTip = structureInspectorMenu.IsEnabled
                 ? "Read-only filesystem, directory, allocation and raw structures."
                 : "Structure decoding is available for recognized FSMZ, CP/M and MRS filesystems only.";
-            UpdateFilePropertyButtons();
             convertFormatMenu.IsEnabled = document != null && DskCapabilityService.GetAvailableConversions(document).Count > 0;
             convertFormatMenu.ToolTip = convertFormatMenu.IsEnabled ? "Create a separate image; inspect capacity and metadata changes before saving." : "No safe conversion is available for this detected filesystem/layout.";
             installBootSystemMenu.IsEnabled = document != null && DskCapabilityService.GetAvailableBootSystems(document).Count > 0;
@@ -247,6 +281,7 @@ namespace MZTools
             directoryGrid.ItemsSource = bootOnly && !showRawSectors
                 ? entries.Where(entry => !IsRawSectorEntry(entry)).ToList()
                 : entries;
+            RefreshEditSelectors();
             dskShowSectorsCheckBox.Visibility = bootOnly ? Visibility.Visible : Visibility.Collapsed;
             DskImage image = document.Image;
             string sizes = string.Join(", ", image.Tracks.Where(track => track != null).SelectMany(track => track!.Sectors).Select(sector => sector.Data.Length).Distinct().Order());
@@ -272,6 +307,7 @@ namespace MZTools
         private void RefreshMultiIplView()
         {
             RefreshDiskLayout();
+            RefreshEditSelectors();
             directoryGrid.Visibility = Visibility.Collapsed;
             multiIplGrid.Visibility = Visibility.Visible;
             dskShowSectorsCheckBox.Visibility = Visibility.Collapsed;
@@ -339,7 +375,6 @@ namespace MZTools
             selectedMapSector = null;
             diskMap.SetLayout(diskLayout);
             mapBlocksGrid.ItemsSource = diskLayout?.Sectors.ToArray();
-            dskMapHexButton.IsEnabled = false;
             analysisSummaryText.Text = diskLayout?.Summary ?? "Add programs to generate the IPL image before analysis.";
             UpdateAnalysisCounts();
             sectorDetailText.Text = string.Empty;
@@ -353,6 +388,17 @@ namespace MZTools
         private void SelectLayoutSector(DskSectorLayout? sector)
         {
             if (sector == null) { ClearMapSelection(); return; }
+            if (activeHexSector != sector.Address && !ConfirmHexSwitch())
+            {
+                synchronizingMapSelection = true;
+                try
+                {
+                    var retained = diskLayout?.Sectors.FirstOrDefault(s => s.Address == activeHexSector);
+                    selectedMapSector = retained; diskMap.SelectSector(retained); mapBlocksGrid.SelectedItem = retained;
+                }
+                finally { synchronizingMapSelection = false; }
+                return;
+            }
             if (!synchronizingMapSelection)
             {
                 synchronizingMapSelection = true;
@@ -362,14 +408,23 @@ namespace MZTools
             selectedMapSector = sector;
             sectorDetailText.Text = sector.Detail;
             diskMap.SelectSector(sector);
-            if (!ReferenceEquals(mapBlocksGrid.SelectedItem, sector)) mapBlocksGrid.SelectedItem = sector;
+            if (!ReferenceEquals(mapBlocksGrid.SelectedItem, sector))
+            {
+                bool wasSynchronizing = synchronizingMapSelection;
+                synchronizingMapSelection = true;
+                try { mapBlocksGrid.SelectedItem = sector; }
+                finally { synchronizingMapSelection = wasSynchronizing; }
+            }
             UpdateMapSelectionButtons();
+            UpdateEditHexChoices();
+            if (hexWindow != null || editHexHost.Content is DskHexEditorControl)
+                OpenWritableHex(activeHexSector == sector.Address ? activeHexBlock : null);
+            mapBlocksGrid.ScrollIntoView(sector);
         }
 
         private void UpdateMapSelectionButtons()
         {
-            if (dskClearSelectionButton == null || dskMapHexButton == null) return;
-            dskMapHexButton.IsEnabled = selectedMapSector != null;
+            if (dskClearSelectionButton == null) return;
             dskClearSelectionButton.IsEnabled = diskLayout != null &&
                 (selectedMapSector != null || issuesGrid?.SelectedItem != null ||
                  directoryGrid?.SelectedItems.Count > 0 || multiIplGrid?.SelectedItems.Count > 0);
@@ -384,14 +439,14 @@ namespace MZTools
                 selectedMapSector = null;
                 diskMap.SelectSector(null);
                 diskMap.HighlightFiles(Array.Empty<string>());
+                UpdateRelatedMapRows(Array.Empty<string>());
                 mapBlocksGrid.SelectedItem = null;
                 if (clearIssue) issuesGrid.SelectedItem = null;
                 directoryGrid.SelectedItems.Clear();
                 multiIplGrid.SelectedItems.Clear();
                 sectorDetailText.Text = string.Empty;
-                dskMapHexButton.IsEnabled = false;
             }
-            finally { synchronizingMapSelection = false; UpdateMapSelectionButtons(); }
+            finally { synchronizingMapSelection = false; UpdateMapSelectionButtons(); RefreshEditSelectors(); }
         }
         private void ClearMapSelection_Click(object sender, RoutedEventArgs e) => ClearMapSelection();
         private void MapBackground_MouseDown(object sender, MouseButtonEventArgs e)
@@ -404,7 +459,10 @@ namespace MZTools
             SelectLayoutSector(mapBlocksGrid.SelectedItem as DskSectorLayout);
         }
 
-        private void Files_SelectionChanged(object sender, SelectionChangedEventArgs e) => HighlightSelectedFiles();
+        private void Files_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            HighlightSelectedFiles();
+        }
         private void HighlightSelectedFiles()
         {
             if (diskMap == null || directoryGrid == null) return;
@@ -418,52 +476,161 @@ namespace MZTools
                     mapBlocksGrid.SelectedItem = null;
                     issuesGrid.SelectedItem = null;
                     sectorDetailText.Text = string.Empty;
-                    dskMapHexButton.IsEnabled = false;
                 }
                 finally { synchronizingMapSelection = false; }
             }
-            diskMap.HighlightFiles(IplEditorMode
+            var keys = (IplEditorMode
                 ? multiIplGrid.SelectedItems.OfType<MultiGameIplRow>().Select(row => multiIplRows.IndexOf(row).ToString())
-                : directoryGrid.SelectedItems.OfType<DskFileEntry>().Select(entry => entry.Key));
+                : directoryGrid.SelectedItems.OfType<DskFileEntry>().Select(entry => entry.Key)).ToHashSet();
+            diskMap.HighlightFiles(keys);
+            UpdateRelatedMapRows(keys);
             UpdateMapSelectionButtons();
-            UpdateFilePropertyButtons();
+            if (!synchronizingMapSelection && selectedMapSector == null) RefreshEditSelectors();
         }
         private void MapOrder_Changed(object sender, SelectionChangedEventArgs e) => diskMap?.SetLogical(mapOrderBox.SelectedIndex == 1);
 
-        private void UpdateFilePropertyButtons()
+        private void UpdateRelatedMapRows(IEnumerable<string> selectedKeys)
         {
-            if (dskPropertiesButton == null || directoryGrid == null) return;
-            bool available = DskCapabilityService.GetFilePropertyKind(document) != DskFilePropertyKind.None;
-            bool enabled = available && directoryGrid.SelectedItems.Count == 1;
-            dskPropertiesButton.IsEnabled = enabled;
-            string reason = available ? "Select exactly one file to edit its native properties." :
-                "Editable properties are available only for consistent CP/M (User/RO/SYS/ARC) and MRS (LOAD/EXEC) images.";
-            dskPropertiesButton.ToolTip = reason;
+            var keys = selectedKeys.ToHashSet();
+            relatedMapSectors.Clear();
+            if (diskLayout != null)
+                foreach (var sector in diskLayout.Sectors.Where(sector => sector.Owners.Any(owner => keys.Contains(owner.FileKey)) ||
+                    keys.Contains($"{sector.Track}:{sector.PhysicalIndex}")))
+                    relatedMapSectors.Add(sector.Address);
+            // Existing rows and future virtualized rows use exactly the map's file
+            // highlight predicate. Do not change the single active sector selection.
+            foreach (var sector in mapBlocksGrid.Items.OfType<DskSectorLayout>())
+                if (mapBlocksGrid.ItemContainerGenerator.ContainerFromItem(sector) is DataGridRow row)
+                    MapInteraction.SetIsRelated(row, relatedMapSectors.Contains(sector.Address));
         }
 
-        private void FileProperties_Click(object sender, RoutedEventArgs e)
+        private void MapBlocks_KeyDown(object sender, KeyEventArgs e)
         {
-            if (document == null || SelectedEntries.Count != 1) return;
-            var kind = DskCapabilityService.GetFilePropertyKind(document);
-            if (kind == DskFilePropertyKind.None) return;
-            var entry = SelectedEntries[0];
-            var properties = DskFilePropertiesDialog.Show(OwnerWindow, kind, entry);
-            if (properties == null) return;
+            if (MapInteraction.MoveGridSelection(mapBlocksGrid, e.Key)) e.Handled = true;
+        }
+        private void RefreshEditSelectors()
+        {
+            UpdateEditHexChoices();
+            if (selectedMapSector == null && !(editHexHost.Content is DskHexEditorControl editor && editor.HasPendingChanges))
+            {
+                editHexHost.Content = null; activeHexSector = null; activeHexBlock = null;
+                if (hexWindow != null) hexWindow.Title = "Hex Editor — no sector selected";
+            }
+            if (editHexHost.Content == null)
+                editHexHost.Content = new TextBlock { Text = "Click a sector in Disk Map to display its bytes. Unlock editing and preview changes before Apply.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(12) };
+        }
+
+        private void UpdateEditHexChoices()
+        {
+            if (editBlockBox == null) return;
+            var sector = selectedMapSector;
+            hexWindowButton.IsEnabled = sector != null;
+            applyPatchButton.IsEnabled = document != null && !IplEditorMode;
+            synchronizingEditSelectors = true;
             try
             {
-                var edited = DskFilePropertyService.Apply(document, entry, properties);
-                RefreshView();
-                directoryGrid.SelectedItem = directoryGrid.Items.OfType<DskFileEntry>().FirstOrDefault(e => e.Key == edited.Key);
+                var choices = new List<HexBufferChoice>();
+                if (sector != null)
+                {
+                    choices.Add(new(null, "Selected physical sector"));
+                    if (document?.FileSystem is CpmFileSystem && !IplEditorMode)
+                        choices.AddRange(sector.AllocationBlocks.Distinct().Order().Select(b => new HexBufferChoice(b, $"CP/M allocation block {b}")));
+                }
+                editBlockBox.ItemsSource = choices;
+                editBlockBox.SelectedItem = choices.FirstOrDefault(c => c.Block == (activeHexSector == sector?.Address ? activeHexBlock : null)) ?? choices.FirstOrDefault();
+                editBlockBox.IsEnabled = choices.Count > 0;
+            }
+            finally { synchronizingEditSelectors = false; }
+            editHexReason.Text = IplEditorMode
+                ? "Dedicated IPL images are edited in Files; writable raw hex is unavailable for this mode."
+                : sector == null ? "Select a sector in the map or Blocks list."
+                : $"Track {sector.Track}, descriptor {sector.PhysicalIndex}, R={sector.R}; role: {sector.Role}.";
+        }
+
+        private bool ConfirmHexSwitch() => editHexHost.Content is not DskHexEditorControl pending || !pending.HasPendingChanges ||
+            (ConfirmDiscardHexChanges?.Invoke() ?? MessageBox.Show(OwnerWindow, "Discard the unapplied hex changes and select another buffer?", "Hex changes", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes);
+
+        private void HexBuffer_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (synchronizingEditSelectors || editBlockBox.SelectedItem is not HexBufferChoice choice) return;
+            if (!ConfirmHexSwitch()) { UpdateEditHexChoices(); return; }
+            if (hexWindow != null || editHexHost.Content is DskHexEditorControl) OpenWritableHex(choice.Block);
+        }
+
+        private void ApplyPatch_Click(object sender, RoutedEventArgs e)
+        {
+            if (document == null || !applyPatchButton.IsEnabled) return;
+            if (editHexHost.Content is DskHexEditorControl pending && pending.HasPendingChanges)
+            { ShowError("Apply or cancel the pending hex edit before applying a patch."); return; }
+            var picker = new OpenFileDialog { Filter = "MZTools sector patch|*.mzpatch.json;*.json", Title = "Preview DSK patch" };
+            if (picker.ShowDialog(OwnerWindow) != true) return;
+            try
+            {
+                var preview = DskPatchService.Preview(document, DskPatchService.Read(picker.FileName));
+                var dialog = new DskPatchPreviewWindow(OwnerWindow, preview.Report, () => DskPatchService.Apply(document, preview));
+                dialog.ShowDialog();
+                if (dialog.Applied) { LoadDocument(document); dskViews.SelectedItem = mapTab; }
             }
             catch (Exception exception) { ShowError(exception.Message); }
         }
-        private void MapZoom_Changed(object sender, RoutedPropertyChangedEventArgs<double> e) => diskMap?.SetZoom(e.NewValue);
-        private void SectorHex_Click(object sender, RoutedEventArgs e)
+        private void OpenWritableHex(int? block)
+        {
+            if (document == null || selectedMapSector is not DskSectorLayout sector) return;
+            if (activeHexSector == sector.Address && activeHexBlock == block && editHexHost.Content is DskHexEditorControl) return;
+            if (IplEditorMode)
+            {
+                editHexHost.Content = new TextBox { Text = DskHexEditService.FormatHex(sector.Data), IsReadOnly = true, FontFamily = new FontFamily("Consolas"), VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+                ShowHexWindow($"Track {sector.Track}, R={sector.R} — read-only");
+                return;
+            }
+            try
+            {
+                var session = block is int selectedBlock
+                    ? DskHexEditService.OpenCpmBlock(document, selectedBlock)
+                    : DskHexEditService.OpenSector(document, sector.Address);
+                var editor = new DskHexEditorControl(document, session);
+                editHexHost.Content = editor;
+                activeHexSector = sector.Address; activeHexBlock = block;
+                ShowHexWindow(session.Title);
+                editor.Completed += (_, _) =>
+                {
+                    if (!editor.Applied) { CloseHexWindow(); return; }
+                    var address = sector.Address;
+                    LoadDocument(document);
+                    dskViews.SelectedItem = mapTab;
+                    SelectLayoutSector(diskLayout?.Sectors.FirstOrDefault(s => s.Address == address));
+                    OpenWritableHex(block);
+                    warningText.Text = "Hex edit applied. Review Disk Map issues; saving remains a separate operation." +
+                        (document.FileSystem.Type is DskFileSystemType.Raw or DskFileSystemType.BootOnly
+                            ? " The current image has no recognized data filesystem; its bytes remain available for Save As and raw inspection." : "") +
+                        (warningText.Text.Length == 0 ? "" : " " + warningText.Text);
+                };
+            }
+            catch (Exception exception) { ShowError(exception.Message); }
+        }
+        private void HexWindow_Click(object sender, RoutedEventArgs e)
         {
             if (selectedMapSector == null) return;
-            var browser = new HexBrowser { Owner = OwnerWindow };
-            browser.ShowRawData($"Track {selectedMapSector.Track}, sector index {selectedMapSector.PhysicalIndex}, R={selectedMapSector.R} (raw on-disk bytes)", selectedMapSector.Data);
-            browser.Show();
+            OpenWritableHex((editBlockBox.SelectedItem as HexBufferChoice)?.Block);
+            ShowHexWindow(null);
+            hexWindow?.Activate();
+        }
+        private void ShowHexWindow(string? title)
+        {
+            // Detached controls in tests have no owner and must not create desktop windows.
+            if (Window.GetWindow(this) is not Window owner) return;
+            if (hexWindow == null)
+            {
+                hexWindow = new Window { Owner = owner.IsVisible ? owner : null, Width = Math.Min(1320, SystemParameters.WorkArea.Width - 40), Height = 740, MinWidth = 760, MinHeight = 520,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner, Content = editHexHost };
+                hexWindow.Closing += (_, e) => { if (!ConfirmHexSwitch()) e.Cancel = true; };
+                hexWindow.Closed += (_, _) =>
+                {
+                    hexWindow = null; editHexHost.Content = null; activeHexSector = null; activeHexBlock = null;
+                };
+            }
+            if (title != null) hexWindow.Title = "Hex Editor — " + title;
+            if (owner.IsVisible && !hexWindow.IsVisible) { hexWindow.Owner = owner; hexWindow.Show(); }
         }
         private void AnalysisFilter_Changed(object sender, SelectionChangedEventArgs e) => UpdateAnalysisFilter();
         private void UpdateAnalysisCounts()
@@ -609,26 +776,13 @@ namespace MZTools
 
         private void InstallBootSystem_Click(object sender, RoutedEventArgs e)
         {
-            if (document == null) return;
-            var profiles = DskCapabilityService.GetAvailableBootSystems(document);
-            if (profiles.Count == 0) { ShowError(DskCapabilityService.BootSystemAvailabilityReason(document)); return; }
-            var picker = new OpenFileDialog { Filter = "DSK image|*.dsk", Title = profiles[0].DisplayName };
-            if (picker.ShowDialog(OwnerWindow) != true) return;
+            if (document == null || !installBootSystemMenu.IsEnabled) return;
             try
             {
-                var source = DskDocument.Open(picker.FileName);
-                var check = DskCapabilityService.CanInstallBootSystem(document, source);
-                if (!check.IsCompatible) { ShowError(check.Reason); return; }
-                string tracks = string.Join(", ", profiles[0].RequiredSystemTracks);
-                if (MessageBox.Show(OwnerWindow,
-                    $"Target: {document.FileSystem.DisplayName}\nSource: {picker.FileName}\n\n" +
-                    $"Replace sector data in physical system tracks: {tracks}.\n" +
-                    "Filesystem, DPB, geometry, directory and file data will remain unchanged.\n\n" +
-                    "Compatibility is verified, but the source OS version and whether it actually boots are not certified. " +
-                    "Use a trusted system DSK. No system bytes are generated.\n\nInstall into the open document? Save is a separate operation.",
-                    "Install Boot/System", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
-                DskBootSystemService.Install(document, source);
-                RefreshView();
+                var dialog = new CpmSystemBuilderDialog(OwnerWindow, document);
+                dialog.ShowDialog();
+                if (dialog.SavedImagePath != null) LoadDocument(DskDocument.Open(dialog.SavedImagePath));
+                else if (dialog.Installed) LoadDocument(document);
             }
             catch (Exception exception) { ShowError(exception.Message); }
         }
@@ -1207,19 +1361,130 @@ namespace MZTools
         private void DirectoryGrid_BeginningEdit(object sender, DataGridBeginningEditEventArgs e)
         {
             e.Cancel = document == null || document.IsReadOnly ||
-                e.Column.SortMemberPath is not (nameof(DskFileEntry.Name) or nameof(DskFileEntry.Extension));
+                (e.Column.SortMemberPath is not (nameof(DskFileEntry.Name) or nameof(DskFileEntry.Extension)) &&
+                 !IsEditableProperty(e.Column.SortMemberPath));
+        }
+
+        private void DirectoryGrid_PropertyMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.OriginalSource is not DependencyObject source) return;
+            var cell = FindVisualParent<DataGridCell>(source);
+            if (cell?.IsEditing == true) return;
+            propertyEditTargets = null; propertyEditAnchor = null;
+            if (cell?.DataContext is DskFileEntry entry && IsEditableProperty(cell.Column.SortMemberPath) &&
+                directoryGrid.SelectedItems.Contains(entry) && Keyboard.Modifiers == ModifierKeys.None)
+            {
+                propertyEditTargets = directoryGrid.SelectedItems.OfType<DskFileEntry>().ToArray();
+                propertyEditAnchor = entry.Key;
+                if (propertyEditTargets.Length > 1)
+                {
+                    // DataGrid's ordinary click would collapse a multi-selection
+                    // before the checkbox/editor receives it. Keep the group intact.
+                    e.Handled = true;
+                    if (FindVisualParent<CheckBox>(source) is { } checkbox)
+                    {
+                        checkbox.Focus();
+                        checkbox.SetCurrentValue(CheckBox.IsCheckedProperty, checkbox.IsChecked != true);
+                        FileFlag_Click(checkbox, new RoutedEventArgs(CheckBox.ClickEvent));
+                    }
+                    else
+                    {
+                        directoryGrid.CurrentCell = new DataGridCellInfo(entry, cell.Column);
+                        directoryGrid.BeginEdit();
+                    }
+                }
+            }
+        }
+
+        private IReadOnlyList<DskFileEntry> PropertyTargets(DskFileEntry entry)
+        {
+            var targets = propertyEditAnchor == entry.Key ? propertyEditTargets : null;
+            propertyEditTargets = null; propertyEditAnchor = null;
+            return targets ?? (directoryGrid.SelectedItems.Contains(entry)
+                ? directoryGrid.SelectedItems.OfType<DskFileEntry>().ToArray() : [entry]);
+        }
+
+        private void RefreshPropertySelection(IReadOnlyList<DskFileEntry> updated)
+        {
+            RefreshView();
+            var keys = updated.Select(file => file.Key).ToHashSet();
+            foreach (var file in directoryGrid.Items.OfType<DskFileEntry>().Where(file => keys.Contains(file.Key)))
+                directoryGrid.SelectedItems.Add(file);
+        }
+        private void FileFlag_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not CheckBox { DataContext: DskFileEntry entry, Tag: string property } checkbox) return;
+            try
+            {
+                var updated = ApplyInlineProperties(PropertyTargets(entry), property, checkbox.IsChecked == true ? "True" : "False");
+                RefreshPropertySelection(updated);
+            }
+            catch (Exception exception) { RefreshView(); ShowError(exception.Message); }
+            e.Handled = true;
+        }
+
+        private bool IsEditableProperty(string property) => DskCapabilityService.GetFilePropertyKind(document) switch
+        {
+            DskFilePropertyKind.Cpm => property is nameof(DskFileEntry.User) or nameof(DskFileEntry.ReadOnly) or nameof(DskFileEntry.System) or nameof(DskFileEntry.Archived),
+            DskFilePropertyKind.Mrs => property is nameof(DskFileEntry.LoadAddress) or nameof(DskFileEntry.ExecuteAddress),
+            _ => false
+        };
+
+        internal DskFileEntry ApplyInlineProperty(DskFileEntry entry, string property, string text)
+            => ApplyInlineProperties([entry], property, text)[0];
+
+        internal IReadOnlyList<DskFileEntry> ApplyInlineProperties(IReadOnlyList<DskFileEntry> entries, string property, string text)
+        {
+            if (!IsEditableProperty(property)) throw new InvalidOperationException("This property is read-only for the current filesystem.");
+            static ushort Address(string value) => value.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
+                ? ushort.Parse(value.AsSpan(2), System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture)
+                : ushort.Parse(value, System.Globalization.CultureInfo.InvariantCulture);
+            static bool Flag(string value) => value switch { "1" => true, "0" => false, _ => bool.Parse(value) };
+            var changes = entries.Select(entry =>
+            {
+                var values = DskFileProperties.From(entry);
+                values = property switch
+                {
+                    nameof(DskFileEntry.User) => values with { User = int.Parse(text, System.Globalization.CultureInfo.InvariantCulture) },
+                    nameof(DskFileEntry.ReadOnly) => values with { ReadOnly = Flag(text) },
+                    nameof(DskFileEntry.System) => values with { System = Flag(text) },
+                    nameof(DskFileEntry.Archived) => values with { Archived = Flag(text) },
+                    nameof(DskFileEntry.LoadAddress) => values with { Load = Address(text) },
+                    nameof(DskFileEntry.ExecuteAddress) => values with { Execute = Address(text) },
+                    _ => throw new InvalidOperationException("Unknown property.")
+                };
+                return (entry, values);
+            }).ToArray();
+            return DskFilePropertyService.ApplyMany(CurrentDocument, changes);
         }
 
         private void DirectoryGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
         {
             if (e.EditAction != DataGridEditAction.Commit || document == null ||
-                e.Column.SortMemberPath is not (nameof(DskFileEntry.Name) or nameof(DskFileEntry.Extension)) ||
                 e.Row.Item is not DskFileEntry entry || e.EditingElement is not TextBox editor)
             {
                 return;
             }
 
             string editedValue = editor.Text.Trim();
+            if (IsEditableProperty(e.Column.SortMemberPath))
+            {
+                try
+                {
+                    var updated = ApplyInlineProperties(PropertyTargets(entry), e.Column.SortMemberPath, editedValue);
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        RefreshPropertySelection(updated);
+                    }));
+                }
+                catch (Exception exception)
+                {
+                    e.Cancel = true; ShowError(exception.Message);
+                    Dispatcher.BeginInvoke(new Action(() => { directoryGrid.CancelEdit(DataGridEditingUnit.Cell); RefreshView(); }));
+                }
+                return;
+            }
+            if (e.Column.SortMemberPath is not (nameof(DskFileEntry.Name) or nameof(DskFileEntry.Extension))) return;
             string baseName = e.Column.SortMemberPath == nameof(DskFileEntry.Name) ? editedValue : entry.Name;
             string extension = e.Column.SortMemberPath == nameof(DskFileEntry.Extension) ? editedValue : entry.Extension;
             string newName = document.FileSystem.Type is DskFileSystemType.Cpm or DskFileSystemType.Mrs && extension.Length > 0
@@ -1391,10 +1656,14 @@ namespace MZTools
 
         internal bool TryCloseDocument()
         {
+            if (editHexHost.Content is DskHexEditorControl pending && pending.HasPendingChanges &&
+                MessageBox.Show(OwnerWindow, "Discard unapplied hex edits and close this disk?", "Unapplied hex changes", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes)
+                return false;
             bool modified = document?.IsModified == true || IplEditorMode && multiIplDraftModified;
             if (!modified)
             {
                 CancelMultiIplRefresh();
+                CloseHexWindow();
                 return true;
             }
             MessageBoxResult result = MessageBox.Show(OwnerWindow, "Save changes to this DSK image?", "Unsaved changes", MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
@@ -1403,11 +1672,18 @@ namespace MZTools
             {
                 Save_Click(this, new RoutedEventArgs());
                 bool saved = document != null && !document.IsModified && !multiIplDraftModified;
-                if (saved) CancelMultiIplRefresh();
+                if (saved) { CancelMultiIplRefresh(); CloseHexWindow(); }
                 return saved;
             }
             CancelMultiIplRefresh();
+            CloseHexWindow();
             return true;
+        }
+        private void CloseHexWindow()
+        {
+            if (editHexHost.Content is DskHexEditorControl editor) editor.Revert();
+            hexWindow?.Close();
+            editHexHost.Content = null; activeHexSector = null; activeHexBlock = null;
         }
 
         private static string SuggestedName(DskFileEntry entry) => string.IsNullOrEmpty(entry.Extension) ? entry.Name : $"{entry.Name}.{entry.Extension}";

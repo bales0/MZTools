@@ -289,6 +289,8 @@ namespace MZTools
         public bool IsModified { get; set; }
 
         public QuickDiskPhysicalProfile? QuickDiskProfile { get; set; }
+        public QdReadResult? QuickDiskReadResult { get; set; }
+        public bool IsReadOnlyQuickDisk => IsQdImage && QuickDiskReadResult is { Analysis.Identification.IsNativeSharpMz: false };
 
         // Snapshot for read-only layout inspection; never reconstructed while viewing.
         public byte[]? QuickDiskSourceImage { get; set; }
@@ -315,6 +317,7 @@ namespace MZTools
             Format = TapeDocumentFormat.None;
             IsModified = false;
             QuickDiskProfile = null;
+            QuickDiskReadResult = null;
             QuickDiskSourceImage = null;
             ContainerTrailingData = Array.Empty<byte>();
             SidecarPath = null;

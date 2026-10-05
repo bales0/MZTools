@@ -24,6 +24,9 @@
     <None Update="MZF\**\*.mzf" CopyToOutputDirectory="PreserveNewest" />
     <None Update="LEP\**\*" CopyToOutputDirectory="PreserveNewest" />
     <None Update="ROM\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\specification\DSKA0001_Roland.QD" Condition="Exists('..\specification\DSKA0001_Roland.QD')" Link="QDReference\DSKA0001_Roland.QD" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\specification\DSKA0002_MO5_CQ90-028_formatted.QD" Condition="Exists('..\specification\DSKA0002_MO5_CQ90-028_formatted.QD')" Link="QDReference\DSKA0002_MO5_CQ90-028_formatted.QD" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\specification\DSKA0003_Akai_formatted.QD" Condition="Exists('..\specification\DSKA0003_Akai_formatted.QD')" Link="QDReference\DSKA0003_Akai_formatted.QD" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

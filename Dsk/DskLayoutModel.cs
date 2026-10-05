@@ -23,6 +23,7 @@ internal sealed class DskSectorLayout
     public required DskSectorAddress Address { get; init; }
     public int Track => Address.Track;
     public int PhysicalIndex => Address.Sector;
+    public string SelectionLabel => $"T{Track} : #{PhysicalIndex} — R={R}, {Role}";
     public byte C { get; init; }
     public byte H { get; init; }
     public byte R { get; init; }

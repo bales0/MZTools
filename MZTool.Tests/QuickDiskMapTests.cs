@@ -322,6 +322,13 @@ public class QuickDiskMapTests
             Assert.Equal(payload, surface.GetType().GetMethod("Hit", flags)!.Invoke(surface, [point]));
             surface.GetType().GetMethod("ClickAt", flags)!.Invoke(surface, [point]);
             Assert.Equal(payload, grid.GetType().GetProperty("SelectedItem")!.GetValue(grid));
+            int payloadIndex = rebuiltMap.Regions.ToList().IndexOf(payload);
+            Assert.True((bool)surface.GetType().GetMethod("MoveSelection", flags)!.Invoke(surface, [1])!);
+            Assert.Equal(rebuiltMap.Regions[payloadIndex + 1], grid.GetType().GetProperty("SelectedItem")!.GetValue(grid));
+            Assert.True((bool)surface.GetType().GetMethod("MoveSelection", flags)!.Invoke(surface, [-1])!);
+            Assert.Equal(payload, grid.GetType().GetProperty("SelectedItem")!.GetValue(grid));
+            Assert.NotNull(grid.GetType().GetProperty("CellStyle")!.GetValue(grid));
+            Assert.Null(type.GetField("quickDiskMapZoom", flags));
             surface.GetType().GetMethod("ClickAt", flags)!.Invoke(surface, [point]);
             Assert.Null(grid.GetType().GetProperty("SelectedItem")!.GetValue(grid));
             Assert.Null(surface.GetType().GetField("selection", flags)!.GetValue(surface));
@@ -390,6 +397,63 @@ public class QuickDiskMapTests
             }
             finally { File.Delete(path); }
         }
+        // A valid unknown physical QD opens into the inspector and no native writer
+        // may overwrite its source, even if invoked independently of disabled buttons.
+        string unknownPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".qd");
+        var unknownTrack = new byte[4096]; new Random(501).NextBytes(unknownTrack);
+        byte[] unknownImage = QuickDiskHostDetectionTests.Wrap(unknownTrack, QdImageFormat.HxcPhysical);
+        try
+        {
+            File.WriteAllBytes(unknownPath, unknownImage);
+            document.Clear();
+            Assert.True((bool)type.GetMethod("AddFile", flags)!.Invoke(window, [unknownPath, true, false, null, null, null, false, 0, 0])!);
+            Assert.True(document.IsReadOnlyQuickDisk); Assert.Empty(document.Records);
+            Assert.False(Enabled("addButton")); Assert.False(Enabled("saveButton")); Assert.False(Enabled("saveAsButton"));
+            Assert.False(Enabled("formatQuickDiskButton")); Assert.False(Enabled("deleteButton"));
+            Assert.Equal("Collapsed", Field("MzfDataGrid").GetType().GetProperty("Visibility")!.GetValue(Field("MzfDataGrid"))!.ToString());
+            Assert.IsType<QuickDiskInspectorControl>(Field("quickDiskInspectorHost").GetType().GetProperty("Content")!.GetValue(Field("quickDiskInspectorHost")));
+            Assert.Throws<TargetInvocationException>(() => Invoke("SaveNativeTapeDocument", unknownPath, document.Format));
+            Invoke("button_Click_FormatQuickDisk", null!, null!);
+            Invoke("button_Click_Delete", null!, null!);
+            Assert.Equal(unknownImage, File.ReadAllBytes(unknownPath)); Assert.False(document.IsModified);
+            Assert.False(((QuickDiskLayout)Field("quickDiskLayout")).IsPreview);
+        }
+        finally { File.Delete(unknownPath); }
+        foreach (string reference in new[] { "DSKA0001_Roland.QD", "DSKA0002_MO5_CQ90-028_formatted.QD", "DSKA0003_Akai_formatted.QD" })
+        {
+            string referencePath = Path.Combine(AppContext.BaseDirectory, "QDReference", reference);
+            if (!File.Exists(referencePath)) continue; // Optional full media, covered by explicit skip in the reference theory.
+            byte[] originalReference = File.ReadAllBytes(referencePath);
+            document.Clear();
+            Assert.True((bool)type.GetMethod("AddFile", flags)!.Invoke(window, [referencePath, true, false, null, null, null, false, 0, 0])!);
+            Assert.True(document.IsReadOnlyQuickDisk); Assert.Empty(document.Records);
+            var inspector = Field("quickDiskInspectorHost").GetType().GetProperty("Content")!.GetValue(Field("quickDiskInspectorHost"))!;
+            Assert.IsType<QuickDiskInspectorControl>(inspector);
+            var inspectorRoot = inspector.GetType().GetProperty("Content")!.GetValue(inspector)!;
+            var inspectorChildren = (System.Collections.IList)inspectorRoot.GetType().GetProperty("Children")!.GetValue(inspectorRoot)!;
+            var buttons = inspectorChildren[0]!;
+            var labels = ((System.Collections.IList)buttons.GetType().GetProperty("Children")!.GetValue(buttons)!).Cast<object>()
+                .Select(button => button.GetType().GetProperty("Content")!.GetValue(button)!.ToString()!).ToArray();
+            Assert.DoesNotContain(labels, label => label.Contains("identical", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains("Export decoded block/sector...", labels);
+            Assert.DoesNotContain("Copy report", labels);
+            Assert.DoesNotContain("Save report...", labels);
+            Assert.Equal(reference.Contains("MO5"), labels.Any(label => label.StartsWith("Export MO5 logical raw image")));
+            var unitGrid = inspector.GetType().GetField("units", flags)!.GetValue(inspector)!;
+            int count = ((System.Collections.IList)unitGrid.GetType().GetProperty("Items")!.GetValue(unitGrid)!).Count;
+            Assert.Equal(reference.Contains("MO5") ? 403 : reference.Contains("Roland") ? 6 : 4, count);
+            unitGrid.GetType().GetProperty("SelectedIndex")!.SetValue(unitGrid, 3);
+            var decodedUnit = Assert.IsType<QuickDiskInspectorControl.Unit>(unitGrid.GetType().GetProperty("SelectedItem")!.GetValue(unitGrid));
+            Assert.True(decodedUnit.IsDecoded); Assert.NotEmpty(decodedUnit.Structure);
+            Assert.Equal(decodedUnit.Data, QuickDiskInspectorControl.GetDecodedExport(decodedUnit));
+            var detailPanel = unitGrid.GetType().GetProperty("Parent")!.GetValue(unitGrid)!;
+            var detailChildren = (System.Collections.IList)detailPanel.GetType().GetProperty("Children")!.GetValue(detailPanel)!;
+            string detailText = (string)detailChildren[2]!.GetType().GetProperty("Text")!.GetValue(detailChildren[2])!;
+            Assert.Contains(decodedUnit.Structure, detailText);
+            Assert.Throws<TargetInvocationException>(() => Invoke("SaveNativeTapeDocument", referencePath, document.Format));
+            Assert.Equal(originalReference, File.ReadAllBytes(referencePath)); Assert.False(document.IsModified);
+        }
+        document.Clear();
         document.Format = TapeDocumentFormat.QdSharpLegacy;
         document.Records.Add(Record("TOO BIG", 65000));
         Invoke("RefreshGrid");

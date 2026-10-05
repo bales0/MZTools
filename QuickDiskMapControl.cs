@@ -17,6 +17,7 @@ public sealed class QuickDiskMapControl : FrameworkElement
     private double zoom = 1;
     private const int Rows = 8;
     private const double LabelWidth = 110, RowHeight = 31, BaseWidth = 600;
+    public QuickDiskMapControl() { Focusable = true; }
     internal event Action<QuickDiskRegion?>? RegionSelected;
     internal void SetLayout(QuickDiskLayout? value)
     {
@@ -38,6 +39,7 @@ public sealed class QuickDiskMapControl : FrameworkElement
         QuickDiskRegionKind.Count => Brushes.MediumPurple,
         QuickDiskRegionKind.Header => DiskMapVisuals.Metadata,
         QuickDiskRegionKind.Payload => DiskMapVisuals.Data,
+        QuickDiskRegionKind.HostBlock or QuickDiskRegionKind.HostSector => DiskMapVisuals.Data,
         QuickDiskRegionKind.Framing or QuickDiskRegionKind.Crc => Brushes.Khaki,
         QuickDiskRegionKind.OutsideWindow => Brushes.DimGray,
         _ => Brushes.LightGray
@@ -95,8 +97,24 @@ public sealed class QuickDiskMapControl : FrameworkElement
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {
         base.OnMouseLeftButtonDown(e);
+        Focus();
         ClickAt(e.GetPosition(this));
         e.Handled = true;
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        int direction = MapInteraction.Direction(e.Key);
+        if (direction != 0 && MoveSelection(direction)) e.Handled = true;
+    }
+    internal bool MoveSelection(int direction)
+    {
+        if (layout == null || layout.Regions.Count == 0) return false;
+        var regions = layout.Regions.OrderBy(r => r.Start).ToArray();
+        int current = Array.IndexOf(regions, selection);
+        int next = current < 0 ? (direction > 0 ? 0 : regions.Length - 1) : Math.Clamp(current + Math.Sign(direction), 0, regions.Length - 1);
+        Select(regions[next]); RegionSelected?.Invoke(regions[next]); return true;
     }
 
     internal void ClickAt(Point point)

@@ -17,6 +17,7 @@ public sealed class DskDiskMapControl : FrameworkElement
     private double zoom = 1;
     private bool logical;
     private const double LabelWidth = 115, CellWidth = 38, RowHeight = 25;
+    public DskDiskMapControl() { Focusable = true; }
     internal event Action<DskSectorLayout?>? SectorSelected;
     internal void SetLayout(DskLayoutModel? value) { layout = value; selectedSector = null; selectedFiles.Clear(); InvalidateMeasure(); InvalidateVisual(); }
     internal void SetZoom(double value) { zoom = value; InvalidateMeasure(); InvalidateVisual(); }
@@ -76,8 +77,23 @@ public sealed class DskDiskMapControl : FrameworkElement
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {
         base.OnMouseLeftButtonDown(e);
+        Focus();
         var sector = Hit(e.GetPosition(this));
         if (sector == selectedSector) sector = null;
         selectedSector = sector; InvalidateVisual(); SectorSelected?.Invoke(sector); e.Handled = true;
+    }
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        int direction = MapInteraction.Direction(e.Key);
+        if (direction != 0 && MoveSelection(direction)) e.Handled = true;
+    }
+    internal bool MoveSelection(int direction)
+    {
+        var sectors = layout?.Tracks.SelectMany(Ordered).ToArray() ?? Array.Empty<DskSectorLayout>();
+        if (sectors.Length == 0) return false;
+        int current = Array.IndexOf(sectors, selectedSector);
+        int next = current < 0 ? (direction > 0 ? 0 : sectors.Length - 1) : Math.Clamp(current + Math.Sign(direction), 0, sectors.Length - 1);
+        SelectSector(sectors[next]); SectorSelected?.Invoke(sectors[next]); return true;
     }
 }

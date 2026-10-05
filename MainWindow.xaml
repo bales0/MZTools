@@ -41,7 +41,9 @@
         </Border>
         <TabControl x:Name="tapeViews" Grid.Row="1" Margin="10,8,10,8" SelectionChanged="TapeViews_SelectionChanged">
         <TabItem Header="Files">
-        <DataGrid x:Name="MzfDataGrid" 
+        <Grid>
+        <ContentControl x:Name="quickDiskInspectorHost" Visibility="Collapsed"/>
+        <DataGrid x:Name="MzfDataGrid"
                   IsReadOnly="False"
                   AllowDrop="True"
                   PreviewMouseLeftButtonDown="MzfDataGrid_PreviewMouseLeftButtonDown"
@@ -118,6 +120,7 @@
                 </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
+        </Grid>
         </TabItem>
         <TabItem x:Name="quickDiskMapTab" Header="Disk Map" Visibility="Collapsed">
             <Grid Margin="8" Background="Transparent" PreviewMouseLeftButtonDown="MapBackground_MouseDown">
@@ -129,10 +132,10 @@
                 </Grid.RowDefinitions>
                 <TextBlock x:Name="quickDiskMapSummary" Grid.ColumnSpan="3" TextWrapping="Wrap" Margin="0,0,0,6"/>
                 <WrapPanel Grid.Row="1" Grid.ColumnSpan="3" Margin="0,0,0,6">
-                    <TextBlock Text="Zoom" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <Slider x:Name="quickDiskMapZoom" Minimum="1" Maximum="4" Value="1" Width="150" ValueChanged="QuickDiskMapZoom_Changed"/>
                     <Button x:Name="quickDiskHexButton" Content="Hex view block" Click="QuickDiskHex_Click" IsEnabled="False" Margin="12,0,6,0"/>
                     <Button x:Name="quickDiskClearSelectionButton" Content="Clear selection" Click="ClearQuickDiskSelection_Click" IsEnabled="False"/>
+                    <Button Content="Copy report" Click="QuickDiskCopyReport_Click" Margin="6,0"/>
+                    <Button Content="Save report..." Click="QuickDiskSaveReport_Click"/>
                 </WrapPanel>
                 <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="Transparent">
                     <local:QuickDiskMapControl x:Name="quickDiskMap"/>
@@ -141,7 +144,7 @@
                 <Grid Grid.Row="2" Grid.Column="2" Margin="6,0,0,0">
                 <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="110"/></Grid.RowDefinitions>
                 <DataGrid x:Name="quickDiskBlocks" AutoGenerateColumns="False" IsReadOnly="True"
-                          CanUserAddRows="False" HeadersVisibility="Column" SelectionMode="Single" SelectionChanged="QuickDiskBlocks_SelectionChanged">
+                          CanUserAddRows="False" HeadersVisibility="Column" SelectionMode="Single" SelectionChanged="QuickDiskBlocks_SelectionChanged" PreviewKeyDown="QuickDiskBlocks_KeyDown">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Role" Binding="{Binding Kind}" Width="Auto" MinWidth="100"/>
                         <DataGridTextColumn Header="#" Binding="{Binding FileNumber}" Width="32"/>

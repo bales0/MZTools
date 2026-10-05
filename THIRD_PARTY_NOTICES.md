@@ -1,5 +1,33 @@
 # Third-party notices
 
+## HXCFE QuickDisk Toolkit
+
+The non-SHARP QuickDisk bitstream, Roland/Akai block and CRC rules, and
+Thomson MO5 record/checksum and physical-to-logical sector mapping are C#
+adaptations of [HXCFE_QuickDisk_Toolkit](https://github.com/jfdelnero/HXCFE_QuickDisk_Toolkit),
+particularly `src/qd_roland.c`, `src/qd_akai.c`, `src/qd_mo5.c` and
+`src/trk_utils.c`. Copyright (C) 2006–2022 Jean-François DEL NERO.
+MO5's mapping table credits Daniel Coulon in the original source.
+
+HxCFloppyEmulator may be used and distributed without restriction provided
+that its copyright statement is not removed and any derivative work contains
+the original copyright notice and associated disclaimer.
+
+HxCFloppyEmulator is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the Free
+Software Foundation; either version 2 of the License, or (at your option)
+any later version. MZTools distributes this adaptation under GPL-3.0-or-later.
+
+HxCFloppyEmulator is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+more details. A copy of the license is available from
+<https://www.gnu.org/licenses/> or the Free Software Foundation,
+51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+
+Only format inspection algorithms were adapted. The toolkit is not a
+runtime dependency, and non-SHARP media are not rewritten by MZTools.
+
 ## mzdisk
 
 The Extended CPC DSK container, filesystem detection, FSMZ/IPLDISK, CP/M 2.x

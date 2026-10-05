@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace MZTools;
 
-internal enum QuickDiskRegionKind { Count, Header, Framing, Payload, Crc, Gap, OutsideWindow }
+internal enum QuickDiskRegionKind { Count, Header, Framing, Payload, Crc, Gap, OutsideWindow, HostBlock, HostSector }
 
 internal sealed record QuickDiskRegion(
     QuickDiskRegionKind Kind, long Start, long Length, string Name,
@@ -26,9 +26,11 @@ internal sealed record QuickDiskLayout(
     IReadOnlyList<QuickDiskRegion> Regions)
 {
     internal byte[] Image { get; init; } = Array.Empty<byte>();
+    internal IReadOnlyDictionary<QuickDiskRegion, byte[]> HostBytes { get; init; } = new Dictionary<QuickDiskRegion, byte[]>();
     internal byte[] GetBlockBytes(QuickDiskRegion region)
     {
         if (!Regions.Contains(region)) throw new ArgumentException("Block does not belong to this map.");
+        if (HostBytes.TryGetValue(region, out var hostBytes)) return (byte[])hostBytes.Clone();
         if (!IsPhysical) return Image.AsSpan(checked((int)region.Start), checked((int)region.Length)).ToArray();
         bool decoded = region.Kind is not (QuickDiskRegionKind.Gap or QuickDiskRegionKind.OutsideWindow);
         int cellsPerByte = decoded ? 16 : 8;
@@ -68,6 +70,7 @@ internal static class QuickDiskLayoutBuilder
 
     internal static byte[] BuildPreviewImage(TapeDocument document)
     {
+        if (document.IsReadOnlyQuickDisk) throw new InvalidOperationException("Non-SHARP/unknown QuickDisk content cannot be rebuilt by the SHARP writer.");
         var records = document.Records;
         return document.Format switch
         {
@@ -90,13 +93,39 @@ internal static class QuickDiskLayoutBuilder
             var container = HxcFlashFloppyQdContainer.Parse(image,
                 format == TapeDocumentFormat.QdHxc ? QdImageFormat.HxcPhysical : QdImageFormat.FlashFloppyPhysical);
             // Validate and use the same CRC-valid frame sequence as the import reader.
-            QuickDiskPhysicalReader.Read(container);
-            var frames = SelectFrames(QuickDiskMfmCodec.FindSharpFrames(container.Track));
-            AddFrames(blocks, frames, true);
+            var analysis = QuickDiskHostDetector.Detect(container.Track);
+            var hostBytes = new Dictionary<QuickDiskRegion, byte[]>();
+            if (analysis.Identification.IsNativeSharpMz)
+            {
+                var frames = SelectFrames(QuickDiskMfmCodec.FindSharpFrames(container.Track));
+                AddFrames(blocks, frames, true);
+            }
+            else
+            {
+                void AddHostBlock(QuickDiskHostBlock block)
+                {
+                    if (block.CellLength == 0) return;
+                    var region = new QuickDiskRegion(QuickDiskRegionKind.HostBlock, block.CellOffset, block.CellLength, block.Description, Size: block.Bytes.Length);
+                    blocks.Add(region); hostBytes[region] = block.Bytes;
+                }
+                switch (analysis.Content)
+                {
+                    case RolandQuickDiskContent roland: foreach (var block in roland.Blocks) AddHostBlock(block); break;
+                    case AkaiQuickDiskContent akai: AddHostBlock(akai.Block); break;
+                    case Mo5QuickDiskContent mo5:
+                        foreach (var sector in mo5.Sectors)
+                        {
+                            var region = new QuickDiskRegion(QuickDiskRegionKind.HostSector, sector.CellOffset, sector.CellLength,
+                                $"MO5 physical #{sector.PhysicalSequence}, ID {sector.SectorId}, logical {sector.LogicalSector}; header {(sector.HeaderValid ? "valid" : "invalid")}, data {(sector.DataValid ? "valid" : "invalid")}{(sector.Duplicate ? "; DUPLICATE" : "")}", Size: sector.Data.Length);
+                            blocks.Add(region); hostBytes[region] = sector.Data;
+                        }
+                        break;
+                }
+            }
             long length = container.Descriptor.Length * 8L;
             return new(format, preview, true, length, container.Descriptor.Offset,
                 container.Descriptor.WindowStart * 8L, container.Descriptor.WindowEnd * 8L,
-                FillGaps(blocks, length, container.Descriptor.WindowStart * 8L, container.Descriptor.WindowEnd * 8L)) { Image = image };
+                FillGaps(blocks, length, container.Descriptor.WindowStart * 8L, container.Descriptor.WindowEnd * 8L)) { Image = image, HostBytes = hostBytes };
         }
         if (format == TapeDocumentFormat.Qdf)
         {

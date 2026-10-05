@@ -12,6 +12,11 @@
 .obj/
 .specification/
 MZTool.Tests/*
+!MZTool.Tests/CpmSystemBuilderTests.cs
+!MZTool.Tests/DskHexEditTests.cs
+!MZTool.Tests/DskFilePropertyTests.cs
+!MZTool.Tests/DskPatchTests.cs
+!MZTool.Tests/QuickDiskHostDetectionTests.cs
 # /build/
 
 # User-specific files (MonoDevelop/Xamarin Studio)

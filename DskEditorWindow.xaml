@@ -19,7 +19,7 @@
                     <ContextMenu>
                         <MenuItem x:Name="convertFormatMenu" Header="Convert Format..." IsEnabled="False"
                                   ToolTipService.ShowOnDisabled="True" Click="ConvertFormat_Click"/>
-                        <MenuItem x:Name="installBootSystemMenu" Header="Install Boot/System..." IsEnabled="False"
+                        <MenuItem x:Name="installBootSystemMenu" Header="Make Bootable / Install CP/M System..." IsEnabled="False"
                                   ToolTipService.ShowOnDisabled="True" Click="InstallBootSystem_Click"/>
                         <MenuItem x:Name="compareDiskMenu" Header="Compare with..." IsEnabled="False" Click="CompareDisk_Click"/>
                         <MenuItem x:Name="structureInspectorMenu" Header="Filesystem Structure Inspector..." IsEnabled="False" Click="StructureInspector_Click"/>
@@ -30,8 +30,6 @@
             <Button x:Name="dskAddButton" Content="Add..." Click="Add_Click" Style="{StaticResource TopToolbarButton}"/>
             <Button Content="Export..." Click="Export_Click" Style="{StaticResource TopToolbarButton}"/>
             <Button Content="Hex view" Click="Hex_Click" Style="{StaticResource TopToolbarButton}"/>
-            <Button x:Name="dskPropertiesButton" Content="Properties..." Click="FileProperties_Click"
-                    IsEnabled="False" ToolTipService.ShowOnDisabled="True" Style="{StaticResource TopToolbarButton}"/>
             <Button x:Name="dskDeleteButton" Content="Delete" Click="Delete_Click" Style="{StaticResource TopToolbarButton}"/>
             <Button x:Name="dskSaveButton" Content="Save" Click="Save_Click" Style="{StaticResource TopToolbarButton}"/>
             <Button x:Name="dskSaveAsButton" Content="Save As..." Click="SaveAs_Click" Style="{StaticResource TopToolbarButton}"/>
@@ -57,6 +55,7 @@
         <DataGrid x:Name="directoryGrid" AutoGenerateColumns="False" IsReadOnly="False"
                   SelectionMode="Extended" SelectionUnit="FullRow" CanUserAddRows="False"
                   BeginningEdit="DirectoryGrid_BeginningEdit" CellEditEnding="DirectoryGrid_CellEditEnding"
+                  PreviewMouseLeftButtonDown="DirectoryGrid_PropertyMouseDown"
                   PreviewKeyDown="DirectoryGrid_PreviewKeyDown" SelectionChanged="Files_SelectionChanged"/>
         <DataGrid x:Name="multiIplGrid" AutoGenerateColumns="False" Visibility="Collapsed"
                   SelectionMode="Extended" SelectionUnit="FullRow" CanUserAddRows="False" CanUserDeleteRows="False"
@@ -91,6 +90,8 @@
         </DataGrid>
         </Grid></TabItem>
         <TabItem x:Name="mapTab" Header="Disk Map">
+            <Grid>
+            <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
             <Grid Margin="8" Background="Transparent" PreviewMouseLeftButtonDown="MapBackground_MouseDown">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="3*" MinWidth="200"/><ColumnDefinition Width="6"/><ColumnDefinition Width="2*" MinWidth="240"/></Grid.ColumnDefinitions>
                 <Grid.RowDefinitions><RowDefinition Height="56"/><RowDefinition Height="Auto"/><RowDefinition Height="*" MinHeight="100"/></Grid.RowDefinitions>
@@ -101,11 +102,7 @@
                         <ComboBox x:Name="mapOrderBox" SelectedIndex="0" SelectionChanged="MapOrder_Changed" Width="115" Margin="6,0,12,0">
                             <ComboBoxItem Content="Physical"/><ComboBoxItem x:Name="logicalMapOption" Content="Logical"/>
                         </ComboBox>
-                        <TextBlock Text="Zoom:" VerticalAlignment="Center"/>
-                        <Slider Minimum="0.6" Maximum="2" Value="1" Width="100" ValueChanged="MapZoom_Changed" Margin="6,0,12,0"/>
-                        <Button x:Name="dskMapHexButton" Content="Hex view block" Click="SectorHex_Click" IsEnabled="False" Margin="4,0"/>
                         <Button x:Name="dskClearSelectionButton" Content="Clear selection" Click="ClearMapSelection_Click" IsEnabled="False"/>
-                        <Button x:Name="structureInspectorButton" Content="Structure Inspector..." Click="StructureInspector_Click" IsEnabled="False" Margin="6,0"/>
                         <Button Content="Copy report" Click="CopyAnalysis_Click" Margin="6,0"/>
                         <Button Content="Save report..." Click="SaveAnalysis_Click"/>
                 </WrapPanel>
@@ -124,7 +121,7 @@
                     </UniformGrid>
                     <TabControl x:Name="mapInspectorTabs" Grid.Row="1">
                     <TabItem Header="Blocks">
-                    <DataGrid x:Name="mapBlocksGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column" SelectionMode="Single" SelectionChanged="MapBlocks_SelectionChanged">
+                    <DataGrid x:Name="mapBlocksGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column" SelectionMode="Single" SelectionChanged="MapBlocks_SelectionChanged" PreviewKeyDown="MapBlocks_KeyDown">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Track" Binding="{Binding Track}" Width="55"/>
                             <DataGridTextColumn Header="R" Binding="{Binding R}" Width="40"/>
@@ -162,6 +159,16 @@
                     </TabControl>
                     <TextBox x:Name="sectorDetailText" Grid.Row="2" Margin="0,6,0,0" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
                 </Grid>
+            </Grid>
+            <Grid Grid.Row="1" Margin="8,0,8,8">
+                <DockPanel>
+                    <Button x:Name="applyPatchButton" DockPanel.Dock="Right" Content="Apply DSK patch..." Click="ApplyPatch_Click" IsEnabled="False" Margin="8,0,0,0"/>
+                    <Button x:Name="hexWindowButton" DockPanel.Dock="Right" Content="Hex editor..." Click="HexWindow_Click" IsEnabled="False" Margin="8,0,0,0"/>
+                    <TextBlock Text="Hex buffer:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <ComboBox x:Name="editBlockBox" DisplayMemberPath="Label" SelectionChanged="HexBuffer_SelectionChanged" MinWidth="180" Margin="0,0,8,0"/>
+                    <TextBlock x:Name="editHexReason" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                </DockPanel>
+            </Grid>
             </Grid>
         </TabItem>
         </TabControl>
