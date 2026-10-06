@@ -14,6 +14,12 @@ internal sealed record DskDiffItem(DskDiffLevel Level, string Name, DskDiffState
     string? LeftFileKey = null, string? RightFileKey = null,
     byte[]? LeftStructure = null, byte[]? RightStructure = null)
 {
+    public string LeftValue { get; init; } = "absent";
+    public string RightValue { get; init; } = "absent";
+    public bool DescriptorLengthChanged => Level == DskDiffLevel.PhysicalSectors && LeftStructure?.Length == 8 && RightStructure?.Length == 8 &&
+        (LeftStructure[6] != RightStructure[6] || LeftStructure[7] != RightStructure[7]);
+    public string DifferenceKind => DescriptorLengthChanged ? "Stored descriptor length (+6/+7)" :
+        State == DskDiffState.Same ? "Unchanged" : LeftStructure != null || RightStructure != null ? "Payload / metadata" : "Value / raw bytes";
     public string Status => State switch { DskDiffState.OnlyInLeft => "only in left", DskDiffState.OnlyInRight => "only in right", _ => State.ToString().ToLowerInvariant() };
     public bool HasHexDiff => LeftBytes != null || RightBytes != null || LeftStructure != null || RightStructure != null;
 }
@@ -52,9 +58,11 @@ internal static class DskCompareService
         var lm = DskAnalyzer.Analyze(left); var rm = DskAnalyzer.Analyze(right);
         var rows = new List<DskDiffItem>();
         void Value(DskDiffLevel level, string name, string? a, string? b, DskSectorAddress? la = null, DskSectorAddress? ra = null)
-            => rows.Add(new(level, name, State(a, b), $"Left: {a ?? "absent"}\nRight: {b ?? "absent"}", LeftAddress: la, RightAddress: ra));
+            => rows.Add(new(level, name, State(a, b), $"Left: {a ?? "absent"}\nRight: {b ?? "absent"}", LeftAddress: la, RightAddress: ra)
+                { LeftValue = a ?? "absent", RightValue = b ?? "absent" });
         void Bytes(DskDiffLevel level, string name, byte[]? a, byte[]? b, DskSectorAddress? la = null, DskSectorAddress? ra = null)
-            => rows.Add(new(level, name, State(a, b), $"Left: {a?.Length.ToString() ?? "absent"} B\nRight: {b?.Length.ToString() ?? "absent"} B\nChanged byte offsets: {ByteDifferences(a, b).Count()}", a, b, la, ra));
+            => rows.Add(new(level, name, State(a, b), $"Left: {a?.Length.ToString() ?? "absent"} B\nRight: {b?.Length.ToString() ?? "absent"} B\nChanged byte offsets: {ByteDifferences(a, b).Count()}", a, b, la, ra)
+                { LeftValue = RawValue(a), RightValue = RawValue(b) });
         Value(DskDiffLevel.Container, "Track count", left.Image.TrackCount.ToString(), right.Image.TrackCount.ToString());
         Value(DskDiffLevel.Container, "Side count", left.Image.SideCount.ToString(), right.Image.SideCount.ToString());
         Value(DskDiffLevel.Container, "Creator", left.Image.Creator, right.Image.Creator);
@@ -80,11 +88,13 @@ internal static class DskCompareService
                 var b = rt != null && s < rt.Sectors.Count ? rt.Sectors[s] : null;
                 var ad = a?.SerializeDescriptor(); var bd = b?.SerializeDescriptor();
                 bool metadata = !Equal(ad, bd), data = !Equal(a?.Data, b?.Data);
-                string Identity(DskImage.DskSector? sector) => sector == null ? "absent" : $"C/H/R/N={sector.Cylinder}/{sector.Side}/{sector.SectorId}/{sector.SizeCode}; {sector.Data.Length} B; ST1/ST2={sector.FdcStatus1:X2}/{sector.FdcStatus2:X2}";
+                string Identity(DskImage.DskSector? sector) => sector == null ? "absent" : $"Stored length: {sector.DeclaredDataLength} B; payload: {sector.Data.Length} B; C/H/R/N={sector.Cylinder}/{sector.Side}/{sector.SectorId}/{sector.SizeCode}; ST1/ST2={sector.FdcStatus1:X2}/{sector.FdcStatus2:X2}";
                 string details = $"Physical identity: track index {t}, descriptor index {s}. C/H/R/N are compared at this position, not matched by R alone.\nLeft: {Identity(a)}\nRight: {Identity(b)}\n" +
                     $"Metadata changed: {metadata}\nData changed: {data}\nByte count changed: {a?.Data.Length != b?.Data.Length}\nST1/ST2 changed: {a?.FdcStatus1 != b?.FdcStatus1 || a?.FdcStatus2 != b?.FdcStatus2}\nChanged data byte offsets: {ByteDifferences(a?.Data, b?.Data).Count()}";
                 rows.Add(new(DskDiffLevel.PhysicalSectors, $"Track {t}, sector index {s}", a == null ? DskDiffState.OnlyInRight : b == null ? DskDiffState.OnlyInLeft : metadata || data ? DskDiffState.Changed : DskDiffState.Same,
-                    details, a?.Data, b?.Data, a == null ? null : new(t, s), b == null ? null : new(t, s), LeftStructure: ad, RightStructure: bd));
+                    details + $"\nStored descriptor length changed: {a?.DeclaredDataLength != b?.DeclaredDataLength}\nDescriptor length field: +6/+7 (little-endian); left image offset: {(lt == null ? "absent" : $"0x{lt.FileOffset + 0x18 + s * 8 + 6:X}")}; right image offset: {(rt == null ? "absent" : $"0x{rt.FileOffset + 0x18 + s * 8 + 6:X}")}",
+                    a?.Data, b?.Data, a == null ? null : new(t, s), b == null ? null : new(t, s), LeftStructure: ad, RightStructure: bd)
+                    { LeftValue = Identity(a), RightValue = Identity(b) });
             }
         }
         if (left.FileSystem.Type != right.FileSystem.Type || left.FileSystem.Type is DskFileSystemType.Raw or DskFileSystemType.BootOnly || lm.Errors != 0 || rm.Errors != 0)
@@ -116,7 +126,9 @@ internal static class DskCompareService
                     bool data = !Equal(dataA, dataB), metadata = metadataA != metadataB, allocation = allocationA != allocationB;
                     rows.Add(new(DskDiffLevel.Filesystem, key, a == null ? DskDiffState.OnlyInRight : b == null ? DskDiffState.OnlyInLeft : data || metadata || allocation ? DskDiffState.Changed : DskDiffState.Same,
                         $"Content changed: {data}\nMetadata changed: {metadata}\nAllocation changed: {allocation}\n\nLeft metadata: {metadataA ?? "absent"}\nRight metadata: {metadataB ?? "absent"}\n\nLeft allocation: {allocationA ?? "absent"}\nRight allocation: {allocationB ?? "absent"}\n\nCP/M user is part of file identity; a user-area move is shown as only-left / only-right, without guessing file correspondence.",
-                        dataA, dataB, FileAddress(lm, a), FileAddress(rm, b), a?.Key, b?.Key, nativeA, nativeB));
+                        dataA, dataB, FileAddress(lm, a), FileAddress(rm, b), a?.Key, b?.Key, nativeA, nativeB)
+                        { LeftValue = (metadataA ?? "absent") + "\nAllocation: " + (allocationA ?? "absent"),
+                          RightValue = (metadataB ?? "absent") + "\nAllocation: " + (allocationB ?? "absent") });
                 }
             }
             catch (Exception ex) when (ex is InvalidDataException or IOException or ArgumentException or InvalidOperationException)
@@ -130,6 +142,7 @@ internal static class DskCompareService
             (rightDocument.FilePath ?? "Right image") + (rightDocument.IsModified ? " (unsaved edits)" : ""));
     }
 
+    private static string RawValue(byte[]? bytes) => bytes == null ? "absent" : $"{bytes.Length} B\n" + Convert.ToHexString(bytes.AsSpan(0, Math.Min(32, bytes.Length))) + (bytes.Length > 32 ? "… (Hex diff for all changes)" : "");
     private static bool Equal(byte[]? a, byte[]? b) => a == null ? b == null : b != null && a.AsSpan().SequenceEqual(b);
     private static string Dpb(CpmDpb d) => $"{d.Name}: SPT={d.Spt}, BSH={d.Bsh}, BLM={d.Blm}, EXM={d.Exm}, DSM={d.Dsm}, DRM={d.Drm}, AL0={d.Al0:X2}, AL1={d.Al1:X2}, CKS={d.Cks}, OFF={d.Off}, block size={d.BlockSize}, inverted={d.Inverted}\n" +
         "Physical track map: " + (d.PhysicalTrackMap == null ? "linear" : string.Join(",", d.PhysicalTrackMap)) + "\nPhysical sector map: " +

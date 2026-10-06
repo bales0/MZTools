@@ -784,6 +784,10 @@ Each edit uses captured private image bytes, modifies only the mapped payload, s
 
 Use **Disk ▾ → Compare with...** and select a second DSK. Comparison works on snapshots, including unsaved edits in the open document. Comparing and exporting a patch do not modify either image. **Preview patch** and **Export patch...** describe the changes from the left snapshot to the right.
 
+The table and selected-item details show **Left** and **Right** side by side. In **Physical sectors**, `Stored descriptor length (+6/+7)` explicitly identifies differences in the Extended DSK sector length field, separately from the decoded payload length. Such a difference is selected automatically when the window opens. **Hex diff... → Descriptor / raw directory bytes** shows the exact descriptor bytes; the selected-item summary gives their absolute image offsets. The full diagnostic detail is also available in the summary tooltip.
+
+New Extended DSK images store the actual sector length in every descriptor (for example, `00 01` for 256 bytes). A legacy zero length is reported by Analyzer as `DSK_EXTENDED_ZERO_LENGTH`: MZTools can recover bytes from N for inspection, but FlashFloppy treats the stored zero as no sector data. Opening and ordinary saving preserve existing descriptors; they do not silently repair them. Explicit repaired copies change only zero length fields and do not overwrite their source. This behavior follows [FlashFloppy's Extended DSK reader](https://raw.githubusercontent.com/keirf/flashfloppy/master/src/image/dsk.c). Static validation does not certify hardware boot.
+
 ### DSK Patch Format
 
 Version 1 `.mzpatch.json` files contain source/target SHA-256, source/target geometry signatures and sector byte ranges addressed by physical track, descriptor index, C/H/R/N and offset. Every range includes expected original bytes, their SHA-256 and equal-length replacement bytes. Matching only a sector ID is never sufficient.

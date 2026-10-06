@@ -14,6 +14,9 @@
 MZTool.Tests/*
 !MZTool.Tests/CpmSystemBuilderTests.cs
 !MZTool.Tests/PersonalCpmSystemTests.cs
+!MZTool.Tests/DskExtendedLengthTests.cs
+!MZTool.Tests/DskCompareTests.cs
+!MZTool.Tests/Mz800IplDskWriterTests.cs
 !MZTool.Tests/DskHexEditTests.cs
 !MZTool.Tests/DskFilePropertyTests.cs
 !MZTool.Tests/DskPatchTests.cs

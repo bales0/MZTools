@@ -401,6 +401,7 @@ namespace MZTools
                     descriptor[1] = checked((byte)side);
                     descriptor[2] = checked((byte)(firstId + index));
                     descriptor[3] = sizeCode;
+                    BinaryPrimitives.WriteUInt16LittleEndian(descriptor.AsSpan(6, 2), checked((ushort)size));
                     descriptor.CopyTo(header, 0x18 + index * 8);
                     sectors.Add(new DskSector(descriptor, Enumerable.Repeat(filler, size).Select(value => (byte)value).ToArray(), index));
                 }

@@ -33,6 +33,8 @@ internal sealed class DskSectorLayout
     public byte St2 { get; init; }
     public required byte[] Data { get; init; }
     public int DataLength => Data.Length;
+    public int DeclaredDataLength { get; init; }
+    public long DescriptorFileOffset { get; init; }
     public long FileOffset { get; init; }
     public DskSectorRole Role { get; internal set; }
     public List<DskAllocationOwner> Owners { get; } = new();
@@ -40,7 +42,7 @@ internal sealed class DskSectorLayout
     public List<int> AllocationBlocks { get; } = new();
     public bool HasIssue { get; internal set; }
     public string Files => string.Join(", ", Owners.Select(o => o.FileName).Distinct());
-    public string Detail => $"Physical track: {Track}\nCylinder: {C}\nSide: {H}\nPhysical sector index: {PhysicalIndex}\nSector ID R: {R}\nSize code N: {N}\nData size: {DataLength} B\nFile offset: 0x{FileOffset:X}\nST1: {St1:X2}\nST2: {St2:X2}\nFilesystem role: {Role}\nLogical blocks: {string.Join(", ", LogicalBlocks)}\nAllocation blocks: {string.Join(", ", AllocationBlocks)}\n" +
+    public string Detail => $"Physical track: {Track}\nCylinder: {C}\nSide: {H}\nPhysical sector index: {PhysicalIndex}\nSector ID R: {R}\nSize code N: {N}\nData size: {DataLength} B\nStored descriptor length (+6/+7): {DeclaredDataLength} B\nDescriptor length image offset: 0x{DescriptorFileOffset + 6:X}\nFile offset: 0x{FileOffset:X}\nST1: {St1:X2}\nST2: {St2:X2}\nFilesystem role: {Role}\nLogical blocks: {string.Join(", ", LogicalBlocks)}\nAllocation blocks: {string.Join(", ", AllocationBlocks)}\n" +
         string.Join("\n", Owners.Select(o => $"File: {o.FileName} [{o.FileKey}], file block: {o.FileBlock}, user: {o.User}, extent: {o.Extent}, logical 128B sector: {o.LogicalSector}, bytes {o.Offset}..{o.Offset + o.Length - 1}"));
 }
 

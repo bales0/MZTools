@@ -20,6 +20,8 @@ internal sealed class DskCompareWindow : Window
     private readonly ScrollViewer leftScroll = new(), rightScroll = new();
     private readonly Dictionary<ScrollViewer, (double X, double Y)> pendingScrolls = new();
     private readonly TextBox detail = new() { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+    private readonly TextBox rightDetail = new() { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+    private readonly TextBlock changeDetail = new() { TextWrapping = TextWrapping.Wrap };
     private readonly Button hex = new() { Content = "Hex diff...", IsEnabled = false, MinWidth = 100 };
     private DskDiffItem? selected;
     private bool synchronizing;
@@ -30,9 +32,16 @@ internal sealed class DskCompareWindow : Window
         Title = "DSK Compare — snapshots / patch export"; Width = 1180; Height = 820; MinWidth = 800; MinHeight = 620;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         var root = new Grid { Margin = new Thickness(12) }; Content = root;
-        foreach (var height in new[] { GridLength.Auto, new GridLength(1, GridUnitType.Star), new GridLength(5), new GridLength(240), new GridLength(115), GridLength.Auto })
+        foreach (var height in new[] { GridLength.Auto, new GridLength(1, GridUnitType.Star), new GridLength(5), new GridLength(240), new GridLength(160), GridLength.Auto })
             root.RowDefinitions.Add(new RowDefinition { Height = height });
-        var summary = new TextBlock { Text = $"Left: {comparison.LeftName}\nRight: {comparison.RightName}\n{comparison.Summary}", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 10) };
+        var summary = new Grid { Margin = new Thickness(0, 0, 0, 10) };
+        summary.ColumnDefinitions.Add(new ColumnDefinition()); summary.ColumnDefinitions.Add(new ColumnDefinition());
+        summary.RowDefinitions.Add(new RowDefinition()); summary.RowDefinitions.Add(new RowDefinition());
+        var leftName = new TextBlock { Text = "Left: " + comparison.LeftName, TextWrapping = TextWrapping.Wrap };
+        var rightName = new TextBlock { Text = "Right: " + comparison.RightName, TextWrapping = TextWrapping.Wrap };
+        Grid.SetColumn(rightName, 1); summary.Children.Add(leftName); summary.Children.Add(rightName);
+        var totals = new TextBlock { Text = comparison.Summary, TextWrapping = TextWrapping.Wrap };
+        Grid.SetRow(totals, 1); Grid.SetColumnSpan(totals, 2); summary.Children.Add(totals);
         root.Children.Add(summary); Grid.SetRow(tabs, 1); root.Children.Add(tabs);
         var divider = new GridSplitter { Height = 5, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch, ResizeDirection = GridResizeDirection.Rows };
         Grid.SetRow(divider, 2); root.Children.Add(divider);
@@ -41,7 +50,11 @@ internal sealed class DskCompareWindow : Window
             var grid = new DataGrid { AutoGenerateColumns = false, IsReadOnly = true, CanUserAddRows = false,
                 SelectionMode = DataGridSelectionMode.Single, SelectionUnit = DataGridSelectionUnit.FullRow, EnableRowVirtualization = true };
             grid.Columns.Add(new DataGridTextColumn { Header = "Status", Binding = new Binding(nameof(DskDiffItem.Status)), Width = 110 });
-            grid.Columns.Add(new DataGridTextColumn { Header = "Item", Binding = new Binding(nameof(DskDiffItem.Name)), Width = new DataGridLength(1, DataGridLengthUnitType.Star) });
+            grid.Columns.Add(new DataGridTextColumn { Header = "Item", Binding = new Binding(nameof(DskDiffItem.Name)), Width = 190 });
+            grid.Columns.Add(new DataGridTextColumn { Header = "Difference", Binding = new Binding(nameof(DskDiffItem.DifferenceKind)), Width = 175 });
+            grid.Columns.Add(new DataGridTextColumn { Header = "Left", Binding = new Binding(nameof(DskDiffItem.LeftValue)), Width = new DataGridLength(1, DataGridLengthUnitType.Star) });
+            grid.Columns.Add(new DataGridTextColumn { Header = "Right", Binding = new Binding(nameof(DskDiffItem.RightValue)), Width = new DataGridLength(1, DataGridLengthUnitType.Star) });
+            grid.RowHeight = 30;
             grid.SelectionChanged += (_, _) => { if (!synchronizing) Select(grid.SelectedItem as DskDiffItem); };
             grids.Add(level, grid);
             tabs.Items.Add(new TabItem { Header = level == DskDiffLevel.PhysicalSectors ? "Physical sectors" : level.ToString(), Content = grid });
@@ -67,7 +80,12 @@ internal sealed class DskCompareWindow : Window
         leftScroll.ScrollChanged += SyncMapScroll; rightScroll.ScrollChanged += SyncMapScroll;
         leftMap.SectorSelected += sector => SelectFromMap(sector, true); rightMap.SectorSelected += sector => SelectFromMap(sector, false);
         Grid.SetRow(maps, 3); root.Children.Add(maps);
-        detail.Margin = new Thickness(0, 8, 0, 0); Grid.SetRow(detail, 4); root.Children.Add(detail);
+        var details = new Grid { Margin = new Thickness(0, 8, 0, 0) };
+        details.ColumnDefinitions.Add(new ColumnDefinition()); details.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(8) }); details.ColumnDefinitions.Add(new ColumnDefinition());
+        details.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); details.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        Grid.SetColumnSpan(changeDetail, 3); details.Children.Add(changeDetail);
+        Grid.SetRow(detail, 1); Grid.SetRow(rightDetail, 1); Grid.SetColumn(rightDetail, 2); details.Children.Add(detail); details.Children.Add(rightDetail);
+        Grid.SetRow(details, 4); root.Children.Add(details);
         var controls = new DockPanel { Margin = new Thickness(0, 10, 0, 0) }; controls.Children.Add(hex); controls.Children.Add(showSame);
         var previewPatch = new Button { Content = "Preview patch", Margin = new Thickness(8, 0, 0, 0) };
         var exportPatch = new Button { Content = "Export patch...", Margin = new Thickness(8, 0, 0, 0) };
@@ -78,6 +96,13 @@ internal sealed class DskCompareWindow : Window
         close.Click += (_, _) => Close(); controls.Children.Add(close); Grid.SetRow(controls, 5); root.Children.Add(controls);
         hex.Click += (_, _) => { if (selected?.HasHexDiff == true) new DskHexDiffWindow(this, selected).ShowDialog(); };
         showSame.Checked += (_, _) => RefreshRows(); showSame.Unchecked += (_, _) => RefreshRows(); RefreshRows();
+        var lengthChange = comparison.Items.FirstOrDefault(i => i.DescriptorLengthChanged);
+        if (lengthChange != null)
+        {
+            tabs.SelectedIndex = (int)DskDiffLevel.PhysicalSectors;
+            grids[DskDiffLevel.PhysicalSectors].SelectedItem = lengthChange;
+            Select(lengthChange);
+        }
     }
 
     private void Patch(bool export)
@@ -129,7 +154,14 @@ internal sealed class DskCompareWindow : Window
     }
     internal void Select(DskDiffItem? item)
     {
-        selected = item; hex.IsEnabled = item?.HasHexDiff == true; detail.Text = item?.Detail ?? "Select a row or a physical sector to inspect both snapshots. Export patch describes left → right; apply it from Disk Map.";
+        selected = item; hex.IsEnabled = item?.HasHexDiff == true;
+        detail.Text = item == null ? "Left snapshot — select a row or sector." : "Left\n" + item.LeftValue;
+        rightDetail.Text = item == null ? "Right snapshot — select a row or sector." : "Right\n" + item.RightValue;
+        changeDetail.Text = item == null ? "Export patch describes left → right. Select a difference; Hex diff shows payload or descriptor bytes." :
+            item.Name + " — " + item.DifferenceKind + "\n" + string.Join(" | ", item.Detail.Split('\n').Where(line =>
+                (line.Contains("changed", StringComparison.OrdinalIgnoreCase) && !line.EndsWith("False", StringComparison.Ordinal)) ||
+                line.StartsWith("Descriptor length field:") || line.StartsWith("Logical comparison unavailable:") || line.StartsWith("Ambiguous or unreadable filesystem:")));
+        changeDetail.ToolTip = item?.Detail;
         void Highlight(DskDiskMapControl map, DskLayoutModel layout, DskSectorAddress? address, string? file)
         {
             map.SelectSector(file == null && address != null ? layout.Sectors.FirstOrDefault(s => s.Address == address) : null);

@@ -30,6 +30,8 @@ internal static class DskIssueHelp
             ("Declared container geometry, sizes or boundaries cannot be reconciled with the stored data.", "Part of the image may be missing or mapped at an incorrect position.", "Compare the image length and header/track descriptors with a trusted copy. Preserve the original; do not guess missing bytes."),
         "DSK_SECTOR_SIZE" =>
             ("Stored byte length differs from the sector size code N, the declared length, or the supported size range.", "Reads or rebuilds may interpret sector boundaries incorrectly; some special formats intentionally use unusual sizes.", "Inspect N, stored length and raw bytes in Hex view block; compare with the expected disk format."),
+        "DSK_EXTENDED_ZERO_LENGTH" =>
+            ("An Extended DSK sector descriptor stores a zero length in bytes +6/+7, despite having payload recovered by MZTools from size code N.", "FlashFloppy uses the explicit Extended DSK length and treats zero as no data. Such an image can look valid in MZTools yet fail with FD loading error on real hardware.", "Regenerate using the corrected writer or repair an explicit copy by filling only zero length fields from the verified payload sizes. Existing images are never silently normalized on open/save."),
         "DSK_DUPLICATE_SECTOR_ID" =>
             ("More than one descriptor has the same C/H/R address.", "Logical sector lookup is ambiguous. The layout may be damaged or intentionally protected.", "Compare the duplicate physical indices and bytes. Do not delete a duplicate solely because its address repeats."),
         "DSK_TRACK_CH" or "DSK_SECTOR_CH" =>

@@ -9,9 +9,9 @@
     <AssemblyTitle>MZTools</AssemblyTitle>
     <Product>MZTools</Product>
     <ApplicationIcon>images\MZTool.ico</ApplicationIcon>
-    <Version>0.9.4</Version>
-    <FileVersion>0.9.4</FileVersion>
-    <AssemblyVersion>0.9.4</AssemblyVersion>
+    <Version>0.9.5</Version>
+    <FileVersion>0.9.5</FileVersion>
+    <AssemblyVersion>0.9.5</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>

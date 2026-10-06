@@ -94,7 +94,8 @@ internal sealed class DskAnalyzer
             {
                 var s = track.Sectors[si];
                 var sector = new DskSectorLayout { Address = new(ti, si), C = s.Cylinder, H = s.Side, R = s.SectorId, N = s.SizeCode,
-                    St1 = s.FdcStatus1, St2 = s.FdcStatus2, FileOffset = sectorOffset, Data = (byte[])s.Data.Clone() };
+                    St1 = s.FdcStatus1, St2 = s.FdcStatus2, FileOffset = sectorOffset, DescriptorFileOffset = offset + 0x18 + si * 8,
+                    DeclaredDataLength = s.DeclaredDataLength, Data = (byte[])s.Data.Clone() };
                 sectors.Add(sector);
                 if (!byId.TryGetValue((ti, s.SectorId), out var group)) byId[(ti, s.SectorId)] = group = new();
                 group.Add(sector);
@@ -102,6 +103,10 @@ internal sealed class DskAnalyzer
                     Issue("DSK_SECTOR_CH", DskIssueSeverity.Warning, "Sector C/H differs from track metadata.", track: ti, sector: si);
                 if (s.SizeCode > 3 || s.Data.Length != (128 << s.SizeCode) || (s.DeclaredDataLength != 0 && s.DeclaredDataLength != s.Data.Length))
                     Issue("DSK_SECTOR_SIZE", DskIssueSeverity.Error, "Sector data size does not match N or N is unsupported.", track: ti, sector: si);
+                if (s.DeclaredDataLength == 0)
+                    Issue("DSK_EXTENDED_ZERO_LENGTH", DskIssueSeverity.Warning,
+                        "Extended DSK sector declares zero data length; FlashFloppy sees no sector data.",
+                        $"Descriptor bytes +6/+7 at image offset 0x{offset + 0x18 + si * 8 + 6:X} are 00 00. MZTools recovered {s.Data.Length} B from N={s.SizeCode} for inspection only. This fallback is not FlashFloppy-compatible; regenerate or explicitly repair a copy.", ti, si);
                 if (s.FdcStatus1 != 0 || s.FdcStatus2 != 0)
                     Issue("DSK_FDC_STATUS", (s.FdcStatus1 & 0x25) != 0 || (s.FdcStatus2 & 0x31) != 0 ? DskIssueSeverity.Error : DskIssueSeverity.Warning,
                         "Sector contains FDC status flags.", $"ST1={s.FdcStatus1:X2}, ST2={s.FdcStatus2:X2}; preserved controller status, not repaired.", ti, si);
