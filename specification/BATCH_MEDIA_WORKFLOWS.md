@@ -22,7 +22,7 @@ blocks the batch if any row fails.
 ## Conversion and compression
 
 Tape/audio/QD targets: MZF, M12, MZT, WAV, FLAC, LEP, L16, QD (Sharp),
-QD (HxC), QD (uniform), QDF and MZQ. Each input produces an independent output;
+QD (HxC), QD (FlashFloppy), QDF and MZQ. Each input produces an independent output;
 the batch does not merge separate source files. Disk targets accept disk inputs;
 tape targets accept decoded SHARP tape/QD inputs. Unsupported family/target
 combinations produce an explanation in their row.
@@ -108,6 +108,34 @@ Messages separates result, warning and error rows. The full original report
 remains available in Technical details. Tables support Ctrl+C with column headers.
 Structured contents and decoder properties are retained in JSON reports too.
 Tape profiles use their display names (e.g. TC 1:2 and NORMAL 1:2).
+QD/QDF/MZQ contents omit tape profiles, which these containers do not store;
+their Compression column still reports recognized program compression.
+The main QuickDisk workspace also provides Compression… in the toolbar and the
+file context menu for selected editable SHARP programs. It uses the full shared
+MZF export settings/preview/progress, including explicit decompression of known
+streams. Apply modifies only selected in-memory records; Save writes the image.
+The proposed QD/QDF image is built before application to check capacity and format
+constraints. Cancel or a failed build leaves the document unchanged. Embedded
+ZX7 header loaders and partial/skip compression are unavailable for QuickDisk.
+The same toolbar/context action is available for standalone MZF/M12 and other
+tape documents: preview prepares selected record copies, Apply replaces those
+records in memory, Save/Save As writes the document. None preserves source bytes
+without applying transformed-program RAM constraints; actual compression still
+validates the resulting loader/address layout. Tape export chooses format and
+prepares compression/trailing/sidecar or waveform/IPL options before the native
+Save dialog. Cancelling any earlier dialog produces no output.
+File selections retain highlight colors while dialogs have focus. Escape clears
+non-editing grid selections, as does a blank list/background click; editing and
+interactive controls keep their normal input handling.
+For multi-program export to separate MZF/M12/BIN or separate WAV/LEP/L16,
+the destination dialog selects an output folder and filename mask instead of a
+single base filename. It previews every program/output name. Supported placeholders
+are {name} (decoded header name, sanitized for Windows), {index} (001 onward),
+and {ext}; the default is {index}_{name}{ext}. The extension is appended when
+{ext} is omitted. Invalid names, path traversal, reserved device names and
+case-insensitive output collisions are rejected before writing. Existing output
+files and sidecars require one overwrite confirmation. Union MZT/audio/IPL and
+single-record exports retain the normal Save dialog.
 Info / test integrity opens the Integrity checks tab with one row per check, including
 scope, outcome and limits. Tape rows cover header/body length, recognized stream
 decompression, available tape/frame checksums and complete source recovery.

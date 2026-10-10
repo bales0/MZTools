@@ -18,7 +18,8 @@ namespace MZTools
             int trailingBytes,
             bool sidecarAlreadyExists,
             CompressionTarget? compressionTarget = null,
-            IReadOnlyList<(int Index, TapeRecord Record)>? compressionRecords = null)
+            IReadOnlyList<(int Index, TapeRecord Record)>? compressionRecords = null,
+            bool applyToDocument = false)
         {
             InitializeComponent();
             this.compressionTarget = compressionTarget;
@@ -64,6 +65,13 @@ namespace MZTools
                 compressionPreviewBorder.Visibility = Visibility.Visible;
                 compressionOptionsControl.OptionsChanged += CompressionOptionsControl_OptionsChanged;
                 Loaded += async (_, _) => await RefreshCompressionPreviewAsync();
+            }
+            if (compressionTarget == CompressionTarget.QuickDisk || applyToDocument)
+            {
+                Title = compressionTarget == CompressionTarget.QuickDisk ? "QuickDisk compression" : "Program compression";
+                headingTextBlock.Text = $"Compression for {compressionRecords?.Count ?? 0} selected program(s)";
+                tapeOptionsPanel.Visibility = Visibility.Collapsed;
+                saveButton.Content = "Apply";
             }
         }
 

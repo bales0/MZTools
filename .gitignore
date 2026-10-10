@@ -33,6 +33,10 @@ MZTool.Tests/*
 !MZTool.Tests/WorkspaceDragTransferTests.cs
 !MZTool.Tests/NativeComTests.cs
 !MZTool.Tests/CompressionWorkflowTests.cs
+!MZTool.Tests/AudioSignalAnalysisTests.cs
+!MZTool.Tests/AudioRegionRecoveryTests.cs
+!MZTool.Tests/SharpMzPulseDecoderTests.cs
+!MZTool.Tests/AudioSignalUiSmoke/
 !MZTool.Tests/BundledBootSystemTests.cs
 # /build/
 

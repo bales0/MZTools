@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:MZTools"
         Title="Save options"
-        Icon="/images/MZTool.ico"
+        Icon="/MZTools;component/images/MZTool.ico"
         SizeToContent="WidthAndHeight"
         MinWidth="430"
         ResizeMode="NoResize"

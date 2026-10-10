@@ -13,7 +13,7 @@ internal static class QuickDiskFormatLabels
     {
         QdImageFormat.SharpLegacyLogical => "Sharp/MZ legacy",
         QdImageFormat.HxcPhysical => "HxC physical",
-        QdImageFormat.FlashFloppyPhysical => "Uniform-track physical QD",
+        QdImageFormat.FlashFloppyPhysical => "FlashFloppy physical QD",
         _ => "Unknown"
     };
 }

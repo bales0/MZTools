@@ -2,6 +2,47 @@ namespace MZTools.Tests;
 
 public sealed class CompressionWorkflowTests
 {
+    [Fact]
+    public void SeparateExportMaskUsesHeaderNamesIndicesAndChosenExtension()
+    {
+        var first = TapeTestData.ReadRecord(TapeTestData.CreateMzf([1, 2, 3], name: "FIRST"));
+        var second = TapeTestData.ReadRecord(TapeTestData.CreateMzf([4, 5], name: "SECOND"));
+        string folder = Path.GetTempPath();
+        var paths = SeparateExportNaming.BuildPaths(folder, SeparateExportNaming.DefaultMask, [first, second], ".m12");
+        Assert.Equal(new[] { "001_FIRST.m12", "002_SECOND.m12" }, paths.Select(Path.GetFileName));
+        Assert.All(paths, path => Assert.Equal(Path.GetFullPath(folder).TrimEnd(Path.DirectorySeparatorChar), Path.GetDirectoryName(path)));
+        paths = SeparateExportNaming.BuildPaths(folder, "copy_{name}", [first, second], ".wav");
+        Assert.Equal(new[] { "copy_FIRST.wav", "copy_SECOND.wav" }, paths.Select(Path.GetFileName));
+        Assert.Throws<ArgumentException>(() => SeparateExportNaming.BuildPaths(folder, "{name}{ext}", [first, first.DeepClone()], ".mzf"));
+        Assert.Throws<ArgumentException>(() => SeparateExportNaming.BuildPaths(folder, "../{index}{ext}", [first], ".mzf"));
+        Assert.Throws<ArgumentException>(() => SeparateExportNaming.BuildPaths(folder, "CON{ext}", [first], ".mzf"));
+        Assert.Throws<ArgumentException>(() => SeparateExportNaming.BuildPaths(folder, "{unknown}{ext}", [first], ".mzf"));
+    }
+
+    [Theory]
+    [InlineData((int)CompressionTarget.MzfTape)]
+    [InlineData((int)CompressionTarget.MztTape)]
+    public async Task NoCompressionPreservesWrappingLoadAddressAndRawRecord(int targetValue)
+    {
+        var source = TapeTestData.ReadRecord(TapeTestData.CreateMzf(new byte[27091], trailing: [1, 2, 3]));
+        var header = source.Header; header.MzfStart = 0xBA01; header.MzfExec = 0; source.Header = header;
+        byte[] before = TapeDocumentWriter.SerializeMzf(source, true);
+        var result = await SaveOptionsDialog.PrepareCompressionForExportAsync(source, new(MzfCompressionAlgorithm.None), (CompressionTarget)targetValue);
+        Assert.Equal(before, TapeDocumentWriter.SerializeMzf(result.Record, true));
+        Assert.Equal(before, TapeDocumentWriter.SerializeMzf(source, true));
+        Assert.NotSame(source, result.Record);
+    }
+
+    [Fact]
+    public async Task DirectTapeCompressionCanBeAppliedAndSavedWithoutChangingOriginalDuringPreview()
+    {
+        var source = Source(); byte[] before = TapeDocumentWriter.SerializeMzf(source, true);
+        var result = await SaveOptionsDialog.PrepareCompressionForExportAsync(source, new(MzfCompressionAlgorithm.Zx7), CompressionTarget.MzfTape);
+        Assert.Equal(before, TapeDocumentWriter.SerializeMzf(source, true));
+        var reopened = TapeTestData.ReadRecord(TapeDocumentWriter.SerializeMzf(result.Record, true));
+        Assert.Equal(source.Body.MzfBody, MzfDecompressionService.Decompress(reopened).Record.Body.MzfBody);
+    }
+
     [Theory]
     [InlineData((int)MzfCompressionAlgorithm.None)]
     [InlineData((int)MzfCompressionAlgorithm.Zx0)]

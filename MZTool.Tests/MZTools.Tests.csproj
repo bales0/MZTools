@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MZTools.csproj" />
+    <Compile Remove="AudioSignalUiSmoke\**\*.cs" />
   </ItemGroup>
 
   <ItemGroup>

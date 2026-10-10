@@ -473,7 +473,8 @@ namespace MZTools
         private void ClearMapSelection_Click(object sender, RoutedEventArgs e) => ClearMapSelection();
         private void MapBackground_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (DiskMapVisuals.IsBlankClick(e.OriginalSource as DependencyObject)) ClearMapSelection();
+            if (DiskMapVisuals.IsBlankClick(e.OriginalSource as DependencyObject))
+            { directoryGrid.UnselectAll(); multiIplGrid.UnselectAll(); ClearMapSelection(); }
         }
         private void MapBlocks_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {

@@ -1,7 +1,7 @@
 <Window x:Class="MZTools.WavAnalysisStatisticsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Icon="/images/MZTool.ico"
+        Icon="/MZTools;component/images/MZTool.ico"
         Title="Audio analysis statistics"
         Width="1100"
         Height="640"
@@ -14,22 +14,17 @@
         ShowInTaskbar="False">
     <Grid Margin="18">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <TextBox x:Name="statisticsText"
-                 IsReadOnly="True"
-                 BorderThickness="0"
-                 Background="Transparent"
-                 FontFamily="Consolas"
-                 FontSize="13"
-                 TextWrapping="NoWrap"
-                 HorizontalScrollBarVisibility="Auto"
-                 VerticalScrollBarVisibility="Auto"
-                 HorizontalAlignment="Stretch"
-                 VerticalAlignment="Stretch"
-                 Padding="2"/>
-        <Button Grid.Row="1"
+        <StackPanel Margin="0,0,0,12">
+            <TextBlock x:Name="reportHeading" FontSize="22" FontWeight="SemiBold" TextWrapping="Wrap"/>
+            <TextBlock x:Name="reportSummary" Margin="0,6,0,0" TextWrapping="Wrap"/>
+        </StackPanel>
+        <TabControl x:Name="reportTabs" Grid.Row="1"/>
+        <Button x:Name="visualAnalysisButton" Grid.Row="2" Content="Visual analysis…" HorizontalAlignment="Left" Margin="0,12,0,0" Padding="10,4" Click="VisualAnalysis_Click"/>
+        <Button Grid.Row="2"
                 Content="OK"
                 Width="82"
                 Margin="0,12,0,0"

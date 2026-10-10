@@ -1,4 +1,4 @@
-using System.Buffers.Binary;
+﻿using System.Buffers.Binary;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,7 +11,8 @@ namespace MZTools
     internal enum WavPulseMode
     {
         ZeroCrossing,
-        Schmitt
+        Schmitt,
+        AdaptiveZeroCrossing
     }
 
     internal enum SharpBlockKind
@@ -116,6 +117,11 @@ namespace MZTools
 
     internal sealed class SharpBlockCandidate
     {
+        internal SharpBlockSignalTrace? SignalTrace { get; init; }
+        internal string RecoveryTest { get; set; } = "";
+        internal bool ChecksumAvailable { get; init; } = true;
+        internal bool LengthVerified { get; set; } = true;
+        internal string BoundaryEvidence { get; set; } = "Header or explicit expected length";
         internal required SharpBlockKind Kind { get; init; }
         internal required int Channel { get; init; }
         internal required int CopyIndex { get; init; }
@@ -195,6 +201,10 @@ namespace MZTools
 
     internal sealed class WavHeuristicStatistics
     {
+        internal IReadOnlyList<AudioRecoveryEvent> Diagnostics { get; init; } = [];
+        internal int OmittedDiagnostics { get; init; }
+        internal IReadOnlyList<AudioHeaderRejection> RejectedHeaders { get; init; } = [];
+        internal int OmittedHeaderRejections { get; init; }
         internal required string SourceFile { get; init; }
         internal required PcmAudioFormat Format { get; init; }
         internal required string SourceFormat { get; init; }
@@ -211,6 +221,7 @@ namespace MZTools
 
     internal sealed class WavHeuristicAnalysisResult
     {
+        internal IReadOnlyList<SharpBlockCandidate> Candidates { get; init; } = [];
         internal required IReadOnlyList<TapeRecord> Records { get; init; }
         internal required WavHeuristicStatistics Statistics { get; init; }
         internal required IReadOnlyList<WavAnalysisFailure> Failures { get; init; }
@@ -224,7 +235,8 @@ namespace MZTools
         internal static WavHeuristicAnalysisResult AnalyzeFile(
             string filePath,
             IProgress<WavAnalysisProgress>? progress = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            bool includeCandidates = false, bool enableDiagnostics = false)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             using IPcmAudioStreamReader reader = Path.GetExtension(filePath).ToLowerInvariant() switch
@@ -236,13 +248,15 @@ namespace MZTools
                     nameof(filePath))
             };
             var candidates = new List<SharpBlockCandidate>();
+            var headerDiagnostics = new AudioHeaderDiagnostics();
+            var diagnostics = enableDiagnostics ? new AudioRecoveryDiagnostics() : null;
             var expectedLengths = new HashSet<int>();
             var channels = Enumerable.Range(0, reader.Format.Channels)
                 .Select(channel => new ChannelAnalyzer(
                     channel,
                     reader.Format.SampleRate,
                     candidates,
-                    expectedLengths))
+                    expectedLengths, headerRejected: headerDiagnostics.Reject, diagnostics: diagnostics))
                 .ToArray();
 
             long reportInterval = Math.Max(1, reader.Format.SampleRate / 5);
@@ -294,7 +308,7 @@ namespace MZTools
                     reader,
                     assembly.Failures,
                     progress,
-                    cancellationToken);
+                    cancellationToken, headerDiagnostics, diagnostics);
                 if (recoveryCandidates.Count > 0)
                 {
                     candidates.AddRange(recoveryCandidates);
@@ -306,6 +320,16 @@ namespace MZTools
             }
 
             bool selectiveRecoveryUsed = recoveryCandidates.Count > 0;
+            // Retry discovery outside recovered records as well as known-header
+            // failures. A missed header must not prevent a Schmitt recovery pass.
+            var discovery = DiscoverUnresolved(reader, assembly.Recoveries, expectedLengths, progress, cancellationToken, headerDiagnostics, diagnostics);
+            if (discovery.Count > 0)
+            {
+                candidates.AddRange(discovery); recoveryCandidates.AddRange(discovery);
+                assembly = AssembleRecords(candidates, reader.Format.SampleRate, reader.Format.FrameCount);
+                selectiveRecoveryUsed = true;
+            }
+            RecordAssemblyDiagnostics(candidates, assembly.Recoveries, reader.Format.SampleRate, diagnostics);
             var recoveryCandidateSet = recoveryCandidates.ToHashSet();
             IReadOnlyList<WavRecoveryInfo> recordRecoveries = assembly.Recoveries
                 .Select(value => new WavRecoveryInfo
@@ -323,7 +347,8 @@ namespace MZTools
                 .Select(value => value with
                 {
                     SourceFile = filePath,
-                    RecoveryAttempted = selectiveRecoveryUsed && value.HeaderFound
+                    RecoveryAttempted = selectiveRecoveryUsed && value.HeaderFound,
+                    Reason = candidates.Any(c => c.Kind == SharpBlockKind.Header) ? value.Reason : headerDiagnostics.Explain(value.Reason)
                 })
                 .ToList();
 
@@ -335,10 +360,12 @@ namespace MZTools
                 candidates.Count));
             return new WavHeuristicAnalysisResult
             {
+                Candidates = includeCandidates ? candidates : [],
                 Records = assembly.Records,
                 Failures = failures,
                 Statistics = new WavHeuristicStatistics
                 {
+                    Diagnostics = diagnostics?.Events.ToArray() ?? [], OmittedDiagnostics = diagnostics?.Omitted ?? 0, RejectedHeaders = headerDiagnostics.Items.ToArray(), OmittedHeaderRejections = headerDiagnostics.Omitted,
                     SourceFile = filePath,
                     Format = reader.Format,
                     SourceFormat = reader.SourceFormat,
@@ -355,12 +382,143 @@ namespace MZTools
             };
         }
 
+        // Explicit range recovery is separate from automatic import. It reuses the
+        // existing scanners and checksum/reconstruction rules at additional thresholds.
+        internal static AudioRegionRecoveryResult AnalyzeRange(string path, long start, long end, int? expectedLength = null,
+            IProgress<WavAnalysisProgress>? progress = null, CancellationToken token = default, AudioRecoveryOptions? options = null)
+        {
+            token.ThrowIfCancellationRequested();
+            using var reader = AudioSignalAnalysisService.OpenReader(path);
+            if (start < 0 || end <= start || end > reader.Format.FrameCount) throw new ArgumentOutOfRangeException(nameof(start), "Choose a nonempty interval inside the recording.");
+            if (expectedLength.HasValue && (expectedLength < 1 || expectedLength > ushort.MaxValue)) throw new ArgumentOutOfRangeException(nameof(expectedLength), "Expected payload length must be 1–65535 bytes, or blank.");
+            var info = new FileInfo(path); long originalLength = info.Length; var originalModified = info.LastWriteTimeUtc;
+            options ??= new AudioRecoveryOptions(); options.Transform.Validate(reader.Format);
+            options.Validate(options.Transform.Mix ? 1 : reader.Format.Channels);
+            if (options.PayloadOnly && !options.UnknownLength && !expectedLength.HasValue)
+                throw new ArgumentException("Payload only requires an expected length or Unknown length mode.");
+            (start, end) = options.Transform.Bounds(reader.Format, start, end);
+            var tests = new List<(string Name, double? Scale, double? Fuzzy, AudioPulseReference? Reference, bool HeadersOnly)>();
+            if (options.Adaptive) tests.Add(("Adaptive", null, null, null, false));
+            if (options.FixedTiming) foreach (double scale in options.TimeScales.Distinct()) tests.Add(("Fixed time scale", scale, null, null, false));
+            if (options.Fuzzy) tests.Add(("Fuzzy pulse length", null, options.FuzzyTolerance, null, false));
+            if (options.ReferenceTests)
+            {
+                tests.Add(("Reference header discovery", null, null, null, true));
+                foreach (var reference in options.References.Distinct()) tests.Add(("Reference: " + reference.Name, null, null, reference, false));
+            }
+            var plans = tests.SelectMany(t => ((options.Schmitt || options.AdaptiveZeroCrossing) ? options.ThresholdScales.Distinct() : new[] { 1.0 })
+                .Select(threshold => (t.Name, t.Scale, t.Fuzzy, t.Reference, t.HeadersOnly, Threshold: threshold))).ToArray();
+            var all = new List<SharpBlockCandidate>(); var passes = new List<AudioRecoveryPass>();
+            long candidateBytes = 0;
+            var headerDiagnostics = new AudioHeaderDiagnostics();
+            var diagnostics = options.Diagnostics ? new AudioRecoveryDiagnostics() : null;
+            for (int pass = 0; pass < plans.Length; pass++)
+            {
+                token.ThrowIfCancellationRequested();
+                var candidates = new List<SharpBlockCandidate>();
+                int accountedCandidates = 0;
+                void CheckCandidateBudget()
+                {
+                    while (accountedCandidates < candidates.Count) candidateBytes += candidates[accountedCandidates++].Data.Length;
+                    if (candidateBytes > 64L * 1024 * 1024) throw new InvalidDataException("Recovery candidate limit (64 MiB) reached. Narrow the interval or select fewer tests.");
+                }
+                var lengths = expectedLength.HasValue ? new HashSet<int> { expectedLength.Value } : new HashSet<int>();
+                var plan = plans[pass];
+                if (diagnostics != null) diagnostics.Context = $"{plan.Name}; gating ×{plan.Threshold:G}; {options.Transform.Description}; zero deadband ±{options.ZeroDeadband * 100:G}% FS";
+                if (plan.Reference != null) foreach (var header in all.Where(c => c.Kind == SharpBlockKind.Header && c.ChecksumValid && c.Data.Length == 128))
+                    lengths.Add(BinaryPrimitives.ReadUInt16LittleEndian(header.Data.AsSpan(18, 2)));
+                var measurements = new AudioRecoveryMeasurements(reader.Format.SampleRate, start, end, options, plan.Reference, plan.Scale.HasValue ? options.ShortMicroseconds * plan.Scale.Value : null);
+                for (int c = 0; c < (options.Transform.Mix ? 1 : reader.Format.Channels); c++) measurements.IncludeChannel(c);
+                var analyzers = Enumerable.Range(0, options.Transform.Mix ? 1 : reader.Format.Channels).Select(c => new ChannelAnalyzer(c, reader.Format.SampleRate, candidates, lengths,
+                    schmittScale: plan.Threshold, decode: !options.Channel.HasValue || options.Channel.Value == c, recovery: options,
+                    fixedShortUnits: plan.Scale.HasValue ? options.ShortMicroseconds * plan.Scale.Value * reader.Format.SampleRate / 1e6 : null,
+                    fuzzyTolerance: plan.Fuzzy, reference: plan.Reference == null ? null : new ReferencePulseRules(plan.Reference, reader.Format.SampleRate, options.ReferenceTolerance, options.HalfSample), headerRejected: headerDiagnostics.Reject, measuredObserver: measurements.Observe, diagnostics: diagnostics)).ToArray();
+                options.Transform.Visit(reader, start, end, (sample, left, right) =>
+                {
+                    token.ThrowIfCancellationRequested(); analyzers[0].Process(sample, left);
+                    if (analyzers.Length == 2) analyzers[1].Process(sample, right);
+                    if (accountedCandidates != candidates.Count) CheckCandidateBudget();
+                    if ((sample - start) % 32768 == 0) progress?.Report(new($"Range scan {pass + 1}/{plans.Length} • {plan.Name} • threshold ×{plan.Threshold:0.##}",
+                        (pass + (sample - start) / (double)(end - start)) / plans.Length, sample, end, candidates.Count));
+                }, token);
+                foreach (var analyzer in analyzers) analyzer.Flush(end);
+                CheckCandidateBudget();
+                if (plan.HeadersOnly) candidates.RemoveAll(c => c.Kind != SharpBlockKind.Header);
+                string description = $"{plan.Name}; threshold ×{plan.Threshold:G}; zero deadband ±{options.ZeroDeadband * 100:G}% FS; scale {plan.Scale?.ToString("G") ?? "adaptive"}; fuzzy {plan.Fuzzy?.ToString("P0") ?? "off"}; {options.Transform.Description}";
+                if (plan.Reference != null) description += $"; tolerance {options.ReferenceTolerance:P0}; per-pulse ±0.5 sample {(options.HalfSample ? "on" : "off")}; {plan.Reference.Source}; {plan.Reference.Evidence}";
+                if (plan.Reference == null) description += $"; per-pulse ±0.5 sample {(options.HalfSample ? "on" : "off")}";
+                foreach (var candidate in candidates) candidate.RecoveryTest = description;
+                all.AddRange(candidates);
+                passes.Add(new(plan.Threshold, candidates.Count(c => c.Kind == SharpBlockKind.Header && c.ChecksumValid), candidates.Count(c => c.Kind == SharpBlockKind.Payload && c.ChecksumValid), candidates.Count)
+                { Test = plan.Name, Measurements = measurements.Finish(), ZeroDeadbandPercent = options.ZeroDeadband * 100, TimeScale = plan.Scale, ShortMicroseconds = plan.Scale.HasValue ? options.ShortMicroseconds * plan.Scale.Value : null,
+                    FuzzyTolerance = plan.Fuzzy, Reference = plan.Reference?.Name, ReferenceSource = plan.Reference?.Source, ReferenceEvidence = plan.Reference?.Evidence,
+                    ReferenceTolerance = plan.Reference == null ? null : options.ReferenceTolerance, HalfSample = options.HalfSample,
+                    Detectors = string.Join(" + ", new[] { options.ZeroCrossing ? "ZeroCrossing" : null, options.Schmitt ? "Schmitt" : null, options.AdaptiveZeroCrossing ? "AdaptiveZeroCrossing" : null }.Where(v => v != null)),
+                    Channels = options.Transform.Mix ? "Mix" : options.Channel.HasValue ? (options.Channel.Value + 1).ToString() : "All", Polarity = options.Normal ? options.Inverted ? "Both" : "Normal" : "Inverted", AudioTransform = options.Transform.Description });
+            }
+            token.ThrowIfCancellationRequested();
+            var unique = all.Where(c => c.StartSample >= start && c.EndSample <= end).GroupBy(c =>
+                (c.Kind, c.Channel, c.Inverted, c.PulseMode, c.StartSample, c.EndSample, c.ChecksumValid,
+                Hash: Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(c.Data)))).Select(g => { var first = g.First(); first.RecoveryTest = string.Join(" | ", g.Select(c => c.RecoveryTest).Distinct()); return first; }).ToArray();
+            if (options.UnknownLength)
+            {
+                foreach (var c in unique.Where(c => c.Kind == SharpBlockKind.Payload && c.ChecksumValid && c.ChecksumAvailable))
+                {
+                    if (unique.Any(other => !ReferenceEquals(other, c) && other.Kind == c.Kind && other.ChecksumValid && other.ChecksumAvailable &&
+                        Math.Abs(other.StartSample - c.StartSample) > reader.Format.SampleRate / 2 && other.Data.AsSpan().SequenceEqual(c.Data)))
+                    { c.LengthVerified = true; c.BoundaryEvidence = "Matching checksum-valid bytes in separate framed copies"; }
+                }
+            }
+            var assembled = options.PayloadOnly ? new WavAssemblyResult { Records = [], Recoveries = [], Failures =
+                unique.Any(c => c.Kind == SharpBlockKind.Payload && c.ChecksumValid) ? [] : [new(path,
+                    "No verified payload: inspect recovery diagnostics; include leader/mark and checksum, or supply the expected length.", start, end, expectedLength.HasValue ? (ushort)expectedLength : null, null, false, unique.Length > 0, true)] }
+                : AssembleCandidates(unique, reader.Format.SampleRate, end);
+            if (!options.PayloadOnly) RecordAssemblyDiagnostics(unique, assembled.Recoveries, reader.Format.SampleRate, diagnostics);
+            info.Refresh(); if (info.Length != originalLength || info.LastWriteTimeUtc != originalModified) throw new IOException("The source changed during recovery. Analyze it again.");
+            progress?.Report(new("Range scan complete", 1, end, end, unique.Length));
+            return new(Path.GetFullPath(path), reader.Format.SampleRate, start, end, assembled.Records, assembled.Recoveries, unique,
+                assembled.Failures.Select(f => f with { SourceFile = path, StartSample = Math.Max(start, f.StartSample), EndSample = Math.Min(end, f.EndSample), RecoveryAttempted = true,
+                    Reason = unique.Any(c => c.Kind == SharpBlockKind.Header) ? f.Reason : headerDiagnostics.Explain(f.Reason) }).ToArray(), passes)
+                { Diagnostics = diagnostics?.Events.ToArray() ?? [], OmittedDiagnostics = diagnostics?.Omitted ?? 0, RejectedHeaders = headerDiagnostics.Items.ToArray(), OmittedHeaderRejections = headerDiagnostics.Omitted };
+        }
+
+        // Diagnostic pass reuses the exact preprocessing and pulse detectors. It does
+        // not decode records again and does not retain a sample/pulse-sized object graph.
+        internal static void VisitSignal(IPcmAudioStreamReader reader, Action<long, int, int> frames,
+            Action<int, WavPulseMode, bool, long, long> pulses, CancellationToken cancellationToken = default)
+        {
+            var channels = Enumerable.Range(0, reader.Format.Channels).Select(channel =>
+                new ChannelAnalyzer(channel, reader.Format.SampleRate, [], [], pulseObserver: pulses, decode: false)).ToArray();
+            reader.ReadFrames((sample, left, right) =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                frames(sample, left, right);
+                channels[0].Process(sample, left);
+                if (channels.Length == 2) channels[1].Process(sample, right);
+            });
+            foreach (var channel in channels) channel.Flush(reader.Format.FrameCount);
+        }
+
+        internal static void VisitRangeSignal(IPcmAudioStreamReader reader, long start, long end, AudioPcmTransform transform,
+            double schmittScale, Action<long, int, int> frames, Action<int, WavPulseMode, bool, double, long> pulses, CancellationToken token, bool measureAdaptive = false)
+        {
+            var channels = Enumerable.Range(0, transform.Mix ? 1 : reader.Format.Channels).Select(c =>
+                new ChannelAnalyzer(c, reader.Format.SampleRate, [], [], schmittScale, decode: false, measuredObserver: pulses, measureAdaptive: measureAdaptive)).ToArray();
+            transform.Visit(reader, start, end, (sample, left, right) =>
+            {
+                frames(sample, left, right); channels[0].Process(sample, left);
+                if (channels.Length == 2) channels[1].Process(sample, right);
+            }, token);
+            foreach (var channel in channels) channel.Flush(end);
+        }
+
         private static List<SharpBlockCandidate> SelectiveRecovery(
             IPcmAudioStreamReader reader,
             IReadOnlyList<WavAnalysisFailure> failures,
             IProgress<WavAnalysisProgress>? progress,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken, AudioHeaderDiagnostics headerDiagnostics, AudioRecoveryDiagnostics? diagnostics)
         {
+            if (diagnostics != null) diagnostics.Context = "Selective recovery; Schmitt ×0.65";
             IReadOnlyList<(long Start, long End)> intervals = GetSelectiveRecoveryIntervals(
                 failures,
                 reader.Format.FrameCount);
@@ -379,7 +537,7 @@ namespace MZTools
                         reader.Format.SampleRate,
                         recoveryCandidates,
                         expectedLengths,
-                        schmittScale: 0.65))
+                        schmittScale: 0.65, headerRejected: headerDiagnostics.Reject, diagnostics: diagnostics))
                     .ToArray();
                 progress?.Report(new WavAnalysisProgress(
                     "Selective recovery",
@@ -428,11 +586,59 @@ namespace MZTools
                         return merged;
                     });
 
+        internal static IReadOnlyList<(long Start, long End)> GetDiscoveryRecoveryIntervals(
+            IReadOnlyList<WavRecoveryInfo> recoveries, long totalFrames)
+        {
+            var gaps = new List<(long Start, long End)>();
+            long cursor = 0;
+            foreach (var r in recoveries.OrderBy(r => r.Header.Candidate.SignalTrace?.LeaderStart ?? r.Header.Candidate.StartSample))
+            {
+                long first = Math.Clamp(r.Header.Candidate.SignalTrace?.LeaderStart ?? r.Header.Candidate.StartSample, 0, totalFrames);
+                long last = Math.Clamp(r.Payload.Candidate.EndSample, 0, totalFrames);
+                if (first > cursor) gaps.Add((cursor, first));
+                cursor = Math.Max(cursor, last);
+            }
+            if (cursor < totalFrames) gaps.Add((cursor, totalFrames));
+            return gaps;
+        }
+
+        private static List<SharpBlockCandidate> DiscoverUnresolved(IPcmAudioStreamReader reader,
+            IReadOnlyList<WavRecoveryInfo> recovered, HashSet<int> lengths, IProgress<WavAnalysisProgress>? progress,
+            CancellationToken token, AudioHeaderDiagnostics rejected, AudioRecoveryDiagnostics? diagnostics)
+        {
+            var output = new List<SharpBlockCandidate>();
+            var intervals = GetDiscoveryRecoveryIntervals(recovered, reader.Format.FrameCount);
+            foreach (double scale in new[] { .4, .65, 1.4 })
+            foreach (var (first, last) in intervals)
+            {
+                token.ThrowIfCancellationRequested();
+                int previousCount = output.Count;
+                if (diagnostics != null) diagnostics.Context = $"Automatic unresolved-interval recovery; Schmitt ×{scale:G}";
+                diagnostics?.Add(new("Discovery", "UNRESOLVED_INTERVAL", $"Schmitt ×{scale:G}; includes intervals without a header", first,
+                    first / (double)reader.Format.SampleRate, 0, false, "Schmitt", 0, null, 0, $"End sample {last}"));
+                var channels = Enumerable.Range(0, reader.Format.Channels).Select(c => new ChannelAnalyzer(c, reader.Format.SampleRate, output, lengths,
+                    schmittScale: scale, recovery: new() { ZeroCrossing = false, ThresholdScales = [scale] },
+                    headerRejected: rejected.Reject, diagnostics: diagnostics)).ToArray();
+                reader.ReadFrames(first, last - first, (sample, left, right) =>
+                {
+                    token.ThrowIfCancellationRequested(); channels[0].Process(sample, left);
+                    if (channels.Length == 2) channels[1].Process(sample, right);
+                    if ((sample - first) % 32768 == 0) progress?.Report(new($"Recovery discovery • Schmitt ×{scale:G}", sample / (double)reader.Format.FrameCount, sample, reader.Format.FrameCount, output.Count));
+                });
+                foreach (var channel in channels) channel.Flush(last);
+                for (int i = previousCount; i < output.Count; i++) output[i].RecoveryTest = $"Automatic unresolved-interval discovery; Schmitt ×{scale:G}";
+            }
+            return output;
+        }
+
         internal static WavAssemblyResult AssembleCandidatesForTest(
             IEnumerable<SharpBlockCandidate> candidates,
             uint sampleRate,
             long totalFrames) =>
             AssembleRecords(candidates.ToList(), sampleRate, totalFrames);
+
+        internal static WavAssemblyResult AssembleCandidates(IEnumerable<SharpBlockCandidate> candidates,
+            uint sampleRate, long totalFrames) => AssembleRecords(candidates.ToList(), sampleRate, totalFrames);
 
         private static WavAssemblyResult AssembleRecords(
             List<SharpBlockCandidate> candidates,
@@ -455,7 +661,7 @@ namespace MZTools
             {
                 failures.Add(new WavAnalysisFailure(
                     string.Empty,
-                    "No Sharp MZ signal found: no checksum-valid header was detected.",
+                    payloads.Count > 0 ? "NO_VALID_HEADER: payload candidates exist, but no checksum-valid MZF header was detected. Use Payload only for raw export." : "NO_VALID_HEADER / NO_LENGTH_HINT: no verified MZF record; a standalone payload may require Payload only recovery.",
                     0,
                     totalFrames,
                     null,
@@ -594,6 +800,28 @@ namespace MZTools
                 Recoveries = recoveries,
                 Failures = failures
             };
+        }
+
+        private static void RecordAssemblyDiagnostics(IEnumerable<SharpBlockCandidate> source,
+            IReadOnlyList<WavRecoveryInfo> recovered, uint sampleRate, AudioRecoveryDiagnostics? diagnostics)
+        {
+            if (diagnostics == null) return;
+            diagnostics.Context = "Assembly";
+            var candidates = source.ToArray();
+            var headers = candidates.Where(c => c.Kind == SharpBlockKind.Header && c.ChecksumValid).ToArray();
+            foreach (var c in candidates.Where(c => c.Kind == SharpBlockKind.Payload))
+            {
+                string code;
+                if (recovered.Any(r => ReferenceEquals(r.Payload.Candidate, c))) code = "ASSEMBLED";
+                else if (!c.ChecksumValid) code = c.ChecksumAvailable ? "CHECKSUM_MISMATCH" : "BLOCK_TRUNCATED";
+                else if (headers.Length == 0) code = "NO_VALID_HEADER";
+                else if (!headers.Any(h => BinaryPrimitives.ReadUInt16LittleEndian(h.Data.AsSpan(18, 2)) == c.Data.Length)) code = "LENGTH_MISMATCH";
+                else if (!headers.Any(h => h.Inverted == c.Inverted)) code = "POLARITY_MISMATCH";
+                else if (recovered.Any(r => r.Payload.Candidate.Data.AsSpan().SequenceEqual(c.Data))) code = "DUPLICATE_SUPPRESSED";
+                else code = "CANDIDATE_NOT_ASSEMBLED";
+                diagnostics.Add(new("Assembly", code, code == "CANDIDATE_NOT_ASSEMBLED" ? "Checksum-valid candidate not selected by header interval/ranking; inspect chronological header candidates." : code,
+                    c.StartSample, c.StartSample / (double)sampleRate, c.Channel + 1, c.Inverted, c.PulseMode.ToString(), c.Data.Length, c.Data.Length, 0, c.RecoveryTest));
+            }
         }
 
         private sealed record ProgramPolarityCandidate(
@@ -961,30 +1189,53 @@ namespace MZTools
             private readonly SharpTapeCandidateScanner schmittNormal;
             private readonly SharpTapeCandidateScanner schmittInverted;
             private readonly double schmittScale;
+            private readonly AdaptivePeakCrossing? peakCrossing;
+            private SharpTapeCandidateScanner? peakNormalScanner, peakInvertedScanner;
 
             internal ChannelAnalyzer(
                 int channel,
                 uint sampleRate,
                 List<SharpBlockCandidate> output,
                 HashSet<int> expectedLengths,
-                double schmittScale = 1.0)
+                double schmittScale = 1.0,
+                Action<int, WavPulseMode, bool, long, long>? pulseObserver = null,
+                bool decode = true, AudioRecoveryOptions? recovery = null, double? fixedShortUnits = null, double? fuzzyTolerance = null, ReferencePulseRules? reference = null, Action<int, WavPulseMode, bool, double, long>? measuredObserver = null, bool measureAdaptive = false, Action<AudioHeaderRejection>? headerRejected = null, AudioRecoveryDiagnostics? diagnostics = null)
             {
                 this.schmittScale = schmittScale;
                 preprocessor = new SignalPreprocessor(sampleRate);
-                zeroNormal = new SharpTapeCandidateScanner(channel, false, WavPulseMode.ZeroCrossing, sampleRate, output, expectedLengths);
-                zeroInverted = new SharpTapeCandidateScanner(channel, true, WavPulseMode.ZeroCrossing, sampleRate, output, expectedLengths);
-                schmittNormal = new SharpTapeCandidateScanner(channel, false, WavPulseMode.Schmitt, sampleRate, output, expectedLengths);
-                schmittInverted = new SharpTapeCandidateScanner(channel, true, WavPulseMode.Schmitt, sampleRate, output, expectedLengths);
+                zeroNormal = new SharpTapeCandidateScanner(channel, false, WavPulseMode.ZeroCrossing, sampleRate, output, expectedLengths, fixedShortUnits, fuzzyTolerance, reference, halfSample: recovery?.HalfSample == true, headerRejected: headerRejected, diagnostics: diagnostics, payloadOnly: recovery?.PayloadOnly == true, unknownLength: recovery?.UnknownLength == true);
+                zeroInverted = new SharpTapeCandidateScanner(channel, true, WavPulseMode.ZeroCrossing, sampleRate, output, expectedLengths, fixedShortUnits, fuzzyTolerance, reference, halfSample: recovery?.HalfSample == true, headerRejected: headerRejected, diagnostics: diagnostics, payloadOnly: recovery?.PayloadOnly == true, unknownLength: recovery?.UnknownLength == true);
+                schmittNormal = new SharpTapeCandidateScanner(channel, false, WavPulseMode.Schmitt, sampleRate, output, expectedLengths, fixedShortUnits, fuzzyTolerance, reference, halfSample: recovery?.HalfSample == true, headerRejected: headerRejected, diagnostics: diagnostics, payloadOnly: recovery?.PayloadOnly == true, unknownLength: recovery?.UnknownLength == true);
+                schmittInverted = new SharpTapeCandidateScanner(channel, true, WavPulseMode.Schmitt, sampleRate, output, expectedLengths, fixedShortUnits, fuzzyTolerance, reference, halfSample: recovery?.HalfSample == true, headerRejected: headerRejected, diagnostics: diagnostics, payloadOnly: recovery?.PayloadOnly == true, unknownLength: recovery?.UnknownLength == true);
                 zeroCrossing = new PulseDetector((level, duration, end, confidence) =>
                 {
-                    zeroNormal.Feed(duration, level, end, confidence);
-                    zeroInverted.Feed(duration, !level, end, confidence);
+                    pulseObserver?.Invoke(channel, WavPulseMode.ZeroCrossing, level, duration, end);
+                    measuredObserver?.Invoke(channel, WavPulseMode.ZeroCrossing, level, duration, end);
+                    if (!decode) return;
+                    if (recovery == null || (recovery.ZeroCrossing && recovery.Normal)) zeroNormal.Feed(duration, level, end, confidence);
+                    if (recovery == null || (recovery.ZeroCrossing && recovery.Inverted)) zeroInverted.Feed(duration, !level, end, confidence);
                 });
                 schmitt = new PulseDetector((level, duration, end, confidence) =>
                 {
-                    schmittNormal.Feed(duration, level, end, confidence);
-                    schmittInverted.Feed(duration, !level, end, confidence);
+                    pulseObserver?.Invoke(channel, WavPulseMode.Schmitt, level, duration, end);
+                    measuredObserver?.Invoke(channel, WavPulseMode.Schmitt, level, duration, end);
+                    if (!decode) return;
+                    if (recovery == null || (recovery.Schmitt && recovery.Normal)) schmittNormal.Feed(duration, level, end, confidence);
+                    if (recovery == null || (recovery.Schmitt && recovery.Inverted)) schmittInverted.Feed(duration, !level, end, confidence);
                 });
+                if (recovery?.AdaptiveZeroCrossing == true || measureAdaptive)
+                {
+                    var peakNormal = new SharpTapeCandidateScanner(channel, false, WavPulseMode.AdaptiveZeroCrossing, sampleRate, output, expectedLengths, fixedShortUnits, fuzzyTolerance, reference, 8, recovery?.HalfSample == true, headerRejected, diagnostics, recovery?.PayloadOnly == true, recovery?.UnknownLength == true);
+                    var peakInverted = new SharpTapeCandidateScanner(channel, true, WavPulseMode.AdaptiveZeroCrossing, sampleRate, output, expectedLengths, fixedShortUnits, fuzzyTolerance, reference, 8, recovery?.HalfSample == true, headerRejected, diagnostics, recovery?.PayloadOnly == true, recovery?.UnknownLength == true);
+                    peakNormalScanner = peakNormal; peakInvertedScanner = peakInverted;
+                    peakCrossing = new AdaptivePeakCrossing((level, duration, end, confidence) =>
+                    {
+                        measuredObserver?.Invoke(channel, WavPulseMode.AdaptiveZeroCrossing, level, duration, end);
+                        if (!decode || recovery?.AdaptiveZeroCrossing != true) return;
+                        if (recovery.Normal) peakNormal.Feed(duration, level, end, confidence);
+                        if (recovery.Inverted) peakInverted.Feed(duration, !level, end, confidence);
+                    }, recovery?.ZeroDeadband ?? 0);
+                }
                 foreach (int length in expectedLengths)
                 {
                     zeroNormal.AddExpectedBlockLength(length);
@@ -999,12 +1250,16 @@ namespace MZTools
                 (double filtered, double threshold) = preprocessor.Process(pcm / 8388608.0);
                 zeroCrossing.Process(sampleIndex, filtered >= 0);
                 schmitt.ProcessSchmitt(sampleIndex, filtered, threshold * schmittScale);
+                peakCrossing?.Process(sampleIndex, filtered, threshold * schmittScale);
             }
 
             internal void Flush(long endSample)
             {
                 zeroCrossing.Flush(endSample);
                 schmitt.Flush(endSample);
+                peakCrossing?.Flush();
+                zeroNormal.Finish(endSample); zeroInverted.Finish(endSample); schmittNormal.Finish(endSample); schmittInverted.Finish(endSample);
+                peakNormalScanner?.Finish(endSample); peakInvertedScanner?.Finish(endSample);
             }
         }
 
@@ -1152,12 +1407,20 @@ namespace MZTools
     internal sealed class SharpTapeCandidateScanner
     {
         private readonly int channel;
+        private readonly AudioRecoveryDiagnostics? diagnostics;
+        private readonly bool payloadOnly;
+        private long currentEnd;
         private readonly bool inverted;
         private readonly WavPulseMode pulseMode;
         private readonly uint sampleRate;
         private readonly List<SharpBlockCandidate> output;
         private readonly HashSet<int> expectedLengths;
-        private readonly SharpMzPulseDecoder headerDecoder = new();
+        private readonly SharpMzPulseDecoder headerDecoder;
+        private readonly Action<AudioHeaderRejection>? headerRejected;
+        private readonly double? fixedShortUnits, fuzzyTolerance;
+        private readonly ReferencePulseRules? reference;
+        private readonly int unitsPerSample;
+        private readonly bool halfSample;
         private readonly Dictionary<int, RawBlockScanner> blocks = [];
         private readonly List<(
             byte[] Header,
@@ -1173,24 +1436,30 @@ namespace MZTools
             WavPulseMode pulseMode,
             uint sampleRate,
             List<SharpBlockCandidate> output,
-            HashSet<int> expectedLengths)
+            HashSet<int> expectedLengths, double? fixedShortUnits = null, double? fuzzyTolerance = null, ReferencePulseRules? reference = null, int unitsPerSample = 1, bool halfSample = false, Action<AudioHeaderRejection>? headerRejected = null, AudioRecoveryDiagnostics? diagnostics = null, bool payloadOnly = false, bool unknownLength = false)
         {
+            this.diagnostics = diagnostics; this.payloadOnly = payloadOnly;
+            this.headerRejected = headerRejected;
             this.channel = channel;
             this.inverted = inverted;
             this.pulseMode = pulseMode;
             this.sampleRate = sampleRate;
             this.output = output;
             this.expectedLengths = expectedLengths;
+            this.fixedShortUnits = fixedShortUnits; this.fuzzyTolerance = fuzzyTolerance; this.reference = reference; this.unitsPerSample = unitsPerSample; this.halfSample = halfSample;
+            headerDecoder = new(fixedShortUnits, fuzzyTolerance, reference, unitsPerSample, halfSample, diagnostics == null ? null : d =>
+                diagnostics.Add(new("Header discovery", d.Code, d.State, currentEnd, currentEnd / (double)sampleRate, channel + 1, inverted, pulseMode.ToString(), d.ByteIndex, d.ExpectedLength, d.DurationSamples, d.Context)));
             headerDecoder.BeginHeader();
+            if (unknownLength) EnsureBlockScanner(-1);
         }
 
         internal void Feed(
-            long durationSamples,
+            double durationSamples,
             bool physicalHigh,
             long endSample,
             double confidence)
         {
-            pulseConfidence = confidence;
+            currentEnd = endSample; pulseConfidence = confidence;
             foreach (int byteCount in expectedLengths)
             {
                 EnsureBlockScanner(byteCount);
@@ -1202,7 +1471,7 @@ namespace MZTools
             // only after the header-completing pulse has already been consumed.
             RawBlockScanner[] activeBlocks = blocks.Values.ToArray();
 
-            headerDecoder.FeedInterval(durationSamples, physicalHigh);
+            if (!payloadOnly) headerDecoder.FeedMeasuredInterval(durationSamples, physicalHigh);
             while (headerDecoder.TryTakeEvent(out SharpMzDecoderEvent decoderEvent))
             {
                 if (decoderEvent.Type == SharpMzDecoderEventType.HeaderValid)
@@ -1334,8 +1603,12 @@ namespace MZTools
                 profile = TapeProfile.Mz700_1_3;
                 profileEvidence = SharpProfileEvidence.StructuredMz700;
             }
-            else if (header[0] == 0 || (header[17] != 0x0D && header[17] != 0x00))
+            else if (AudioHeaderValidation.RejectionReason(header) is string rejection)
             {
+                diagnostics?.Add(new("Header acceptance", "HEADER_REJECTED", rejection, endSample, endSample / (double)sampleRate, channel + 1, inverted, pulseMode.ToString(), 128, 128, 0, "Checksum-valid header rejected before expected-length registration"));
+                headerRejected?.Invoke(new(endSample, channel + 1, inverted, pulseMode.ToString(), rejection,
+                    decoderEvent.RecordedChecksum, decoderEvent.CalculatedChecksum,
+                    Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(header))));
                 return;
             }
 
@@ -1500,6 +1773,7 @@ namespace MZTools
         {
             output.Add(new SharpBlockCandidate
             {
+                SignalTrace = decoderEvent.SignalTrace?.Shift(endSample - decoderEvent.SignalTrace.End),
                 Kind = SharpBlockKind.Header,
                 Channel = channel,
                 CopyIndex = decoderEvent.CopyIndex,
@@ -1531,7 +1805,7 @@ namespace MZTools
 
         private void EnsureBlockScanner(int byteCount)
         {
-            if (byteCount <= 0 || blocks.ContainsKey(byteCount))
+            if (byteCount == 0 || byteCount < -1 || blocks.ContainsKey(byteCount))
             {
                 return;
             }
@@ -1540,7 +1814,14 @@ namespace MZTools
                 channel,
                 inverted,
                 pulseMode,
-                sampleRate));
+                sampleRate, fixedShortUnits, fuzzyTolerance, reference, unitsPerSample, halfSample, diagnostics, payloadOnly ? c => { if (output.Count < 8192) output.Add(c); } : null));
+        }
+
+        internal void Finish(long endSample)
+        {
+            if (!payloadOnly) return;
+            foreach (var block in blocks.Values)
+                if (block.Finish(endSample, pulseConfidence) is { } candidate) output.Add(candidate);
         }
 
         private sealed class RawBlockScanner
@@ -1550,9 +1831,13 @@ namespace MZTools
             private readonly bool inverted;
             private readonly WavPulseMode pulseMode;
             private readonly uint sampleRate;
-            private readonly SharpMzPulseDecoder decoder = new();
+            private readonly SharpMzPulseDecoder decoder;
             private readonly List<byte> data;
-            private long startSample;
+            private long startSample, currentEnd;
+            private string boundary = "Framing/selected-end boundary", failure = "";
+            private bool reportedCreation;
+            private readonly AudioRecoveryDiagnostics? diagnostics;
+            private readonly Action<SharpBlockCandidate>? partial;
             private int copyIndex;
 
             internal RawBlockScanner(
@@ -1560,31 +1845,54 @@ namespace MZTools
                 int channel,
                 bool inverted,
                 WavPulseMode pulseMode,
-                uint sampleRate)
+                uint sampleRate, double? fixedShortUnits, double? fuzzyTolerance, ReferencePulseRules? reference, int unitsPerSample, bool halfSample, AudioRecoveryDiagnostics? diagnostics, Action<SharpBlockCandidate>? partial)
             {
+                this.diagnostics = diagnostics; this.partial = partial;
+                data = new List<byte>(byteCount < 0 ? 4096 : byteCount);
+                decoder = new(fixedShortUnits, fuzzyTolerance, reference, unitsPerSample, halfSample, diagnostics == null && byteCount >= 0 && partial == null ? null : d =>
+                {
+                    if (d.Code is "PULSE_CLASSIFICATION_RESET" or "BAD_BYTE_STOP" or "BLOCK_TRUNCATED")
+                    {
+                        failure = $"{d.Code} at sample {currentEnd}, byte {d.ByteIndex}";
+                        if (partial != null && data.Count > 0) { partial(PartialCandidate(currentEnd, 0)); data.Clear(); }
+                    }
+                    if (d.Code.Contains("BOUNDARY") || d.Code.StartsWith("SELECTED_END", StringComparison.Ordinal)) boundary = d.Code;
+                    diagnostics?.Add(new("Payload decoder", d.Code, d.State, currentEnd, currentEnd / (double)sampleRate, channel + 1, inverted, pulseMode.ToString(), d.ByteIndex, d.ExpectedLength, d.DurationSamples, d.Context));
+                });
                 this.byteCount = byteCount;
                 this.channel = channel;
                 this.inverted = inverted;
                 this.pulseMode = pulseMode;
                 this.sampleRate = sampleRate;
-                data = new List<byte>(byteCount);
-                decoder.BeginRawBlock(byteCount);
+                Restart();
+
             }
 
             internal SharpBlockCandidate? Feed(
-                long duration,
+                double duration,
                 bool physicalHigh,
                 long endSample,
                 double pulseConfidence)
             {
-                decoder.FeedInterval(duration, physicalHigh);
+                currentEnd = endSample;
+                if (!reportedCreation)
+                {
+                    reportedCreation = true;
+                    long first = Math.Max(0, (long)Math.Floor(endSample - duration));
+                    diagnostics?.Add(new("Discovery", "SCANNER_CREATED", byteCount < 0 ? "Streaming unknown length" : "Expected length registered", first, first / (double)sampleRate, channel + 1, inverted, pulseMode.ToString(), 0, byteCount < 0 ? null : byteCount, 0, "Shared SharpMzPulseDecoder"));
+                }
+                decoder.FeedMeasuredInterval(duration, physicalHigh);
+                return Take(endSample, pulseConfidence);
+            }
+            private SharpBlockCandidate? Take(long endSample, double pulseConfidence)
+            {
                 while (decoder.TryTakeEvent(out SharpMzDecoderEvent decoderEvent))
                 {
                     if (decoderEvent.Type == SharpMzDecoderEventType.DataByte)
                     {
                         if (decoderEvent.ByteIndex == 0)
                         {
-                            data.Clear();
+                            data.Clear(); failure = "";
                             startSample = endSample;
                         }
                         if (decoderEvent.ByteIndex == data.Count)
@@ -1599,7 +1907,8 @@ namespace MZTools
                         continue;
                     }
 
-                    byte[] bytes = data.Count == byteCount ? data.ToArray() : new byte[byteCount];
+                    int decodedLength = byteCount < 0 ? decoderEvent.ByteIndex : byteCount;
+                    byte[] bytes = data.Take(decodedLength).ToArray();
                     double shortHigh = decoder.CompletedLeaderPhysicalLowMeanX8 > 0
                         ? X8SamplesToMicroseconds(decoder.CompletedLeaderPhysicalLowMeanX8, sampleRate)
                         : double.NaN;
@@ -1615,7 +1924,9 @@ namespace MZTools
 
                     var candidate = new SharpBlockCandidate
                     {
+                        SignalTrace = decoderEvent.SignalTrace?.Shift(endSample - decoder.Position),
                         Kind = SharpBlockKind.Payload,
+                        LengthVerified = byteCount >= 0, BoundaryEvidence = byteCount < 0 ? boundary + "; unverified length" : "Explicit/header length",
                         Channel = channel,
                         CopyIndex = copyIndex++,
                         Inverted = inverted,
@@ -1625,7 +1936,7 @@ namespace MZTools
                         RecordedChecksum = decoderEvent.RecordedChecksum,
                         CalculatedChecksum = decoderEvent.CalculatedChecksum,
                         StartSample = startSample,
-                        EndSample = endSample,
+                        EndSample = decoderEvent.SignalTrace?.End is long relativeEnd ? endSample - decoder.Position + relativeEnd : endSample,
                         LeaderAverage = decoder.LeaderAverage,
                         LeaderStdDev = decoder.LeaderStdDev,
                         PulseConfidence = pulseConfidence * decoder.PulseConfidence *
@@ -1636,11 +1947,23 @@ namespace MZTools
                         TimingLongLowMicroseconds = longLow
                     };
                     data.Clear();
-                    decoder.BeginRawBlock(byteCount);
+                    Restart();
                     return candidate;
                 }
                 return null;
             }
+            private void Restart() { failure = ""; if (byteCount < 0) decoder.BeginUnknownRawBlock(); else decoder.BeginRawBlock(byteCount); }
+            internal SharpBlockCandidate? Finish(long endSample, double confidence)
+            {
+                currentEnd = endSample; decoder.FinishSelectedInterval();
+                if (Take(endSample, confidence) is { } candidate) return candidate;
+                if (data.Count == 0) return null;
+                return PartialCandidate(endSample, confidence);
+            }
+            private SharpBlockCandidate PartialCandidate(long endSample, double confidence) => new SharpBlockCandidate { Kind = SharpBlockKind.Payload, Channel = channel, Inverted = inverted, PulseMode = pulseMode,
+                    Data = data.ToArray(), ChecksumValid = false, ChecksumAvailable = false, LengthVerified = false, BoundaryEvidence = "Partial bytes; missing framing/checksum. " + failure,
+                    StartSample = startSample, EndSample = endSample, RecordedChecksum = 0, CalculatedChecksum = unchecked((ushort)data.Sum(b => System.Numerics.BitOperations.PopCount((uint)b))), CopyIndex = copyIndex,
+                    LeaderAverage = decoder.LeaderAverage, LeaderStdDev = decoder.LeaderStdDev, PulseConfidence = confidence };
         }
     }
 }

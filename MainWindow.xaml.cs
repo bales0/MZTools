@@ -134,7 +134,7 @@ namespace MZTools
             "All supported files|*.mzt;*.mzf;*.m12;*.mz0;*.mz7;*.mzq;*.qdf;*.qd;*.dsk;*.hfe;*.lep;*.l16;*.wav;*.flac|Quickdisk image (*.qd)|*.qd|MZ-800 IPL floppy (*.dsk)|*.dsk|HFE physical floppy (*.hfe)|*.hfe|Quickdisk file (*.mzq)|*.mzq|Multiple files tape (*.mzt)|*.mzt|Single tape file (*.mzf;*.m12;*.mz0;*.mz7)|*.mzf;*.m12;*.mz0;*.mz7|Quickdisk file (*.qdf)|*.qdf|LEP pulse file (*.lep)|*.lep|L16 pulse file (*.l16)|*.l16|Wave audio (*.wav)|*.wav|FLAC audio (*.flac)|*.flac|All files (*.*)|*.*";
 
         public static string GetSaveFilter() =>
-            "Quickdisk file (*.qdf)|*.qdf|Quickdisk file (*.mzq)|*.mzq|Quickdisk image - HxC (*.qd)|*.qd|Quickdisk image - uniform-track (*.qd)|*.qd|Quickdisk image - Sharp/MZ legacy (*.qd)|*.qd|Multiple files tape (*.mzt)|*.mzt|Single tape file (*.mzf)|*.mzf|LEP pulse file (*.lep)|*.lep|L16 pulse file (*.l16)|*.l16|Wave audio (*.wav)|*.wav|MZ-800 bootable IPL floppy (single / multi automatic) (*.dsk)|*.dsk|Single tape file (*.m12)|*.m12|All files (*.*)|*.*";
+            "Quickdisk file (*.qdf)|*.qdf|Quickdisk file (*.mzq)|*.mzq|Quickdisk image - HxC (*.qd)|*.qd|Quickdisk image - FlashFloppy (*.qd)|*.qd|Quickdisk image - Sharp/MZ legacy (*.qd)|*.qd|Multiple files tape (*.mzt)|*.mzt|Single tape file (*.mzf)|*.mzf|LEP pulse file (*.lep)|*.lep|L16 pulse file (*.l16)|*.l16|Wave audio (*.wav)|*.wav|MZ-800 bootable IPL floppy (single / multi automatic) (*.dsk)|*.dsk|Single tape file (*.m12)|*.m12|All files (*.*)|*.*";
 
         public static string GetExportFilter(bool singleRecord = false) =>
             "Multiple files tape (*.mzt)|*.mzt|Single tape file (*.mzf)|*.mzf" +
@@ -205,6 +205,7 @@ namespace MZTools
             InitializeComponent();
             Width = Math.Min(Width, SystemParameters.WorkArea.Width);
             MapInteraction.EmphasizeSelection(quickDiskBlocks);
+            MapInteraction.EmphasizeSelection(MzfDataGrid);
             MzfDisplayDataCollection = new ObservableCollection<MzfDisplayData>();
             MzfDataGrid.ItemsSource = MzfDisplayDataCollection;
             quickDiskMap.RegionSelected += region =>
@@ -631,6 +632,8 @@ namespace MZTools
 
         private void BatchProcess_Click(object sender, RoutedEventArgs e) => new BatchProcessDialog(this).ShowDialog();
 
+        private void AnalyzeAudio_Click(object sender, RoutedEventArgs e) => new AudioSignalAnalyzerWindow(this).Show();
+
         private void RepairDskFile_Click(object sender, RoutedEventArgs e)
         {
             var picker = new OpenFileDialog { Filter = "Extended CPC DSK|*.dsk", Title = "Inspect / Repair DSK Container" };
@@ -738,6 +741,8 @@ namespace MZTools
         }
         private void MapBackground_MouseDown(object sender, MouseButtonEventArgs e)
         {
+            if (quickDiskMapTab?.IsSelected != true && DiskMapVisuals.IsBlankClick(e.OriginalSource as DependencyObject))
+                MzfDataGrid.UnselectAll();
             if (quickDiskMapTab?.IsSelected == true && DiskMapVisuals.IsBlankClick(e.OriginalSource as DependencyObject))
                 ClearQuickDiskSelection();
         }
@@ -767,7 +772,7 @@ namespace MZTools
             {
                 TapeDocumentFormat.QdSharpLegacy => "Sharp legacy logical",
                 TapeDocumentFormat.QdHxc => "HxC physical",
-                TapeDocumentFormat.QdFlashFloppy => "uniform-track physical",
+                TapeDocumentFormat.QdFlashFloppy => "FlashFloppy physical",
                 _ => string.Empty
             };
             if (qdType.Length == 0)
@@ -783,6 +788,9 @@ namespace MZTools
 
         private void UpdateQuickDiskFeatureVisibility()
         {
+            qdCompressionButton.Visibility = tapeContextCompression.Visibility = document.Format != TapeDocumentFormat.None ? Visibility.Visible : Visibility.Collapsed;
+            qdCompressionButton.IsEnabled = tapeContextCompression.IsEnabled = document.Format != TapeDocumentFormat.None && !document.IsReadOnlyQuickDisk && MzfDataGrid.SelectedItems.Count > 0;
+            tapeLoaderColumn.Visibility = tapeSpeedColumn.Visibility = document.IsQuickDisk ? Visibility.Collapsed : Visibility.Visible;
             // DSK/HFE tools belong to the disk editor or the empty workspace.
             // QD containers (including MZQ/QDF) share the QuickDisk workspace.
             bool emptyWorkspace = document.Format == TapeDocumentFormat.None && dskEditorControl.Visibility != Visibility.Visible;
@@ -801,6 +809,38 @@ namespace MZTools
         {
             TapeRecord? selected = MzfDataGrid.SelectedIndex is int index && index >= 0 && index < mzfBlocks.Count ? mzfBlocks[index] : null;
             new NativeComDialog(this, selected).ShowDialog();
+        }
+
+        private void QuickDiskCompression_Click(object sender, RoutedEventArgs e)
+        {
+            if (document.Format == TapeDocumentFormat.None || document.IsReadOnlyQuickDisk) return;
+            int[] indices = GetSelectedGridIndices();
+            if (indices.Length == 0) return;
+            var records = indices.Select(index => (Index: index, Record: mzfBlocks[index])).ToArray();
+            var target = document.IsQuickDisk ? CompressionTarget.QuickDisk : document.Format == TapeDocumentFormat.Mzt ? CompressionTarget.MztTape : CompressionTarget.MzfTape;
+            var dialog = new SaveOptionsDialog(document.Format, 0, false, target, records, applyToDocument: true) { Owner = this };
+            if (dialog.ShowDialog() != true) return;
+            try
+            {
+                var proposed = mzfBlocks.ToList();
+                for (int i = 0; i < indices.Length; i++) proposed[indices[i]] = dialog.PackedRecords[i];
+                bool allowImported = CanPreserveImportedNonStandard(document.Format);
+                if (document.Format == TapeDocumentFormat.Qdf) QDFFileReader.BuildImage(proposed, allowImported);
+                else if (document.IsQdImage)
+                    QdImageReaderWriter.Write(proposed, document.Format switch {
+                        TapeDocumentFormat.QdHxc => QdImageFormat.HxcPhysical,
+                        TapeDocumentFormat.QdFlashFloppy => QdImageFormat.FlashFloppyPhysical,
+                        _ => QdImageFormat.SharpLegacyLogical }, document.QuickDiskProfile, allowImported);
+                for (int i = 0; i < indices.Length; i++) mzfBlocks[indices[i]] = dialog.PackedRecords[i];
+                document.IsModified = true;
+                RefreshGrid();
+                foreach (int index in indices) MzfDataGrid.SelectedItems.Add(MzfDisplayDataCollection[index]);
+                Title = BuildWindowTitle();
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(this, exception.Message, "Program compression", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
 
         private bool TryChooseTapeSaveOptions(
@@ -999,13 +1039,77 @@ namespace MZTools
                 .ToList();
 
             bool multipleRecords = records.Count > 1;
+            string[] formats = (iplOnly ? FeatureModePolicy.GetIplExportFilter() : GetExportFilter(records.Count)).Split('|');
+            var formatDialog = new Window { Owner = this, Title = "Export format", Width = 470, SizeToContent = SizeToContent.Height, ResizeMode = ResizeMode.NoResize, WindowStartupLocation = WindowStartupLocation.CenterOwner };
+            var formatPanel = new StackPanel { Margin = new Thickness(16) }; formatDialog.Content = formatPanel;
+            formatPanel.Children.Add(new TextBlock { Text = $"Export {records.Count} selected program(s) as:", Margin = new Thickness(0, 0, 0, 8) });
+            var formatChoice = new ComboBox { ItemsSource = Enumerable.Range(0, formats.Length / 2).Select(index => formats[index * 2]).ToArray(), SelectedIndex = iplOnly || !multipleRecords ? 1 : 0 };
+            formatPanel.Children.Add(formatChoice);
+            var next = new Button { Content = "Next", IsDefault = true, MinWidth = 90, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 14, 0, 0) };
+            formatPanel.Children.Add(next); next.Click += (_, _) => formatDialog.DialogResult = true;
+            if (formatDialog.ShowDialog() != true) return;
+            string selectedExtension = formats[formatChoice.SelectedIndex * 2 + 1].TrimStart('*');
+            bool preserve = true, generateSidecar = false;
+            List<TapeRecord> exportRecords = records;
+            SharpTapeMachine machine = SharpTapeMachine.Mz800;
+            bool separateFiles = false;
+            int wavSampleRate = SharpTapeExporter.WavSampleRate;
+            byte[]? iplImage = null;
+            try
+            {
+                if (!iplOnly && selectedExtension is ".mzf" or ".m12" or ".mzt")
+                {
+                    var format = selectedExtension == ".mzt" ? TapeDocumentFormat.Mzt : selectedExtension == ".m12" ? TapeDocumentFormat.M12 : TapeDocumentFormat.Mzf;
+                    if (!TryChooseTapeExportOptions(suggestedFileName + selectedExtension, format, records.Sum(record => record.Body.TrailingData?.Length ?? 0), selectedRecords, out preserve, out generateSidecar, out exportRecords)) return;
+                }
+                else if (selectedExtension is ".lep" or ".l16" or ".wav")
+                {
+                    if (!TryChooseWaveformSaveOptions(selectedExtension, records.Count, out machine, out separateFiles, out wavSampleRate)) return;
+                }
+                else if (selectedExtension == ".dsk")
+                {
+                    iplImage = PrepareIplImage(records);
+                    if (iplImage == null) return;
+                }
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(this, exception.GetBaseException().Message, "Export preparation", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            if (multipleRecords && (selectedExtension is ".mzf" or ".m12" or ".bin" || separateFiles))
+            {
+                var destination = new SeparateExportDialog(this, exportRecords, selectedExtension);
+                if (destination.ShowDialog() != true) return;
+                try
+                {
+                    string[] paths = destination.OutputPaths.ToArray();
+                    string[] allPaths = selectedExtension is ".mzf" or ".m12"
+                        ? paths.SelectMany(path => new[] { path, SidecarService.GetSidecarPath(path) }).ToArray() : paths;
+                    if (allPaths.Any(Directory.Exists)) throw new IOException("An output filename or sidecar is already used by a directory.");
+                    int existing = allPaths.Count(File.Exists);
+                    if (existing > 0 && MessageBox.Show(this, $"{existing} output file(s) / sidecar(s) already exist. Overwrite them?", "Overwrite separate files", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+                    for (int index = 0; index < paths.Length; index++)
+                    {
+                        if (selectedExtension == ".bin") File.WriteAllBytes(paths[index], exportRecords[index].Body.MzfBody);
+                        else if (selectedExtension is ".mzf" or ".m12") TapeDocumentWriter.SaveMzf(paths[index], exportRecords[index], preserve, generateSidecar);
+                        else SharpTapeExporter.Export(paths[index], [exportRecords[index]], SharpTapeExporter.GetFormat(selectedExtension), machine, wavSampleRate);
+                    }
+                    MessageBox.Show(this, $"Created {paths.Length} files in:\n{System.IO.Path.GetDirectoryName(paths[0])}", "Separate export complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception exception)
+                {
+                    MessageBox.Show(this, exception.GetBaseException().Message, "Error exporting files", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                return;
+            }
             var saveFileDialog = new SaveFileDialog
             {
-                Filter = iplOnly ? FeatureModePolicy.GetIplExportFilter() : GetExportFilter(records.Count),
+                Filter = formats[formatChoice.SelectedIndex * 2] + "|" + formats[formatChoice.SelectedIndex * 2 + 1],
                 Title = multipleRecords ? $"Export {records.Count} selected programs" : $"Export {suggestedFileName}",
                 AddExtension = true,
-                DefaultExt = iplOnly ? ".mzf" : multipleRecords ? ".mzt" : ".mzf",
-                FilterIndex = iplOnly ? 2 : !multipleRecords ? 2 : 1,
+                DefaultExt = selectedExtension,
+                FilterIndex = 1,
                 FileName = suggestedFileName
             };
 
@@ -1019,6 +1123,8 @@ namespace MZTools
 
             try
             {
+                if (fileExtension != selectedExtension)
+                    throw new InvalidOperationException($"The filename must use {selectedExtension}, matching the selected export format.");
                 if (iplOnly && fileExtension == ".bin")
                 {
                     if (records.Count == 1)
@@ -1097,24 +1203,12 @@ namespace MZTools
 
                 if (fileExtension == ".dsk")
                 {
-                    SaveIplRecords(filePath, records);
+                    File.WriteAllBytes(filePath, iplImage!);
                     return;
                 }
 
                 if (fileExtension == ".mzt")
                 {
-                    if (!TryChooseTapeExportOptions(
-                        filePath,
-                        TapeDocumentFormat.Mzt,
-                        trailingBytes: 0,
-                        selectedRecords,
-                        out _,
-                        out bool generateSidecar,
-                        out List<TapeRecord> exportRecords))
-                    {
-                        return;
-                    }
-
                     TapeDocumentWriter.SaveMzt(
                         filePath,
                         exportRecords,
@@ -1124,22 +1218,8 @@ namespace MZTools
 
                 if (fileExtension is ".mzf" or ".m12")
                 {
-                    var singleFormat = fileExtension == ".m12" ? TapeDocumentFormat.M12 : TapeDocumentFormat.Mzf;
                     if (records.Count == 1)
                     {
-                        int trailingBytes = records[0].Body.TrailingData?.Length ?? 0;
-                        if (!TryChooseTapeExportOptions(
-                            filePath,
-                            singleFormat,
-                            trailingBytes,
-                            selectedRecords,
-                            out bool preserve,
-                            out bool generateSidecar,
-                            out List<TapeRecord> exportRecords))
-                        {
-                            return;
-                        }
-
                         TapeRecord exportRecord = exportRecords[0];
                         TapeDocumentWriter.SaveMzf(
                             filePath,
@@ -1149,18 +1229,7 @@ namespace MZTools
                         return;
                     }
 
-                    int totalTrailingBytes = records.Sum(record => record.Body.TrailingData?.Length ?? 0);
-                    if (!TryChooseTapeExportOptions(
-                        filePath,
-                        singleFormat,
-                        totalTrailingBytes,
-                        selectedRecords,
-                        out bool preserveMultiple,
-                        out bool generateMultipleSidecars,
-                        out List<TapeRecord> separateRecords))
-                    {
-                        return;
-                    }
+                    List<TapeRecord> separateRecords = exportRecords;
 
                     IReadOnlyList<string> outputPaths =
                         SharpTapeExporter.GetSeparateOutputPaths(filePath, records);
@@ -1184,8 +1253,8 @@ namespace MZTools
                         TapeDocumentWriter.SaveMzf(
                             outputPaths[index],
                             separateRecords[index],
-                            preserveMultiple,
-                            generateMultipleSidecars);
+                            preserve,
+                            generateSidecar);
                     }
 
                     MessageBox.Show(
@@ -1199,16 +1268,6 @@ namespace MZTools
 
                 if (fileExtension is ".lep" or ".l16" or ".wav")
                 {
-                    if (!TryChooseWaveformSaveOptions(
-                        fileExtension,
-                        records.Count,
-                        out SharpTapeMachine machine,
-                        out bool separateFiles,
-                        out int wavSampleRate))
-                    {
-                        return;
-                    }
-
                     ExportWaveform(
                         filePath,
                         records,
@@ -1388,20 +1447,27 @@ namespace MZTools
 
         private bool SaveIplRecords(string path, IReadOnlyList<TapeRecord> records)
         {
+            byte[]? image = PrepareIplImage(records);
+            if (image == null) return false;
+            File.WriteAllBytes(path, image);
+            return true;
+        }
+
+        private byte[]? PrepareIplImage(IReadOnlyList<TapeRecord> records)
+        {
             if (records.Count == 0) throw new InvalidOperationException("IPL DSK requires at least one program.");
             if (records.Count == 1)
             {
                 var dialog = new IplDskOptionsDialog(records[0]) { Owner = this };
-                if (dialog.ShowDialog() != true || dialog.PackedRecord == null) return false;
-                Mz800IplDskWriter.WriteFile(path, dialog.PackedRecord, dialog.BootName);
+                if (dialog.ShowDialog() != true || dialog.PackedRecord == null) return null;
+                return Mz800IplDskWriter.Build(dialog.PackedRecord, dialog.BootName);
             }
             else
             {
                 var dialog = new MultiGameIplDskOptionsDialog(records) { Owner = this };
-                if (dialog.ShowDialog() != true || dialog.BuildResult == null) return false;
-                File.WriteAllBytes(path, dialog.BuildResult.Image);
+                if (dialog.ShowDialog() != true || dialog.BuildResult == null) return null;
+                return dialog.BuildResult.Image;
             }
-            return true;
         }
 
         private void button_Click_SaveAs(object sender, RoutedEventArgs e)
@@ -1617,6 +1683,7 @@ namespace MZTools
 
         private void MzfDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            qdCompressionButton.IsEnabled = tapeContextCompression.IsEnabled = document.Format != TapeDocumentFormat.None && !document.IsReadOnlyQuickDisk && MzfDataGrid.SelectedItems.Count > 0;
             // Tlačítko "View" bude aktivní pouze pokud je vybrán nějaký řádek
             viewButton.IsEnabled = MzfDataGrid.SelectedItem != null;
             exportButton.IsEnabled = MzfDataGrid.SelectedItem != null;
@@ -2944,7 +3011,7 @@ namespace MZTools
             format = TapeDocumentFormat.None;
             var selector = new ComboBox
             {
-                ItemsSource = new[] { "Sharp legacy (.qd)", "HxC physical (.qd)", "uniform-track physical (.qd)", "MZQ (.mzq)" },
+                ItemsSource = new[] { "Sharp legacy (.qd)", "HxC physical (.qd)", "FlashFloppy physical (.qd)", "MZQ (.mzq)" },
                 SelectedIndex = 0,
                 Margin = new Thickness(0, 8, 0, 12)
             };

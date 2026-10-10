@@ -12,7 +12,7 @@ namespace MZTools;
 
 internal static class BatchTapeService
 {
-    internal static readonly string[] Targets = ["MZF", "M12", "MZT", "WAV", "FLAC", "LEP", "L16", "QD (Sharp)", "QD (HxC)", "QD (uniform)", "QDF", "MZQ"];
+    internal static readonly string[] Targets = ["MZF", "M12", "MZT", "WAV", "FLAC", "LEP", "L16", "QD (Sharp)", "QD (HxC)", "QD (FlashFloppy)", "QDF", "MZQ"];
     internal static bool IsTape(string path) => BatchMediaPolicy.TapeExtensions.Split(',').Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase);
     private sealed record TapeInput(IReadOnlyList<TapeRecord> Records, byte[] Trailing, string Report = "", int Errors = 0, QdReadResult? QuickDisk = null)
     {
@@ -31,7 +31,7 @@ internal static class BatchTapeService
         row.Contents = input.Records.Select((record, index) => new BatchContentItem(index + 1,
             SharpMzEncoding.ConvertMzfNameToASCIIString(record.Header.MzfFname), record.Body.MzfBody.Length,
             record.Header.MzfFtype.ToString("X2"), record.Header.MzfStart, record.Header.MzfExec,
-            Profile: TapeProfileNames.ToDisplayName(record.Profile), Compression: MzfLoaderBuilder.DetectCompression(record).ToString(),
+            Profile: extension is ".qd" or ".qdf" or ".mzq" ? "" : TapeProfileNames.ToDisplayName(record.Profile), Compression: MzfLoaderBuilder.DetectCompression(record).ToString(),
             TrailingBytes: record.Body.TrailingData?.Length ?? 0)).ToArray();
         row.Filesystem = input.QuickDisk?.Analysis.Identification.DisplayName ?? "SHARP MZ tape records";
         var report = new StringBuilder(input.Report);
@@ -109,7 +109,7 @@ internal static class BatchTapeService
             }
             target = extension switch
             {
-                ".m12" => "M12", ".mzf" or ".mz0" or ".mz7" => "MZF", ".qd" => input.QuickDisk!.Format switch { QdImageFormat.HxcPhysical => "QD (HxC)", QdImageFormat.FlashFloppyPhysical => "QD (uniform)", _ => "QD (Sharp)" },
+                ".m12" => "M12", ".mzf" or ".mz0" or ".mz7" => "MZF", ".qd" => input.QuickDisk!.Format switch { QdImageFormat.HxcPhysical => "QD (HxC)", QdImageFormat.FlashFloppyPhysical => "QD (FlashFloppy)", _ => "QD (Sharp)" },
                 ".qdf" => "QDF", ".mzq" => "MZQ", _ => "MZT"
             };
             row.DetailedReport += $"\n{options.Operation}: output {target}; {CompressionOptionsControl.Describe(options.Compression ?? new(MzfCompressionAlgorithm.None))}.\n";
@@ -255,7 +255,7 @@ internal static class BatchTapeService
         if (target is "MZF" or "M12") return TapeDocumentWriter.SerializeMzf(records.Single(), true);
         if (target == "MZT") return TapeDocumentWriter.SerializeMzt(records).Concat(trailing).ToArray();
         if (target == "QDF") return QDFFileReader.BuildImage(records);
-        if (target.StartsWith("QD (", StringComparison.Ordinal)) return QdImageReaderWriter.Write(records, target switch { "QD (HxC)" => QdImageFormat.HxcPhysical, "QD (uniform)" => QdImageFormat.FlashFloppyPhysical, _ => QdImageFormat.SharpLegacyLogical }, profile);
+        if (target.StartsWith("QD (", StringComparison.Ordinal)) return QdImageReaderWriter.Write(records, target switch { "QD (HxC)" => QdImageFormat.HxcPhysical, "QD (FlashFloppy)" => QdImageFormat.FlashFloppyPhysical, _ => QdImageFormat.SharpLegacyLogical }, profile);
         using var temporary = new TemporaryMedia();
         string path = temporary.PathFor(Extension(target));
         if (target == "MZQ")

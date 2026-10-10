@@ -27,6 +27,22 @@ MZTools provides:
 - standard and extended MZ-800 QuickDisk directory handling,
 - tape profiles, waveform conversion, compression, metadata sidecars and IPL floppy tools.
 
+### Visual audio analysis
+
+**Tools → Analyze Audio (WAV / FLAC)** opens a read-only signal inspector. The audio import summary also has a **Visual analysis** shortcut.
+
+The viewer shows actual PCM with min/max envelopes, mouse-wheel zoom, dragging to pan, fit/selected-record navigation and left/right/overlay modes. Decoder regions identify leaders, sync, headers, payloads and checksums; recovered/unresolved regions and explicitly estimated quiet gaps are separate overlays.
+
+Select a record's Header or Payload to inspect SHORT/LONG High/Low distributions, exact duration histograms, High/Low scatter and timing drift in 256-pulse windows. Channel tables include full-scale PCM levels, clipping, DC, estimated noise, checksum/decode results and leader stability. Zero-crossing/Schmitt pulse, candidate and complete-record agreement are reported separately. Selecting an issue locates the affected audio and block statistics.
+
+The shared histogram has four independently visible pulse groups and a reference grid based on the ROM/copier timing documents in `specification`; custom values can be entered in the analysis window. Record names remain above assigned audio, while unassigned audio uses gray bars. Double-click Records/Regions to locate them, or click the waveform to synchronize both tables. Selected rows stay highlighted without focus. Shift+drag selects audio for **Analyze selected audio…**, which offers one mutually exclusive detector, channels, polarities and thresholds, plus manual-only fixed time scale, fuzzy pulse-length and explicit ROM/copier/user reference tests with selectable tolerance. An adaptive peak-midpoint zero-crossing detector preserves fractional pulse durations; a common optional per-pulse ±0.5-sample correction for all manual classifiers leaves PCM and timestamps unchanged. Manual operations retain zoom and selection; tooltips stay offset from the cursor. The separate program/raw-candidate preview includes test settings, checksums, cancellation and export. Its Visual analysis pages provide a zoomable histogram for undecoded intervals, editable comparison references, localized problem markers and navigation. Stereo captures support signed right-channel alignment in samples/ms, right polarity inversion and PCM Mix (L + R) / 2 for both measurement and manual decoding, using only the common valid samples. Histogram groups use vivid colours and a reference strip on the time axis; drift remains a graph without a large Drift values table.
+
+Manual analysis also offers read-only **Hex view…** for selected block candidates and **Export selection to WAV…** for selected waveform audio after channel alignment and Left/Right/Average selection. WAV preserves the original sample rate and bit depth (8/16/24 bit), with progress and cancellation; decoding is not required. Zoom and selection are preserved. The manual histogram follows the upper detector/gating settings and clearly marks zoomed ranges; Fit histogram restores the complete duration range.
+
+Standard WAV import now streams 8/16/24-bit PCM. Heuristic and manual recovery preserve original MZF headers whose names terminate before the last name byte; rejected checksum-valid headers have explicit bounded diagnostics. Histogram zoom keeps its anchor at viewport edges and during a drag. See the [audio decoder audit](docs/AUDIO_DECODER_FAILURE_ANALYSIS.md) for the real-recording results and Standard-mode limitations.
+
+Reports export as TXT, CSV or JSON. Quality classifications list their reasons and thresholds. Estimated noise is not laboratory SNR, successful decoding does not certify program execution, and analysis never modifies the source. See [Visual Media Analysis](specification/VISUAL_MEDIA_ANALYSIS.md) for definitions and limitations. This phase implements audio F1–F2; subsequent DSK/HFE/QD visualization work is separate.
+
 ### Tape profiles and loader selection
 
 Each tape record can be assigned a **Loader** and **Speed** profile.
@@ -1166,3 +1182,6 @@ Historical interoperability evidence remains in
 [the earlier research report](docs/MZF_CPM_INTEROP_RESEARCH.md).
 Supported tape playback profiles remain documented in
 [the MFI/M2I/MTI specification, including legacy MZI status](specification/MFI_M2I_MTI_FORMAT.md).
+
+
+Manual audio recovery supports **Payload only (no header)** with a known length or bounded unknown-length framing search. Export exact raw BIN bytes, or explicitly supply metadata for an MZF with a synthetic header. Candidate checksums, uncertain lengths, partial data and decoder events are shown separately; automatic heuristic recovery also retries intervals with missed headers. Real-capture results and reproduction: [Headerless recovery and heuristic parity](docs/AUDIO_HEADERLESS_HEURISTIC_ROOT_CAUSE.md).

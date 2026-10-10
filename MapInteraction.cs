@@ -26,6 +26,19 @@ internal static class MapInteraction
     }
     internal static void EmphasizeSelection(DataGrid grid)
     {
+        grid.PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key != Key.Escape) return;
+            for (var element = e.OriginalSource as DependencyObject; element != null && element != grid;
+                element = element is System.Windows.Media.Visual ? System.Windows.Media.VisualTreeHelper.GetParent(element) : LogicalTreeHelper.GetParent(element))
+                if (element is TextBox or ComboBox) return;
+            grid.UnselectAll(); grid.UnselectAllCells(); e.Handled = true;
+        };
+        grid.PreviewMouseLeftButtonDown += (_, e) =>
+        {
+            if (DiskMapVisuals.IsBlankClick(e.OriginalSource as DependencyObject))
+            { grid.UnselectAll(); grid.UnselectAllCells(); }
+        };
         // Explicit triggers keep the synchronized selection visible when the map,
         // rather than the list, has keyboard focus. Respect system/high-contrast colors.
         Style Selected(Type target)

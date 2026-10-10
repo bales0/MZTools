@@ -1005,7 +1005,7 @@ namespace MZTools
             {
                 ".lep" => ReadEdgeRuns(File.ReadAllBytes(filePath), TapeSignalFormat.Lep, cancellationToken),
                 ".l16" => ReadEdgeRuns(File.ReadAllBytes(filePath), TapeSignalFormat.L16, cancellationToken),
-                ".wav" => ReadWavRuns(File.ReadAllBytes(filePath), cancellationToken),
+                ".wav" => ReadWavRuns(filePath, cancellationToken),
                 ".flac" => ReadFlacRuns(filePath, cancellationToken),
                 _ => throw new ArgumentException($"Unsupported tape input extension: {extension}", nameof(filePath))
             };
@@ -1420,97 +1420,20 @@ namespace MZTools
             return new TapeSignalSource(runs, format);
         }
 
-        private static TapeSignalSource ReadWavRuns(byte[] wav, CancellationToken cancellationToken)
+        private static TapeSignalSource ReadWavRuns(string filePath, CancellationToken cancellationToken)
         {
-            if (wav.Length < 12 ||
-                !wav.AsSpan(0, 4).SequenceEqual("RIFF"u8) ||
-                !wav.AsSpan(8, 4).SequenceEqual("WAVE"u8))
-            {
-                throw new InvalidDataException("The file is not a RIFF/WAVE stream.");
-            }
-
-            ushort format = 0, channels = 0, bits = 0, blockAlign = 0;
-            uint sampleRate = 0;
-            ReadOnlySpan<byte> data = default;
-            int position = 12;
-            while (position <= wav.Length - 8)
-            {
-                ReadOnlySpan<byte> id = wav.AsSpan(position, 4);
-                int length = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(wav.AsSpan(position + 4, 4)));
-                position += 8;
-                if (length < 0 || position > wav.Length - length)
-                {
-                    throw new InvalidDataException("The WAV chunk extends beyond the end of the file.");
-                }
-                if (id.SequenceEqual("fmt "u8) && length >= 16)
-                {
-                    ReadOnlySpan<byte> chunk = wav.AsSpan(position, length);
-                    format = BinaryPrimitives.ReadUInt16LittleEndian(chunk);
-                    channels = BinaryPrimitives.ReadUInt16LittleEndian(chunk[2..]);
-                    sampleRate = BinaryPrimitives.ReadUInt32LittleEndian(chunk[4..]);
-                    blockAlign = BinaryPrimitives.ReadUInt16LittleEndian(chunk[12..]);
-                    bits = BinaryPrimitives.ReadUInt16LittleEndian(chunk[14..]);
-                }
-                else if (id.SequenceEqual("data"u8))
-                {
-                    data = wav.AsSpan(position, length);
-                }
-                position += length + (length & 1);
-            }
-
-            if (format != 1 || channels == 0 || sampleRate == 0 || blockAlign == 0 ||
-                bits is not 8 and not 16 || data.IsEmpty)
-            {
-                throw new NotSupportedException("Only non-empty 8-bit or 16-bit PCM WAV input is supported.");
-            }
-
-            var runs = new List<SignalRun>();
-            bool? level = null;
-            long samples = 0;
-            bool digital8BitLevel = false;
-            for (int offset = 0; offset <= data.Length - blockAlign; offset += blockAlign)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                bool current;
-                if (bits == 8)
-                {
-                    byte sample = data[offset];
-                    if (!digital8BitLevel && sample >= 155)
-                    {
-                        digital8BitLevel = true;
-                    }
-                    else if (digital8BitLevel && sample <= 100)
-                    {
-                        digital8BitLevel = false;
-                    }
-                    current = digital8BitLevel;
-                }
-                else
-                {
-                    current = BinaryPrimitives.ReadInt16LittleEndian(data.Slice(offset, 2)) >= 0;
-                }
-                if (level == current)
-                {
-                    samples++;
-                    continue;
-                }
-                if (level.HasValue)
-                {
-                    AddRun(runs, level.Value, samples);
-                }
-                level = current;
-                samples = 1;
-            }
-            if (level.HasValue)
-            {
-                AddRun(runs, level.Value, samples);
-            }
-            return new TapeSignalSource(runs, TapeSignalFormat.Wav, sampleRate);
+            using var reader = new WavPcmStreamReader(filePath, allowOtherSampleRates: true);
+            return ReadPcmRuns(reader, cancellationToken);
         }
 
         private static TapeSignalSource ReadFlacRuns(string filePath, CancellationToken cancellationToken)
         {
             using var reader = new FlacPcmStreamReader(filePath);
+            return ReadPcmRuns(reader, cancellationToken);
+        }
+
+        private static TapeSignalSource ReadPcmRuns(IPcmAudioStreamReader reader, CancellationToken cancellationToken)
+        {
             var runs = new List<SignalRun>();
             bool? level = null;
             long samples = 0;

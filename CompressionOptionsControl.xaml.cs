@@ -41,8 +41,8 @@ namespace MZTools
                 ? "Direct IPL does not load the MZF header. ZX7 embedded loader and partial/skip compression are therefore unavailable."
                 : target == CompressionTarget.NativeCom
                     ? "None unpacks recognized ZX0/ZX7 input. COM requires the complete program, so partial/skip compression is unavailable. Embedded ZX7 is checked against any executable header."
-                    : string.Empty;
-            targetHintTextBlock.Visibility = isIpl || target == CompressionTarget.NativeCom ? Visibility.Visible : Visibility.Collapsed;
+                    : target == CompressionTarget.QuickDisk ? "QuickDisk stores programs without the full MZF header. Embedded ZX7 and partial/skip compression are unavailable. Changes apply in memory; use Save to write the image." : string.Empty;
+            targetHintTextBlock.Visibility = isIpl || target is CompressionTarget.NativeCom or CompressionTarget.QuickDisk ? Visibility.Visible : Visibility.Collapsed;
             updating = false;
             UpdateAvailability();
         }
@@ -126,18 +126,18 @@ namespace MZTools
             directionPanel.IsEnabled = concrete;
             quickCheckBox.IsEnabled = algorithm == "Zx0";
             quickCheckBox.Visibility = Visibility.Visible;
-            embeddedCheckBox.IsEnabled = algorithm == "Zx7" && target != CompressionTarget.IplDsk;
+            embeddedCheckBox.IsEnabled = algorithm == "Zx7" && target is not (CompressionTarget.IplDsk or CompressionTarget.QuickDisk);
             embeddedCheckBox.Visibility = Visibility.Visible;
-            expertExpander.IsEnabled = concrete && target is not (CompressionTarget.IplDsk or CompressionTarget.NativeCom);
+            expertExpander.IsEnabled = concrete && target is not (CompressionTarget.IplDsk or CompressionTarget.NativeCom or CompressionTarget.QuickDisk);
             if (algorithm != "Zx0")
             {
                 quickCheckBox.IsChecked = false;
             }
-            if (algorithm != "Zx7" || target == CompressionTarget.IplDsk)
+            if (algorithm != "Zx7" || target is CompressionTarget.IplDsk or CompressionTarget.QuickDisk)
             {
                 embeddedCheckBox.IsChecked = false;
             }
-            if (!concrete || target is CompressionTarget.IplDsk or CompressionTarget.NativeCom)
+            if (!concrete || target is CompressionTarget.IplDsk or CompressionTarget.NativeCom or CompressionTarget.QuickDisk)
             {
                 skipTextBox.Text = "0";
             }

@@ -1,8 +1,13 @@
-using System;
+﻿using System;
 using System.Numerics;
 
 namespace MZTools
 {
+    internal sealed record SharpBlockSignalTrace(long LeaderStart, long SyncStart, long DataStart, long ChecksumStart, long End)
+    {
+        internal SharpBlockSignalTrace Shift(long delta) => new(LeaderStart + delta, SyncStart + delta, DataStart + delta, ChecksumStart + delta, End + delta);
+        internal bool IsOrdered => LeaderStart >= 0 && LeaderStart <= SyncStart && SyncStart <= DataStart && DataStart <= ChecksumStart && ChecksumStart <= End;
+    }
     internal enum SharpMzDecoderEventType
     {
         None,
@@ -20,7 +25,10 @@ namespace MZTools
         ushort CalculatedChecksum,
         ushort RecordedChecksum,
         int LeaderPulses,
-        int CopyIndex);
+        int CopyIndex)
+    {
+        internal SharpBlockSignalTrace? SignalTrace { get; init; }
+    }
 
     // Behavioral port of MZ-SD2CMT2-Reborn/src/formats/mz_tape_decoder.cpp.
     // Physical HIGH intervals are retained by the importer, but only physical
@@ -34,6 +42,30 @@ namespace MZTools
         private const int FinalMarkPulses = 2;
         private const int MaxHalfUnits = 1024;
         private const int LeaderLockPulses = 256;
+        private readonly double? fixedShortUnits;
+        private readonly double? fuzzyTolerance;
+        private readonly ReferencePulseRules? reference;
+        private readonly int unitsPerSample;
+        private readonly bool halfSample;
+        private int previousReferenceClass = -1;
+        private readonly Action<SharpPulseDiagnostic>? diagnostic;
+        private readonly double[] recentPulses = new double[6];
+        private int recentPulseIndex;
+        private bool unknownLength;
+        private byte penultimateByte, lastByte;
+        private long beforeLastByteEnd, lastByteEnd, unknownDataEnd;
+        internal long Position => ToSamples(intervalEndUnits);
+        private void Diagnose(string code, long duration = 0) => diagnostic?.Invoke(new(code, state.ToString(), Position, byteIndex,
+            unknownLength ? null : expectedBytes, duration / (double)unitsPerSample,
+            "Recent half-periods (samples): " + string.Join(", ", recentPulses)));
+
+        // Opt-in manual recovery settings; the default decoder retains its original rules.
+        internal SharpMzPulseDecoder(double? fixedShortUnits = null, double? fuzzyTolerance = null, ReferencePulseRules? reference = null, int unitsPerSample = 1, bool halfSample = false, Action<SharpPulseDiagnostic>? diagnostic = null)
+        {
+            this.diagnostic = diagnostic; this.reference = reference; this.unitsPerSample = unitsPerSample; this.halfSample = halfSample;
+            this.fixedShortUnits = reference?.ShortSamples ?? fixedShortUnits;
+            this.fuzzyTolerance = fuzzyTolerance;
+        }
 
         private enum DecodeState
         {
@@ -89,20 +121,22 @@ namespace MZTools
         private long completedLongPhysicalLowX8;
         private long completedLongPhysicalHighX8;
         private SharpMzDecoderEvent? pendingEvent;
+        private long intervalEndUnits;
+        private long leaderStartUnits, syncStartUnits = -1, dataStartUnits = -1, checksumStartUnits = -1;
 
         internal byte[]? ValidatedHeader => validatedHeader;
-        internal long HeaderShortPhysicalLowX8 => validatedShortX8;
-        internal long HeaderLeaderPhysicalLowMeanX8 => validatedLeaderPhysicalLowMeanX8;
-        internal long HeaderShortPhysicalHighX8 => validatedPhysicalHighX8;
-        internal long HeaderLongPhysicalLowX8 => validatedLongPhysicalLowX8;
-        internal long HeaderLongPhysicalHighX8 => validatedLongPhysicalHighX8;
-        internal long CompletedLeaderPhysicalLowMeanX8 => completedLeaderPhysicalLowMeanX8;
-        internal long CompletedShortPhysicalHighX8 => completedShortPhysicalHighX8;
-        internal long CompletedLongPhysicalLowX8 => completedLongPhysicalLowX8;
-        internal long CompletedLongPhysicalHighX8 => completedLongPhysicalHighX8;
-        internal double LeaderAverage => leaderMean;
+        internal long HeaderShortPhysicalLowX8 => ToSamples(validatedShortX8);
+        internal long HeaderLeaderPhysicalLowMeanX8 => ToSamples(validatedLeaderPhysicalLowMeanX8);
+        internal long HeaderShortPhysicalHighX8 => ToSamples(validatedPhysicalHighX8);
+        internal long HeaderLongPhysicalLowX8 => ToSamples(validatedLongPhysicalLowX8);
+        internal long HeaderLongPhysicalHighX8 => ToSamples(validatedLongPhysicalHighX8);
+        internal long CompletedLeaderPhysicalLowMeanX8 => ToSamples(completedLeaderPhysicalLowMeanX8);
+        internal long CompletedShortPhysicalHighX8 => ToSamples(completedShortPhysicalHighX8);
+        internal long CompletedLongPhysicalLowX8 => ToSamples(completedLongPhysicalLowX8);
+        internal long CompletedLongPhysicalHighX8 => ToSamples(completedLongPhysicalHighX8);
+        internal double LeaderAverage => leaderMean / unitsPerSample;
         internal double LeaderStdDev => leaderObservationCount > 1
-            ? Math.Sqrt(leaderM2 / (leaderObservationCount - 1))
+            ? Math.Sqrt(leaderM2 / (leaderObservationCount - 1)) / unitsPerSample
             : 0;
         internal double PulseConfidence => classifiedPulses + unclassifiedPulses == 0
             ? 0
@@ -110,6 +144,7 @@ namespace MZTools
 
         internal void BeginHeader()
         {
+            unknownLength = false;
             mode = DecoderMode.Header;
             validatedHeader = null;
             validatedShortX8 = 0;
@@ -152,6 +187,7 @@ namespace MZTools
 
         internal void BeginRawBlock(int byteCount)
         {
+            unknownLength = false;
             if (byteCount is < 0 or > ushort.MaxValue)
             {
                 Stop();
@@ -165,14 +201,44 @@ namespace MZTools
             ResetDecoder(0);
         }
 
+        internal void BeginUnknownRawBlock()
+        {
+            BeginRawBlock(ushort.MaxValue);
+            unknownLength = true;
+        }
+        internal void FinishSelectedInterval()
+        {
+            if (unknownLength) CompleteUnknownBlock("SELECTED_END");
+            else if (state == DecodeState.Data) Diagnose("BLOCK_TRUNCATED");
+        }
+        private bool CompleteUnknownBlock(string boundary)
+        {
+            if (!unknownLength || mode != DecoderMode.Data || state != DecodeState.Data || byteIndex < 3) return false;
+            ushort candidateRecorded = (ushort)((penultimateByte << 8) | lastByte);
+            ushort candidateCalculated = unchecked((ushort)(checksum - BitOperations.PopCount(penultimateByte) - BitOperations.PopCount(lastByte)));
+            // A malformed trailing byte may follow a complete checksum. Preserve
+            // that bounded possibility, with unverified length, only on a match.
+            if (bitCount != 0 && candidateRecorded != candidateCalculated) return false;
+            recordedChecksum = candidateRecorded; checksum = candidateCalculated;
+            expectedBytes = byteIndex - 2;
+            CaptureCompletedTiming();
+            long savedEnd = intervalEndUnits; intervalEndUnits = unknownDataEnd;
+            Diagnose(boundary + (bitCount != 0 ? "_AFTER_PARTIAL_BYTE" : ""));
+            PublishEvent(recordedChecksum == checksum ? SharpMzDecoderEventType.BlockValid : SharpMzDecoderEventType.BlockInvalid, 0, expectedBytes);
+            intervalEndUnits = savedEnd; mode = DecoderMode.Stopped;
+            return true;
+        }
+
         internal void BreakSignal()
         {
+            if (CompleteUnknownBlock("FRAMING_BOUNDARY")) return;
+            if (state == DecodeState.Data) Diagnose("BLOCK_TRUNCATED");
             if (mode == DecoderMode.Header)
             {
                 expectedBytes = HeaderBytes;
                 ResetDecoder(0);
             }
-            else if (mode == DecoderMode.Data && validatedHeader is not null)
+            else if (mode == DecoderMode.Data)
             {
                 ResetDecoder(0);
             }
@@ -184,14 +250,18 @@ namespace MZTools
             pendingEvent = null;
         }
 
+        internal bool FeedMeasuredInterval(double samples, bool physicalHigh) => FeedInterval((long)Math.Round(samples * unitsPerSample), physicalHigh);
+
         internal bool FeedInterval(long durationUnits, bool physicalHigh)
         {
+            intervalEndUnits += Math.Max(0, durationUnits);
+            recentPulses[recentPulseIndex++ % recentPulses.Length] = durationUnits / (double)unitsPerSample;
             if (mode == DecoderMode.Stopped)
             {
                 return false;
             }
 
-            if (durationUnits is <= 0 or > MaxHalfUnits)
+            if (durationUnits <= 0 || durationUnits > MaxHalfUnits * unitsPerSample)
             {
                 BreakSignal();
                 return false;
@@ -199,11 +269,14 @@ namespace MZTools
 
             if (physicalHigh)
             {
+                if (reference != null && previousReferenceClass >= 0 && reference.Classify(durationUnits / (double)unitsPerSample, false) != previousReferenceClass)
+                { previousReferenceClass = -1; BreakSignal(); return false; }
                 TrackLeaderPhysicalHigh(durationUnits);
                 TrackMarkLongPhysicalHigh(durationUnits);
                 return false;
             }
 
+            previousReferenceClass = reference?.Classify(durationUnits / (double)unitsPerSample, true) ?? -1;
             FeedPulse(durationUnits);
             return pendingEvent.HasValue;
         }
@@ -221,10 +294,15 @@ namespace MZTools
             return true;
         }
 
-        private void ResetDecoder(long seedUnits)
+        private void ResetDecoder(long seedUnits, string reason = "RESET")
         {
+            if (state != DecodeState.SearchLeader && mode != DecoderMode.Stopped) Diagnose(reason, seedUnits);
+            penultimateByte = lastByte = 0; beforeLastByteEnd = lastByteEnd = unknownDataEnd = intervalEndUnits;
+            leaderStartUnits = intervalEndUnits - Math.Max(0, seedUnits);
+            syncStartUnits = dataStartUnits = checksumStartUnits = -1;
             state = DecodeState.SearchLeader;
-            shortX8 = seedUnits <= MaxHalfUnits ? seedUnits * 8 : 0;
+            shortX8 = seedUnits <= MaxHalfUnits * unitsPerSample ? seedUnits * 8 : 0;
+            if (seedUnits > 0 && fixedShortUnits.HasValue) shortX8 = Math.Max(1, (long)Math.Round(fixedShortUnits.Value * unitsPerSample * 8));
             leaderPulses = shortX8 != 0 ? 1 : 0;
             markPulses = 0;
             finalPulses = 0;
@@ -254,6 +332,11 @@ namespace MZTools
 
         private bool AcceptLeaderPulse(long durationUnits)
         {
+            if (reference != null)
+            {
+                if (reference.Classify(durationUnits / (double)unitsPerSample, true) != 0) return false;
+                ObserveLeader(durationUnits); return true;
+            }
             if (shortX8 == 0)
             {
                 return false;
@@ -261,13 +344,13 @@ namespace MZTools
 
             long scaled = durationUnits * 8;
             long difference = Math.Abs(scaled - shortX8);
-            long tolerance = Math.Max(shortX8 / 4, 4);
-            if (difference > tolerance)
+            long tolerance = Math.Max((long)(shortX8 * (fuzzyTolerance ?? .25)), 4);
+            if (difference > tolerance + (halfSample ? unitsPerSample * 4.0 : 0))
             {
                 return false;
             }
 
-            shortX8 = scaled >= shortX8
+            if (!fixedShortUnits.HasValue) shortX8 = scaled >= shortX8
                 ? shortX8 + ((difference + 4) >> 3)
                 : shortX8 - ((difference + 3) >> 3);
             ObserveLeader(durationUnits);
@@ -276,6 +359,7 @@ namespace MZTools
 
         private void LockLeaderWindow()
         {
+            if (halfSample || unitsPerSample != 1 || fixedShortUnits.HasValue || fuzzyTolerance.HasValue) return;
             // The reference locks only its real-pulse 8-bit hot path.
             if (finalPulses != 0 || shortX8 is <= 0 or > 204)
             {
@@ -291,12 +375,32 @@ namespace MZTools
 
         private int ClassifyPulse(long durationUnits)
         {
+            if (reference != null) return reference.Classify(durationUnits / (double)unitsPerSample, true);
+            int original = ClassifyPulseCore(durationUnits);
+            if (!halfSample || original >= 0) return original;
+            double half = unitsPerSample * .5;
+            int minus = durationUnits > half ? ClassifyPulseCore(durationUnits - half) : -1;
+            int plus = ClassifyPulseCore(durationUnits + half);
+            // Preserve accepted measurements; rescue rejected lengths only when
+            // the two neighbouring hypotheses do not disagree on SHORT/LONG.
+            return minus >= 0 && plus >= 0 && minus != plus ? -1 : Math.Max(minus, plus);
+        }
+
+        private int ClassifyPulseCore(double durationUnits)
+        {
             if (shortX8 == 0)
             {
                 return -1;
             }
 
-            long scaled = durationUnits * 8;
+            double scaled = durationUnits * 8;
+            if (fuzzyTolerance.HasValue)
+            {
+                double ratio = scaled / (double)shortX8;
+                double shortError = Math.Abs(ratio - 1), longError = Math.Abs(ratio / 2 - 1);
+                if (Math.Min(shortError, longError) > fuzzyTolerance.Value) return -1;
+                return shortError <= longError ? 0 : 1;
+            }
             if ((2 * scaled) < shortX8 || scaled > (3 * shortX8))
             {
                 return -1;
@@ -324,6 +428,8 @@ namespace MZTools
                     }
                     if (leaderPulses == 256)
                     {
+                        dataStartUnits = intervalEndUnits;
+                        Diagnose("MARK_FOUND", durationUnits);
                         state = DecodeState.Data;
                         leaderPulses = 0;
                     }
@@ -377,6 +483,8 @@ namespace MZTools
                 {
                     ObserveMarkLongPhysicalLow(durationUnits);
                     state = DecodeState.MarkLong;
+                    Diagnose("LEADER_FOUND", durationUnits);
+                    syncStartUnits = intervalEndUnits - durationUnits;
                     markPulses = 1;
                     return;
                 }
@@ -389,7 +497,8 @@ namespace MZTools
             RecordClassification(classified);
             if (classified < 0)
             {
-                ResetDecoder(durationUnits);
+                if (CompleteUnknownBlock("PULSE_BOUNDARY")) return;
+                ResetDecoder(durationUnits, "PULSE_CLASSIFICATION_RESET");
                 return;
             }
 
@@ -445,6 +554,9 @@ namespace MZTools
                 if (finalPulses == FinalMarkPulses)
                 {
                     state = DecodeState.Data;
+                    dataStartUnits = intervalEndUnits;
+                    Diagnose("MARK_FOUND", durationUnits);
+                    if (expectedBytes == 0) checksumStartUnits = dataStartUnits;
                 }
                 return;
             }
@@ -463,7 +575,8 @@ namespace MZTools
 
             if (pulseClass != 1)
             {
-                ResetDecoder(0);
+                if (CompleteUnknownBlock("BAD_BYTE_STOP_BOUNDARY")) return;
+                ResetDecoder(0, "BAD_BYTE_STOP");
                 return;
             }
 
@@ -475,6 +588,16 @@ namespace MZTools
         private void AcceptByte(byte value)
         {
             int index = byteIndex;
+            if (unknownLength)
+            {
+                if (index >= ushort.MaxValue + 2) { Diagnose("LENGTH_LIMIT"); mode = DecoderMode.Stopped; return; }
+                checksum = unchecked((ushort)(checksum + BitOperations.PopCount(value)));
+                if (index >= 2) checksumStartUnits = beforeLastByteEnd;
+                beforeLastByteEnd = lastByteEnd; lastByteEnd = unknownDataEnd = intervalEndUnits;
+                penultimateByte = lastByte; lastByte = value;
+                PublishEvent(SharpMzDecoderEventType.DataByte, value, index); byteIndex++;
+                return;
+            }
             if (index < expectedBytes)
             {
                 checksum = unchecked((ushort)(checksum + BitOperations.PopCount(value)));
@@ -493,12 +616,14 @@ namespace MZTools
             }
 
             byteIndex++;
+            if (byteIndex == expectedBytes) checksumStartUnits = intervalEndUnits;
             if (byteIndex != expectedBytes + 2)
             {
                 return;
             }
 
             bool valid = recordedChecksum == checksum;
+            Diagnose(valid ? "VERIFIED_CHECKSUM" : "CHECKSUM_MISMATCH");
             CaptureCompletedTiming();
             if (mode == DecoderMode.Header)
             {
@@ -530,6 +655,8 @@ namespace MZTools
 
         private void BeginDuplicateGap(int byteCount)
         {
+            leaderStartUnits = intervalEndUnits;
+            syncStartUnits = dataStartUnits = checksumStartUnits = -1;
             state = DecodeState.DuplicateGap;
             leaderPulses = 0;
             markPulses = 0;
@@ -543,6 +670,8 @@ namespace MZTools
             copyIndex = 1;
         }
 
+        private long ToSamples(long units) => (long)Math.Round(units / (double)unitsPerSample);
+
         private void PublishEvent(SharpMzDecoderEventType type, byte value, int index)
         {
             pendingEvent ??= new SharpMzDecoderEvent(
@@ -552,7 +681,11 @@ namespace MZTools
                 checksum,
                 recordedChecksum,
                 leaderPulses,
-                copyIndex);
+                copyIndex)
+            {
+                SignalTrace = syncStartUnits >= 0 && dataStartUnits >= 0 && checksumStartUnits >= 0
+                    ? new(ToSamples(leaderStartUnits), ToSamples(syncStartUnits), ToSamples(dataStartUnits), ToSamples(checksumStartUnits), ToSamples(intervalEndUnits)) : null
+            };
         }
 
         private void ClearCompletedTiming()

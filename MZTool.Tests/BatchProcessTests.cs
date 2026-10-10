@@ -200,7 +200,7 @@ public sealed class BatchProcessTests : IDisposable
     [InlineData("L16")]
     [InlineData("QD (Sharp)")]
     [InlineData("QD (HxC)")]
-    [InlineData("QD (uniform)")]
+    [InlineData("QD (FlashFloppy)")]
     [InlineData("QDF")]
     [InlineData("MZQ")]
     public void TapeConversionsReopenVerifyAndExecuteWithoutChangingSource(string target)
@@ -216,6 +216,12 @@ public sealed class BatchProcessTests : IDisposable
         var integrity = Assert.Single(BatchProcessService.Preview([row.Output], Options(BatchOperation.TestIntegrity)).Rows);
         Assert.True(integrity.Result == "Will analyze", integrity.Reason + "\n" + integrity.DetailedReport);
         Assert.Equal(1, integrity.Catalog!.FileCount);
+        if (Path.GetExtension(row.Output) is ".qd" or ".qdf" or ".mzq")
+        {
+            var item = Assert.Single(integrity.Contents);
+            Assert.Empty(item.Profile);
+            Assert.NotEmpty(item.Compression);
+        }
     }
 
     [Theory]
@@ -564,5 +570,24 @@ public sealed class BatchProcessTests : IDisposable
         var failed = BatchProcessService.Preview([path], Options(BatchOperation.TestIntegrity)).Rows[0];
         Assert.Equal("Failed", failed.Integrity);
         Assert.Contains(failed.IntegrityChecks, c => c.Result == "Failed" && c.Details.Length > 0);
+    }
+
+    [Theory]
+    [InlineData("Zx0")]
+    [InlineData("Zx7")]
+    public void QuickDiskCompressionSurvivesQdfSaveAndDecompression(string algorithmName)
+    {
+        var algorithm = Enum.Parse<MzfCompressionAlgorithm>(algorithmName);
+        var source = new MZTFileReader().ReadStandaloneMzf(Tape());
+        var result = MzfCompressionService.Compress(source, new(algorithm, Zx0Quick: algorithm == MzfCompressionAlgorithm.Zx0), CompressionTarget.QuickDisk);
+        string path = Path.Combine(root, "packed.qdf");
+        File.WriteAllBytes(path, QDFFileReader.BuildImage([result.Record]));
+        var loaded = new QDFFileReader().ReadFile(path).Single();
+        var restored = MzfDecompressionService.Decompress(TapeRecord.FromLegacy(loaded.Item1, loaded.Item2)).Record;
+        Assert.Equal(source.Body.MzfBody, restored.Body.MzfBody);
+        Assert.Equal(source.Header.MzfStart, restored.Header.MzfStart);
+        Assert.Equal(source.Header.MzfExec, restored.Header.MzfExec);
+        Assert.Throws<InvalidOperationException>(() => MzfCompressionService.ValidateOptions(new(MzfCompressionAlgorithm.Zx7, Zx7EmbeddedLoader: true), CompressionTarget.QuickDisk, 512));
+        Assert.Throws<InvalidOperationException>(() => MzfCompressionService.ValidateOptions(new(MzfCompressionAlgorithm.Zx7, SkipBytes: 1), CompressionTarget.QuickDisk, 512));
     }
 }

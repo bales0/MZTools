@@ -19,6 +19,7 @@
                 <Button x:Name="toolsButton" Content="Tools &#x25BE;" Style="{StaticResource TopToolbarButton}" Click="ToolsMenu_Click">
                     <Button.ContextMenu><ContextMenu>
                         <MenuItem x:Name="batchProcessMenu" Header="Batch Process..." Click="BatchProcess_Click"/>
+                        <MenuItem Header="Analyze Audio (WAV / FLAC)..." Click="AnalyzeAudio_Click"/>
                         <MenuItem x:Name="repairDskFileMenu" Header="Inspect / Repair DSK Container..." Click="RepairDskFile_Click"/>
                         <MenuItem x:Name="mzfCpmMenu" Header="MZF/M12 → COM..." Click="NativeCom_Click"/>
                     </ContextMenu></Button.ContextMenu>
@@ -28,6 +29,7 @@
                 <Button x:Name="exportButton" Content="Export..." Click="button_Click_Export" Style="{StaticResource TopToolbarButton}"/>
                 <Button x:Name="viewButton" Content="View" Click="button_Click_View" Style="{StaticResource TopToolbarButton}"/>
                 <Button x:Name="deleteButton" Content="Delete" Click="button_Click_Delete" Style="{StaticResource TopToolbarButton}"/>
+                <Button x:Name="qdCompressionButton" Content="Compression..." Click="QuickDiskCompression_Click" Style="{StaticResource TopToolbarButton}" Visibility="Collapsed"/>
                 <Button x:Name="saveButton" Content="Save" Click="button_Click_Save" Style="{StaticResource TopToolbarButton}"/>
                 <Button x:Name="saveAsButton" Content="Save As..." Click="button_Click_SaveAs" Style="{StaticResource TopToolbarButton}"/>
                 <Button x:Name="closeButton" Content="Close" Click="button_Click_Close" Style="{StaticResource TopToolbarButton}"/>
@@ -77,6 +79,7 @@
                 <MenuItem x:Name="tapeContextExportSelected" Header="Export selected..." Click="button_Click_Export"/>
                 <MenuItem x:Name="tapeContextRename" Header="Rename" InputGestureText="F2" Click="TapeRename_Click"/>
                 <MenuItem x:Name="tapeContextDelete" Header="Delete" Click="button_Click_Delete"/>
+                <MenuItem x:Name="tapeContextCompression" Header="Compression..." Click="QuickDiskCompression_Click" Visibility="Collapsed"/>
                 <Separator/>
                 <MenuItem x:Name="tapeContextView" Header="Hex view..." Click="button_Click_View"/>
             </ContextMenu></DataGrid.ContextMenu>
@@ -110,7 +113,7 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTemplateColumn Header="Loader" Width="Auto">
+                <DataGridTemplateColumn x:Name="tapeLoaderColumn" Header="Loader" Width="Auto">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <ComboBox ItemsSource="{Binding LoaderTypes}"
@@ -123,7 +126,7 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTemplateColumn Header="Speed" Width="Auto">
+                <DataGridTemplateColumn x:Name="tapeSpeedColumn" Header="Speed" Width="Auto">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <ComboBox ItemsSource="{Binding AvailableSpeeds}"

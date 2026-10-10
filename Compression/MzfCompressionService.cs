@@ -32,6 +32,12 @@ namespace MZTools
             CompressionTarget target,
             CancellationToken cancellationToken = default)
         {
+            ArgumentNullException.ThrowIfNull(source);
+            if (options.Algorithm == MzfCompressionAlgorithm.None && target is CompressionTarget.MzfTape or CompressionTarget.MztTape or CompressionTarget.QuickDisk)
+            {
+                ValidateOptions(options, target, source.Body.MzfBody.Length);
+                return new(source.DeepClone(), options, source.Body.MzfBody.Length);
+            }
             if (target == CompressionTarget.IplDsk)
             {
                 source = Mz800IplDskWriter.PrepareRecordForIpl(source);
@@ -54,6 +60,8 @@ namespace MZTools
             int inputSize)
         {
             ArgumentNullException.ThrowIfNull(options);
+            if (target == CompressionTarget.QuickDisk && (options.Zx7EmbeddedLoader || options.SkipBytes != 0))
+                throw new InvalidOperationException("QuickDisk requires a complete program and cannot retain an embedded MZF header loader. Use Skip bytes = 0 and a normal ZX0/ZX7 loader.");
             if (options.SkipBytes < 0 || (options.SkipBytes > 0 && options.SkipBytes >= inputSize))
             {
                 throw new InvalidOperationException("Skip must be smaller than the MZF program body.");

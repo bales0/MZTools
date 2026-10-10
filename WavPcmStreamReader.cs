@@ -33,7 +33,7 @@ namespace MZTools
         public PcmAudioFormat Format { get; }
         public string SourceFormat => "WAV";
 
-        internal WavPcmStreamReader(string filePath)
+        internal WavPcmStreamReader(string filePath, bool allowOtherSampleRates = false)
         {
             stream = new FileStream(
                 filePath,
@@ -44,7 +44,7 @@ namespace MZTools
                 FileOptions.SequentialScan);
             try
             {
-                Format = ReadFormat(stream);
+                Format = ReadFormat(stream, allowOtherSampleRates);
             }
             catch
             {
@@ -89,7 +89,7 @@ namespace MZTools
 
         public void Dispose() => stream.Dispose();
 
-        private static PcmAudioFormat ReadFormat(FileStream stream)
+        private static PcmAudioFormat ReadFormat(FileStream stream, bool allowOtherSampleRates)
         {
             Span<byte> riff = stackalloc byte[12];
             ReadExactly(stream, riff, "The WAV header is truncated.");
@@ -164,7 +164,7 @@ namespace MZTools
                 throw new InvalidDataException(
                     $"Unsupported WAV bit depth: {bits}; expected 8, 16, or 24-bit PCM.");
             }
-            if (!SupportedSampleRates.Contains(sampleRate))
+            if (sampleRate == 0 || (!allowOtherSampleRates && !SupportedSampleRates.Contains(sampleRate)))
             {
                 throw new InvalidDataException(
                     $"Unsupported WAV sample rate: {sampleRate} Hz; expected 22050, 44100, 48000, 88200, or 96000 Hz.");

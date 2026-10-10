@@ -4,19 +4,25 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
+using System.Collections;
+using System.Windows.Controls;
+using System.Windows.Data;
 
 namespace MZTools
 {
     public partial class WavAnalysisStatisticsWindow : Window
     {
+        private string? visualSource;
+        private void VisualAnalysis_Click(object sender, RoutedEventArgs e) => new AudioSignalAnalyzerWindow(this, visualSource).Show();
         internal WavAnalysisStatisticsWindow(WavHeuristicStatistics statistics)
         {
             InitializeComponent();
+            visualSource = statistics.SourceFile;
             MaxWidth = Math.Max(MinWidth, SystemParameters.WorkArea.Width - 32);
             MaxHeight = Math.Max(MinHeight, SystemParameters.WorkArea.Height - 32);
             Width = Math.Min(Width, MaxWidth);
             Height = Math.Min(Height, MaxHeight);
-            statisticsText.Text = BuildText(statistics);
+            ShowReport(new[] { (statistics.SourceFile, (IReadOnlyList<TapeRecord>)Array.Empty<TapeRecord>(), (WavHeuristicStatistics?)statistics, "Analyzed", (string?)null) });
         }
 
         internal WavAnalysisStatisticsWindow(
@@ -24,6 +30,7 @@ namespace MZTools
             bool includeDetails = false)
         {
             InitializeComponent();
+            visualSource = results.Count == 1 ? results[0].SourceFile : null;
             Title = results.Count == 1
                 ? "Audio import summary"
                 : "Audio batch analysis summary";
@@ -31,7 +38,106 @@ namespace MZTools
             MaxHeight = Math.Max(MinHeight, SystemParameters.WorkArea.Height - 32);
             Width = Math.Min(Width, MaxWidth);
             Height = Math.Min(Height, MaxHeight);
-            statisticsText.Text = BuildBatchText(results, includeDetails);
+            ShowReport(results.Select(r => (r.SourceFile, r.Records, r.Analysis?.Statistics,
+                r.Cancelled ? "Cancelled" : r.Error != null ? "Failed" : r.Imported ? r.Analysis?.Failures.Count > 0 ? "Partial" : "Imported" : "No programs",
+                r.Error?.Message ?? (r.StandardFallbackUsed ? "Standard checksum-valid decoder supplied the imported records." : null))).ToArray());
+            reportSummary.Text = $"Files: {results.Count} • Imported: {results.Count(r => r.Imported)} • Partial: {results.Count(r => r.Imported && r.Analysis?.Failures.Count > 0)} • Failed: {results.Count(r => !r.Imported && !r.Cancelled)} • Cancelled: {results.Count(r => r.Cancelled)}";
+        }
+
+        private void ShowReport(IReadOnlyList<(string Source, IReadOnlyList<TapeRecord> Records, WavHeuristicStatistics? Statistics, string Status, string? Message)> sources)
+        {
+            reportHeading.Text = sources.Count == 1 ? Path.GetFileName(sources[0].Source) : "Audio import results";
+            var files = new List<object>(); var programs = new List<object>(); var properties = new List<object>();
+            var messages = new List<object>(); var blocks = new List<object>();
+            foreach (var source in sources)
+            {
+                string file = Path.GetFileName(source.Source); var s = source.Statistics;
+                files.Add(new { File = file, source.Status, Records = s?.ResultRecords ?? source.Records.Count,
+                    Recovered = s?.ReconstructedRecords ?? 0, Failed = s?.Failures.Count ?? (source.Status == "Failed" ? 1 : 0),
+                    Format = s?.SourceFormat ?? "—", Duration = s == null ? "—" : FormatDuration(s.DurationSeconds), Source = source.Source });
+                void Property(string name, object? value) => properties.Add(new { File = file, Property = name, Value = value?.ToString() ?? "—" });
+                void Message(string category, string message, long? start = null, long? end = null) => messages.Add(new { File = file, Category = category, Message = message,
+                    StartSeconds = s == null || !start.HasValue ? (double?)null : start.Value / (double)s.Format.SampleRate,
+                    EndSeconds = s == null || !end.HasValue ? (double?)null : end.Value / (double)s.Format.SampleRate });
+                Property("Source", source.Source);
+                if (source.Message != null) Message(source.Status, source.Message);
+                if (source.Status == "Cancelled") Message("Result", "Import cancelled.");
+                if (s != null)
+                {
+                    Property("Sample rate (Hz)", s.Format.SampleRate); Property("Bit depth", s.Format.BitsPerSample);
+                    Property("Channels", s.Format.Channels); Property("Frames", s.Format.FrameCount);
+                    Property("Header candidates", s.HeaderCandidates); Property("Payload candidates", s.PayloadCandidates);
+                    Property("Valid payload candidates", s.ValidPayloadCandidates); Property("Selective recovery", s.SelectiveRecoveryUsed ? "Used" : "Not needed");
+                    Property("Rejected checksum-valid headers", s.RejectedHeaders.Count + s.OmittedHeaderRejections);
+                    foreach (var rejected in s.RejectedHeaders) Message("Header rejected",
+                        $"{rejected.Reason} Channel {rejected.Channel}; {rejected.Detector}; inverted {rejected.Inverted}; checksum {rejected.RecordedChecksum:X4}/{rejected.CalculatedChecksum:X4}; header SHA-256 {rejected.HeaderSha256}.", rejected.Sample, rejected.Sample);
+                    if (s.OmittedHeaderRejections > 0) Message("Header rejected", $"{s.OmittedHeaderRejections} additional rejected-header events omitted (bounded diagnostics).");
+                    foreach (var failure in s.Failures) Message("Unresolved", failure.Reason + (failure.ExpectedLength.HasValue ? $" Expected {failure.ExpectedLength} B." : ""), failure.StartSample, failure.EndSample);
+                }
+                int count = Math.Max(source.Records.Count, s?.RecordRecoveries.Count ?? 0);
+                for (int i = 0; i < count; i++)
+                {
+                    var record = i < source.Records.Count ? source.Records[i] : null;
+                    var recovery = i < (s?.RecordRecoveries.Count ?? 0) ? s!.RecordRecoveries[i] : null;
+                    string name = record != null ? SharpMzEncoding.ConvertMzfNameToASCIIString(record.Header.MzfFname)
+                        : recovery != null ? SharpMzEncoding.ConvertMzfNameToASCIIString(recovery.Header.Candidate.Data.Skip(1).Take(17).ToArray()) : $"Record {i + 1}";
+                    programs.Add(new { File = file, Record = i + 1, Name = name,
+                        Profile = TapeProfileNames.ToDisplayName(recovery?.FinalProfile ?? record!.Profile),
+                        Polarity = recovery == null ? "—" : recovery.Header.Candidate.Inverted ? "Inverted" : "Normal",
+                        HeaderChecksum = recovery == null ? "—" : recovery.Header.Candidate.ChecksumValid ? "OK" : "Failed",
+                        PayloadChecksum = recovery == null ? "—" : recovery.Payload.Candidate.ChecksumValid ? "OK" : "Failed",
+                        Reconstructed = recovery?.ReconstructionUsed ?? false, SelectiveRecovery = recovery?.SelectiveRecoveryUsed ?? false });
+                    if (recovery == null) continue;
+                    foreach (var c in new[] { recovery.Header.Candidate, recovery.Payload.Candidate })
+                        blocks.Add(new { File = file, Record = i + 1, Block = c.Kind.ToString(), Channel = c.Channel + 1,
+                            Detector = FormatPulseMode(c.PulseMode), Copy = c.CopyIndex + 1, c.Inverted, c.ChecksumValid,
+                            Evidence = FormatProfileEvidence(c.ProfileEvidence), c.StartSample, c.EndSample,
+                            ShortHighUs = double.IsFinite(c.TimingShortHighMicroseconds) ? (double?)c.TimingShortHighMicroseconds : null,
+                            ShortLowUs = double.IsFinite(c.TimingShortLowMicroseconds) ? (double?)c.TimingShortLowMicroseconds : null,
+                            LongHighUs = double.IsFinite(c.TimingLongHighMicroseconds) ? (double?)c.TimingLongHighMicroseconds : null,
+                            LongLowUs = double.IsFinite(c.TimingLongLowMicroseconds) ? (double?)c.TimingLongLowMicroseconds : null });
+                    if (recovery.Native1xAnalysis is Native1xTimingAnalysis native)
+                    {
+                        Property($"Record {i + 1}: native 1:1 H/P ratios", $"{FormatRatio(native.HeaderPeriodRatio)} / {FormatRatio(native.PayloadPeriodRatio)}");
+                        Property($"Record {i + 1}: MZ800 H/P fit", $"{FormatPercent(native.HeaderMz800Error)} / {FormatPercent(native.PayloadMz800Error)}");
+                        Property($"Record {i + 1}: MZ700 H/P fit", $"{FormatPercent(native.HeaderMz700Error)} / {FormatPercent(native.PayloadMz700Error)}");
+                        Property($"Record {i + 1}: combined MZ800/MZ700 fit", $"{FormatPercent(native.CombinedMz800Error)} / {FormatPercent(native.CombinedMz700Error)}");
+                        Property($"Record {i + 1}: native result", TapeProfileNames.ToDisplayName(native.ResultProfile));
+                    }
+                }
+            }
+            reportSummary.Text = $"Files: {sources.Count} • Programs: {programs.Count} • Messages: {messages.Count}";
+            AddReportTable("Files", files); AddReportTable("Records", programs); AddReportTable("Properties", properties);
+            AddReportTable($"Messages ({messages.Count})", messages); AddReportTable("Block details", blocks);
+            reportTabs.SelectedIndex = programs.Count > 0 ? 1 : 3;
+        }
+
+        private void AddReportTable(string title, IEnumerable rows)
+        {
+            var items = rows.Cast<object>().ToArray();
+            var typed = Array.CreateInstance(items.FirstOrDefault()?.GetType() ?? typeof(object), items.Length);
+            Array.Copy(items, typed, items.Length);
+            var table = new DataGrid { ItemsSource = typed, IsReadOnly = true, AutoGenerateColumns = true,
+                CanUserAddRows = false, CanUserDeleteRows = false, CanUserResizeColumns = true,
+                SelectionUnit = DataGridSelectionUnit.CellOrRowHeader, SelectionMode = DataGridSelectionMode.Extended,
+                ClipboardCopyMode = DataGridClipboardCopyMode.IncludeHeader, HeadersVisibility = DataGridHeadersVisibility.Column,
+                GridLinesVisibility = DataGridGridLinesVisibility.Horizontal, EnableRowVirtualization = true, EnableColumnVirtualization = true };
+            table.AutoGeneratingColumn += (_, e) =>
+            {
+                e.Column.Header = System.Text.RegularExpressions.Regex.Replace(e.PropertyName, "(?<=[a-z])(?=[A-Z])", " ");
+                e.Column.MinWidth = 45; e.Column.CanUserResize = true;
+                e.Column.Width = e.PropertyName switch { "File" => 220, "Name" => 180, "Profile" => 115, _ => 110 };
+                if (e.PropertyName is "Message" or "Value" or "Source") e.Column.Width = new DataGridLength(1, DataGridLengthUnitType.Star);
+                if (e.Column is DataGridTextColumn column && column.Binding is Binding binding)
+                {
+                    if ((Nullable.GetUnderlyingType(e.PropertyType) ?? e.PropertyType) == typeof(double)) binding.StringFormat = "0.####";
+                    if (e.PropertyName is "Message" or "Value")
+                    {
+                        var style = new Style(typeof(TextBlock)); style.Setters.Add(new Setter(TextBlock.TextWrappingProperty, TextWrapping.Wrap)); column.ElementStyle = style;
+                    }
+                }
+            };
+            reportTabs.Items.Add(new TabItem { Header = title, Content = table });
         }
 
         private static string BuildText(WavHeuristicStatistics statistics)
