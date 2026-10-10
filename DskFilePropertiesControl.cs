@@ -15,6 +15,8 @@ internal sealed class DskFilePropertiesControl : UserControl
     private readonly CheckBox readOnly = new() { Content = "Read-only (RO)" };
     private readonly CheckBox system = new() { Content = "System (SYS)" };
     private readonly CheckBox archived = new() { Content = "Archived (ARC)" };
+    private readonly TextBox fileType = new();
+    private readonly CheckBox locked = new() { Content = "Locked" };
 
     internal DskFilePropertiesControl(DskFileEntry entry, DskFilePropertyKind kind)
     {
@@ -32,10 +34,15 @@ internal sealed class DskFilePropertiesControl : UserControl
             readOnly.IsChecked = entry.ReadOnly; system.IsChecked = entry.System; archived.IsChecked = entry.Archived;
             Row("User area (0–15)", user); panel.Children.Add(readOnly); panel.Children.Add(system); panel.Children.Add(archived);
         }
-        else if (kind == DskFilePropertyKind.Mrs)
+        else if (kind is DskFilePropertyKind.Mrs or DskFilePropertyKind.Fsmz)
         {
             load.Text = entry.LoadAddress.ToString("X4"); execute.Text = entry.ExecuteAddress.ToString("X4");
             Row("LOAD (hex)", load); Row("EXEC (hex)", execute);
+            if (kind == DskFilePropertyKind.Fsmz)
+            {
+                fileType.Text = entry.FileType.ToString("X2"); locked.IsChecked = entry.Locked;
+                Row("File type (hex)", fileType); panel.Children.Add(locked);
+            }
         }
     }
 
@@ -55,7 +62,9 @@ internal sealed class DskFilePropertiesControl : UserControl
                 throw new ArgumentException("LOAD/EXEC must be hexadecimal addresses from 0000 to FFFF.");
             return value;
         }
-        if (kind != DskFilePropertyKind.Mrs) throw new InvalidOperationException("No editable properties for this filesystem.");
-        return values with { Load = Hex(load.Text), Execute = Hex(execute.Text) };
+        if (kind is not (DskFilePropertyKind.Mrs or DskFilePropertyKind.Fsmz)) throw new InvalidOperationException("No editable properties for this filesystem.");
+        return values with { Load = Hex(load.Text), Execute = Hex(execute.Text),
+            FileType = kind == DskFilePropertyKind.Fsmz ? checked((byte)Hex(fileType.Text)) : values.FileType,
+            Locked = kind == DskFilePropertyKind.Fsmz ? locked.IsChecked == true : values.Locked };
     }
 }

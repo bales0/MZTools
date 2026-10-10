@@ -1,0 +1,102 @@
+[
+  {
+    "name": "X0F",
+    "algorithm": "Zx0",
+    "direction": "Forward",
+    "size": 29618,
+    "sha256": "F30463B9E27472600478E106303E9403CFD501B593EB02D0206C8D8C0EECD0C4",
+    "original_exec": 7680,
+    "full_expanded_payload_verified": true,
+    "gameplay_registers": {
+      "AF": 9044,
+      "BC": 13168,
+      "DE": 25549,
+      "HL": 37278,
+      "AF_": 4,
+      "BC_": 0,
+      "DE_": 1536,
+      "HL_": 64885,
+      "IX": 18191,
+      "IY": 20644,
+      "SP": 65534,
+      "PC": 8740,
+      "WZ": 440,
+      "IR": 71
+    }
+  },
+  {
+    "name": "X0B",
+    "algorithm": "Zx0",
+    "direction": "Backward",
+    "size": 29662,
+    "sha256": "77B80105F73836837E2E0E638434556D0362B5CDE6A6D98972FA86E720FBDE3A",
+    "original_exec": 7680,
+    "full_expanded_payload_verified": true,
+    "gameplay_registers": {
+      "AF": 163,
+      "BC": 13168,
+      "DE": 25549,
+      "HL": 37274,
+      "AF_": 4,
+      "BC_": 0,
+      "DE_": 1536,
+      "HL_": 64885,
+      "IX": 18191,
+      "IY": 20644,
+      "SP": 65534,
+      "PC": 8734,
+      "WZ": 14152,
+      "IR": 56
+    }
+  },
+  {
+    "name": "X7F",
+    "algorithm": "Zx7",
+    "direction": "Forward",
+    "size": 30555,
+    "sha256": "7966D1E529241DF4C111388A9473FE9355232D1D4314F6240A0D35DA8051E056",
+    "original_exec": 7680,
+    "full_expanded_payload_verified": true,
+    "gameplay_registers": {
+      "AF": 256,
+      "BC": 0,
+      "DE": 1536,
+      "HL": 1947,
+      "AF_": 9123,
+      "BC_": 13056,
+      "DE_": 800,
+      "HL_": 644,
+      "IX": 20644,
+      "IY": 20644,
+      "SP": 65510,
+      "PC": 1572,
+      "WZ": 1572,
+      "IR": 51
+    }
+  },
+  {
+    "name": "X7B",
+    "algorithm": "Zx7",
+    "direction": "Backward",
+    "size": 30577,
+    "sha256": "FF3D1E28CAEF7668075CB8A2FEB99D7537B9468962E00A588ECE754BEB5AA675",
+    "original_exec": 7680,
+    "full_expanded_payload_verified": true,
+    "gameplay_registers": {
+      "AF": 5184,
+      "BC": 0,
+      "DE": 1536,
+      "HL": 1941,
+      "AF_": 6563,
+      "BC_": 13056,
+      "DE_": 800,
+      "HL_": 644,
+      "IX": 20644,
+      "IY": 20644,
+      "SP": 65512,
+      "PC": 1442,
+      "WZ": 1442,
+      "IR": 9
+    }
+  }
+]

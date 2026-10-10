@@ -147,7 +147,7 @@ internal static class PersonalCpmSystemInstaller
             if (!preflight.CanBuild) throw new InvalidDataException(preflight.Report);
         }
         byte[] original = target.Serialize();
-        var candidate = DskDocument.Open(original);
+        var candidate = target.Clone();
         var fs = (CpmFileSystem)candidate.FileSystem;
         var sourceEntry = FindSystemFile(source)!;
         byte[] payload = source.FileSystem.Extract(sourceEntry);
@@ -166,7 +166,7 @@ internal static class PersonalCpmSystemInstaller
         fs.Insert("PCPM.SYS", payload, user: 0);
         fs.UpdateAttributes(FindSystemFile(candidate)!, 0, sourceEntry.ReadOnly, true, sourceEntry.Archived);
         candidate.MarkModified();
-        candidate = DskDocument.Open(candidate.Serialize());
+        candidate = target.Reopen(candidate.Serialize());
         ValidateHealthy(candidate);
         if (DskGeometrySignature.From(candidate.Image) != DskGeometrySignature.From(target.Image) ||
             !payload.AsSpan().SequenceEqual(candidate.FileSystem.Extract(FindSystemFile(candidate)!)) ||

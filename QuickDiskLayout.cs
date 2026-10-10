@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -49,7 +49,7 @@ internal sealed record QuickDiskLayout(
 
     public string Unit => IsPhysical ? "track bitcells" : "file bytes";
     public string Summary => $"{(IsPreview ? "Preview of rebuilt image — unsaved, not original positions" : "Original image — read-only")}" +
-        $" | {Format} | {Length:N0} {Unit}" +
+        $" | {QuickDiskFormatLabels.Display(Format)} | {Length:N0} {Unit}" +
         (IsPhysical ? $" | Track file offset 0x{TrackFileOffset:X}; data window [0x{WindowStart:X}, 0x{WindowEnd:X}) bitcells" : " | Logical layout; no physical track positions");
 
     public string Detail(QuickDiskRegion region) =>

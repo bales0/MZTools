@@ -156,7 +156,7 @@ public class DskFilePropertyTests
         var entry = cpm.FileSystem.ReadDirectory()[0]; var before = cpm.Serialize();
         Assert.Throws<InvalidDataException>(() => DskFilePropertyService.Apply(cpm, entry, DskFileProperties.From(entry) with { Load = 0x1234 }));
         Assert.Equal(before, cpm.Serialize());
-        Assert.Equal(DskFilePropertyKind.None, DskCapabilityService.GetFilePropertyKind(DskDocumentFactory.CreateFsmz()));
+        Assert.Equal(DskFilePropertyKind.Fsmz, DskCapabilityService.GetFilePropertyKind(DskDocumentFactory.CreateFsmz()));
         Assert.Equal(DskFilePropertyKind.None, DskCapabilityService.GetFilePropertyKind(null));
         var mrs = DskDocumentFactory.CreateMrs(); mrs.FileSystem.Insert("TEST", [1]); mrs.MarkModified();
         entry = mrs.FileSystem.ReadDirectory()[0]; before = mrs.Serialize();

@@ -20,6 +20,7 @@ namespace MZTools
         private const string RowDragDataFormat = "MZTools.MultiGameIplRows";
         private CancellationTokenSource? previewCancellation;
         private bool updatingRows;
+        private List<MultiGameIplRow>? compressionTargets;
         private Point rowDragStartPoint;
         private MultiGameIplRow? rowDragStartItem;
         private bool rowDragInProgress;
@@ -60,6 +61,28 @@ namespace MZTools
         internal ObservableCollection<MultiGameIplRow> Entries { get; private set; } = new();
 
         internal MultiGameIplBuildResult? BuildResult { get; private set; }
+
+        private async void CompressionSettings_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button { DataContext: MultiGameIplRow clicked } || !clicked.CanChangeCompression) return;
+            var rows = compressionTargets ?? entriesGrid.SelectedItems.OfType<MultiGameIplRow>().Where(r => r.CanChangeCompression).ToList();
+            compressionTargets = null;
+            if (!rows.Contains(clicked)) rows = [clicked];
+            var dialog = new CompressionSettingsDialog(this, rows);
+            if (dialog.ShowDialog() != true || dialog.SelectedOptions == null) return;
+            updatingRows = true;
+            try { for (int i = 0; i < rows.Count; i++) rows[i].SetCompressionOptions(dialog.SelectedOptions, dialog.PreparedResults[i]); }
+            finally { updatingRows = false; }
+            await RefreshPreviewAsync();
+            RestoreSelection(rows);
+        }
+
+        private void CompressionSettings_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not Button { DataContext: MultiGameIplRow clicked }) return;
+            var selected = entriesGrid.SelectedItems.OfType<MultiGameIplRow>().Where(r => r.CanChangeCompression).ToList();
+            compressionTargets = selected.Contains(clicked) ? selected : [clicked];
+        }
 
         private async void Row_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
@@ -271,6 +294,7 @@ namespace MZTools
             DependencyObject? source = e.OriginalSource as DependencyObject;
             DataGridRow? row = FindVisualParent<DataGridRow>(source);
             bool editorClicked = FindVisualParent<ComboBox>(source) is not null ||
+                FindVisualParent<Button>(source) is not null ||
                 FindVisualParent<TextBox>(source) is not null;
             rowDragStartItem = editorClicked ? null : row?.Item as MultiGameIplRow;
         }
@@ -480,6 +504,8 @@ namespace MZTools
         private string menuName;
         private string compression = "None";
         private string? preparedChoice;
+        private MzfCompressionOptions? detailedOptions;
+        private MzfCompressionOptions? preparedOptions;
         private MzfCompressionResult? preparedResult;
         private MzfCompressionResult? lastPreparedResult;
         private TapeRecord exportFallback;
@@ -506,11 +532,13 @@ namespace MZTools
             }
 
             compression = imported.DetectedChoice;
+            detailedOptions = imported.Options;
             AppliedCompression = imported.AppliedCompression;
             if (imported.PreparedResult != null)
             {
                 preparedChoice = compression;
                 preparedResult = imported.PreparedResult;
+                preparedOptions = CompressionOptions;
                 lastPreparedResult = imported.PreparedResult;
                 PackedSize = imported.PreparedResult.PackedSize;
                 LoadHex = $"${imported.PreparedResult.Record.Header.MzfStart:X4}";
@@ -519,19 +547,21 @@ namespace MZTools
         }
 
         internal MultiGameIplRow(int order, MultiGameIplInput input)
-            : this(order, input.Record.DeepClone(), input.DisplayName, input.OriginalSize)
+            : this(order, CreateInputState(input), input.DisplayName)
         {
-            compression = input.AppliedCompression.Algorithm switch
-            {
-                MzfCompressionAlgorithm.Zx0 => "ZX0",
-                MzfCompressionAlgorithm.Zx7 => "ZX7",
-                _ => "None"
-            };
-            preparedChoice = compression;
-            preparedResult = new MzfCompressionResult(Source, input.AppliedCompression, input.OriginalSize);
-            lastPreparedResult = preparedResult;
-            AppliedCompression = compression;
-            CanChangeCompression = false;
+            CanChangeCompression = input.AppliedCompression.Algorithm == MzfCompressionAlgorithm.None ||
+                MzfLoaderBuilder.TryGetCompressionInfo(input.Record, out _);
+        }
+
+        private static ImportedState CreateInputState(MultiGameIplInput input)
+        {
+            if (input.AppliedCompression.Algorithm == MzfCompressionAlgorithm.None || MzfLoaderBuilder.TryGetCompressionInfo(input.Record, out _))
+                return CreateImportedState(input.Record);
+            // Unknown historical loader: preserve the stored bytes and metadata, never compress it twice.
+            var record = input.Record.DeepClone();
+            string choice = input.AppliedCompression.Algorithm == MzfCompressionAlgorithm.Zx0 ? "ZX0" : "ZX7";
+            return new(record, record, input.OriginalSize, choice,
+                new MzfCompressionResult(record, input.AppliedCompression, input.OriginalSize), choice, input.AppliedCompression);
         }
 
         private MultiGameIplRow(int order, TapeRecord source, string menuName, int originalSize)
@@ -551,6 +581,33 @@ namespace MZTools
         public IReadOnlyList<string> CompressionChoices => Choices;
 
         public bool CanChangeCompression { get; } = true;
+        public string CompressionHint => CanChangeCompression ? "Open complete compression settings for selected programs"
+            : "This stored loader is not recognized. Its bytes are preserved; safe decompression and recompression are unavailable.";
+        internal MzfCompressionOptions CompressionOptions => detailedOptions ?? FromChoice(Compression);
+        public string CompressionSummary => CompressionOptionsControl.Describe(CompressionOptions);
+
+        private static MzfCompressionOptions FromChoice(string value) => value switch
+        {
+            "None" => new(MzfCompressionAlgorithm.None),
+            "ZX0" => new(MzfCompressionAlgorithm.Zx0),
+            "ZX7" => new(MzfCompressionAlgorithm.Zx7),
+            "Auto" => new(MzfCompressionAlgorithm.Auto),
+            _ => throw new InvalidOperationException($"Unsupported compression choice: {value}.")
+        };
+
+        internal void SetCompressionOptions(MzfCompressionOptions options, MzfCompressionResult? prepared = null)
+        {
+            if (!CanChangeCompression) throw new InvalidOperationException("Compression cannot be changed for this entry.");
+            MzfCompressionService.ValidateOptions(options, CompressionTarget.IplDsk, Source.Body.MzfBody.Length);
+            detailedOptions = options;
+            compression = options.Algorithm switch { MzfCompressionAlgorithm.Zx0 => "ZX0", MzfCompressionAlgorithm.Zx7 => "ZX7", _ => options.Algorithm.ToString() };
+            preparedChoice = prepared == null ? null : compression;
+            preparedOptions = prepared == null ? null : options;
+            preparedResult = prepared;
+            if (prepared != null) lastPreparedResult = prepared;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Compression)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompressionSummary)));
+        }
 
         public int Order
         {
@@ -605,10 +662,12 @@ namespace MZTools
             get => compression;
             set
             {
+                if (compression == value) return;
+                detailedOptions = null;
+                preparedChoice = null; preparedOptions = null; preparedResult = null;
                 if (SetField(ref compression, value))
                 {
-                    preparedChoice = null;
-                    preparedResult = null;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CompressionSummary)));
                 }
             }
         }
@@ -634,27 +693,21 @@ namespace MZTools
         internal async Task<MzfCompressionResult> PrepareAsync(CancellationToken token)
         {
             string requestedCompression = Compression;
-            if (preparedResult != null && preparedChoice == requestedCompression)
+            MzfCompressionOptions options = CompressionOptions;
+            if (preparedResult != null && preparedChoice == requestedCompression && preparedOptions == options)
             {
                 return preparedResult;
             }
 
-            MzfCompressionOptions options = requestedCompression switch
-            {
-                "None" => new(MzfCompressionAlgorithm.None),
-                "ZX0" => new(MzfCompressionAlgorithm.Zx0),
-                "ZX7" => new(MzfCompressionAlgorithm.Zx7),
-                "Auto" => new(MzfCompressionAlgorithm.Auto),
-                _ => throw new InvalidOperationException($"Unsupported compression choice: {Compression}.")
-            };
             MzfCompressionResult result = await MzfCompressionService.CompressAsync(
                 Source,
                 options,
                 CompressionTarget.IplDsk,
                 token);
-            if (Compression == requestedCompression)
+            if (Compression == requestedCompression && CompressionOptions == options)
             {
                 preparedChoice = requestedCompression;
+                preparedOptions = options;
                 preparedResult = result;
                 lastPreparedResult = result;
             }
@@ -715,7 +768,7 @@ namespace MZTools
                     originalSize,
                     "ZX7",
                     null,
-                    info.DisplayName + " (converting for IPL)");
+                    info.DisplayName + " (converting for IPL)", options with { Zx7EmbeddedLoader = false });
             }
 
             return new ImportedState(
@@ -724,7 +777,7 @@ namespace MZTools
                 originalSize,
                 info.Algorithm == MzfCompressionAlgorithm.Zx0 ? "ZX0" : "ZX7",
                 new MzfCompressionResult(imported, options, originalSize),
-                info.DisplayName);
+                info.DisplayName, options);
         }
 
         private sealed record ImportedState(
@@ -733,7 +786,7 @@ namespace MZTools
             int OriginalSize,
             string? DetectedChoice,
             MzfCompressionResult? PreparedResult,
-            string AppliedCompression);
+            string AppliedCompression, MzfCompressionOptions? Options = null);
 
         public event PropertyChangedEventHandler? PropertyChanged;
 

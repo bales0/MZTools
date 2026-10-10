@@ -83,6 +83,8 @@ namespace MZTools
                 throw new InvalidOperationException(
                     "Partial/skip compression is not supported for a self-contained direct IPL DSK.");
             }
+            if (target == CompressionTarget.NativeCom && options.SkipBytes != 0)
+                throw new InvalidOperationException("Partial/skip compression cannot create a standalone COM: the omitted bytes would require existing memory contents. Use the complete program (Skip bytes = 0).");
         }
 
         private static MzfCompressionResult CompressAuto(

@@ -16,13 +16,15 @@ internal sealed class DskHexEditSession
 {
     private readonly byte[] image;
     private readonly byte[] buffer;
-    internal DskHexEditSession(byte[] image, byte[] buffer, DskHexSegment[] segments, string title, DskSectorRole role)
+    internal DskHexEditSession(byte[] image, byte[] buffer, DskHexSegment[] segments, string title, DskSectorRole role, CpmDpb? dpb = null)
     {
         this.image = (byte[])image.Clone(); this.buffer = (byte[])buffer.Clone();
         Segments = Array.AsReadOnly((DskHexSegment[])segments.Clone()); Title = title; Role = role;
         SourceSha256 = DskHexEditService.Hash(image);
+        Dpb = dpb;
     }
     internal string Title { get; }
+    internal CpmDpb? Dpb { get; }
     internal DskSectorRole Role { get; }
     internal string SourceSha256 { get; }
     internal IReadOnlyList<DskHexSegment> Segments { get; }
@@ -53,17 +55,17 @@ internal static class DskHexEditService
     internal static DskHexEditSession OpenSector(DskDocument document, DskSectorAddress address)
     {
         byte[] bytes = document.Serialize();
-        DskDocument snapshot = DskDocument.Open(bytes);
+        DskDocument snapshot = document.Clone();
         DskSectorLayout sector = DskAnalyzer.Analyze(snapshot).Sectors.SingleOrDefault(s => s.Address == address)
             ?? throw new InvalidDataException("The selected physical sector does not exist.");
         return new(bytes, sector.Data, [new(checked((int)sector.FileOffset), 0, sector.DataLength, false)],
-            $"Physical track {sector.Track}, descriptor {sector.PhysicalIndex}, C/H/R/N={sector.C}/{sector.H}/{sector.R}/{sector.N} (stored bytes)", sector.Role);
+            $"Physical track {sector.Track}, descriptor {sector.PhysicalIndex}, C/H/R/N={sector.C}/{sector.H}/{sector.R}/{sector.N} (stored bytes)", sector.Role, document.AttachedDpb);
     }
 
     internal static DskHexEditSession OpenCpmBlock(DskDocument document, int block)
     {
         byte[] bytes = document.Serialize();
-        DskDocument snapshot = DskDocument.Open(bytes);
+        DskDocument snapshot = document.Clone();
         if (snapshot.FileSystem is not CpmFileSystem cpm)
             throw new InvalidDataException("Filesystem block editing requires a recognized CP/M layout.");
         if ((uint)block > cpm.Dpb.Dsm) throw new ArgumentOutOfRangeException(nameof(block));
@@ -84,7 +86,7 @@ internal static class DskHexEditService
             segments.Add(new(checked((int)sector.FileOffset + sectorOffset), offset, 128, cpm.Dpb.Inverted));
             role |= sector.Role;
         }
-        return new(bytes, buffer, segments.ToArray(), $"CP/M allocation block {block} (filesystem-decoded bytes)", role);
+        return new(bytes, buffer, segments.ToArray(), $"CP/M allocation block {block} (filesystem-decoded bytes)", role, document.AttachedDpb);
     }
 
     internal static DskHexEditPreview Preview(DskHexEditSession session, byte[] replacement)
@@ -98,12 +100,13 @@ internal static class DskHexEditService
             for (int index = 0; index < segment.Length; index++)
                 bytes[segment.FileOffset + index] = (byte)(replacement[segment.BufferOffset + index] ^ (segment.Inverted ? 0xFF : 0));
         DskDocument before = DskDocument.Open(session.OriginalImage);
-        DskDocument after = DskDocument.Open(bytes);
+        if (session.Dpb != null) before.AttachCpmLayout(session.Dpb);
+        DskDocument after = before.Reopen(bytes);
         byte[] serialized = after.Image.Serialize();
         if (!serialized.AsSpan().SequenceEqual(bytes))
             throw new InvalidDataException("Container serialization would change bytes outside the selected buffer.");
         // Reopen the serialized candidate, then validate both container and detected filesystem.
-        after = DskDocument.Open(serialized);
+        after = before.Reopen(serialized);
         DskLayoutModel analysis = DskAnalyzer.Analyze(after);
         if (analysis.Issues.Any(i => i.Code.StartsWith("DSK_", StringComparison.Ordinal) &&
             i.Severity is DskIssueSeverity.Error or DskIssueSeverity.Unsafe))
@@ -131,6 +134,9 @@ internal static class DskHexEditService
 
     internal static void Apply(DskDocument document, DskHexEditPreview preview, bool acceptFilesystemImpact = false)
     {
+        if ((document.AttachedDpb == null) != (preview.Session.Dpb == null) ||
+            (document.AttachedDpb != null && preview.Session.Dpb != null && CpmDpbSignature.From(document.AttachedDpb) != CpmDpbSignature.From(preview.Session.Dpb)))
+            throw new InvalidDataException("The attached CP/M interpretation changed since preview. Reopen and preview again.");
         if (Hash(document.Serialize()) != preview.Session.SourceSha256)
             throw new InvalidDataException("The document changed since this hex editor was opened. Reopen the editor and preview again.");
         if (preview.RequiresFilesystemConfirmation && !acceptFilesystemImpact)

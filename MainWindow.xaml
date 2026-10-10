@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:MZTools"
         mc:Ignorable="d"
-        Title="MZTools" Height="600" Width="1100" MinHeight="480" MinWidth="900" Icon="/MZTools;component/images/MZTool.ico"
-        AllowDrop="True" DragEnter="Window_DragEnter" Drop="Window_Drop" Closing="MainWindow_Closing" PreviewMouseLeftButtonDown="MapBackground_MouseDown">
+        Title="MZTools" Height="600" Width="1320" MinHeight="480" MinWidth="900" Icon="/MZTools;component/images/MZTool.ico"
+        AllowDrop="True" DragEnter="Window_DragEnter" DragOver="Window_DragEnter" Drop="Window_Drop" Closing="MainWindow_Closing" PreviewMouseLeftButtonDown="MapBackground_MouseDown">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -16,6 +16,13 @@
         <Border Grid.Row="0" Margin="10,10,10,0" Padding="8"
                 BorderBrush="LightGray" BorderThickness="1" CornerRadius="3">
             <WrapPanel>
+                <Button x:Name="toolsButton" Content="Tools &#x25BE;" Style="{StaticResource TopToolbarButton}" Click="ToolsMenu_Click">
+                    <Button.ContextMenu><ContextMenu>
+                        <MenuItem x:Name="batchProcessMenu" Header="Batch Process..." Click="BatchProcess_Click"/>
+                        <MenuItem x:Name="repairDskFileMenu" Header="Inspect / Repair DSK Container..." Click="RepairDskFile_Click"/>
+                        <MenuItem x:Name="mzfCpmMenu" Header="MZF/M12 → COM..." Click="NativeCom_Click"/>
+                    </ContextMenu></Button.ContextMenu>
+                </Button>
                 <Button x:Name="openButton" Content="Open..." Click="button_Click_Open" Style="{StaticResource TopToolbarButton}"/>
                 <Button x:Name="addButton" Content="Add..." Click="button_Click_Add" Style="{StaticResource TopToolbarButton}"/>
                 <Button x:Name="exportButton" Content="Export..." Click="button_Click_Export" Style="{StaticResource TopToolbarButton}"/>
@@ -52,6 +59,8 @@
                   DragLeave="MzfDataGrid_DragLeave"
                   Drop="MzfDataGrid_Drop"
                   PreviewKeyDown="MzfDataGrid_PreviewKeyDown"
+                  PreviewMouseRightButtonDown="MzfDataGrid_PreviewMouseRightButtonDown"
+                  ContextMenuOpening="MzfDataGrid_ContextMenuOpening"
                   CellEditEnding="MzfDataGrid_CellEditEnding"
                   SelectionMode="Extended"
                   SelectionUnit="FullRow"
@@ -62,6 +71,15 @@
                   AutoGenerateColumns="False" 
                   CanUserSortColumns="False" 
                   Margin="0">
+            <DataGrid.ContextMenu><ContextMenu>
+                <MenuItem x:Name="tapeContextAdd" Header="Add..." Click="button_Click_Add"/>
+                <MenuItem x:Name="tapeContextExport" Header="Export..." Click="TapeContextExport_Click"/>
+                <MenuItem x:Name="tapeContextExportSelected" Header="Export selected..." Click="button_Click_Export"/>
+                <MenuItem x:Name="tapeContextRename" Header="Rename" InputGestureText="F2" Click="TapeRename_Click"/>
+                <MenuItem x:Name="tapeContextDelete" Header="Delete" Click="button_Click_Delete"/>
+                <Separator/>
+                <MenuItem x:Name="tapeContextView" Header="Hex view..." Click="button_Click_View"/>
+            </ContextMenu></DataGrid.ContextMenu>
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow">
                     <Style.Triggers>

@@ -187,6 +187,16 @@ namespace MZTools
             WriteDirectorySlot(int.Parse(entry.Key), raw);
         }
 
+        internal void UpdateProperties(DskFileEntry entry, byte fileType, ushort load, ushort execute, bool locked)
+        {
+            if (fileType == 0 || fileType == 0x80) throw new InvalidDataException("FSMZ file type 00/80 is reserved for an empty slot/directory marker.");
+            var raw = ReadDirectorySlot(int.Parse(entry.Key));
+            raw[0] = fileType; raw[18] = locked ? (byte)1 : (byte)0;
+            BinaryPrimitives.WriteUInt16LittleEndian(raw.AsSpan(22, 2), load);
+            BinaryPrimitives.WriteUInt16LittleEndian(raw.AsSpan(24, 2), execute);
+            WriteDirectorySlot(int.Parse(entry.Key), raw);
+        }
+
         internal void SetVolume(byte volume) { dinfo[0] = volume; WriteBlock(DinfoBlock, dinfo); }
 
         internal void SetRebuiltBounds(int fileArea, int lastBlock)

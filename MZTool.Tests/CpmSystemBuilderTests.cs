@@ -287,7 +287,7 @@ public sealed class CpmSystemBuilderTests
         Assert.False(dialog.CanInstall);
         dialog.Close();
         var personal = new CpmSystemBuilderDialog(null, DskDocumentFactory.CreatePersonalCpm80(false));
-        Assert.False(personal.CanInstall); personal.Close();
+        Assert.True(personal.CanInstall); personal.Close();
         if (File.Exists(PersonalCpmSystemTests.FullReference))
         {
             var nativeTarget = DskDocumentFactory.CreatePersonalCpm80(false);

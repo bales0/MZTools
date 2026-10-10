@@ -55,6 +55,8 @@ namespace MZTools
     internal sealed class DskDocument
     {
         private byte[] originalBytes;
+        private CpmDpb? attachedDpb;
+        internal CpmDpb? AttachedDpb => attachedDpb;
 
         internal DskDocument(DskImage image, byte[] originalBytes, string? path, IDskFileSystem fileSystem)
         {
@@ -68,6 +70,7 @@ namespace MZTools
         internal IDskFileSystem FileSystem { get; private set; }
         internal string? FilePath { get; private set; }
         internal bool IsModified { get; private set; }
+        internal string? LastSavedSha256 { get; private set; }
         internal bool IsReadOnly => FileSystem.IsReadOnly;
 
         internal static DskDocument Open(string path)
@@ -86,6 +89,24 @@ namespace MZTools
 
         internal byte[] Serialize() => IsModified ? Image.Serialize() : (byte[])originalBytes.Clone();
 
+        internal DskDocument Clone()
+            => Reopen(Serialize());
+
+        internal DskDocument Reopen(byte[] bytes)
+        {
+            var copy = Open(bytes, FilePath);
+            if (attachedDpb != null) copy.AttachCpmLayout(attachedDpb);
+            return copy;
+        }
+
+        internal void AttachCpmLayout(CpmDpb dpb)
+        {
+            if (!CpmFileSystem.TryOpen(Image, dpb, out var fs) || fs == null)
+                throw new InvalidDataException("The CP/M layout did not pass directory validation.");
+            attachedDpb = dpb;
+            FileSystem = fs;
+        }
+
         internal void MarkModified()
         {
             if (IsReadOnly)
@@ -98,7 +119,14 @@ namespace MZTools
         internal void ReplaceContents(byte[] bytes)
         {
             DskImage replacement = DskImage.Parse(bytes);
-            IDskFileSystem replacementFileSystem = DskFileSystemDetector.Detect(replacement);
+            IDskFileSystem replacementFileSystem;
+            if (attachedDpb != null)
+            {
+                if (!CpmFileSystem.TryOpen(replacement, attachedDpb, out var cpm) || cpm == null || DskAnalyzer.Analyze(replacement, attachedDpb).Errors != 0)
+                    throw new InvalidDataException("The replacement does not pass the attached CP/M layout validation.");
+                replacementFileSystem = cpm;
+            }
+            else replacementFileSystem = DskFileSystemDetector.Detect(replacement);
             Image = replacement;
             FileSystem = replacementFileSystem;
             IsModified = true;
@@ -107,10 +135,15 @@ namespace MZTools
         internal void Save(string? path = null)
         {
             string destination = path ?? FilePath ?? throw new InvalidOperationException("The DSK document has no output path.");
-            byte[] savedBytes = Image.Serialize();
-            File.WriteAllBytes(destination, savedBytes);
+            byte[] savedBytes = Serialize();
+            MediaConversionService.WriteVerified(destination, savedBytes, stored =>
+            {
+                if (!stored.AsSpan().SequenceEqual(savedBytes)) throw new IOException("Saved DSK bytes differ from the prepared document.");
+                DskImage.Parse(stored);
+            });
             originalBytes = savedBytes;
             FilePath = destination;
+            LastSavedSha256 = ImageVerificationService.Hash(savedBytes);
             IsModified = false;
         }
     }
@@ -122,7 +155,8 @@ namespace MZTools
             Normal,
             Lec,
             LecHd,
-            Custom
+            Custom,
+            PersonalCpm80
         }
 
         internal static DskDocument CreateFsmz(bool ipldisk = true, int tracks = 40, int sides = 2)
@@ -218,7 +252,11 @@ namespace MZTools
 
         internal static IEnumerable<int> GetSystemPhysicalTracks(CpmDpb dpb, DskImage image)
         {
-            var tracks = new SortedSet<int> { 1 };
+            var tracks = new SortedSet<int>();
+            if (image.Tracks.Count > 1 && image.Tracks[1] is { } boot &&
+                boot.Sectors.Count == 16 && boot.Sectors.All(s => s.Data.Length == 256) &&
+                boot.Sectors.Select(s => (int)s.SectorId).Order().SequenceEqual(Enumerable.Range(1, 16)))
+                tracks.Add(1);
             for (int logicalTrack = 0; logicalTrack < dpb.Off; logicalTrack++)
             {
                 int physicalTrack = dpb.PhysicalTrackMap == null
@@ -315,21 +353,29 @@ namespace MZTools
             IReadOnlyList<int>? customSectorIds = null)
         {
             DskImage image = DskImage.CreateUniform(tracks, sides, sectors, sectorSize, firstSectorId, gap, filler, creator);
-            IReadOnlyList<int>? sectorIds = order switch
-            {
-                RawSectorOrder.Normal => null,
-                RawSectorOrder.Lec => InterleavedIds(sectors, 2, firstSectorId),
-                RawSectorOrder.LecHd => InterleavedIds(sectors, 3, firstSectorId),
-                RawSectorOrder.Custom when customSectorIds?.Count == sectors => customSectorIds,
-                RawSectorOrder.Custom => throw new ArgumentException("Custom sector order must contain exactly one ID per sector.", nameof(customSectorIds)),
-                _ => throw new ArgumentOutOfRangeException(nameof(order))
-            };
-            if (sectorIds != null)
+            IReadOnlyList<int> sectorIds = GetRawSectorIds(sectors, firstSectorId, order, customSectorIds);
+            if (order != RawSectorOrder.Normal)
             {
                 for (int absoluteTrack = 0; absoluteTrack < image.Tracks.Count; absoluteTrack++)
                     image.ReplaceTrackGeometry(absoluteTrack, sectors, sectorSize, sectorIds, gap, filler);
             }
             return DskDocument.Open(image.Serialize());
+        }
+
+        internal static IReadOnlyList<int> GetRawSectorIds(int sectors, int firstSectorId, RawSectorOrder order,
+            IReadOnlyList<int>? customSectorIds = null)
+        {
+            return order switch
+            {
+                RawSectorOrder.Normal => Enumerable.Range(firstSectorId, sectors).ToArray(),
+                RawSectorOrder.Lec => InterleavedIds(sectors, 2, firstSectorId),
+                RawSectorOrder.LecHd => InterleavedIds(sectors, 3, firstSectorId),
+                RawSectorOrder.PersonalCpm80 when firstSectorId == 1 && sectors is 8 or 16 => InterleavedIds(sectors, 2, 1),
+                RawSectorOrder.PersonalCpm80 => throw new ArgumentException("P-CP/M80 interleave requires 8 or 16 sectors starting at ID 1. Use Custom sector IDs for other geometries.", nameof(order)),
+                RawSectorOrder.Custom when customSectorIds?.Count == sectors => customSectorIds,
+                RawSectorOrder.Custom => throw new ArgumentException("Custom sector order must contain exactly one ID per sector.", nameof(customSectorIds)),
+                _ => throw new ArgumentOutOfRangeException(nameof(order))
+            };
         }
 
         private static IReadOnlyList<int> InterleavedIds(int sectors, int interleave, int firstSectorId)

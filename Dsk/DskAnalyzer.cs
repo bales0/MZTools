@@ -105,8 +105,8 @@ internal sealed class DskAnalyzer
                     Issue("DSK_SECTOR_SIZE", DskIssueSeverity.Error, "Sector data size does not match N or N is unsupported.", track: ti, sector: si);
                 if (s.DeclaredDataLength == 0)
                     Issue("DSK_EXTENDED_ZERO_LENGTH", DskIssueSeverity.Warning,
-                        "Extended DSK sector declares zero data length; FlashFloppy sees no sector data.",
-                        $"Descriptor bytes +6/+7 at image offset 0x{offset + 0x18 + si * 8 + 6:X} are 00 00. MZTools recovered {s.Data.Length} B from N={s.SizeCode} for inspection only. This fallback is not FlashFloppy-compatible; regenerate or explicitly repair a copy.", ti, si);
+                        "Extended DSK sector declares zero data length.",
+                        $"Descriptor bytes +6/+7 at image offset 0x{offset + 0x18 + si * 8 + 6:X} are 00 00. MZTools recovered {s.Data.Length} B from N={s.SizeCode} for inspection only. The stored length does not describe those recovered bytes; regenerate or explicitly repair a copy.", ti, si);
                 if (s.FdcStatus1 != 0 || s.FdcStatus2 != 0)
                     Issue("DSK_FDC_STATUS", (s.FdcStatus1 & 0x25) != 0 || (s.FdcStatus2 & 0x31) != 0 ? DskIssueSeverity.Error : DskIssueSeverity.Warning,
                         "Sector contains FDC status flags.", $"ST1={s.FdcStatus1:X2}, ST2={s.FdcStatus2:X2}; preserved controller status, not repaired.", ti, si);

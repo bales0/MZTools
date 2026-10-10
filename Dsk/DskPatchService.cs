@@ -85,7 +85,7 @@ internal static class DskPatchService
         byte[] original = document.Serialize();
         if (DskHexEditService.Hash(original) != patch.SourceSha256)
             throw new InvalidDataException("Source SHA-256 differs from the patch; nothing was changed.");
-        var snapshot = DskDocument.Open(original);
+        var snapshot = document.Clone();
         if (DskGeometrySignature.From(snapshot.Image) != patch.SourceGeometry || patch.SourceGeometry != patch.TargetGeometry)
             throw new InvalidDataException("Patch geometry or descriptor order differs from the source.");
         byte[] result = (byte[])original.Clone();
@@ -119,10 +119,10 @@ internal static class DskPatchService
             if (ordered[index].Start < ordered[index - 1].End) throw new InvalidDataException("Overlapping patch ranges are not allowed.");
         if (DskHexEditService.Hash(result) != patch.TargetSha256)
             throw new InvalidDataException("Patched result SHA-256 differs from the exact target. Container/header changes cannot be exported as a sector patch.");
-        var candidate = DskDocument.Open(result);
+        var candidate = document.Reopen(result);
         if (!candidate.Image.Serialize().AsSpan().SequenceEqual(result))
             throw new InvalidDataException("Patched container cannot be serialized byte-preservingly.");
-        candidate = DskDocument.Open(candidate.Image.Serialize());
+        candidate = document.Reopen(candidate.Image.Serialize());
         if (DskGeometrySignature.From(candidate.Image) != patch.TargetGeometry)
             throw new InvalidDataException("Patched geometry differs from the target signature.");
         var analysis = DskAnalyzer.Analyze(candidate);

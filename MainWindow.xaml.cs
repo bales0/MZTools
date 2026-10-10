@@ -131,21 +131,21 @@ namespace MZTools
     internal static class FeatureModePolicy
     {
         public static string GetOpenFilter() =>
-            "All supported files|*.mzt;*.mzf;*.mz0;*.mz7;*.mzq;*.qdf;*.qd;*.dsk;*.lep;*.l16;*.wav;*.flac|Quickdisk image (*.qd)|*.qd|MZ-800 IPL floppy (*.dsk)|*.dsk|Quickdisk file (*.mzq)|*.mzq|Multiple files tape (*.mzt)|*.mzt|Single tape file (*.mzf;*.mz0;*.mz7)|*.mzf;*.mz0;*.mz7|Quickdisk file (*.qdf)|*.qdf|LEP pulse file (*.lep)|*.lep|L16 pulse file (*.l16)|*.l16|Wave audio (*.wav)|*.wav|FLAC audio (*.flac)|*.flac|All files (*.*)|*.*";
+            "All supported files|*.mzt;*.mzf;*.m12;*.mz0;*.mz7;*.mzq;*.qdf;*.qd;*.dsk;*.hfe;*.lep;*.l16;*.wav;*.flac|Quickdisk image (*.qd)|*.qd|MZ-800 IPL floppy (*.dsk)|*.dsk|HFE physical floppy (*.hfe)|*.hfe|Quickdisk file (*.mzq)|*.mzq|Multiple files tape (*.mzt)|*.mzt|Single tape file (*.mzf;*.m12;*.mz0;*.mz7)|*.mzf;*.m12;*.mz0;*.mz7|Quickdisk file (*.qdf)|*.qdf|LEP pulse file (*.lep)|*.lep|L16 pulse file (*.l16)|*.l16|Wave audio (*.wav)|*.wav|FLAC audio (*.flac)|*.flac|All files (*.*)|*.*";
 
         public static string GetSaveFilter() =>
-            "Quickdisk file (*.qdf)|*.qdf|Quickdisk file (*.mzq)|*.mzq|Quickdisk image - HxC (*.qd)|*.qd|Quickdisk image - FlashFloppy (*.qd)|*.qd|Quickdisk image - Sharp/MZ legacy (*.qd)|*.qd|Multiple files tape (*.mzt)|*.mzt|Single tape file (*.mzf)|*.mzf|LEP pulse file (*.lep)|*.lep|L16 pulse file (*.l16)|*.l16|Wave audio (*.wav)|*.wav|MZ-800 multi-game IPL floppy (*.dsk)|*.dsk|All files (*.*)|*.*";
+            "Quickdisk file (*.qdf)|*.qdf|Quickdisk file (*.mzq)|*.mzq|Quickdisk image - HxC (*.qd)|*.qd|Quickdisk image - uniform-track (*.qd)|*.qd|Quickdisk image - Sharp/MZ legacy (*.qd)|*.qd|Multiple files tape (*.mzt)|*.mzt|Single tape file (*.mzf)|*.mzf|LEP pulse file (*.lep)|*.lep|L16 pulse file (*.l16)|*.l16|Wave audio (*.wav)|*.wav|MZ-800 bootable IPL floppy (single / multi automatic) (*.dsk)|*.dsk|Single tape file (*.m12)|*.m12|All files (*.*)|*.*";
 
         public static string GetExportFilter(bool singleRecord = false) =>
             "Multiple files tape (*.mzt)|*.mzt|Single tape file (*.mzf)|*.mzf" +
                 (singleRecord
                     ? "|MZ-800 bootable IPL floppy (*.dsk)|*.dsk"
                     : "|MZ-800 multi-game IPL floppy (*.dsk)|*.dsk") +
-                "|LEP pulse file (*.lep)|*.lep|L16 pulse file (*.l16)|*.l16|Wave audio (*.wav)|*.wav";
+                "|LEP pulse file (*.lep)|*.lep|L16 pulse file (*.l16)|*.l16|Wave audio (*.wav)|*.wav|Single tape file (*.m12)|*.m12";
 
         public static string GetIplExportFilter() =>
             "Raw prepared program (*.bin)|*.bin|Reconstructed MZF from prepared IPL record (*.mzf)|*.mzf|" +
-            "LEP pulse file (*.lep)|*.lep|L16 pulse file (*.l16)|*.l16|Wave audio (*.wav)|*.wav";
+            "LEP pulse file (*.lep)|*.lep|L16 pulse file (*.l16)|*.l16|Wave audio (*.wav)|*.wav|Reconstructed M12 from prepared IPL record (*.m12)|*.m12";
     }
 
     internal static class AudioImportPolicy
@@ -173,7 +173,8 @@ namespace MZTools
     /// </summary>
     public partial class MainWindow : Window
     {
-        private const string RowDragDataFormat = "MZTools.TapeRecords";
+        private readonly Guid dragOwner = Guid.NewGuid();
+        private List<TapeRecord>? localDraggedRecords;
         private const string ApplicationName = "MZTools";
 
         private static readonly string ApplicationCaption = CreateApplicationCaption();
@@ -202,6 +203,7 @@ namespace MZTools
         public MainWindow()
         {
             InitializeComponent();
+            Width = Math.Min(Width, SystemParameters.WorkArea.Width);
             MapInteraction.EmphasizeSelection(quickDiskBlocks);
             MzfDisplayDataCollection = new ObservableCollection<MzfDisplayData>();
             MzfDataGrid.ItemsSource = MzfDisplayDataCollection;
@@ -223,8 +225,6 @@ namespace MZTools
             dskEditorControl.DocumentStateChanged += (_, _) => Title = BuildWindowTitle(dskEditorControl.DocumentTitle);
             dskEditorControl.CloseRequested += (_, _) => TryLeaveDskMode();
             dskEditorControl.OpenRequested += (_, _) => button_Click_Open(openButton, new RoutedEventArgs());
-            dskEditorControl.NewQuickDiskRequested += (_, _) => button_Click_NewQuickDisk(newQuickDiskButton, new RoutedEventArgs());
-            dskEditorControl.NewDskRequested += (_, _) => button_Click_NewDsk(newDskButton, new RoutedEventArgs());
             UpdateQuickDiskFeatureVisibility();
             UpdateStatus();
         }
@@ -385,6 +385,7 @@ namespace MZTools
             TapeDocumentFormat.QdSharpLegacy => 5,
             TapeDocumentFormat.Mzt => 6,
             TapeDocumentFormat.Mzf => 7,
+            TapeDocumentFormat.M12 => 12,
             _ => 1
         };
 
@@ -407,6 +408,7 @@ namespace MZTools
                 ".mzq" => TapeDocumentFormat.Mzq,
                 ".mzt" => TapeDocumentFormat.Mzt,
                 ".mzf" => TapeDocumentFormat.Mzf,
+                ".m12" => TapeDocumentFormat.M12,
                 _ => TapeDocumentFormat.None
             };
         }
@@ -459,14 +461,21 @@ namespace MZTools
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
                 e.Effects = DragDropEffects.Copy; // Změňte ukazatel, aby uživatel věděl, že soubor může být zde upuštěn
-            else if (e.Data.GetDataPresent(RowDragDataFormat))
-                e.Effects = DragDropEffects.Move;
+            else if (WorkspaceDragTransfer.IsPresent(e.Data))
+                e.Effects = WorkspaceDragTransfer.IsLocal(e.Data, dragOwner) ? DragDropEffects.Move : DragDropEffects.Copy;
             else
                 e.Effects = DragDropEffects.None; // Jinak neumožněte drop
         }
 
         private void Window_Drop(object sender, DragEventArgs e)
         {
+            if (e.Handled) return;
+            if (WorkspaceDragTransfer.IsPresent(e.Data))
+            {
+                e.Handled = true;
+                if (!WorkspaceDragTransfer.IsLocal(e.Data, dragOwner)) PreviewRecordCopy(e, mzfBlocks.Count);
+                return;
+            }
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
                 var files = (string[])e.Data.GetData(DataFormats.FileDrop);
@@ -596,7 +605,7 @@ namespace MZTools
             if (document.QuickDiskReadResult is { } qdResult && !document.IsModified)
             {
                 var identity = qdResult.Analysis.Identification;
-                qdInfoText.Text = $"Container: {qdResult.Format} | Host: {identity.DisplayName} | Confidence: {identity.Confidence} | Probable origin: {identity.Origin.ProbableDevice ?? "Unknown"} | Native SHARP MZ: {(identity.IsNativeSharpMz ? "Yes" : "No / not detected")}";
+                qdInfoText.Text = $"Container: {QuickDiskFormatLabels.Display(qdResult.Format)} | Host: {identity.DisplayName} | Confidence: {identity.Confidence} | Probable origin: {identity.Origin.ProbableDevice ?? "Unknown"} | Native SHARP MZ: {(identity.IsNativeSharpMz ? "Yes" : "No / not detected")}";
                 if (document.IsReadOnlyQuickDisk)
                     infoText.Content = "Read-only physical QuickDisk inspection. This is not an identified native SHARP MZ-800 format; MZF editing and SHARP rebuilding are disabled.";
             }
@@ -613,6 +622,27 @@ namespace MZTools
             }
             else if (quickDiskMapTab.IsSelected) RefreshQuickDiskMap();
             UpdateQuickDiskSelectionButtons();
+        }
+
+        private void ToolsMenu_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.ContextMenu != null) { button.ContextMenu.PlacementTarget = button; button.ContextMenu.IsOpen = true; }
+        }
+
+        private void BatchProcess_Click(object sender, RoutedEventArgs e) => new BatchProcessDialog(this).ShowDialog();
+
+        private void RepairDskFile_Click(object sender, RoutedEventArgs e)
+        {
+            var picker = new OpenFileDialog { Filter = "Extended CPC DSK|*.dsk", Title = "Inspect / Repair DSK Container" };
+            if (picker.ShowDialog(this) != true) return;
+            try
+            {
+                var repair = new DskRepairDialog(this, File.ReadAllBytes(picker.FileName)); repair.ShowDialog();
+                if (repair.Result == null) return;
+                var candidate = DskDocument.Open(repair.Result, picker.FileName); candidate.ReplaceContents(repair.Result);
+                ShowDskDocument(candidate);
+            }
+            catch (Exception exception) { MessageBox.Show(this, exception.Message, "DSK Container Repair", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
         private void TapeViews_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -737,7 +767,7 @@ namespace MZTools
             {
                 TapeDocumentFormat.QdSharpLegacy => "Sharp legacy logical",
                 TapeDocumentFormat.QdHxc => "HxC physical",
-                TapeDocumentFormat.QdFlashFloppy => "FlashFloppy physical",
+                TapeDocumentFormat.QdFlashFloppy => "uniform-track physical",
                 _ => string.Empty
             };
             if (qdType.Length == 0)
@@ -753,12 +783,24 @@ namespace MZTools
 
         private void UpdateQuickDiskFeatureVisibility()
         {
+            // DSK/HFE tools belong to the disk editor or the empty workspace.
+            // QD containers (including MZQ/QDF) share the QuickDisk workspace.
+            bool emptyWorkspace = document.Format == TapeDocumentFormat.None && dskEditorControl.Visibility != Visibility.Visible;
+            batchProcessMenu.Visibility = repairDskFileMenu.Visibility = emptyWorkspace ? Visibility.Visible : Visibility.Collapsed;
+            toolsButton.Visibility = !document.IsQuickDisk ? Visibility.Visible : Visibility.Collapsed;
+            newQuickDiskButton.Visibility = newDskButton.Visibility = emptyWorkspace ? Visibility.Visible : Visibility.Collapsed;
             bool quickDiskAvailable = document.IsQdImage;
             bool diskInfoAvailable = quickDiskAvailable ||
                 document.IplDskInfo != null;
             qdInfoText.Visibility = diskInfoAvailable ? Visibility.Visible : Visibility.Collapsed;
             formatQuickDiskButton.Visibility = quickDiskAvailable ? Visibility.Visible : Visibility.Collapsed;
             formatQuickDiskButton.IsEnabled = quickDiskAvailable && (!document.IsReadOnlyQuickDisk || document.QuickDiskReadResult?.Analysis.Identification.IsBlank == true);
+        }
+
+        private void NativeCom_Click(object sender, RoutedEventArgs e)
+        {
+            TapeRecord? selected = MzfDataGrid.SelectedIndex is int index && index >= 0 && index < mzfBlocks.Count ? mzfBlocks[index] : null;
+            new NativeComDialog(this, selected).ShowDialog();
         }
 
         private bool TryChooseTapeSaveOptions(
@@ -960,6 +1002,7 @@ namespace MZTools
             var saveFileDialog = new SaveFileDialog
             {
                 Filter = iplOnly ? FeatureModePolicy.GetIplExportFilter() : GetExportFilter(records.Count),
+                Title = multipleRecords ? $"Export {records.Count} selected programs" : $"Export {suggestedFileName}",
                 AddExtension = true,
                 DefaultExt = iplOnly ? ".mzf" : multipleRecords ? ".mzt" : ".mzf",
                 FilterIndex = iplOnly ? 2 : !multipleRecords ? 2 : 1,
@@ -1010,7 +1053,7 @@ namespace MZTools
                     return;
                 }
 
-                if (iplOnly && fileExtension == ".mzf")
+                if (iplOnly && (fileExtension is ".mzf" or ".m12"))
                 {
                     if (records.Count == 1)
                     {
@@ -1029,7 +1072,7 @@ namespace MZTools
                     {
                         MessageBoxResult overwrite = MessageBox.Show(
                             this,
-                            $"{existingPaths.Length} separate MZF file(s) already exist. Overwrite them?",
+                            $"{existingPaths.Length} separate {fileExtension.TrimStart('.').ToUpperInvariant()} file(s) already exist. Overwrite them?",
                             "Overwrite separate files",
                             MessageBoxButton.YesNo,
                             MessageBoxImage.Warning);
@@ -1045,7 +1088,7 @@ namespace MZTools
                     }
                     MessageBox.Show(
                         this,
-                        $"Created {outputPaths.Count} separate MZF files in:\n{System.IO.Path.GetDirectoryName(outputPaths[0])}",
+                        $"Created {outputPaths.Count} separate {fileExtension.TrimStart('.').ToUpperInvariant()} files in:\n{System.IO.Path.GetDirectoryName(outputPaths[0])}",
                         "Separate export complete",
                         MessageBoxButton.OK,
                         MessageBoxImage.Information);
@@ -1054,24 +1097,7 @@ namespace MZTools
 
                 if (fileExtension == ".dsk")
                 {
-                    if (records.Count == 1)
-                    {
-                        var dialog = new IplDskOptionsDialog(records[0]) { Owner = this };
-                        if (dialog.ShowDialog() != true || dialog.PackedRecord == null)
-                        {
-                            return;
-                        }
-                        Mz800IplDskWriter.WriteFile(filePath, dialog.PackedRecord, dialog.BootName);
-                    }
-                    else
-                    {
-                        var dialog = new MultiGameIplDskOptionsDialog(records) { Owner = this };
-                        if (dialog.ShowDialog() != true || dialog.BuildResult == null)
-                        {
-                            return;
-                        }
-                        File.WriteAllBytes(filePath, dialog.BuildResult.Image);
-                    }
+                    SaveIplRecords(filePath, records);
                     return;
                 }
 
@@ -1096,14 +1122,15 @@ namespace MZTools
                     return;
                 }
 
-                if (fileExtension == ".mzf")
+                if (fileExtension is ".mzf" or ".m12")
                 {
+                    var singleFormat = fileExtension == ".m12" ? TapeDocumentFormat.M12 : TapeDocumentFormat.Mzf;
                     if (records.Count == 1)
                     {
                         int trailingBytes = records[0].Body.TrailingData?.Length ?? 0;
                         if (!TryChooseTapeExportOptions(
                             filePath,
-                            TapeDocumentFormat.Mzf,
+                            singleFormat,
                             trailingBytes,
                             selectedRecords,
                             out bool preserve,
@@ -1125,7 +1152,7 @@ namespace MZTools
                     int totalTrailingBytes = records.Sum(record => record.Body.TrailingData?.Length ?? 0);
                     if (!TryChooseTapeExportOptions(
                         filePath,
-                        TapeDocumentFormat.Mzf,
+                        singleFormat,
                         totalTrailingBytes,
                         selectedRecords,
                         out bool preserveMultiple,
@@ -1142,7 +1169,7 @@ namespace MZTools
                     {
                         MessageBoxResult overwrite = MessageBox.Show(
                             this,
-                            $"{existingPaths.Length} separate MZF file(s) already exist. Overwrite them?",
+                            $"{existingPaths.Length} separate {fileExtension.TrimStart('.').ToUpperInvariant()} file(s) already exist. Overwrite them?",
                             "Overwrite separate files",
                             MessageBoxButton.YesNo,
                             MessageBoxImage.Warning);
@@ -1163,7 +1190,7 @@ namespace MZTools
 
                     MessageBox.Show(
                         this,
-                        $"Created {outputPaths.Count} separate MZF files in:\n{System.IO.Path.GetDirectoryName(outputPaths[0])}",
+                        $"Created {outputPaths.Count} separate {fileExtension.TrimStart('.').ToUpperInvariant()} files in:\n{System.IO.Path.GetDirectoryName(outputPaths[0])}",
                         "Separate export complete",
                         MessageBoxButton.OK,
                         MessageBoxImage.Information);
@@ -1254,6 +1281,7 @@ namespace MZTools
                 TapeDocumentFormat.QdSharpLegacy or TapeDocumentFormat.QdHxc or TapeDocumentFormat.QdFlashFloppy => extension == ".qd",
                 TapeDocumentFormat.Mzt => extension == ".mzt",
                 TapeDocumentFormat.Mzf => extension == ".mzf",
+                TapeDocumentFormat.M12 => extension == ".m12",
                 _ => false
             };
         }
@@ -1328,11 +1356,11 @@ namespace MZTools
                         : null));
                 return;
             }
-            if (outputFormat == TapeDocumentFormat.Mzf)
+            if (outputFormat is TapeDocumentFormat.Mzf or TapeDocumentFormat.M12)
             {
                 if (mzfBlocks.Count != 1)
                 {
-                    throw new InvalidOperationException("An MZF document must contain exactly one file.");
+                    throw new InvalidOperationException("An MZF/M12 document must contain exactly one file.");
                 }
                 int trailingBytes = mzfBlocks[0].Body.TrailingData?.Length ?? 0;
                 if (!TryChooseTapeSaveOptions(filePath, outputFormat, trailingBytes, out bool preserve, out bool generateSidecar))
@@ -1358,6 +1386,24 @@ namespace MZTools
             throw new InvalidOperationException("This document cannot be saved back to its source format. Use Save As instead.");
         }
 
+        private bool SaveIplRecords(string path, IReadOnlyList<TapeRecord> records)
+        {
+            if (records.Count == 0) throw new InvalidOperationException("IPL DSK requires at least one program.");
+            if (records.Count == 1)
+            {
+                var dialog = new IplDskOptionsDialog(records[0]) { Owner = this };
+                if (dialog.ShowDialog() != true || dialog.PackedRecord == null) return false;
+                Mz800IplDskWriter.WriteFile(path, dialog.PackedRecord, dialog.BootName);
+            }
+            else
+            {
+                var dialog = new MultiGameIplDskOptionsDialog(records) { Owner = this };
+                if (dialog.ShowDialog() != true || dialog.BuildResult == null) return false;
+                File.WriteAllBytes(path, dialog.BuildResult.Image);
+            }
+            return true;
+        }
+
         private void button_Click_SaveAs(object sender, RoutedEventArgs e)
         {
             if (document.IsReadOnlyQuickDisk) return;
@@ -1374,8 +1420,8 @@ namespace MZTools
                 TapeDocumentFormat outputFormat = ResolveSaveFormat(fileExtension, saveFileDialog.FilterIndex);
 
                 bool waveformOutput = fileExtension is ".lep" or ".l16" or ".wav";
-                bool multiGameDskOutput = fileExtension == ".dsk";
-                if (outputFormat == TapeDocumentFormat.None && !waveformOutput && !multiGameDskOutput)
+                bool iplDskOutput = fileExtension == ".dsk";
+                if (outputFormat == TapeDocumentFormat.None && !waveformOutput && !iplDskOutput)
                 {
                     MessageBox.Show($"The selected filter does not define a writer for {fileExtension}.", "Cannot save", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
@@ -1393,7 +1439,7 @@ namespace MZTools
                     return;
                 }
 
-                if (!waveformOutput && !multiGameDskOutput &&
+                if (!waveformOutput && !iplDskOutput &&
                     !TryValidateOutputFormat(outputFormat, fileExtension, out validationError))
                 {
                     MessageBox.Show(validationError, "Cannot save", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -1403,27 +1449,9 @@ namespace MZTools
                 try
                 {
                     bool allowImportedNonStandard = CanPreserveImportedNonStandard(outputFormat);
-                    if (multiGameDskOutput)
+                    if (iplDskOutput)
                     {
-                        if (mzfBlocks.Count < 2)
-                        {
-                            MessageBox.Show(
-                                "A multi-game IPL DSK requires at least two records. For one record, use Export and the single-program IPL target.",
-                                "Cannot save",
-                                MessageBoxButton.OK,
-                                MessageBoxImage.Warning);
-                            return;
-                        }
-
-                        var optionsDialog = new MultiGameIplDskOptionsDialog(mzfBlocks)
-                        {
-                            Owner = this
-                        };
-                        if (optionsDialog.ShowDialog() != true || optionsDialog.BuildResult == null)
-                        {
-                            return;
-                        }
-                        File.WriteAllBytes(filePath, optionsDialog.BuildResult.Image);
+                        if (!SaveIplRecords(filePath, mzfBlocks)) return;
                     }
                     else if (outputFormat == TapeDocumentFormat.Mzq)
                     {
@@ -1471,17 +1499,17 @@ namespace MZTools
                                 ? QuickDiskPhysicalProfile.For(qdFormat)
                                 : null));
                     }
-                    else if (outputFormat == TapeDocumentFormat.Mzf)
+                    else if (outputFormat is TapeDocumentFormat.Mzf or TapeDocumentFormat.M12)
                     {
                         if (mzfBlocks.Count > 1)
                         {
-                            MessageBox.Show("MZF file should contain only one tape file. Please use Export button or Save as MZT file.", "MZF file limitation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            MessageBox.Show("MZF/M12 files contain one tape record. Please use Export or save as MZT for multiple records.", "Single-record file limitation", MessageBoxButton.OK, MessageBoxImage.Warning);
                             return;
                         }
                         int trailingBytes = mzfBlocks[0].Body.TrailingData?.Length ?? 0;
                         if (!TryChooseTapeSaveOptions(
                             filePath,
-                            TapeDocumentFormat.Mzf,
+                            outputFormat,
                             trailingBytes,
                             out bool preserve,
                             out bool generateSidecar))
@@ -1489,7 +1517,7 @@ namespace MZTools
                             return;
                         }
                         TapeDocumentWriter.SaveMzf(filePath, mzfBlocks[0], preserve, generateSidecar);
-                        SetCurrentDocumentAfterSave(filePath, TapeDocumentFormat.Mzf, GetExistingSidecarPath(filePath));
+                        SetCurrentDocumentAfterSave(filePath, outputFormat, GetExistingSidecarPath(filePath));
                     }
                     else if (outputFormat == TapeDocumentFormat.Mzt)
                     {
@@ -1632,6 +1660,39 @@ namespace MZTools
             }
         }
 
+        private void MzfDataGrid_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.OriginalSource is not DependencyObject source) return;
+            var row = FindVisualParent<DataGridRow>(source);
+            tapeContextExport.Tag = row?.Item as MzfDisplayData;
+            if (row?.Item is MzfDisplayData && !row.IsSelected)
+            { MzfDataGrid.SelectedItems.Clear(); row.IsSelected = true; }
+        }
+
+        private void MzfDataGrid_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            tapeContextAdd.IsEnabled = addButton.IsEnabled;
+            if (e?.CursorLeft < 0) tapeContextExport.Tag = MzfDataGrid.CurrentItem as MzfDisplayData;
+            int exportIndex = tapeContextExport.Tag is MzfDisplayData item ? MzfDisplayDataCollection.IndexOf(item) : -1;
+            tapeContextExport.IsEnabled = exportButton.IsEnabled && exportIndex >= 0 && exportIndex < mzfBlocks.Count;
+            tapeContextExport.Header = tapeContextExport.IsEnabled
+                ? $"Export “{ConvertMzfNameToASCIIString(mzfBlocks[exportIndex].Header.MzfFname)}”…" : "Export...";
+            tapeContextExportSelected.Header = $"Export selected ({MzfDataGrid.SelectedItems.Count})…";
+            tapeContextExportSelected.Visibility = MzfDataGrid.SelectedItems.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+            tapeContextDelete.IsEnabled = deleteButton.IsEnabled && !document.IsReadOnlyQuickDisk && MzfDataGrid.SelectedItems.Count > 0;
+            tapeContextRename.IsEnabled = !document.IsReadOnlyQuickDisk && MzfDataGrid.SelectedItems.Count == 1;
+            tapeContextView.IsEnabled = viewButton.IsEnabled && MzfDataGrid.SelectedItems.Count > 0;
+        }
+
+        private void TapeRename_Click(object sender, RoutedEventArgs e)
+        {
+            if (document.IsReadOnlyQuickDisk || MzfDataGrid.SelectedItems.Count != 1) return;
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                MzfDataGrid.Focus(); MzfDataGrid.CurrentCell = new DataGridCellInfo(MzfDataGrid.SelectedItem, fileNameColumn); MzfDataGrid.BeginEdit();
+            }));
+        }
+
         private void MzfDataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
         {
             if (e.EditAction != DataGridEditAction.Commit || e.Column != fileNameColumn ||
@@ -1753,29 +1814,33 @@ namespace MZTools
                 return;
             }
 
-            var dragData = new DataObject();
-            dragData.SetData(RowDragDataFormat, draggedRecords);
+            DataObject dragData;
+            try { dragData = WorkspaceDragTransfer.Create(dragOwner, WorkspaceDragTransfer.Capture(draggedRecords)); }
+            catch (Exception exception) { MessageBox.Show(this, exception.Message, "Copy records"); return; }
+            localDraggedRecords = draggedRecords;
             rowDragInProgress = true;
             try
             {
-                DragDrop.DoDragDrop(MzfDataGrid, dragData, DragDropEffects.Move);
+                DragDrop.DoDragDrop(MzfDataGrid, dragData, DragDropEffects.Move | DragDropEffects.Copy);
             }
             finally
             {
                 ClearDropTargetIndicator();
                 rowDragInProgress = false;
+                localDraggedRecords = null;
                 rowDragStartItem = null;
             }
         }
 
         private void MzfDataGrid_DragOver(object sender, DragEventArgs e)
         {
-            if (!e.Data.GetDataPresent(RowDragDataFormat))
+            if (!WorkspaceDragTransfer.IsPresent(e.Data))
             {
                 return;
             }
 
-            e.Effects = DragDropEffects.Move;
+            e.Effects = WorkspaceDragTransfer.IsLocal(e.Data, dragOwner) ? DragDropEffects.Move :
+                document.IsReadOnlyQuickDisk ? DragDropEffects.None : DragDropEffects.Copy;
             e.Handled = true;
             Point position = e.GetPosition(MzfDataGrid);
             UpdateDropTargetIndicator(position);
@@ -1784,7 +1849,7 @@ namespace MZTools
 
         private void MzfDataGrid_DragLeave(object sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent(RowDragDataFormat))
+            if (WorkspaceDragTransfer.IsPresent(e.Data))
             {
                 ClearDropTargetIndicator();
             }
@@ -1792,14 +1857,16 @@ namespace MZTools
 
         private void MzfDataGrid_Drop(object sender, DragEventArgs e)
         {
-            if (!e.Data.GetDataPresent(RowDragDataFormat) ||
-                e.Data.GetData(RowDragDataFormat) is not List<TapeRecord> draggedRecords)
-            {
-                return;
-            }
-
+            if (!WorkspaceDragTransfer.IsPresent(e.Data)) return;
+            e.Handled = true;
             int insertionIndex = GetDropInsertionIndex(e.GetPosition(MzfDataGrid));
             ClearDropTargetIndicator();
+            if (!WorkspaceDragTransfer.IsLocal(e.Data, dragOwner))
+            {
+                PreviewRecordCopy(e, insertionIndex);
+                return;
+            }
+            if (localDraggedRecords is not { } draggedRecords) return;
             int[] sourceIndices = draggedRecords
                 .Select(record => mzfBlocks.IndexOf(record))
                 .Where(index => index >= 0)
@@ -1817,6 +1884,19 @@ namespace MZTools
 
             e.Effects = changed ? DragDropEffects.Move : DragDropEffects.None;
             e.Handled = true;
+        }
+
+        private void PreviewRecordCopy(DragEventArgs e, int insertionIndex)
+        {
+            e.Effects = DragDropEffects.None;
+            try
+            {
+                var preview = new TapeCopyPreview(document, WorkspaceDragTransfer.Read(e.Data), insertionIndex);
+                var dialog = new DskPatchPreviewWindow(this, preview.Report, () => preview.Apply(document), "Copy records preview", "Copy to this workspace");
+                dialog.ShowDialog();
+                if (dialog.Applied) { RefreshGrid(); e.Effects = DragDropEffects.Copy; }
+            }
+            catch (Exception exception) { MessageBox.Show(this, exception.Message, "Copy records", MessageBoxButton.OK, MessageBoxImage.Error); }
         }
 
         private int GetDropInsertionIndex(Point position)
@@ -2278,6 +2358,11 @@ namespace MZTools
                     loadedQdProfile = result.PhysicalProfile;
                     recordsToAdd.AddRange(result.Records);
                 }
+                else if (fileExtension == ".hfe")
+                {
+                    new PhysicalTrackViewerWindow(this, HfeImage.Parse(File.ReadAllBytes(filePath)), filePath).ShowDialog();
+                    return false;
+                }
                 else if (fileExtension == ".dsk")
                 {
                     DskDocument dskDocument = DskDocument.Open(filePath);
@@ -2299,9 +2384,9 @@ namespace MZTools
                         return false;
                     }
                 }
-                else if (fileExtension is ".mzf" or ".mz0" or ".mz7")
+                else if (fileExtension is ".mzf" or ".m12" or ".mz0" or ".mz7")
                 {
-                    format = TapeDocumentFormat.Mzf;
+                    format = fileExtension == ".m12" ? TapeDocumentFormat.M12 : TapeDocumentFormat.Mzf;
                     TapeRecord record = new MZTFileReader().ReadStandaloneMzf(filePath);
                     loadedSidecar = SidecarService.LoadForMzf(filePath, record);
                     recordsToAdd.Add(record);
@@ -2514,6 +2599,15 @@ namespace MZTools
                     : "selected");
 
             ExportRecords(selectedRecords, suggestedFileName);
+        }
+
+        private void TapeContextExport_Click(object sender, RoutedEventArgs e)
+        {
+            if (tapeContextExport.Tag is not MzfDisplayData item) return;
+            int index = MzfDisplayDataCollection.IndexOf(item);
+            if (index < 0 || index >= mzfBlocks.Count) return;
+            TapeRecord record = mzfBlocks[index];
+            ExportRecords([(index, record)], ConvertMzfNameToASCIIString(record.Header.MzfFname));
         }
 
         private void check_QDF_Files()
@@ -2770,6 +2864,7 @@ namespace MZTools
             RefreshGrid();
             dskEditorControl.LoadNewMultiIpl();
             dskEditorControl.Visibility = Visibility.Visible;
+            UpdateQuickDiskFeatureVisibility();
             Title = BuildWindowTitle(dskEditorControl.DocumentTitle);
         }
 
@@ -2784,6 +2879,7 @@ namespace MZTools
             RefreshGrid();
             dskEditorControl.LoadNewSingleIpl();
             dskEditorControl.Visibility = Visibility.Visible;
+            UpdateQuickDiskFeatureVisibility();
             Title = BuildWindowTitle(dskEditorControl.DocumentTitle);
         }
 
@@ -2816,6 +2912,7 @@ namespace MZTools
             RefreshGrid();
             dskEditorControl.LoadDocument(dsk);
             dskEditorControl.Visibility = Visibility.Visible;
+            UpdateQuickDiskFeatureVisibility();
             Title = BuildWindowTitle(dskEditorControl.DocumentTitle);
         }
 
@@ -2824,6 +2921,7 @@ namespace MZTools
             if (dskEditorControl.Visibility != Visibility.Visible) return true;
             if (!dskEditorControl.TryCloseDocument()) return false;
             dskEditorControl.Visibility = Visibility.Collapsed;
+            UpdateQuickDiskFeatureVisibility();
             Title = BuildWindowTitle(string.IsNullOrWhiteSpace(actFileName) ? null : actFileName);
             return true;
         }
@@ -2846,7 +2944,7 @@ namespace MZTools
             format = TapeDocumentFormat.None;
             var selector = new ComboBox
             {
-                ItemsSource = new[] { "Sharp legacy (.qd)", "HxC physical (.qd)", "FlashFloppy physical (.qd)", "MZQ (.mzq)" },
+                ItemsSource = new[] { "Sharp legacy (.qd)", "HxC physical (.qd)", "uniform-track physical (.qd)", "MZQ (.mzq)" },
                 SelectedIndex = 0,
                 Margin = new Thickness(0, 8, 0, 12)
             };

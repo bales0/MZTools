@@ -1,5 +1,22 @@
 # Third-party notices
 
+## HFE / HFEv3
+
+The HFE header, interleaved side storage, HFEv3 opcode and 36 MHz timing
+rules in `Media/HfeImage.cs` are C# adaptations of
+[bales0/HxCFloppyEmulator](https://github.com/bales0/HxCFloppyEmulator),
+`libhxcfe/sources/loaders/hfe_loader/hfe_format.h`, `hfe_writer.c`,
+`hfev3_format.h`, `hfev3_loader.c`, `hfev3_trackgen.h` and `hfev3_writer.c`.
+Copyright (C) 2006–2026 Jean-François DEL NERO.
+
+The original copyright statement and associated disclaimer must be retained
+in derivative works. These sources are licensed under GNU GPL version 2 or,
+at your option, any later version. This adaptation is distributed under
+GPL-3.0-or-later, without any warranty, including merchantability or fitness
+for a particular purpose. See <https://www.gnu.org/licenses/> or the Free
+Software Foundation, 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+No other HxC floppy loaders or runtime library are included.
+
 ## HXCFE QuickDisk Toolkit
 
 The non-SHARP QuickDisk bitstream, Roland/Akai block and CRC rules, and

@@ -1,4 +1,4 @@
-# MZTools
+﻿# MZTools
 
 MZTools is a utility for converting, inspecting and editing SHARP MZ QuickDisk and tape files.
 
@@ -106,13 +106,13 @@ For multiple selected records, waveform export can create:
 - **Union** - one waveform containing all selected records in order,
 - **Separate** - numbered output files, one waveform per record.
 
-### MZF and MZT export
+### MZF, M12 and MZT export
 
 Advanced export supports both selected records and the complete document.
 
-- One record can be exported as a single MZF.
+- One record can be exported as a single MZF or M12.
 - Multiple records can be exported as one MZT.
-- Multiple records can also be exported as separate numbered MZF files.
+- Multiple records can also be exported as separate numbered MZF or M12 files.
 - Record order follows the order shown in the main grid.
 
 ### ZX0 and ZX7 compression
@@ -179,7 +179,9 @@ extended IPLDISK filesystems, both P-CP/M80 variants, one- or two-sided LEC
 CP/M DD/HD and MRS disks with a selectable track count, and the special Sharp
 Lemmings geometry. Its custom/raw mode accepts 1 or 2 sides, 1-204 absolute
 tracks, 1-29 sectors per track, 128/256/512/1024-byte sectors, a filler byte,
-normal/LEC/LEC-HD interleave or an explicit sector-ID map. CP/M and MRS presets
+normal/LEC/LEC-HD/P-CP/M80 interleave or an explicit sector-ID map. The **User defined image / raw geometry** option exposes P-CP/M80 order explicitly:
+8 sectors → `1,5,2,6,3,7,4,8`; 16 sectors → `1,9,2,10,3,11,4,12,5,13,6,14,7,15,8,16`.
+Other sector counts require Custom sector IDs. CP/M and MRS presets
 use the Sharp mixed boot/data-track geometry and physical sector interleave
 used by `mzdisk`.
 
@@ -189,9 +191,7 @@ export distinguishes CP/M user areas and resolves case-insensitive filename
 collisions before writing. MRS stores only a block count, so its last exported
 block may contain padding.
 
-Current limitations: attaching a custom CP/M DPB to an unknown image,
-filesystem repair/defragmentation, bootstrap metadata editing and a writable in-place hex editor are not yet
-exposed by the UI.
+Custom layout, explicit repairs, defragmentation, bootstrap editing and transactional raw editing are available as described below.
 The DSK code is a C# port/adaptation of
 [mzdisk](https://github.com/bales0/mzdisk); attribution is in
 `THIRD_PARTY_NOTICES.md`.
@@ -252,9 +252,212 @@ conflicts, and MRS orphan FAT IDs, block-count mismatches and reserved-area
 allocations. CP/M has no persistent free bitmap, so orphan allocations cannot
 be inferred from arbitrary nonzero payload bytes. Empty FSMZ variants have no
 unambiguous on-disk 63/127-entry discriminator; the existing reader's detection
-is used. Custom CP/M DPBs and repair/defrag remain unsupported. Validated raw
+is used. Custom CP/M layouts and explicit repair/defrag are described below. Validated raw
 hex editing and boot/system installation are described below; analysis never
 performs an automatic repair.
+
+### HFE/HFEv3
+
+Open `.hfe` to inspect HFE revision 0 or HFEv3 revision 0. ISO IBM FM/MFM sectors,
+CRC validity, physical cells and supported HFEv3 timing/index/weak-bit opcodes
+are decoded. Unknown encodings remain available as undecoded physical tracks,
+with byte-identical Save As in the original variant; re-encoding them is refused.
+Unknown opcodes, truncated data and overlapping ranges are refused without repair.
+Saving the same HFE variant preserves original bytes;
+rewriting/conversion verifies physical cells, weak masks and timing after reopening.
+Weak cells use a deterministic zero sample for inspection, never fabricated certainty.
+
+**Disk → Convert Format...** adds DSK → HFE/HFEv3. It preserves descriptor order,
+sector data and C/H/R/N, generates MFM gaps/CRC at 250/500 kbit/s and 300 RPM,
+and reports source metadata losses. ST1/ST2 do not prove physical CRC corruption;
+valid CRC is generated independently of these flags. HFEv3 is preferred when
+legacy HFE cannot preserve side lengths, timing, weak bits or index positions.
+The viewer offers HFE/HFEv3 → HFE/HFEv3 and → Extended DSK. HFE → DSK requires
+explicit confirmation of lost cells, gaps, timing, index and weak-bit information;
+undecodable tracks or mixed/unsupported sector sizes are refused. Outputs remain
+separate from the source and are written through verified temporary files.
+
+Only HFE/HFEv3 is added as a new generic retro floppy image codec in this phase.
+SCP/KryoFlux/A2R/IPF/etc. are not implemented.
+
+### Physical Track Viewer
+
+The HFE viewer shows cylinder/side, cell count, declared bitrate/RPM (unknown
+when absent), FM/MFM encoding, descriptor order, CRC status, weak regions,
+timing changes and index positions. Click a sector or gap/header/data/weak region
+to inspect cell offsets, raw bitcells and decoded bytes. Timing is nominal from
+stored bitrate/divisors, not measured flux. It never invents measured timings.
+Packed physical bitcell access is shared with the existing QuickDisk MFM codec.
+
+**Filesystem (read-only)...** inspects a private sector projection only when all
+tracks decode into a recognized Sharp layout with valid CRC, unique matching
+sector identities, no weak cells and valid filesystem ownership. The report lists
+files, metadata, free space and boot/system identification. This action cannot
+edit or save the projected DSK. Projection creator/gaps/padding are synthetic;
+HFE cells and preservation metadata remain unchanged. Unsupported layouts retain
+physical inspection.
+
+### Disk format capabilities
+
+| Format | Read | Write | Semantic edit | Physical edit | Preservation metadata |
+| --- | --- | --- | --- | --- | --- |
+| Extended DSK | Yes | Yes | Recognized, validated filesystems | Sector bytes and physical descriptors with preview | Container bytes and FDC status; no original magnetic timing/weak cells |
+| HFE / HFEv3 | Physical tracks; ISO IBM FM/MFM decoding | Original variant copy; verified supported re-encoding/conversion | Read-only inspection of validated Sharp layouts | Inspection and conversion; no direct cell editor | Original bytes on no-op; supported cells, index, timing and HFEv3 weak masks; incompatible writes refused |
+| QuickDisk logical | Supported SHARP/MZ formats | Supported logical formats | Supported SHARP/MZ files | Logical block inspection | Logical/container data; no original magnetic timing |
+| QuickDisk physical | Supported legacy/HxC/uniform-track images; foreign hosts read-only | Supported SHARP/MZ output variants | Recognized SHARP/MZ layouts | Physical map/bitcell inspection; no generic writable cell editor | Supported encoded cells/marks/CRC; preservation varies by output container |
+
+### Custom CP/M Layout
+
+**Disk → Attach / Edit CP/M Layout...** attaches an interpretation to Raw/unknown,
+BootOnly or CP/M images. The dialog edits SPT, BSH, BLM, EXM, DSM, DRM, AL0/AL1,
+CKS, OFF, inversion and physical track/sector maps, deriving BlockSize from BSH.
+The current block device supports 512-byte physical sectors and 1024–16384-byte
+allocation blocks. Maps must be unique and stay outside system areas.
+
+Validate/Preview uses the existing CP/M parser and Analyzer for directory,
+extent, allocation, cross-link, overlap, free-space and physical mapping checks.
+Attach changes no image bytes or modified flag. The attached layout survives
+transactional clones, raw/property edits and structure/comparison inspection.
+DSK has no field for a custom DPB: the interpretation lasts for the open document
+and must be reattached after closing/reopening. No implicit formatting occurs.
+
+### Repair and Defragment
+
+**Disk → Physical Properties...** previews creator, track C/H, GAP#3, filler,
+sector IDs, ST1/ST2 and descriptor permutations. Payloads and unrelated tracks
+are verified. Changes that invalidate filesystem ownership are refused. Advanced
+geometry resizing/appending/truncating is not exposed by this editor.
+
+**Repair DSK Container...** classifies deterministic, ambiguous and unavailable
+repairs. Conservative tsize/track-count recovery requires complete canonical
+aligned track boundaries, no sparse tracks and a known final-track boundary.
+Trailing bytes can only be truncated through an explicit destructive confirmation;
+they are never absorbed into track padding as a repair. With no open document,
+choose an unparseable DSK for repair preview; Apply opens the candidate unsaved.
+The main **Tools → Inspect / Repair DSK Container...** command also opens a
+repair preview directly from a file, including containers that cannot be opened normally.
+C/H, unknown IDs, FDC errors, missing sectors and ownership conflicts are never
+automatically repaired. Ambiguous cases offer no safe repair.
+
+**Repair Filesystem...** uses explicit repair actions with post-validation:
+FSMZ adds missing directory-owned bitmap bits and rebuilds used count while
+retaining orphan allocations; native MRS reconciles block counts only with
+unambiguous FAT ownership; P-CP/M80 can relocate the existing unique PCPM.SYS
+initial extent to slot 0 without moving data. Generic CP/M allocation repair
+is not offered because CP/M has no allocation bitmap.
+
+**Defragment...** captures all files and metadata, builds a private clean allocation
+layout, reinserts files, reopens and compares exact payloads/native metadata before
+Apply. Geometry and boot/system sectors are retained; directory/allocation
+positions may change. FSMZ raw metadata and volume/bounds, CP/M extent metadata
+and attributes, and native MRS file IDs/raw metadata are preserved. PCPM.SYS
+remains directory entry 0. Ambiguous ownership/orphans, unsupported CP/M special
+entries/timestamps, or metadata/payload mismatch abort with the original unchanged.
+MRS defrag/repair retains the native 3 FAT + 6 directory sector interpretation.
+Preview lists each file's old/new allocation blocks, the number of moved files,
+free bytes and largest contiguous free region in logical allocation order,
+payload/metadata verification and Analyzer before/after. Repair previews include
+issue codes, affected structures/files and changed byte ranges. A changed custom
+DPB invalidates pending maintenance previews even when image bytes are unchanged.
+
+**Bootstrap...** edits recognized IPLPRO name/type/LOAD/EXEC metadata; SIZE must
+retain the existing payload size. Export/replace works on the complete decoded
+4096-byte Sharp boot track in sector-ID order; replacement previews all filesystem
+overlaps and requires confirmation. Clear removes bootstrap code while retaining
+directory/FAT/allocation structures. These operations are separate from System
+Builder; normal/bottom/mini/over relocation modes are not implemented.
+
+FSMZ file properties now include type, LOAD, EXEC and locked with transactional
+reopen/payload validation; names use the existing rename workflow.
+**Export / Import Selected Sectors...** supports multi-selection and physical or
+unique sector-ID order. Import requires exact byte length, previews filesystem
+impact and changes only complete selected sectors.
+
+### Batch Process
+
+**Tools → Batch Process...** uses either selected files or an input folder, with
+optional recursion and extension filters. Switching input modes clears the other
+source; Clear file list clears both the list and input folder. Folder files appear
+automatically after scanning, before Preview. The input list retains visible space
+when the window is resized; the settings above it scroll when necessary.
+Preview/dry-run writes no outputs and lists detected format,
+filesystem/layout, operation, result/reason and output path with scanned/modify/
+already-matching/skipped/warnings/error totals. Select a row's details to inspect
+the complete service preflight. Settings changes invalidate the pending preview.
+Selected files appear in the list immediately, before Preview; duplicate selections
+are ignored. File/folder/source/output selectors use the same label–path–button layout.
+
+**Info / test integrity** combines the catalog and validation in one read-only
+operation. It lists contents and metadata, validates available structures/checksums
+and recognized compressed streams, and reports Passed, Failed or Not verifiable.
+The details window provides sortable content/property tables and individual
+check results with format limits. It accepts mixed DSK/HFE, MZF/M12/MZT,
+WAV/FLAC/LEP/L16 and QD/QDF/MZQ inputs. The file picker and folder scanner limit
+extensions to the chosen operation and conversion target; unsupported manually entered files are also
+rejected by preflight. MZF/M12 checks cover header/body lengths and recognized
+compression streams; these formats have no payload checksum, so a structural pass
+does not certify arbitrary data or game compatibility. **Use heuristic analysis
+(WAV / FLAC)** selects heuristic timing/channel analysis and checksum recovery;
+unchecked uses the standard decoder. The selected decoder is recorded in details.
+Audio checks use recovered SHARP blocks/checksums; partial recovery cannot produce
+an automatic conversion.
+
+**Compress programs** uses the complete shared ZX0/ZX7 options panel, and
+**Decompress programs** recognizes MZTools ZX0/ZX7 loaders. Recompression first
+decodes recognized input, then verifies the restored program against the new
+compressed result. Independent batch outputs require Skip bytes = 0. QD keeps its
+container; audio produces MZT program records. Per-file progress is shown during
+preflight and execution. **Stop** cancels pending work and interruptible compression/
+audio processing. Completed outputs remain saved; cancelled preflight requires a
+new Preview. Clear file list and settings are disabled while a batch is running.
+Closing a running batch requests cancellation and waits for cleanup before closing.
+
+Tape/audio/QuickDisk **Convert format** targets include MZF, M12, MZT, WAV, FLAC,
+LEP, L16, Sharp/HxC/uniform-track QD, QDF and MZQ. WAV/FLAC output supports
+22050/44100 Hz. Multiple programs targeting MZF/M12 and **Extract all** produce a
+per-input directory with numbered files and MFI/M2I sidecars. **Extract all** has
+its own output format selector: Native, BIN, MZF, M12, MZT, WAV, FLAC, LEP or L16.
+Native retains disk filenames/payloads and exports tape programs as MZF; formats
+requiring tape headers are refused for CP/M raw files rather than guessing
+type/LOAD/EXEC. WAV/FLAC extraction uses the selected audio rate. MZT outputs have MTI
+sidecars; trailing data is retained or an incompatible conversion is explained.
+New media is reopened and checked against the original program headers/payloads
+before writing. Tape/audio/QD outputs use separate destinations and do not replace
+originals. Sidecar changes invalidate preflight, and a sidecar collision cannot
+leave a partially written tape/sidecar pair. See
+[batch media workflow details](specification/BATCH_MEDIA_WORKFLOWS.md).
+
+Operations reuse individual services: Analyze/catalog, Convert Format (including
+HFE), Install/Replace Boot/System, Apply Patch, Extract All, Defragment and Safe
+Repair. Boot installation requires a registered verified source and exact layout
+compatibility; native P-CP/M80 uses its file-based IPL + PCPM.SYS installer.
+There is no generic physical-track copy for native P-CP/M80. Safe batch repair
+only uses deterministic container or filesystem actions, never trailing truncate.
+
+Default execution uses per-file transactions and separate outputs. Strict preflight
+blocks all execution when any input fails. Source fingerprints are checked again
+before execution; naming/path collisions and existing outputs are refused.
+Replace originals requires explicit confirmation, temporary output verification
+and atomic replace; optional `.bak` files are never overwritten. Failed writes
+remove their temporary output. Extract All separates CP/M user areas and verifies
+each extracted payload before completing its output directory.
+Folder input preserves relative subfolders under the output folder, including
+recursive scans. Individually selected files outside that input root use flat
+output names and still undergo collision checks.
+
+TXT/CSV/JSON reports include input/output, operation, format/layout, old/new
+fingerprints, warnings, result and error. Analyze catalogs include SHA-256,
+geometry/capacity, filesystem variant, boot type/profile/state, file count,
+used/free bytes and Analyzer errors/unsafe/warnings. Boot operations separately
+report old/new boot/system fingerprints and the resulting profile, in addition to
+whole-image SHA-256 and the System Builder's changed ranges/files report.
+HFE adds track/side counts, decoded sector count, bitrate/RPM summary, weak-bit
+presence and CRC-error sector count. Validated Sharp HFE layouts include read-only
+filesystem/boot inspection; other layouts report those fields as unknown.
+
+All new interactive writes use private snapshots, reopen/validation, preview and
+explicit Apply. Save stays separate from Apply. Opening DSK/HFE never performs
+repairs; Batch outputs are the explicit exception to the separate Save step.
 
 ### Direct MZ-800 IPL floppy import/export
 
@@ -313,8 +516,9 @@ areas stay clear. This is read/import compatibility; new images always use
 the menu footer.
 
 `Save As...` offers
-`MZ-800 multi-game IPL floppy (*.dsk)` for the whole document. It opens a
-dedicated dialog initialized from the main-table order. There, every program can
+`MZ-800 bootable IPL floppy (single / multi automatic) (*.dsk)` for the whole
+document. One record opens the single-program IPL options; two or more open the
+multi-program dialog initialized from the main-table order. There, every program can
 be moved with buttons or drag-and-drop, renamed, and assigned `None`, `ZX0`,
 `ZX7`, or `Auto` compression. Each row shows original and packed size,
 compression ratio, and the 48361-byte per-program staging limit.
@@ -366,22 +570,29 @@ is not yet marked as emulator- or hardware-verified. Manual verification plan:
 4. Repeat the same image and selections on a real MZ-800 before claiming
    hardware verification.
 
-### MFI and MTI sidecars
+### MFI, M2I and MTI sidecars
 
 MZTools supports SD2CMT-style metadata sidecars:
 
 - `.MFI` for a single MZF,
+- `.M2I` for a single M12,
 - `.MTI` for an MZT containing multiple records.
 
-Matching sidecars are loaded automatically.
+Matching sidecars are loaded automatically. M12 contains the same single-record
+128-byte header and declared payload layout as MZF; Open/Import, Save, Save As
+and Export support it while retaining the `.m12` document identity. M2I shares
+the MFI TYPE/SPEED parser, with no `RECORD=n` sections. `GAME.MZF` reads only
+`GAME.MFI`; `GAME.M12` reads only `GAME.M2I`, allowing both pairs to coexist.
+Missing or invalid sidecars leave a newly opened record at NORMAL 1:1.
 
-The save dialog can explicitly create MFI/MTI metadata. An existing matching
+The save dialog can explicitly create MFI/M2I/MTI metadata. An existing matching
 sidecar is regenerated when necessary so it cannot remain inconsistent with the
 saved tape file.
 
 These metadata files are intended for use with **MZ-SD2CMT2-Reborn**. MZTools can create:
 
 - `.MFI` metadata for `.MZF` files,
+- `.M2I` metadata for `.M12` files,
 - `.MTI` metadata for `.MZT` multi-file tapes,
 - `.LEP` pulse files,
 - `.L16` pulse files.
@@ -408,7 +619,7 @@ Supported `.qd` image variants are detected from file content and include:
 
 - SHARP/MZ legacy logical QuickDisk images,
 - HxC QuickDisk images (`HXCQDDRV`),
-- FlashFloppy QuickDisk images.
+- uniform-track QuickDisk images.
 
 The application also provides:
 
@@ -448,7 +659,7 @@ decoded MFM bytes for physical file blocks, and packed raw LSB-first bitcells
 for physical gaps/outside-window regions. The viewer identifies the position
 and encoding. DSK hex view shows raw bytes of the selected sector.
 
-HxC and FlashFloppy maps use actual track bitcell positions (LSB-first), the
+HxC and uniform-track maps use actual track bitcell positions (LSB-first), the
 container's track offset and data-window boundaries. Frame positions start on
 the first data bitcell, not its preceding MFM clock cell. QDF and compact
 MZQ/Sharp logical QD maps show byte offsets in the image, not invented physical
@@ -474,13 +685,16 @@ European QuickDisk logical format with a simpler structure. It is used by UniCar
 
 ### QD
 
-QuickDisk image container. MZTools detects supported SHARP/MZ legacy, HxC and FlashFloppy QuickDisk variants from their contents.
+QuickDisk image container. MZTools detects supported SHARP/MZ legacy, HxC and uniform-track QuickDisk variants from their contents.
 
 ### MZF
 
 Single SHARP MZ tape file containing the 128-byte file header followed by the file body.
 
-The same or closely related tape data is also found with extensions such as M12.
+M12 uses the same single-record layout and has its own `.M2I` metadata companion.
+Both MZF and M12 support preserving or removing trailing data on save.
+IPL DSK export offers both reconstructed MZF and reconstructed M12 through the
+same prepared-record writer; IPL export does not create a sidecar automatically.
 
 ### MZT
 
@@ -579,7 +793,7 @@ This repository extends the original project mainly with:
 - LEP/L16/WAV waveform import and export,
 - FLAC audio input,
 - heuristic analogue tape analysis,
-- MFI/MTI sidecars,
+- MFI/M2I/MTI sidecars,
 - multi-selection with `Ctrl+A`, batch Delete, and export of the selected rows,
 - additional validation and preservation functions.
 
@@ -604,7 +818,7 @@ The extended functions in this fork were developed and verified using informatio
 - **MZ-SD2CMT by SHARPENTIERS** - original SD-card CMT implementation for the SHARP MZ family and an important reference for tape loaders, formats and metadata  
   https://github.com/SHARPENTIERS/MZ-SD2CMT
 
-- **MZ-SD2CMT2-Reborn** - development/reference fork used while extending loader profiles, tape timing and MFI/MTI behavior. MZTools can generate `.MFI` metadata for `.MZF`, `.MTI` metadata for `.MZT`, and `.LEP`/`.L16` pulse files for use with this project.
+- **MZ-SD2CMT2-Reborn** - development/reference fork used while extending loader profiles, tape timing and MFI/M2I/MTI behavior. MZTools can generate `.MFI` metadata for `.MZF`, `.M2I` metadata for `.M12`, `.MTI` metadata for `.MZT`, and `.LEP`/`.L16` pulse files for use with this project.
   https://github.com/bales0/MZ-SD2CMT2-Reborn
 
 - **TapeMZ by Michal Hucik** - SHARP MZ tape archive/file-format reference and related tooling  
@@ -619,8 +833,6 @@ The extended functions in this fork were developed and verified using informatio
 
 - **Turbo Copy V1.22** - loader/writer code and timer behavior used as a reference for TC profiles.
 
-- **FlashFloppy Quick Disk documentation** - QuickDisk hardware/image behavior and FlashFloppy QuickDisk compatibility  
-  https://github.com/keirf/flashfloppy/wiki/Quick-Disk
 
 - **HxC Floppy Emulator project** - HxC image/container and QuickDisk implementation reference  
   https://github.com/jfdelnero/HxCFloppyEmulator
@@ -633,13 +845,13 @@ The extended functions in this fork were developed and verified using informatio
 
 The DSK editor provides one **Disk → Make Bootable / Install CP/M System...** dialog for consistent, recognized CP/M images with a supported Sharp boot track. **Browse...** automatically identifies a registered exact system-area match or a compatible source DSK whose OS/version, loader, transfer mode and bootability remain unverified. There is no manual Verified/Compatible source mode. Each new source is classified independently; failed selections discard the previous source/profile. Profiles are tied to the detected DPB and exact physical layout, including sector descriptor order, C/H/R/N, sector sizes, system tracks, allocation parameters and physical track/sector maps. P-CP/M80 original, SDS/400, LEC DD and LEC HD are distinct layouts, not interchangeable systems.
 
-Choose a trusted source DSK with the identical layout. No bundled CP/M version is assumed and no CP/M system bytes are generated. An empty/fill-only boot track or identification-header-only source is rejected; matching layout does not certify the source OS version or its bootability. Until a compatible source is chosen, no system data is available for installation.
+Choose an included system image or select **External image...** to browse for a trusted source DSK with the identical layout. The path/Browse row appears only for external sources; included images appear only in the selector. Switching to an external source clears the previous installation candidate until a file is selected. The dialog preselects a compatible included source when available. Images from `boot/` are embedded in the application and checked against fixed SHA-256 values, so installation works without external source files. No CP/M system bytes are generated. An empty/fill-only boot track or identification-header-only source is rejected; matching layout does not certify the source OS version or its bootability. The standalone `CPMv23System_320K.dsk` uses a custom IPL layout and cannot be installed as a CP/M system area in the supported layouts; selecting it explains the incompatibility.
 
 Installation runs on a private buffer. For LEC hidden-track systems, only sector payloads in the system area are replaced; geometry, descriptors, DPB, filesystem and directory/data allocation are retained. Native P-CP/M80 instead installs its IPL and allocates/replaces `PCPM.SYS` as described below. Files are checked after reopening the candidate. Any failure leaves the original document unchanged. Successful installation marks it modified; saving remains a separate action. Analyzer report exports include installer availability.
 
 ### CP/M System Profiles and System Builder backend
 
-The UI-independent System Builder backend registers CP/M 2.3 DD polling, CP/M 4.1 DD/HD IRQ and CP/M 4.2 DD/HD polling using **system-area fingerprints**, not whole-image SHA. A fingerprint includes layout, exact geometry/descriptor signature, full DPB/map signature, canonical system physical tracks and SHA-256 of their exact stored payloads and identities. Adding/removing COM programs or games outside the system area does not change system identification. Reference whole-image SHA is retained only as provenance; complete source/target/result hashes remain in transaction reports. Transfer mode is trusted metadata only for an exact registered system-area match, never inferred from opcode patterns or port `DFh`. All five profiles carry only `StaticValidated`, not emulator/hardware verification. System image files are not bundled with MZTools.
+The UI-independent System Builder backend registers CP/M 2.3 DD polling, CP/M 4.1 DD/HD IRQ and CP/M 4.2 DD/HD polling using **system-area fingerprints**, not whole-image SHA. A fingerprint includes layout, exact geometry/descriptor signature, full DPB/map signature, canonical system physical tracks and SHA-256 of their exact stored payloads and identities. Adding/removing COM programs or games outside the system area does not change system identification. Reference whole-image SHA is retained only as provenance; complete source/target/result hashes remain in transaction reports. Transfer mode is trusted metadata only for an exact registered system-area match, never inferred from opcode patterns or port `DFh`. All five profiles carry only `StaticValidated`, not emulator/hardware verification. The included source catalog also provides native P-CP/M80 (IPL plus PCPM.SYS); it uses the existing file-based installer and preserves other target files.
 
 Fingerprint encoding v1 concatenates each system physical track in ascending order: track index (Int32 little-endian), descriptor count (Int32 little-endian), then descriptors in physical order, each containing C/H/R/N (one byte each), payload length (Int32 little-endian) and exact stored payload bytes. Geometry and DPB are validated separately. Branding is included without normalization; changed branding produces an unregistered source, which may still pass compatibility validation.
 
@@ -686,9 +898,10 @@ The DSK information panel and exported analysis report show **Bootable** and **S
 
 ## File properties
 
-Native properties are displayed and edited directly in the **Files** browser rows, without a separate side panel. Confirm a cell with Enter or leave the cell to apply it; Escape cancels editing. Only consistent, writable CP/M and MRS images expose editable native cells. Values are applied through the validated properties service; typing alone does not change the document. Each edit applies to its row, not to all selected files.
+Native properties are displayed and edited directly in the **Files** browser rows, without a separate side panel. Confirm a cell with Enter or leave the cell to apply it; Escape cancels editing. Consistent, writable FSMZ, CP/M and MRS images expose editable native cells. Values are applied through the validated properties service; typing alone does not change the document. Each edit applies to its row, not to all selected files.
 
 - **CP/M:** User area (decimal 0–15) and clickable RO/SYS/ARC checkboxes. Every extent of the logical file is updated consistently. Checkbox bindings never write directory bytes directly: clicks use the same validated transaction as text properties. Filename, extension, RC, extent numbering, allocation pointers and payload bytes are unchanged. Moving to a user area that already contains the same name/extension is refused before any write. CP/M does not expose LOAD/EXEC because those are not native directory fields.
+- **FSMZ:** file type (excluding reserved 00/80), LOAD, EXEC and clickable locked flag. Native directory fields change transactionally while names, size, allocation and payload remain identical. Addresses/type accept decimal or an explicit `0x` prefix in inline cells.
 - **MRS:** LOAD and EXEC display as `0x0000`–`0xFFFF`. Enter `0x`-prefixed hexadecimal or plain decimal. The existing native little-endian directory fields are at +0x0C and +0x16 respectively. Editing does not change file ID, block count, FAT ownership or payload. CP/M user/attribute fields are not offered for MRS.
 
 Apply works on a private document, reopens and validates the filesystem/DPB and all file payloads, then replaces the original document only on success. The file list and analyzer/map refresh and the edited file is reselected. A no-op does not mark a previously saved image modified. Saving remains a separate operation.
@@ -708,7 +921,7 @@ Analyzer diagnostics are retained, including for recognized read-only filesystem
 ## Physical QuickDisk host identification
 
 `.QD` is not only a SHARP format. MZTools can inspect physical HxC and
-FlashFloppy QuickDisk containers from multiple host systems. The container
+uniform-track QuickDisk containers from multiple host systems. The container
 representation remains separate from content-derived host identification:
 SHARP MZ, Roland, Akai S612/S700 family, Thomson MO5, or unknown physical
 QuickDisk. Device names are probable origins supported by evidence, not
@@ -746,7 +959,7 @@ integration tests use these local files in `specification` (not automatically
 committed): `DSKA0001_Roland.QD`, `DSKA0002_MO5_CQ90-028_formatted.QD`,
 `DSKA0003_Akai_formatted.QD`. The test project copies them into `QDReference`
 when present. Run `dotnet test MZTool.Tests/MZTools.Tests.csproj --filter
-QuickDiskHostDetectionTests`. Equivalent synthetic FlashFloppy wrappers test
+QuickDiskHostDetectionTests`. Equivalent synthetic uniform-track wrappers test
 container-independent detection, not emulator/hardware compatibility.
 
 ## Writable Hex Editor
@@ -786,7 +999,7 @@ Use **Disk ▾ → Compare with...** and select a second DSK. Comparison works o
 
 The table and selected-item details show **Left** and **Right** side by side. In **Physical sectors**, `Stored descriptor length (+6/+7)` explicitly identifies differences in the Extended DSK sector length field, separately from the decoded payload length. Such a difference is selected automatically when the window opens. **Hex diff... → Descriptor / raw directory bytes** shows the exact descriptor bytes; the selected-item summary gives their absolute image offsets. The full diagnostic detail is also available in the summary tooltip.
 
-New Extended DSK images store the actual sector length in every descriptor (for example, `00 01` for 256 bytes). A legacy zero length is reported by Analyzer as `DSK_EXTENDED_ZERO_LENGTH`: MZTools can recover bytes from N for inspection, but FlashFloppy treats the stored zero as no sector data. Opening and ordinary saving preserve existing descriptors; they do not silently repair them. Explicit repaired copies change only zero length fields and do not overwrite their source. This behavior follows [FlashFloppy's Extended DSK reader](https://raw.githubusercontent.com/keirf/flashfloppy/master/src/image/dsk.c). Static validation does not certify hardware boot.
+New Extended DSK images store the actual sector length in every descriptor (for example, `00 01` for 256 bytes). A legacy zero length is reported by Analyzer as `DSK_EXTENDED_ZERO_LENGTH`: MZTools can recover bytes from N for inspection, but the stored zero does not describe those recovered bytes. Opening and ordinary saving preserve existing descriptors; they do not silently repair them. Explicit repaired copies change only zero length fields and do not overwrite their source. Static validation does not certify hardware boot.
 
 ### DSK Patch Format
 
@@ -802,4 +1015,154 @@ The resizable comparison window has three levels and two physical maps. Scrollin
 
 Rows show **same**, **changed**, **only in left**, **only in right** or **unavailable**. Unchanged rows are hidden initially and can be shown. Moving a CP/M file between users is shown as removal/addition in the two namespaces, not heuristically paired. Selecting a row highlights its sector or file blocks in both snapshot maps and the corresponding left-side region in the main Disk Map; right-only items highlight only the right snapshot. Clicking a map sector selects its physical comparison row.
 
-**Hex diff...** is enabled for selections containing bytes. It shows differing relative offsets and left/right values (`--` for an absent byte). For metadata-only changes it defaults to descriptor/raw directory bytes; payload and native structure views can be switched. The UI shows up to 10,000 differing offsets per view, explicitly reporting the complete difference count; all bytes are compared. There is no writable hex or patch application in this phase.
+**Hex diff...** is enabled for selections containing bytes. It shows differing relative offsets and left/right values (`--` for an absent byte). For metadata-only changes it defaults to descriptor/raw directory bytes; payload and native structure views can be switched. The UI shows up to 10,000 differing offsets per view, explicitly reporting the complete difference count; all bytes are compared. Comparison itself is read-only; validated hex editing and patch application are separate workflows described above.
+
+
+## Phase E workflows
+
+Advanced disk actions use **Disk**, **Filesystem**, **Boot / System**, and **Tools**
+dropdowns. Open/Add/Export/Save/Save As/Close remain direct actions. New QD / New
+DSK are shown only in the empty workspace. QD hides disk batch/repair commands;
+the empty workspace restores those commands.
+The physical HFE viewer groups Verify, Compare and conversion under Disk / Tools.
+
+**Filesystem → Copy from another disk** opens a workspace with multiple source
+DSK snapshots and the current disk as target. Select files, choose Skip/Rename/
+Replace/Cancel for collisions, then inspect the preview. FSMZ/CP/M/MRS transfers
+share the existing conversion backend. Preview lists addresses/flags, metadata
+changes/losses, padding, free space and directory capacity. Protected/system
+replacement is refused. Native PCPM.SYS installation remains a Boot / System
+operation with IPL and slot #0 validation. Copy applies only in memory; explicitly
+Save or Save As afterward. Sources remain unchanged.
+
+Drag and drop between tape/QuickDisk workspaces copies selected records through an
+explicit preview, preserving their MZF headers, payloads, trailing data and tape
+profiles. Between FSMZ, CP/M and MRS disk workspaces, it opens a source snapshot
+with collision policy selection and a copy preview including metadata losses.
+Both transfers work between windows and separate MZTools instances; the source
+stays unchanged and the target is changed only in memory after Apply. Reordering
+inside the same tape workspace remains a move. Cross-family tape-to-disk drops
+are rejected; they do not implicitly convert a Sharp program into CP/M COM.
+**New QD… / New DSK…** are shown only in the empty workspace, after **Close**.
+
+In the disk file list, right-click **Copy** and **Paste...** (or Ctrl+C/Ctrl+V)
+copy a selected group through the system clipboard, including between MZTools
+instances. Right-clicking a selected row retains the group. Paste opens the same
+collision/metadata preview as drag and drop; the source remains unchanged.
+
+File context menus also offer Add, Export, Rename and Delete according to the
+current selection and filesystem capabilities. Disk files include File Properties;
+multi IPL rows include Compression settings, and tape/QuickDisk files include
+Hex view. The Disk menu uses the separate Open button rather than repeating Open.
+Right-click Export names the clicked file and exports only that file, retaining
+the selected group. When multiple files are selected, a separate Export selected
+action shows their count and exports the whole group. Export dialog titles also
+identify the file or number of programs being exported.
+
+After disk-to-disk copying, the destination selects the copied files and
+refreshes columns for its filesystem. **Filesystem → File Properties...** edits
+one selected file using the destination's native metadata; metadata losses
+between incompatible filesystems remain listed in the copy preview.
+
+**Filesystem → Attach / Edit CP/M Layout → Profiles…** saves/loads/duplicates/renames/deletes user
+profiles under `%LOCALAPPDATA%/MZTools/Profiles`. Built-in Sharp layouts are
+read-only. Profiles retain description, every DPB field, inversion, physical maps
+and optional exact geometry/descriptor constraints. Load previews allocation and
+attaches interpretation without rewriting the image. The Custom CP/M Layout
+dialog can save the currently entered layout through Profiles.
+
+**Boot / System → Boot / System profiles** references exact saved, identified
+system sources with SHA-256, DPB/geometry, installer storage type and native
+PCPM.SYS/slot constraints. It reuses the System Builder's source registry,
+preflight and post-install validation; no system binaries are embedded in JSON.
+Batch InstallBootSystem accepts a saved boot-profile JSON as its auxiliary source
+as well as a registered DSK. Changed source fingerprints are rejected. Unknown
+systems remain available only through the existing explicitly unverified
+compatible-source builder workflow, not through reusable verified profiles.
+
+**Disk → Verify Image** is read-only and reports SHA-256, container/track/sector
+validation, filesystem/allocation issues and static boot identification. HFE
+reports header/LUT/offset validation, actual decoded CRC results, unknown
+encoding and represented weak-cell metadata. Missing-sector reporting uses the
+observed ID range; it does not guess an unknown track's expected ID set.
+
+**Disk → Normalize Container** is deliberately narrow: preview and canonicalize
+trailing ASCII space/NUL padding in the DSK Creator field only. It preserves
+sector payloads/descriptors, geometry, reserved bytes, track padding and trailing
+preservation data. It never runs during Save. Already canonical images are a
+no-op. Existing explicit repair workflows handle other diagnosed problems.
+
+Compare retains its container/physical/filesystem layers, adds GAP/filler/track
+geometry, boot/system bytes and separate content/metadata/allocation/directory
+ordering indicators. Payload-only sector changes are labeled accurately. HFE
+Compare reports raw container fingerprints and physical cells/timing/weak/index
+properties separately from decoded projections; decoded equality is never
+presented as capture identity.
+
+Operation previews carry before/after SHA-256 and changed ranges. DSK Save writes
+and verifies a temporary file before installing it, leaves document state intact
+on failure, and shows the last saved output SHA-256. No Undo/Redo history is added.
+
+Batch TXT/CSV/JSON exports share the existing BatchRow model, now including the
+shared Error/Unsafe/Warning/Info severity, validation, geometry and detailed
+report. MZF compatibility analysis additionally reports LOAD, EXEC, conversion
+mode, profile and evidence. It is read-only; select AnalyzeMzfCompatibility and
+MZF/M12 files (set the folder extension filter appropriately when scanning).
+
+## MZF and CP/M interoperability
+
+An MZF/M12 is a Sharp tape header plus payload. A native CP/M COM starts in a
+specific CP/M execution environment; a historical MZF runner may instead leave
+or reconfigure that environment, and a launcher-wrapped MZF needs a compatible
+stub/runtime. These are different workflows. Removing a tape header does not
+prove a program is a native COM.
+
+**Tools → MZF/M12 → COM...** provides a single, one-way takeover
+workflow for a single type-1 machine-code program or a validated type-4D executable-header loader (HLIPA). The original header is copied to `10F0`; a supported header entry must be an intact `JP` into the supplied/restored payload. Unknown header code and other file types remain unsupported. CP/M load ceiling
+and native machine state are in **Advanced settings**. Later tape/file loads are not included; this limitation
+is displayed before conversion, without an acknowledgment checkbox. A LOW/HIGH
+placement and overlap analysis rejects unsafe layouts with visible reasons.
+**Export / Save...** writes a separate COM. **Import to current disk** verifies
+insertion into the open writable CP/M image, then applies it in memory; saving
+the disk remains separate. The COM filename is suggested from the decoded MZF
+header name, sanitized and shortened to eight characters with `.COM`. It remains
+editable and supplies the Save dialog's default name too. Import uses user 0.
+Name collisions, unavailable targets and allocation failures show specific reasons;
+existing files are preserved. The main window explains conversion failures in
+plain language, including unsupported file types and extra tape data. **Technical
+details** contains the full report and **Save report...**; import and export do
+not open a second report/confirmation window. The source stays unchanged.
+After takeover CP/M is
+abandoned: **RESET is the exit**, rather than a return to CP/M.
+
+The bootstrap validates the live BDOS vector/load boundary before takeover.
+Named profiles currently use the same C000 ceiling, with a live BDOS boundary
+check; they do not certify the hardware requirements of a game. Native startup
+restores the 8253 timers and PPI interrupt gate and acknowledges pending floppy
+status, rather than inheriting CP/M's peripheral state. Existing recognized
+ZX0/ZX7 self-extracting input is retained by the default Keep source policy.
+Compression uses the same complete panel as MZF export: None (decode recognized
+input), Auto, ZX0/ZX7, forward/backward direction, ZX0 quick and ZX7 embedded
+loader. The expert/partial option remains visible but disabled for standalone
+COM, with an explanation; direct IPL additionally disables embedded loaders.
+In single/multi IPL editor tables, click the compression value to open the full
+panel for the selected program(s), with an asynchronous size preview and an
+activity progress bar. Row settings retain direction and quick mode, including
+when the algorithm stays the same. The COM window also shows progress during
+conversion; editing settings or closing the dialog cancels stale work.
+Reopened multi IPL programs with recognized ZX0/ZX7 loaders can also change
+compression: the original payload is decoded before recompression. Unknown
+stored loaders keep their original bytes and disable compression changes with
+an explanation.
+New compression is round-trip verified before
+loader placement, and executable header bytes must remain intact. Auto selects the smallest COM among safe candidates and tries optimal ZX0 if the quick candidates cannot fit. Original HLIPA needs this stronger compression at the default C000 limit; its supplied ZX0-packed version already fits. Changing
+compression runs in the background and cancels stale previews. Emulator tests verify LOW/HIGH, overlapping
+copies and the MZ-700 font path. Both supplied Flappy versions and Belegost were
+started from P-CP/M80 and CP/M 4.1; extended P-CP/M80 runs cover game startup
+and keyboard input. Full playthrough and real-hardware compatibility remain
+unverified. See
+[the takeover research and validation report](docs/MZF_CPM_NATIVE_TAKEOVER_RESEARCH.md).
+Historical interoperability evidence remains in
+[the earlier research report](docs/MZF_CPM_INTEROP_RESEARCH.md).
+Supported tape playback profiles remain documented in
+[the MFI/M2I/MTI specification, including legacy MZI status](specification/MFI_M2I_MTI_FORMAT.md).

@@ -16,10 +16,18 @@ internal sealed record DskDiffItem(DskDiffLevel Level, string Name, DskDiffState
 {
     public string LeftValue { get; init; } = "absent";
     public string RightValue { get; init; } = "absent";
+    public bool ContentChanged { get; init; }
+    public bool MetadataChanged { get; init; }
+    public bool AllocationChanged { get; init; }
+    public bool DirectoryOrderChanged { get; init; }
     public bool DescriptorLengthChanged => Level == DskDiffLevel.PhysicalSectors && LeftStructure?.Length == 8 && RightStructure?.Length == 8 &&
         (LeftStructure[6] != RightStructure[6] || LeftStructure[7] != RightStructure[7]);
     public string DifferenceKind => DescriptorLengthChanged ? "Stored descriptor length (+6/+7)" :
-        State == DskDiffState.Same ? "Unchanged" : LeftStructure != null || RightStructure != null ? "Payload / metadata" : "Value / raw bytes";
+        State == DskDiffState.Same ? "Unchanged" : Level == DskDiffLevel.PhysicalSectors ?
+        (LeftStructure != null && RightStructure != null && LeftStructure.AsSpan().SequenceEqual(RightStructure) ? "Payload only" :
+        LeftBytes != null && RightBytes != null && LeftBytes.AsSpan().SequenceEqual(RightBytes) ? "Descriptor only" : "Payload / descriptor") :
+        Level == DskDiffLevel.Filesystem && LeftFileKey != null && RightFileKey != null ?
+        string.Join(" / ", new[] { ContentChanged ? "Content" : null, MetadataChanged ? "Metadata" : null, AllocationChanged ? "Allocation / ordering" : null }.Where(s => s != null)) : "Value / raw bytes";
     public string Status => State switch { DskDiffState.OnlyInLeft => "only in left", DskDiffState.OnlyInRight => "only in right", _ => State.ToString().ToLowerInvariant() };
     public bool HasHexDiff => LeftBytes != null || RightBytes != null || LeftStructure != null || RightStructure != null;
 }
@@ -34,11 +42,47 @@ internal sealed record DskComparison(byte[] LeftImage, byte[] RightImage, DskLay
 {
     internal bool Identical => LeftImage.AsSpan().SequenceEqual(RightImage);
     internal string Summary => (Identical ? "Images are byte-identical." : "Images differ.") + "\n" +
-        string.Join(" | ", Enum.GetValues<DskDiffLevel>().Select(level => $"{level}: {Items.Count(i => i.Level == level && i.State is not (DskDiffState.Same or DskDiffState.Unavailable))} differences"));
+        string.Join(" | ", Enum.GetValues<DskDiffLevel>().Select(level => $"{level}: {Items.Count(i => i.Level == level && i.State is not (DskDiffState.Same or DskDiffState.Unavailable))} differences")) +
+        (Items.Any(i => i.Level == DskDiffLevel.Filesystem && i.State == DskDiffState.Unavailable) ? "\nFilesystem semantics unavailable." :
+        $"\nFile contents: {Items.Count(i => i.Level == DskDiffLevel.Filesystem && i.ContentChanged)} changed | File metadata: {Items.Count(i => i.Level == DskDiffLevel.Filesystem && i.MetadataChanged)} changed | Allocation: {Items.Count(i => i.Level == DskDiffLevel.Filesystem && i.AllocationChanged)} changed | Directory ordering: {Items.Count(i => i.Level == DskDiffLevel.Filesystem && i.DirectoryOrderChanged)} changed");
 }
 
 internal static class DskCompareService
 {
+    internal static string CompareMedia(byte[] left, byte[] right)
+    {
+        bool IsHfe(byte[] bytes) => bytes.Length >= 8 && (bytes.AsSpan(0, 8).SequenceEqual("HXCPICFE"u8) || bytes.AsSpan(0, 8).SequenceEqual("HXCHFEV3"u8));
+        bool lh = IsHfe(left), rh = IsHfe(right);
+        string report = $"Container bytes: {(left.AsSpan().SequenceEqual(right) ? "byte-identical" : "differ")}\nLeft SHA-256: {ImageVerificationService.Hash(left)}\nRight SHA-256: {ImageVerificationService.Hash(right)}\n";
+        if (!lh && !rh) return report + Compare(DskDocument.Open(left), DskDocument.Open(right)).Summary;
+        HfeImage? a = lh ? HfeImage.Parse(left) : null, b = rh ? HfeImage.Parse(right) : null;
+        if (a != null && b != null)
+        {
+            int differences = 0;
+            for (int i = 0; i < Math.Max(a.Tracks.Count, b.Tracks.Count); i++)
+            {
+                if (i >= a.Tracks.Count || i >= b.Tracks.Count) { differences++; continue; }
+                var x = a.Tracks[i]; var y = b.Tracks[i];
+                if (x.Cylinder != y.Cylinder || x.Side != y.Side || x.BitCellCount != y.BitCellCount || x.Encoding != y.Encoding ||
+                    x.ContainerEncoding != y.ContainerEncoding || x.BitRate != y.BitRate || x.Rpm != y.Rpm ||
+                    !x.PackedBitCells.AsSpan().SequenceEqual(y.PackedBitCells) || !x.WeakBitMask.AsSpan().SequenceEqual(y.WeakBitMask) ||
+                    !x.Timing.SequenceEqual(y.Timing) || !x.IndexCells.SequenceEqual(y.IndexCells)) differences++;
+            }
+            report += $"Physical tracks (cells/encoding/timing/weak metadata/index): {differences} differing tracks\n";
+        }
+        else report += "Physical capture comparison unavailable across DSK/HFE: DSK does not contain original bitcells/timing.\n";
+        try
+        {
+            var ad = DskDocument.Open(a == null ? left : MediaConversionService.HfeToDsk(a).Output);
+            var bd = DskDocument.Open(b == null ? right : MediaConversionService.HfeToDsk(b).Output);
+            report += "Decoded-sector projection (synthetic container; does not establish physical identity):\n" + Compare(ad, bd).Summary
+                .Replace("Images are byte-identical.", "Decoded projections are byte-identical; physical identity is not implied.", StringComparison.Ordinal)
+                .Replace("Images differ.", "Decoded projections differ.", StringComparison.Ordinal);
+        }
+        catch (Exception e) when (e is InvalidDataException or ArgumentException or InvalidOperationException or OverflowException)
+        { report += "Decoded comparison unavailable: " + e.Message; }
+        return report;
+    }
     internal static IEnumerable<DskByteDifference> ByteDifferences(byte[]? left, byte[]? right)
     {
         int count = Math.Max(left?.Length ?? 0, right?.Length ?? 0);
@@ -54,7 +98,7 @@ internal static class DskCompareService
     {
         // Work exclusively on snapshots, including unsaved edits. Parsing/analysis never touches the originals.
         byte[] leftBytes = leftDocument.Serialize(), rightBytes = rightDocument.Serialize();
-        var left = DskDocument.Open(leftBytes); var right = DskDocument.Open(rightBytes);
+        var left = leftDocument.Clone(); var right = rightDocument.Clone();
         var lm = DskAnalyzer.Analyze(left); var rm = DskAnalyzer.Analyze(right);
         var rows = new List<DskDiffItem>();
         void Value(DskDiffLevel level, string name, string? a, string? b, DskSectorAddress? la = null, DskSectorAddress? ra = null)
@@ -96,6 +140,9 @@ internal static class DskCompareService
                     a?.Data, b?.Data, a == null ? null : new(t, s), b == null ? null : new(t, s), LeftStructure: ad, RightStructure: bd)
                     { LeftValue = Identity(a), RightValue = Identity(b) });
             }
+            Value(DskDiffLevel.PhysicalSectors, $"Track {t}: physical geometry / descriptor order",
+                lt == null ? null : $"C/H={lt.Cylinder}/{lt.Side}; GAP={lt.Gap:X2}; filler={lt.Filler:X2}; default N={lt.DefaultSizeCode}",
+                rt == null ? null : $"C/H={rt.Cylinder}/{rt.Side}; GAP={rt.Gap:X2}; filler={rt.Filler:X2}; default N={rt.DefaultSizeCode}");
         }
         if (left.FileSystem.Type != right.FileSystem.Type || left.FileSystem.Type is DskFileSystemType.Raw or DskFileSystemType.BootOnly || lm.Errors != 0 || rm.Errors != 0)
             rows.Add(new(DskDiffLevel.Filesystem, "Filesystem comparison", DskDiffState.Unavailable,
@@ -107,6 +154,10 @@ internal static class DskCompareService
                 string Key(DskFileEntry e, bool cpm) => (cpm ? $"{e.User}:" : "") + e.Name + (e.Extension.Length == 0 ? "" : "." + e.Extension);
                 var af = left.FileSystem.ReadDirectory().ToDictionary(e => Key(e, left.FileSystem is CpmFileSystem), StringComparer.OrdinalIgnoreCase);
                 var bf = right.FileSystem.ReadDirectory().ToDictionary(e => Key(e, right.FileSystem is CpmFileSystem), StringComparer.OrdinalIgnoreCase);
+                var leftBoot = DskBootInfo.Inspect(left); var rightBoot = DskBootInfo.Inspect(right);
+                Value(DskDiffLevel.Filesystem, "Boot/system identification", leftBoot.System + "; " + leftBoot.Bootable, rightBoot.System + "; " + rightBoot.Bootable);
+                byte[] BootBytes(DskLayoutModel model) => model.Sectors.Where(s => (s.Role & (DskSectorRole.Boot | DskSectorRole.System | DskSectorRole.NativeIpl | DskSectorRole.SystemFile)) != 0).SelectMany(s => s.Data).ToArray();
+                Bytes(DskDiffLevel.Filesystem, "Boot/system bytes", BootBytes(lm), BootBytes(rm));
                 if (left.FileSystem is CpmFileSystem ac && right.FileSystem is CpmFileSystem bc)
                     Value(DskDiffLevel.Filesystem, "CP/M DPB and physical allocation mapping", Dpb(ac.Dpb), Dpb(bc.Dpb));
                 if (left.FileSystem is FsmzFileSystem ax && right.FileSystem is FsmzFileSystem bx)
@@ -124,10 +175,13 @@ internal static class DskCompareService
                     string? metadataA = a == null ? null : Metadata(left.FileSystem, a), metadataB = b == null ? null : Metadata(right.FileSystem, b);
                     string? allocationA = a == null ? null : Allocation(left.FileSystem, a, lm), allocationB = b == null ? null : Allocation(right.FileSystem, b, rm);
                     bool data = !Equal(dataA, dataB), metadata = metadataA != metadataB, allocation = allocationA != allocationB;
+                    string? Slots(IDskFileSystem fs, DskFileEntry? file) => file == null ? null : fs is CpmFileSystem c ? string.Join(",", c.DirectoryEntriesFor(file).Select(p => p.Index)) : file.Key;
+                    bool ordering = Slots(left.FileSystem, a) != Slots(right.FileSystem, b);
                     rows.Add(new(DskDiffLevel.Filesystem, key, a == null ? DskDiffState.OnlyInRight : b == null ? DskDiffState.OnlyInLeft : data || metadata || allocation ? DskDiffState.Changed : DskDiffState.Same,
-                        $"Content changed: {data}\nMetadata changed: {metadata}\nAllocation changed: {allocation}\n\nLeft metadata: {metadataA ?? "absent"}\nRight metadata: {metadataB ?? "absent"}\n\nLeft allocation: {allocationA ?? "absent"}\nRight allocation: {allocationB ?? "absent"}\n\nCP/M user is part of file identity; a user-area move is shown as only-left / only-right, without guessing file correspondence.",
+                        $"Content changed: {data}\nMetadata changed: {metadata}\nAllocation changed: {allocation}\nDirectory ordering changed: {ordering}\n\nLeft metadata: {metadataA ?? "absent"}\nRight metadata: {metadataB ?? "absent"}\n\nLeft allocation: {allocationA ?? "absent"}\nRight allocation: {allocationB ?? "absent"}\n\nCP/M user is part of file identity; a user-area move is shown as only-left / only-right, without guessing file correspondence.",
                         dataA, dataB, FileAddress(lm, a), FileAddress(rm, b), a?.Key, b?.Key, nativeA, nativeB)
-                        { LeftValue = (metadataA ?? "absent") + "\nAllocation: " + (allocationA ?? "absent"),
+                        { ContentChanged = data, MetadataChanged = metadata, AllocationChanged = allocation, DirectoryOrderChanged = ordering,
+                          LeftValue = (metadataA ?? "absent") + "\nAllocation: " + (allocationA ?? "absent"),
                           RightValue = (metadataB ?? "absent") + "\nAllocation: " + (allocationB ?? "absent") });
                 }
             }

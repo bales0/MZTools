@@ -13,6 +13,8 @@ internal sealed class DskFilePropertiesDialog : Window
     private readonly CheckBox archived = new() { Content = "Archived (ARC)" };
     private readonly TextBox load = new() { MinWidth = 120 };
     private readonly TextBox execute = new() { MinWidth = 120 };
+    private readonly TextBox fileType = new() { MinWidth = 120 };
+    private readonly CheckBox locked = new() { Content = "Locked" };
     private readonly TextBlock error = new() { Foreground = System.Windows.Media.Brushes.Firebrick, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 10, 0, 0) };
     private readonly DskFilePropertyKind kind;
     private readonly DskFileEntry entry;
@@ -43,7 +45,12 @@ internal sealed class DskFilePropertiesDialog : Window
         else
         {
             Row("LOAD (hex 0000–FFFF):", load); Row("EXEC (hex 0000–FFFF):", execute);
-            panel.Children.Add(new TextBlock { Text = "Native MRS directory fields: LOAD at +0x0C, EXEC at +0x16 (little-endian). File ID, block count, FAT and payload remain unchanged.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 12, 0, 0) });
+            if (kind == DskFilePropertyKind.Fsmz)
+            {
+                fileType.Text = entry.FileType.ToString("X2"); locked.IsChecked = entry.Locked;
+                Row("File type (hex):", fileType); Row("", locked);
+            }
+            panel.Children.Add(new TextBlock { Text = "Metadata is changed transactionally. File payloads and allocation remain unchanged.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 12, 0, 0) });
         }
         panel.Children.Add(error);
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 14, 0, 0) };
@@ -68,7 +75,9 @@ internal sealed class DskFilePropertiesDialog : Window
                 throw new ArgumentException("LOAD/EXEC must be hexadecimal addresses from 0000 to FFFF.");
             return address;
         }
-        return initial with { Load = Hex(load.Text), Execute = Hex(execute.Text) };
+        return initial with { Load = Hex(load.Text), Execute = Hex(execute.Text),
+            FileType = kind == DskFilePropertyKind.Fsmz ? checked((byte)Hex(fileType.Text)) : initial.FileType,
+            Locked = kind == DskFilePropertyKind.Fsmz ? locked.IsChecked == true : initial.Locked };
     }
 
     private void Apply_Click(object sender, RoutedEventArgs e)

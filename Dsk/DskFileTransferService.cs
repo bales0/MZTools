@@ -89,12 +89,7 @@ internal static class DskFileTransferService
             foreach (var warning in DskAnalyzer.Analyze(source).Issues.Where(i => i.Severity == DskIssueSeverity.Warning))
                 changes.Add($"Source warning {warning.Code}: {warning.Description} (conversion copies captured payloads, not a verified recovery).");
             var entries = source.FileSystem.ReadDirectory(); total = entries.Count;
-            var files = entries.Select(e => new DskTransferFile(e.Name, e.Extension, source.FileSystem.Extract(e),
-                source.FileSystem is FsmzFileSystem ? e.FileType : null,
-                source.FileSystem is CpmFileSystem ? null : e.LoadAddress,
-                source.FileSystem is CpmFileSystem ? null : e.ExecuteAddress,
-                e.User, e.ReadOnly, e.System, e.Archived, e.Locked,
-                source.FileSystem is FsmzFileSystem fs ? fs.DirectoryMetadata(e) : null)).ToArray();
+            var files = entries.Select(e => Capture(source.FileSystem, e)).ToArray();
             DskDocument target;
             if (profile.Mode == DskConversionMode.DirectoryConversion)
             {
@@ -136,18 +131,9 @@ internal static class DskFileTransferService
                     AddMetadataChanges(source.FileSystem, target.FileSystem, file, name, changes);
                     // Each attempted insertion uses its own candidate: failed allocation never contaminates the dry run.
                     var candidate = DskDocument.Open(target.Image.Serialize());
-                    candidate.FileSystem.Insert(name, file.Data, file.FileType ?? 1,
-                        file.LoadAddress ?? 0, file.ExecuteAddress ?? 0, source.FileSystem is CpmFileSystem && candidate.FileSystem is CpmFileSystem ? file.User : 0);
-                    var inserted = candidate.FileSystem.ReadDirectory().Last(e =>
-                        (e.Name + (e.Extension.Length == 0 ? "" : "." + e.Extension)).Equals(name, StringComparison.OrdinalIgnoreCase) &&
-                        (candidate.FileSystem is not CpmFileSystem || e.User == (source.FileSystem is CpmFileSystem ? file.User : 0)));
-                    if (candidate.FileSystem is CpmFileSystem destCpm && source.FileSystem is CpmFileSystem)
-                        destCpm.SetAttributes(inserted, file.ReadOnly, file.System, file.Archived);
-                    if (candidate.FileSystem is FsmzFileSystem destFsmz && source.FileSystem is FsmzFileSystem)
-                    {
-                        if (profile.Mode == DskConversionMode.DirectoryConversion) destFsmz.RestoreDirectoryMetadata(inserted, file.OriginalMetadata!);
-                        else destFsmz.SetLocked(inserted, file.Locked);
-                    }
+                    var inserted = InsertCaptured(candidate.FileSystem, source.FileSystem, file, name);
+                    if (candidate.FileSystem is FsmzFileSystem destFsmz && source.FileSystem is FsmzFileSystem && profile.Mode == DskConversionMode.DirectoryConversion)
+                        destFsmz.RestoreDirectoryMetadata(inserted, file.OriginalMetadata!);
                     var extracted = candidate.FileSystem.Extract(inserted);
                     if (extracted.Length < file.Data.Length || !extracted.AsSpan(0, file.Data.Length).SequenceEqual(file.Data))
                         throw new InvalidDataException("Target cannot preserve the source payload bytes.");
@@ -171,7 +157,7 @@ internal static class DskFileTransferService
         { issues.Add(ex.Message); return Result(); }
     }
 
-    private static void ValidateName(string name, IDskFileSystem target)
+    internal static void ValidateName(string name, IDskFileSystem target)
     {
         if (string.IsNullOrWhiteSpace(name) || name.Any(c => c < 32 || c > 126 || "\\/:*?\"<>|".Contains(c)))
             throw new InvalidDataException("Filename contains unsupported characters; no automatic renaming is performed.");
@@ -193,7 +179,7 @@ internal static class DskFileTransferService
         }
     }
 
-    private static void AddMetadataChanges(IDskFileSystem source, IDskFileSystem target, DskTransferFile file, string name, List<string> changes)
+    internal static void AddMetadataChanges(IDskFileSystem source, IDskFileSystem target, DskTransferFile file, string name, List<string> changes)
     {
         if (source is CpmFileSystem && target is not CpmFileSystem)
             changes.Add($"{name}: loses CP/M user area ({file.User}), RO/SYS/ARC and extent/allocation metadata.");
@@ -209,5 +195,21 @@ internal static class DskFileTransferService
             changes.Add($"{name}: user area and RO/SYS/ARC retained; extent/allocation layout is rebuilt.");
         if (target is not FsmzFileSystem && name != name.ToUpperInvariant())
             changes.Add($"{name}: target filename is normalized to uppercase ({name.ToUpperInvariant()}).");
+    }
+    internal static DskTransferFile Capture(IDskFileSystem fs, DskFileEntry e) => new(e.Name, e.Extension, fs.Extract(e),
+        fs is FsmzFileSystem ? e.FileType : null, fs is CpmFileSystem ? null : e.LoadAddress,
+        fs is CpmFileSystem ? null : e.ExecuteAddress, e.User, e.ReadOnly, e.System, e.Archived, e.Locked,
+        fs is FsmzFileSystem f ? f.DirectoryMetadata(e) : null);
+
+    internal static DskFileEntry InsertCaptured(IDskFileSystem target, IDskFileSystem source, DskTransferFile file, string name)
+    {
+        int user = source is CpmFileSystem && target is CpmFileSystem ? file.User : 0;
+        target.Insert(name, file.Data, file.FileType ?? 1, file.LoadAddress ?? 0, file.ExecuteAddress ?? 0, user);
+        var inserted = target.ReadDirectory().Single(e =>
+            (e.Name + (e.Extension.Length == 0 ? "" : "." + e.Extension)).Equals(name, StringComparison.OrdinalIgnoreCase) &&
+            (target is not CpmFileSystem || e.User == user));
+        if (target is CpmFileSystem c && source is CpmFileSystem) c.SetAttributes(inserted, file.ReadOnly, file.System, file.Archived);
+        if (target is FsmzFileSystem f && source is FsmzFileSystem) f.SetLocked(inserted, file.Locked);
+        return inserted;
     }
 }

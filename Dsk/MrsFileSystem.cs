@@ -170,6 +170,20 @@ namespace MZTools
         }
 
         internal byte[] DirectoryMetadata(DskFileEntry entry) => directory.AsSpan(int.Parse(entry.Key) * 32, 32).ToArray();
+        internal void SetBlockCount(DskFileEntry entry, ushort blocks)
+        {
+            BinaryPrimitives.WriteUInt16LittleEndian(directory.AsSpan(int.Parse(entry.Key) * 32 + 14, 2), blocks);
+            FlushDirectory();
+        }
+        internal void RestoreDefragmentedMetadata(IReadOnlyList<(DskFileEntry Target, byte[] Original)> files)
+        {
+            var ids = files.ToDictionary(p => checked((byte)p.Target.StartBlock), p => p.Original[11]);
+            if (ids.Values.Distinct().Count() != ids.Count) throw new InvalidDataException("MRS source file IDs are not unique.");
+            for (int b = dataBlock; b < Math.Min(totalBlocks, fat.Length); b++)
+                if (ids.TryGetValue(fat[b], out byte id)) fat[b] = id;
+            foreach (var p in files) p.Original.CopyTo(directory, int.Parse(p.Target.Key) * 32);
+            Flush();
+        }
         internal byte[] AllocationSnapshot() => (byte[])fat.Clone();
         internal byte[] DirectorySnapshot() => (byte[])directory.Clone();
         internal int FatSectorCount => fatSectors;

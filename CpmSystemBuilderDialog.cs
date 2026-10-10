@@ -1,5 +1,6 @@
 using Microsoft.Win32;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -10,6 +11,10 @@ internal sealed class CpmSystemBuilderDialog : Window
 {
     private readonly DskDocument target;
     private readonly TextBox sourcePath = new() { IsReadOnly = true, MinWidth = 430 };
+    private const string ExternalImage = "External image...";
+    private readonly ComboBox bundledSources = new() { ItemsSource = new List<object>(BundledBootSystems.All) { ExternalImage }, MinWidth = 300, Margin = new Thickness(0, 0, 0, 6) };
+    private readonly DockPanel sourceRow = new() { Visibility = Visibility.Collapsed };
+    private bool loadingBundled;
     private readonly TextBlock profileText = new() { TextWrapping = TextWrapping.Wrap };
     private readonly TextBox report = new() { IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.NoWrap,
         VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
@@ -42,7 +47,8 @@ internal sealed class CpmSystemBuilderDialog : Window
         root.Children.Add(targetPanel);
 
         var sourcePanel = Section("System source");
-        var sourceRow = new DockPanel();
+        sourcePanel.Children.Add(new TextBlock { Text = "Boot/system image:", Margin = new Thickness(0, 0, 0, 4) });
+        sourcePanel.Children.Add(bundledSources);
         var browse = new Button { Content = "Browse...", MinWidth = 85, Margin = new Thickness(8, 0, 0, 0) };
         DockPanel.SetDock(browse, Dock.Right); sourceRow.Children.Add(browse); sourceRow.Children.Add(sourcePath);
         sourcePanel.Children.Add(sourceRow);
@@ -70,14 +76,28 @@ internal sealed class CpmSystemBuilderDialog : Window
         Grid.SetRow(buttons, 4); root.Children.Add(buttons);
 
         browse.Click += Browse_Click;
+        bundledSources.SelectionChanged += (_, _) =>
+        {
+            if (loadingBundled) return;
+            if (bundledSources.SelectedItem is BundledBootSystem selected) LoadBundledSource(selected);
+            else
+            {
+                sourceRow.Visibility = Visibility.Visible;
+                ResetSource(string.Empty);
+                profileText.Text = "Choose an external CP/M system image.";
+                report.Text = "Use Browse to select a source DSK with the same layout as the target disk.";
+            }
+        };
         install.Click += Install_Click;
         copyReport.Click += (_, _) => CopyCurrentReport();
         saveReport.Click += (_, _) => SaveCurrentReport();
         close.Click += (_, _) => Close();
-        report.Text = "Browse for a trusted CP/M source. Registered system areas are identified automatically; compatible unknown systems remain unverified. No system bytes are generated or guessed.";
+        report.Text = "Choose an included system image or browse for your own CP/M source. Only compatible boot/system data is installed; your files are preserved. Save the disk afterwards.";
+        bundledSources.SelectedItem = (object?)BundledBootSystems.Recommended(target) ?? ExternalImage;
     }
 
     internal bool Installed { get; private set; }
+    internal void LoadProfileSource(DskDocument value) => LoadSource(value, CpmSystemProfileRegistry.TryResolveVerifiedSource, value.FilePath ?? "profile source");
     internal bool CanInstall => install.IsEnabled;
     internal string ReportText => report.Text;
     internal string IdentificationText => profileText.Text;
@@ -92,6 +112,26 @@ internal sealed class CpmSystemBuilderDialog : Window
         catch (Exception exception) { RejectSource(picker.FileName, exception.Message); }
     }
 
+    internal void LoadBundledSource(BundledBootSystem selected)
+    {
+        loadingBundled = true;
+        bundledSources.SelectedItem = selected;
+        sourceRow.Visibility = Visibility.Collapsed;
+        string label = selected.DisplayName;
+        try
+        {
+            var value = selected.Open();
+            if (value.FileSystem is not CpmFileSystem)
+            {
+                RejectSource(label, "This is a standalone IPL image with a custom layout, not a CP/M system-area source for the current disk. Open the included original image separately; it cannot be installed into this disk layout.");
+                return;
+            }
+            LoadSource(value, CpmSystemProfileRegistry.TryResolveVerifiedSource, label);
+        }
+        catch (Exception exception) { RejectSource(label, exception.Message); }
+        finally { loadingBundled = false; sourcePath.Clear(); }
+    }
+
     internal void SetSourceForTesting(DskDocument value, CpmSystemProfile valueProfile, string displayPath = "test.dsk")
         => LoadSource(value, _ => valueProfile, displayPath);
 
@@ -102,6 +142,7 @@ internal sealed class CpmSystemBuilderDialog : Window
 
     internal void LoadSource(DskDocument value, Func<DskDocument, CpmSystemProfile?>? resolver = null, string displayPath = "source.dsk")
     {
+        if (!loadingBundled) bundledSources.SelectedItem = ExternalImage;
         ResetSource(displayPath);
         try
         {
@@ -143,6 +184,7 @@ internal sealed class CpmSystemBuilderDialog : Window
 
     internal void RejectSource(string path, string reason)
     {
+        if (!loadingBundled) bundledSources.SelectedItem = ExternalImage;
         ResetSource(path); profileText.Text = "Source rejected."; report.Text = "Install rejected:\n- " + reason;
     }
 

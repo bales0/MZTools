@@ -1,10 +1,10 @@
-# Opravené Extended DSK obrazy — 2026-10-06
+﻿# Opravené Extended DSK obrazy — 2026-10-06
 
 Kopie vznikly z místních souborů `MZTool.Tests/DSK`, nikoli z nedostupného disku `E:`. Původní soubory nebyly změněny; jejich SHA-256 byl před a po vytvoření kopií ověřen.
 
 Oprava doplňuje pouze uloženou délku sektoru na offsetech +6/+7 jeho osmibajtového descriptoru. Všechna ostatní data, včetně IPL, systémových souborů, adresáře, pořadí sektorů a výplní, jsou bajtově shodná. U čtyř IPL obrazů bylo ověřeno 1280 sektorů a změněno 1280 bajtů; u CPM80 648 sektorů a 648 bajtů. Všechny délky nyní odpovídají skutečné délce payloadu.
 
-FlashFloppy u Extended DSK používá uloženou délku a nulu interpretuje jako nepřítomná data: [oficiální zdroj dsk.c](https://raw.githubusercontent.com/keirf/flashfloppy/master/src/image/dsk.c). MZTools dříve při čtení používal náhradní délku podle N, takže mohl obsah zobrazit i z vadného obrazu.
+Extended DSK obsahuje explicitní uloženou délku sektoru. MZTools dříve při čtení používal náhradní délku podle N, takže mohl obsah zobrazit i z vadného obrazu.
 
 | Kopie | SHA-256 |
 | --- | --- |
@@ -16,4 +16,4 @@ FlashFloppy u Extended DSK používá uloženou délku a nulu interpretuje jako 
 
 V Compare Disk otevři původní a opravenou kopii. Karta **Physical sectors** nyní automaticky vybere změnu **Stored descriptor length (+6/+7)** a ukáže hodnoty vlevo/vpravo. **Hex diff → Descriptor / raw directory bytes** ukazuje konkrétní změněné bajty. Analyzer původního souboru hlásí **DSK_EXTENDED_ZERO_LENGTH**; opravená kopie tuto diagnostiku nemá. Běžné otevření/uložení starého obrazu jeho descriptory automaticky neopravuje.
 
-Statické kontroly nepotvrzují boot na hardwaru. Tyto kopie je ještě nutné vyzkoušet na skutečném MZ + SFD800 + FlashFloppy, zejména CPM80 s přemístěnou alokací systémového souboru.
+Statické kontroly nepotvrzují boot na hardwaru. Tyto kopie je ještě nutné vyzkoušet na skutečném MZ + SFD800, zejména CPM80 s přemístěnou alokací systémového souboru.

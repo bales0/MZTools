@@ -1,0 +1,76 @@
+[
+  {
+    "file": "Hlipa.mzf",
+    "name": "HLIPA",
+    "size": 48408,
+    "sha256": "C45D91E48127DAA17F747B56D7B67F2218C59A016E8CC61EDD491FA3D4ED9159",
+    "original_exec": 4460,
+    "original_payload_and_header_verified": true,
+    "registers": {
+      "AF": 2064,
+      "BC": 65288,
+      "DE": 0,
+      "HL": 65065,
+      "AF_": 57672,
+      "BC_": 64000,
+      "DE_": 0,
+      "HL_": 65081,
+      "IX": 36073,
+      "IY": 1509,
+      "SP": 6956,
+      "PC": 1231,
+      "WZ": 1490,
+      "IR": 332
+    },
+    "gameplay_reached": true,
+    "setup_input": "H; time 1200; A; alarm 1230; A; default controls A; joystick N"
+  },
+  {
+    "file": "compress_zx0_HLIPA.mzf",
+    "name": "HLIPAZ",
+    "size": 48408,
+    "sha256": "C45D91E48127DAA17F747B56D7B67F2218C59A016E8CC61EDD491FA3D4ED9159",
+    "original_exec": 4460,
+    "original_payload_and_header_verified": false,
+    "registers": {
+      "AF": 2314,
+      "BC": 65288,
+      "DE": 0,
+      "HL": 65063,
+      "AF_": 57672,
+      "BC_": 64000,
+      "DE_": 0,
+      "HL_": 65081,
+      "IX": 36073,
+      "IY": 1509,
+      "SP": 6956,
+      "PC": 1219,
+      "WZ": 1219,
+      "IR": 349
+    }
+  },
+  {
+    "file": "Hlipa2.mzf",
+    "name": "HLIPA2",
+    "size": 31945,
+    "sha256": "46D2C6D7DD2DF3FB7472770E574540E0C93FC4078FCE3854DD250825F0E13F14",
+    "original_exec": 51712,
+    "original_payload_and_header_verified": false,
+    "registers": {
+      "AF": 2314,
+      "BC": 65288,
+      "DE": 0,
+      "HL": 65063,
+      "AF_": 57672,
+      "BC_": 64000,
+      "DE_": 0,
+      "HL_": 65081,
+      "IX": 36073,
+      "IY": 1509,
+      "SP": 6956,
+      "PC": 1219,
+      "WZ": 1219,
+      "IR": 342
+    }
+  }
+]

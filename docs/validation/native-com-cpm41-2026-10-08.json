@@ -1,0 +1,37 @@
+{
+  "reference_disk": "AFTER-2_bootable_41IRQ.dsk",
+  "page0": "c303ea0000c306dcceafd3f03e10d3f0",
+  "bdos_entry": 56326,
+  "com": "low.com",
+  "typed": {
+    "keys_sent": 6,
+    "keys_landed": 6,
+    "total_frames": 6,
+    "encoding": "ascii",
+    "landing_verified": true
+  },
+  "run": {
+    "running": false,
+    "actual_frames": 16,
+    "requested_frames": 80,
+    "stopped_by": "breakpoint",
+    "complete": false
+  },
+  "registers": {
+    "AF": 320,
+    "BC": 0,
+    "DE": 8256,
+    "HL": 4672,
+    "AF_": 0,
+    "BC_": 0,
+    "DE_": 1024,
+    "HL_": 5632,
+    "IX": 0,
+    "IY": 0,
+    "SP": 4336,
+    "PC": 8192,
+    "WZ": 8192,
+    "IR": 62228
+  },
+  "verified": "full payload equals original at EXEC after actual CCP command"
+}

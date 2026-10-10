@@ -21,6 +21,19 @@ MZTool.Tests/*
 !MZTool.Tests/DskFilePropertyTests.cs
 !MZTool.Tests/DskPatchTests.cs
 !MZTool.Tests/QuickDiskHostDetectionTests.cs
+!MZTool.Tests/CustomCpmLayoutTests.cs
+!MZTool.Tests/DskPhysicalRepairTests.cs
+!MZTool.Tests/DskDefragmentTests.cs
+!MZTool.Tests/HfeTests.cs
+!MZTool.Tests/BatchProcessTests.cs
+!MZTool.Tests/BootstrapRawRangeTests.cs
+!MZTool.Tests/M12SidecarTests.cs
+!MZTool.Tests/TapeTestData.cs
+!MZTool.Tests/PhaseEWorkflowTests.cs
+!MZTool.Tests/WorkspaceDragTransferTests.cs
+!MZTool.Tests/NativeComTests.cs
+!MZTool.Tests/CompressionWorkflowTests.cs
+!MZTool.Tests/BundledBootSystemTests.cs
 # /build/
 
 # User-specific files (MonoDevelop/Xamarin Studio)

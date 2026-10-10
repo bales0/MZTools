@@ -1,8 +1,8 @@
-<UserControl x:Class="MZTools.DskEditorControl"
+﻿<UserControl x:Class="MZTools.DskEditorControl"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:MZTools"
-        AllowDrop="True" Drop="Control_Drop">
+        AllowDrop="True" DragOver="Control_DragOver" Drop="Control_Drop">
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -13,28 +13,49 @@
         <Border Grid.Row="0" Padding="8" Margin="0,0,0,8"
                 BorderBrush="LightGray" BorderThickness="1" CornerRadius="3">
         <WrapPanel>
-            <Button x:Name="diskMenuButton" Content="Disk &#x25BE;" Style="{StaticResource TopToolbarButton}" Click="DiskMenu_Click"
-                    ToolTip="Disk operations: conversion, boot/system installation, read-only compare and filesystem structures">
-                <Button.ContextMenu>
-                    <ContextMenu>
-                        <MenuItem x:Name="convertFormatMenu" Header="Convert Format..." IsEnabled="False"
-                                  ToolTipService.ShowOnDisabled="True" Click="ConvertFormat_Click"/>
-                        <MenuItem x:Name="installBootSystemMenu" Header="Make Bootable / Install CP/M System..." IsEnabled="False"
-                                  ToolTipService.ShowOnDisabled="True" Click="InstallBootSystem_Click"/>
-                        <MenuItem x:Name="compareDiskMenu" Header="Compare with..." IsEnabled="False" Click="CompareDisk_Click"/>
-                        <MenuItem x:Name="structureInspectorMenu" Header="Filesystem Structure Inspector..." IsEnabled="False" Click="StructureInspector_Click"/>
-                    </ContextMenu>
-                </Button.ContextMenu>
+            <Button x:Name="diskMenuButton" Content="Disk &#x25BE;" Style="{StaticResource TopToolbarButton}" Click="DiskMenu_Click">
+                <Button.ContextMenu><ContextMenu>
+                    <MenuItem x:Name="convertFormatMenu" Header="Convert Format..." IsEnabled="False" Click="ConvertFormat_Click"/>
+                    <MenuItem x:Name="verifyImageMenu" Header="Verify Image..." Click="VerifyImage_Click"/>
+                    <MenuItem x:Name="normalizeContainerMenu" Header="Normalize Container..." Click="NormalizeContainer_Click"/>
+                    <MenuItem x:Name="compareDiskMenu" Header="Compare with..." IsEnabled="False" Click="CompareDisk_Click"/>
+                    <MenuItem Header="Batch Process..." Click="BatchProcess_Click"/>
+                    <MenuItem Header="Inspect / Repair DSK Container..." Click="RepairContainer_Click"/>
+                </ContextMenu></Button.ContextMenu>
+            </Button>
+            <Button Content="Filesystem &#x25BE;" Style="{StaticResource TopToolbarButton}" Click="DiskMenu_Click">
+                <Button.ContextMenu><ContextMenu>
+                    <MenuItem x:Name="crossDiskCopyMenu" Header="Copy from another disk..." Click="CrossDiskCopy_Click"/>
+                    <MenuItem x:Name="filePropertiesMenu" Header="File Properties..." IsEnabled="False" Click="FileProperties_Click"/>
+                    <MenuItem x:Name="structureInspectorMenu" Header="Structure Inspector..." IsEnabled="False" Click="StructureInspector_Click"/>
+                    <MenuItem x:Name="cpmLayoutMenu" Header="Attach / Edit CP/M Layout..." IsEnabled="False" Click="CpmLayout_Click"/>
+                    <MenuItem x:Name="defragmentMenu" Header="Defragment..." IsEnabled="False" Click="Defragment_Click"/>
+                    <MenuItem x:Name="filesystemRepairMenu" Header="Guided Repair..." IsEnabled="False" Click="RepairFilesystem_Click"/>
+                </ContextMenu></Button.ContextMenu>
+            </Button>
+            <Button Content="Boot / System &#x25BE;" Style="{StaticResource TopToolbarButton}" Click="DiskMenu_Click">
+                <Button.ContextMenu><ContextMenu>
+                    <MenuItem x:Name="bootstrapMenu" Header="Bootstrap / IPLPRO..." IsEnabled="False" Click="Bootstrap_Click"/>
+                    <MenuItem x:Name="installBootSystemMenu" Header="Make Bootable / Install CP/M System..." IsEnabled="False" Click="InstallBootSystem_Click"/>
+                    <MenuItem x:Name="bootProfilesMenu" Header="Boot / System profiles..." Click="BootProfiles_Click"/>
+                </ContextMenu></Button.ContextMenu>
+            </Button>
+            <Button Content="Tools &#x25BE;" Style="{StaticResource TopToolbarButton}" Click="DiskMenu_Click">
+                <Button.ContextMenu><ContextMenu>
+                    <MenuItem Header="Hex view..." Click="Hex_Click"/>
+                    <MenuItem x:Name="physicalPropertiesMenu" Header="Physical Properties..." IsEnabled="False" Click="PhysicalProperties_Click"/>
+                    <MenuItem x:Name="rawRangeMenu" Header="Export / Import Selected Sectors..." IsEnabled="False" Click="RawRange_Click"/>
+                    <MenuItem Header="MZF/M12 → COM..." Click="NativeCom_Click"/>
+                </ContextMenu></Button.ContextMenu>
             </Button>
             <Button Content="Open..." Click="Open_Click" Style="{StaticResource TopToolbarButton}"/>
             <Button x:Name="dskAddButton" Content="Add..." Click="Add_Click" Style="{StaticResource TopToolbarButton}"/>
             <Button Content="Export..." Click="Export_Click" Style="{StaticResource TopToolbarButton}"/>
-            <Button Content="Hex view" Click="Hex_Click" Style="{StaticResource TopToolbarButton}"/>
             <Button x:Name="dskDeleteButton" Content="Delete" Click="Delete_Click" Style="{StaticResource TopToolbarButton}"/>
             <Button x:Name="dskSaveButton" Content="Save" Click="Save_Click" Style="{StaticResource TopToolbarButton}"/>
             <Button x:Name="dskSaveAsButton" Content="Save As..." Click="SaveAs_Click" Style="{StaticResource TopToolbarButton}"/>
             <Button Content="Close" Click="Close_Click" Style="{StaticResource TopToolbarButton}"/>
-            <Grid x:Name="dskMoveButtons" Width="94" Margin="0,0,6,0" IsEnabled="False">
+            <Grid x:Name="dskMoveButtons" Width="94" Margin="0,0,6,0" IsEnabled="False" Visibility="Collapsed">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="6"/>
@@ -43,9 +64,6 @@
                 <Button FontFamily="Segoe UI" Content="&#x2191;" Height="28" ToolTip="Move selected programs up" Click="MoveUp_Click"/>
                 <Button Grid.Column="2" FontFamily="Segoe UI" Content="&#x2193;" Height="28" ToolTip="Move selected programs down" Click="MoveDown_Click"/>
             </Grid>
-            <Border Style="{StaticResource TopToolbarSeparator}"/>
-            <Button Content="New QD..." Click="NewQuickDisk_Click" Style="{StaticResource TopToolbarButton}"/>
-            <Button Content="New DSK..." Click="NewDsk_Click" Style="{StaticResource TopToolbarButton}"/>
             <CheckBox x:Name="dskShowSectorsCheckBox" Content="Show raw sectors" Margin="18,6,0,0"
                       VerticalAlignment="Center" Visibility="Collapsed" Checked="ShowSectors_Changed" Unchecked="ShowSectors_Changed"/>
         </WrapPanel>
@@ -56,13 +74,41 @@
                   SelectionMode="Extended" SelectionUnit="FullRow" CanUserAddRows="False"
                   BeginningEdit="DirectoryGrid_BeginningEdit" CellEditEnding="DirectoryGrid_CellEditEnding"
                   PreviewMouseLeftButtonDown="DirectoryGrid_PropertyMouseDown"
-                  PreviewKeyDown="DirectoryGrid_PreviewKeyDown" SelectionChanged="Files_SelectionChanged"/>
+                  PreviewMouseMove="DirectoryGrid_PreviewMouseMove"
+                  PreviewMouseRightButtonDown="DirectoryGrid_PreviewMouseRightButtonDown"
+                  ContextMenuOpening="DirectoryGrid_ContextMenuOpening"
+                  PreviewKeyDown="DirectoryGrid_PreviewKeyDown" SelectionChanged="Files_SelectionChanged">
+            <DataGrid.ContextMenu>
+                <ContextMenu>
+                    <MenuItem x:Name="copyFilesMenu" Header="Copy" InputGestureText="Ctrl+C" Click="CopyFiles_Click"/>
+                    <MenuItem x:Name="pasteFilesMenu" Header="Paste..." InputGestureText="Ctrl+V" Click="PasteFiles_Click"/>
+                    <Separator/>
+                    <MenuItem x:Name="contextAddMenu" Header="Add..." Click="Add_Click"/>
+                    <MenuItem x:Name="contextExportMenu" Header="Export..." Click="ContextExport_Click"/>
+                    <MenuItem x:Name="contextExportSelectedMenu" Header="Export selected..." Click="Export_Click"/>
+                    <MenuItem x:Name="contextRenameMenu" Header="Rename" Click="RenameSelected_Click"/>
+                    <MenuItem x:Name="contextDeleteMenu" Header="Delete" Click="Delete_Click"/>
+                    <Separator/>
+                    <MenuItem x:Name="contextPropertiesMenu" Header="File Properties..." Click="FileProperties_Click"/>
+                </ContextMenu>
+            </DataGrid.ContextMenu>
+        </DataGrid>
         <DataGrid x:Name="multiIplGrid" AutoGenerateColumns="False" Visibility="Collapsed"
                   SelectionMode="Extended" SelectionUnit="FullRow" CanUserAddRows="False" CanUserDeleteRows="False"
                   SelectionChanged="MultiIplGrid_SelectionChanged" AllowDrop="True"
+                  PreviewMouseRightButtonDown="MultiIplGrid_PreviewMouseRightButtonDown"
+                  ContextMenuOpening="MultiIplGrid_ContextMenuOpening"
                   PreviewMouseLeftButtonDown="MultiIplGrid_PreviewMouseLeftButtonDown"
                   PreviewMouseMove="MultiIplGrid_PreviewMouseMove"
                   DragOver="MultiIplGrid_DragOver" DragLeave="MultiIplGrid_DragLeave" Drop="MultiIplGrid_Drop">
+            <DataGrid.ContextMenu><ContextMenu>
+                <MenuItem Header="Add..." Click="Add_Click"/>
+                <MenuItem x:Name="iplContextExportMenu" Header="Export..." Click="ContextExport_Click"/>
+                <MenuItem x:Name="iplContextExportSelectedMenu" Header="Export selected..." Click="Export_Click"/>
+                <MenuItem x:Name="iplContextRenameMenu" Header="Rename" Click="RenameSelected_Click"/>
+                <MenuItem x:Name="iplContextCompressionMenu" Header="Compression settings..." Click="IplContextCompression_Click"/>
+                <MenuItem x:Name="iplContextDeleteMenu" Header="Delete" Click="Delete_Click"/>
+            </ContextMenu></DataGrid.ContextMenu>
             <DataGrid.Columns>
                 <DataGridTextColumn Header="#" Binding="{Binding Order}" Width="38" IsReadOnly="True"/>
                 <DataGridTextColumn Header="Menu name" Binding="{Binding MenuName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="160"/>
@@ -71,15 +117,12 @@
                 <DataGridTextColumn Header="Ratio" Binding="{Binding CompressionRatio}" Width="65" IsReadOnly="True"/>
                 <DataGridTextColumn Header="LOAD" Binding="{Binding LoadHex}" Width="70" IsReadOnly="True"/>
                 <DataGridTextColumn Header="EXEC" Binding="{Binding ExecHex}" Width="70" IsReadOnly="True"/>
-                <DataGridTemplateColumn Header="Compression" Width="125">
+                <DataGridTemplateColumn Header="Compression" Width="185">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <ComboBox ItemsSource="{Binding CompressionChoices}"
-                                      SelectedItem="{Binding Compression, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                      IsEnabled="{Binding CanChangeCompression}" Padding="2,0"
-                                      PreviewMouseLeftButtonDown="MultiIplCompression_PreviewMouseLeftButtonDown"
-                                      SelectionChanged="MultiIplCompression_SelectionChanged"
-                                      DropDownClosed="MultiIplCompression_DropDownClosed"/>
+                            <Button Content="{Binding CompressionSummary}" Click="MultiIplCompressionSettings_Click"
+                                    PreviewMouseLeftButtonDown="MultiIplCompressionSettings_PreviewMouseLeftButtonDown"
+                                    IsEnabled="{Binding CanChangeCompression}" ToolTip="{Binding CompressionHint}" ToolTipService.ShowOnDisabled="True"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>

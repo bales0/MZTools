@@ -9,15 +9,16 @@
     <AssemblyTitle>MZTools</AssemblyTitle>
     <Product>MZTools</Product>
     <ApplicationIcon>images\MZTool.ico</ApplicationIcon>
-    <Version>0.9.5</Version>
-    <FileVersion>0.9.5</FileVersion>
-    <AssemblyVersion>0.9.5</AssemblyVersion>
+    <Version>0.9.6</Version>
+    <FileVersion>0.9.6</FileVersion>
+    <AssemblyVersion>0.9.6</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Remove="MZTool.Tests\**\*.cs" />
     <Compile Remove="MZTFileReader.cs;MZQFileReader.cs;QDFFileReader.cs" />
     <Resource Include="images\MZTool.ico" />
+    <EmbeddedResource Include="boot\*.dsk" LogicalName="MZTools.Boot.%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

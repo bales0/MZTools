@@ -16,7 +16,7 @@ internal static class DskStructureService
 {
     internal static DskStructureSnapshot Build(DskDocument source)
     {
-        var doc = DskDocument.Open(source.Serialize());
+        var doc = source.Clone();
         var layout = DskAnalyzer.Analyze(doc);
         var items = new List<DskStructureItem>();
         var files = doc.FileSystem.ReadDirectory();

@@ -26,6 +26,7 @@ internal static class DskCapabilityService
         {
             CpmFileSystem => DskFilePropertyKind.Cpm,
             MrsFileSystem => DskFilePropertyKind.Mrs,
+            FsmzFileSystem => DskFilePropertyKind.Fsmz,
             _ => DskFilePropertyKind.None
         };
 

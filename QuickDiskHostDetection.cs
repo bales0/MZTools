@@ -1,4 +1,4 @@
-// Format logic adapted from HXCFE_QuickDisk_Toolkit (qd_roland.c, qd_akai.c,
+﻿// Format logic adapted from HXCFE_QuickDisk_Toolkit (qd_roland.c, qd_akai.c,
 // qd_mo5.c, trk_utils.c), Copyright (C) 2006-2022 Jean-François DEL NERO.
 // GPL-2.0-or-later, compatible with this project's GPL-3.0-or-later license.
 // Distributed WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -296,7 +296,7 @@ internal static class QuickDiskAnalysisReport
     {
         var identification = result.Analysis.Identification;
         var text = new StringBuilder("MZTools QuickDisk analysis\n");
-        text.AppendLine($"Container: {result.Format}");
+        text.AppendLine($"Container: {QuickDiskFormatLabels.Display(result.Format)}");
         text.AppendLine($"Host detection: {identification.DisplayName}");
         text.AppendLine($"Confidence: {identification.Confidence}");
         text.AppendLine($"Native SHARP MZ: {(identification.IsNativeSharpMz ? "Yes" : "No / not detected")}");

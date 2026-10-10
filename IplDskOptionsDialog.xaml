@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:MZTools"
         Title="MZ-800 IPL DSK export"
-        Icon="/images/MZTool.ico"
+        Icon="/MZTools;component/images/MZTool.ico"
         SizeToContent="WidthAndHeight"
         MinWidth="500"
         ResizeMode="NoResize"

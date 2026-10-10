@@ -1,12 +1,66 @@
-# MFI / MTI playback metadata
+# MFI / M2I / MTI playback metadata and legacy MZI status
+
+Updated 2026-10-08 for MZTools Phase E. Companion mapping cross-checked against
+MZ-SD2CMT2-Reborn, commit `600a788`, firmware guide for **2.0.2**
+(`guide/MFI_M2I_MTI_FORMAT.md`, `src/formats/mzi_sidecar.cpp`).
+Earlier M12 implementation reference was commit `6453c37`.
 
 External metadata names are explicit:
 
 - `GAME.MZF` -> `GAME.MFI`
+- `GAME.M12` -> `GAME.M2I`
 - `TAPE.MZT` -> `TAPE.MTI`
 
 There is no `.MZI` fallback. The internal source/API name `mzi_sidecar.*` is
 kept only to avoid an unrelated project-wide rename.
+
+## Scope and legacy `.MZI`
+
+| Main file | Companion | Records | MZTools behavior |
+|---|---|---|---|
+| `.MZF` (also existing `.MZ0` / `.MZ7` aliases) | `.MFI` | one | matching TYPE/SPEED profile |
+| `.M12` | `.M2I` | one | same syntax/parser as MFI |
+| `.MZT` | `.MTI` | 1-based `RECORD=n` sections | per-record profile |
+| any main file | `.MZI` | legacy name only | never read, written, merged or used as fallback |
+
+`mzi_sidecar.cpp` is an internal firmware source filename, **not** an instruction
+to generate `.MZI`. MZF and M12 may share a basename without sharing metadata.
+Renaming a main extension requires writing the matching companion explicitly;
+MZTools never guesses that an old sidecar belongs to the new format.
+
+The firmware PLAY/browser/clock behavior described below belongs to
+MZ-SD2CMT2-Reborn. MZTools is the desktop editor and exporter; it does not run
+that firmware UI. A sidecar selects tape playback, not CP/M compatibility,
+relocation, a COM launcher, or proof that an arbitrary program can run under CP/M.
+
+## MZTools parser and transactional save rules
+
+MZTools trims lines and keys/values, accepts CRLF/LF and case-insensitive TYPE
+and keys. Empty lines and full-line `#` comments are ignored. Unknown keys do
+not define a profile. Last repeated TYPE/SPEED key wins. NORMAL/MZ700/IC/TC
+require an explicitly supported SPEED; UL variants accept absent/empty SPEED
+only. An unsupported combination is invalid; no nearest-speed substitution.
+Inline comments are not a supported value syntax.
+
+MTI selects positive 1-based `RECORD=n` sections. Text before a valid section
+is ignored; an invalid section header has no active record. If a record section
+is repeated, the last section replaces the earlier one. Missing/invalid metadata
+falls back to NORMAL 1:1 for that record, without affecting other records.
+These duplicate/whitespace details describe MZTools' parser; they are not a claim
+that every firmware release treats malformed input identically.
+
+Save/export can generate the matching companion. If the destination already has
+one, it is regenerated from current profiles together with the main file through
+the existing transactional writer. Failure restores the previous pair. Save As
+uses the **destination** basename/extension and does not move a source sidecar.
+MZT section numbers are regenerated in output record order after reordering or
+exporting a selection. Trailing-data preservation is an explicit save option;
+TYPE/SPEED sidecars do not describe trailing bytes or multipart dependencies.
+Reconstructed IPL exports to MZF/M12 do not create a sidecar automatically.
+
+Phase E Verify, Compare, Normalize and MZF/CP/M analysis do not read a sidecar
+as execution proof and do not change playback profiles. Normalize operates on
+explicit DSK creator padding only; it never normalizes tape records or metadata.
 
 ## MFI for one MZF
 
@@ -37,6 +91,29 @@ TYPE=UL_MZ800
 
 MFI is used only when PLAY loader selection is `AUTO`. A manually selected
 loader/profile always has priority.
+
+## M2I for one M12
+
+M12 contains one Sharp 128-byte tape header followed by the declared payload,
+using the same record parser as MZF. M2I shares the MFI single-record TYPE/SPEED
+syntax and supported profile table below; it has no `RECORD=n` sections.
+
+```text
+TYPE=IC
+SPEED=1:2
+```
+
+For `GAME.M12`, place this content in `GAME.M2I`. Exact companion lookup permits
+`GAME.MZF`/`GAME.MFI` and `GAME.M12`/`GAME.M2I` to coexist. No cross-format fallback
+or `.MZI` fallback occurs. In firmware, manual PLAY loader selection takes
+priority; M2I is consulted only for AUTO. The extension does not select a machine.
+
+MZTools loads matching metadata when opening/importing M12, retains M12 as a
+distinct document format, and saves/exports single records through the shared
+MZF writer. The save dialog offers Generate M2I and trailing-data preservation.
+Existing target M2I files are regenerated transactionally. Save As does not copy
+the source's old sidecar binding to a new basename unless generation is selected
+or the target already has its own M2I.
 
 ## MTI for an MZT container
 
@@ -112,7 +189,7 @@ CRLF and LF are accepted. TYPE is compared case-insensitively.
 2. MZF AUTO: missing/invalid MFI -> `NORMAL 1:1`.
 3. MZT AUTO: missing MTI, missing `RECORD=n`, or invalid target section ->
    `NORMAL 1:1` for that record only. The next record is resolved again.
-4. M12 AUTO remains `NORMAL 1:1` and has no MFI/MTI lookup.
+4. M12 AUTO: matching valid M2I; missing/invalid M2I -> `NORMAL 1:1`.
 5. `.MZI` is not read or written.
 
 ## MZT record selector
@@ -131,7 +208,7 @@ header title, loader/profile and the duration of that record.
 
 When an MTI exists, the selector explicitly shows `MTI`; MZT line 0 also marks
 the record counter with `I`. For MZF, line 0 explicitly shows `MFI` when its
-sidecar exists.
+sidecar exists. M12 similarly shows `M2I` for its matching metadata in the firmware.
 
 ## Per-record time
 
@@ -172,7 +249,7 @@ clamped exactly to that record's payload.
 
 ## Browser behavior
 
-`.MFI`, `.MTI`, and legacy `.MZI` files are metadata and are hidden from the
+`.MFI`, `.M2I`, `.MTI`, and legacy `.MZI` files are metadata and are hidden from the
 normal sorted browser. Filtering happens inside the shared SD browser-entry
 filter, so hidden metadata does not count in the visible `N/N` position and does
 not participate in previous/next sorting.

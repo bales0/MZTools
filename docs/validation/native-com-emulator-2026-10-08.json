@@ -1,0 +1,77 @@
+[
+  {
+    "name": "low",
+    "entry": 8192,
+    "sp": 4336,
+    "bytes": 4416,
+    "payload_sha256": "d5d44cef88458df86d82a5dfab60f6eeb9f855850e861f1aca104ec928a1f68b",
+    "com_sha256": "b4108dcf358780b2c5a53aefa1295715bd616a624b41f9d5564c1d7483935dd5",
+    "run": {
+      "running": false,
+      "actual_frames": 0,
+      "requested_frames": 15,
+      "stopped_by": "breakpoint",
+      "complete": false
+    }
+  },
+  {
+    "name": "monitor700",
+    "entry": 8192,
+    "sp": 41216,
+    "bytes": 4416,
+    "payload_sha256": "d5d44cef88458df86d82a5dfab60f6eeb9f855850e861f1aca104ec928a1f68b",
+    "com_sha256": "ca81a6850d2ddb4d1dce0228abb4f8acf088be4d64802d39bb7fc4acd5312878",
+    "run": {
+      "running": false,
+      "actual_frames": 2,
+      "requested_frames": 15,
+      "stopped_by": "breakpoint",
+      "complete": false
+    }
+  },
+  {
+    "name": "backward",
+    "entry": 8704,
+    "sp": 4336,
+    "bytes": 10496,
+    "payload_sha256": "7153f94619a3fcabcfbd1859766a5b34cb86348145971a976580402d3767ff53",
+    "com_sha256": "028be8dd718f7721f45fdab5e5cbc966a9cd725a7b25e0e57f4482d460529e5b",
+    "run": {
+      "running": false,
+      "actual_frames": 1,
+      "requested_frames": 15,
+      "stopped_by": "breakpoint",
+      "complete": false
+    }
+  },
+  {
+    "name": "high",
+    "entry": 2048,
+    "sp": 41216,
+    "bytes": 8448,
+    "payload_sha256": "628dcd792eedef6759b0a709928c3879e2ad69ef0332641b6703b3d0386b649c",
+    "com_sha256": "e803c540f9a0e53e51182a095fd5843f06039a0c198ac6b5e3cb311793f6a7ae",
+    "run": {
+      "running": false,
+      "actual_frames": 1,
+      "requested_frames": 15,
+      "stopped_by": "breakpoint",
+      "complete": false
+    }
+  },
+  {
+    "name": "flappy-Mz800Monitor",
+    "entry": 27494,
+    "sp": 4336,
+    "bytes": 28683,
+    "payload_sha256": "85534e2688c6e6e5451e62edbf6f07c2486170825e487f6bfbc7b09e0e6cc140",
+    "com_sha256": "819842347f16be6ad2c1e0f60811dc6dfded5eec4754e400f9b217ed907c1861",
+    "run": {
+      "running": false,
+      "actual_frames": 7,
+      "requested_frames": 15,
+      "stopped_by": "breakpoint",
+      "complete": false
+    }
+  }
+]

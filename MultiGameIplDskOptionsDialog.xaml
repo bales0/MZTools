@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="MZ-800 multi-program IPL DSK configuration"
-        Icon="/images/MZTool.ico"
+        Icon="/MZTools;component/images/MZTool.ico"
         Width="1050"
         Height="560"
         MinWidth="850"
@@ -48,13 +48,12 @@
                     <DataGridTextColumn Header="Ratio" Binding="{Binding CompressionRatio}" Width="58" IsReadOnly="True"/>
                     <DataGridTextColumn Header="LOAD" Binding="{Binding LoadHex}" Width="65" IsReadOnly="True"/>
                     <DataGridTextColumn Header="EXEC" Binding="{Binding ExecHex}" Width="65" IsReadOnly="True"/>
-                    <DataGridTemplateColumn Header="Compression" Width="115">
+                    <DataGridTemplateColumn Header="Compression" Width="185">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <ComboBox ItemsSource="{Binding CompressionChoices}"
-                                          SelectedItem="{Binding Compression, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                          IsEnabled="{Binding CanChangeCompression}"
-                                          Padding="2,0"/>
+                                <Button Content="{Binding CompressionSummary}" Click="CompressionSettings_Click"
+                                        PreviewMouseLeftButtonDown="CompressionSettings_PreviewMouseLeftButtonDown"
+                                        IsEnabled="{Binding CanChangeCompression}" ToolTip="{Binding CompressionHint}" ToolTipService.ShowOnDisabled="True"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>

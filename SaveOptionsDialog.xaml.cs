@@ -25,10 +25,10 @@ namespace MZTools
             this.compressionRecords = compressionRecords;
             waveformOptionsPanel.Visibility = Visibility.Collapsed;
 
-            bool isMzf = format == TapeDocumentFormat.Mzf;
-            string sidecarName = isMzf ? "MFI" : "MTI";
+            bool isMzf = format is TapeDocumentFormat.Mzf or TapeDocumentFormat.M12;
+            string sidecarName = format == TapeDocumentFormat.M12 ? "M2I" : isMzf ? "MFI" : "MTI";
             Title = "Tape save options";
-            headingTextBlock.Text = isMzf ? "MZF save options" : "MZT save options";
+            headingTextBlock.Text = format == TapeDocumentFormat.M12 ? "M12 save options" : isMzf ? "MZF save options" : "MZT save options";
 
             preserveTrailingCheckBox.Content = $"Preserve trailing data ({trailingBytes} B)";
             preserveTrailingCheckBox.Visibility = isMzf && trailingBytes > 0

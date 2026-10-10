@@ -7,16 +7,16 @@ namespace MZTools;
 
 internal sealed class DskPatchPreviewWindow : Window
 {
-    internal DskPatchPreviewWindow(Window? owner, string report, Action? apply = null)
+    internal DskPatchPreviewWindow(Window? owner, string report, Action? apply = null, string title = "DSK Patch Preview", string applyLabel = "Apply patch")
     {
-        Owner = owner; Title = "DSK Patch Preview"; Width = 850; Height = 650; MinWidth = 600; MinHeight = 400;
+        Owner = owner; Title = title; Width = 850; Height = 650; MinWidth = 600; MinHeight = 400;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         var panel = new DockPanel { Margin = new Thickness(12) }; Content = panel;
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
         DockPanel.SetDock(buttons, Dock.Bottom); panel.Children.Add(buttons);
         if (apply != null)
         {
-            var applyButton = new Button { Content = "Apply patch", MinWidth = 100, Margin = new Thickness(6) }; buttons.Children.Add(applyButton);
+            var applyButton = new Button { Content = applyLabel, MinWidth = 100, Margin = new Thickness(6) }; buttons.Children.Add(applyButton);
             applyButton.Click += (_, _) =>
             {
                 try { apply(); Applied = true; Close(); }

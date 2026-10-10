@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
@@ -1371,14 +1371,11 @@ namespace MZTools
             }
 
             private static bool GetLsbFirstBit(ReadOnlySpan<byte> bytes, int position) =>
-                (bytes[position >> 3] & (1 << (position & 7))) != 0;
+                PackedBitCells.Get(bytes, position);
 
             private static void SetLsbFirstBit(Span<byte> bytes, int position, bool value)
             {
-                if (value)
-                {
-                    bytes[position >> 3] |= (byte)(1 << (position & 7));
-                }
+                PackedBitCells.Set(bytes, position, value);
             }
         }
 
@@ -1418,7 +1415,7 @@ namespace MZTools
 
     #endregion
 
-    #region HxC and FlashFloppy containers
+    #region Physical QD containers
 
     internal sealed record QuickDiskTrackDescriptor(uint Offset, uint Length, uint WindowStart, uint WindowEnd);
 
@@ -1437,7 +1434,7 @@ namespace MZTools
             {
                 if (format is not (QdImageFormat.HxcPhysical or QdImageFormat.FlashFloppyPhysical))
                 {
-                    throw new ArgumentException("A physical HxC or FlashFloppy QD format is required.", nameof(format));
+                    throw new ArgumentException("A physical HxC or uniform-track QD format is required.", nameof(format));
                 }
 
                 uint descriptorOffset;
@@ -1472,12 +1469,12 @@ namespace MZTools
                 {
                     if (image.Length < 5 || image[3] != (byte)'Q' || image[4] != (byte)'D')
                     {
-                        throw new InvalidDataException("Invalid FlashFloppy QuickDisk container header.");
+                        throw new InvalidDataException("Invalid uniform-track QuickDisk container header.");
                     }
                     descriptorOffset = QuickDiskPhysicalProfile.TrackListOffset;
                     if ((ulong)descriptorOffset + DescriptorLength > (ulong)image.Length)
                     {
-                        throw new InvalidDataException("Invalid FlashFloppy track descriptor table offset.");
+                        throw new InvalidDataException("Invalid uniform-track track descriptor table offset.");
                     }
                 }
 
@@ -1613,7 +1610,7 @@ namespace MZTools
             internal const int HeaderToBodyZeroGapBytes = 254;
             internal const int BodyToNextHeaderZeroGapBytes = 256;
 
-            // HxC output intentionally does not reuse FlashFloppy READY timing. This
+            // HxC output intentionally does not reuse uniform-track READY timing. This
             // layout is derived from an HXCQDDRV image confirmed by the HxC author as
             // working on MZ-1500 (the Mario reference). Its count/FNBLK starts only
             // 22 bitcells after window_start and the complete track is a continuous MFM
@@ -1755,7 +1752,7 @@ namespace MZTools
             internal const int QdfSignatureLength = 16;
             internal const int FlashFloppyFnblkOffsetRaw = 0x25C6;
 
-            // FlashFloppy uses the QDF-compatible MFM payload at window_start. Its first
+            // The uniform-track variant uses the QDF-compatible MFM payload at window_start. Its first
             // count/FNBLK is about 380.4 ms after READY, near the center of the Sharp MZ
             // ROM sync-search window and close to real-MZ formatted media (~379.2 ms).
 
@@ -1783,7 +1780,7 @@ namespace MZTools
                         (long)trackDataStart + encoded.Length > profile.WindowEnd ||
                         (long)trackDataStart + encoded.Length > profile.StoredTrackLength)
                     {
-                        throw new InvalidDataException("Cannot save: FlashFloppy physical data placement exceeds the track data window.");
+                        throw new InvalidDataException("Cannot save: uniform-track physical data placement exceeds the track data window.");
                     }
 
                     byte[] track = Enumerable.Repeat(profile.BlankFiller, profile.StoredTrackLength).ToArray();
@@ -1822,7 +1819,7 @@ namespace MZTools
                     long capacity = Math.Min(profile.WindowEnd, profile.StoredTrackLength) - (long)profile.WindowStart;
                     if (canonicalEncodedBytes > capacity)
                     {
-                        error = "Cannot save: the FlashFloppy profile cannot contain the physical QDF payload.";
+                        error = "Cannot save: the uniform-track profile cannot contain the physical QDF payload.";
                         return false;
                     }
 

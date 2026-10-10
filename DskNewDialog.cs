@@ -45,8 +45,27 @@ namespace MZTools
         private readonly TextBox sectorsBox = new() { Text = "16", MinWidth = 100 };
         private readonly ComboBox sectorSizeBox = new() { ItemsSource = new[] { "128", "256", "512", "1024" }, SelectedIndex = 1, MinWidth = 100 };
         private readonly TextBox fillerBox = new() { Text = "FF", MinWidth = 100 };
-        private readonly ComboBox orderBox = new() { ItemsSource = new[] { "Normal", "LEC interleave 2", "LEC HD interleave 3", "Custom sector IDs" }, SelectedIndex = 0, MinWidth = 180 };
+        private sealed record SectorOrderChoice(DskDocumentFactory.RawSectorOrder Order, string Label)
+        {
+            public override string ToString() => Label;
+        }
+        private readonly ComboBox orderBox = new()
+        {
+            ItemsSource = new[]
+            {
+                new SectorOrderChoice(DskDocumentFactory.RawSectorOrder.Normal, "Normal"),
+                new SectorOrderChoice(DskDocumentFactory.RawSectorOrder.Lec, "LEC interleave 2"),
+                new SectorOrderChoice(DskDocumentFactory.RawSectorOrder.LecHd, "LEC HD interleave 3"),
+                new SectorOrderChoice(DskDocumentFactory.RawSectorOrder.PersonalCpm80, "P-CP/M80 interleave"),
+                new SectorOrderChoice(DskDocumentFactory.RawSectorOrder.Custom, "Custom sector IDs")
+            },
+            SelectedIndex = 0, MinWidth = 180
+        };
+        private DskDocumentFactory.RawSectorOrder SelectedSectorOrder =>
+            ((SectorOrderChoice)orderBox.SelectedItem).Order;
         private readonly TextBox sectorIdsBox = new() { Text = "1,2,3,4,5,6,7,8,9", MinWidth = 250 };
+        private string? customSectorIds;
+        private bool editingCustomSectorIds;
         private readonly TextBlock capacityText = new() { FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
         private readonly FrameworkElement[] customControls;
 
@@ -70,7 +89,7 @@ namespace MZTools
                 new FormatChoice(DskNewFormat.LecCpmHd, "LEC CP/M HD — 18×512 B (standard 1.44 MiB)"),
                 new FormatChoice(DskNewFormat.Mrs, "MRS (standard 720 KiB)"),
                 new FormatChoice(DskNewFormat.Lemmings, "Sharp Lemmings special geometry (720 KiB)"),
-                new FormatChoice(DskNewFormat.CustomRaw, "Custom / raw geometry (calculated capacity)")
+                new FormatChoice(DskNewFormat.CustomRaw, "User defined image / raw geometry (calculated capacity)")
             };
             // Keep the existing general-purpose filesystem preset as the default;
             // the two IPL image builders are additional DSK formats, not a new default.
@@ -85,7 +104,7 @@ namespace MZTools
             FrameworkElement sizeRow = Row("Sector size:", sectorSizeBox);
             FrameworkElement fillerRow = Row("Filler (hex):", fillerBox);
             FrameworkElement orderRow = Row("Sector order:", orderBox);
-            FrameworkElement idsRow = Row("Custom IDs:", sectorIdsBox);
+            FrameworkElement idsRow = Row("Sector IDs:", sectorIdsBox);
             customControls = [sectorsRow, sizeRow, fillerRow, orderRow, idsRow];
             foreach (FrameworkElement row in customControls) panel.Children.Add(row);
 
@@ -101,11 +120,11 @@ namespace MZTools
             formatBox.SelectionChanged += (_, _) => UpdateFields();
             tracksBox.TextChanged += (_, _) => UpdateCapacity();
             sidesBox.SelectionChanged += (_, _) => UpdateCapacity();
-            sectorsBox.TextChanged += (_, _) => UpdateCapacity();
+            sectorsBox.TextChanged += (_, _) => { UpdateSectorIds(); UpdateCapacity(); };
             sectorSizeBox.SelectionChanged += (_, _) => UpdateCapacity();
             orderBox.SelectionChanged += (_, _) =>
             {
-                sectorIdsBox.IsEnabled = orderBox.SelectedIndex == 3;
+                UpdateSectorIds();
                 UpdateCapacity();
             };
             UpdateFields();
@@ -140,7 +159,7 @@ namespace MZTools
             tracksBox.IsEnabled = !fixedGeometry;
             sidesBox.IsEnabled = !fixedGeometry;
             foreach (FrameworkElement control in customControls) control.Visibility = custom ? Visibility.Visible : Visibility.Collapsed;
-            sectorIdsBox.IsEnabled = custom && orderBox.SelectedIndex == 3;
+            UpdateSectorIds();
 
             switch (choice.Format)
             {
@@ -159,6 +178,33 @@ namespace MZTools
                     break;
             }
             UpdateCapacity();
+        }
+
+        private void UpdateSectorIds()
+        {
+            if (editingCustomSectorIds) customSectorIds = sectorIdsBox.Text;
+            editingCustomSectorIds = SelectedSectorOrder == DskDocumentFactory.RawSectorOrder.Custom;
+            sectorIdsBox.IsEnabled = editingCustomSectorIds;
+            sectorIdsBox.IsReadOnly = !editingCustomSectorIds;
+            if (editingCustomSectorIds)
+            {
+                if (customSectorIds != null) sectorIdsBox.Text = customSectorIds;
+                return;
+            }
+
+            if (!int.TryParse(sectorsBox.Text, out int sectors) || sectors < 1 || sectors > DskImage.MaximumSectorsPerTrack)
+            {
+                sectorIdsBox.Text = "Enter a valid sector count.";
+                return;
+            }
+            try
+            {
+                sectorIdsBox.Text = string.Join(",", DskDocumentFactory.GetRawSectorIds(sectors, 1, SelectedSectorOrder));
+            }
+            catch (ArgumentException)
+            {
+                sectorIdsBox.Text = "P-CP/M80 requires 8 or 16 sectors.";
+            }
         }
 
         private void UpdateCapacity()
@@ -238,7 +284,9 @@ namespace MZTools
                     sectorSize = int.Parse((string)sectorSizeBox.SelectedItem, CultureInfo.InvariantCulture);
                     string fillerText = fillerBox.Text.Trim().StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? fillerBox.Text.Trim()[2..] : fillerBox.Text.Trim();
                     filler = byte.Parse(fillerText, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-                    order = (DskDocumentFactory.RawSectorOrder)orderBox.SelectedIndex;
+                    order = SelectedSectorOrder;
+                    if (order == DskDocumentFactory.RawSectorOrder.PersonalCpm80 && sectors is not (8 or 16))
+                        throw new InvalidOperationException("P-CP/M80 interleave requires 8 or 16 sectors. Use Custom sector IDs for other geometries.");
                     if (order == DskDocumentFactory.RawSectorOrder.Custom)
                     {
                         int[] parsed = sectorIdsBox.Text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)

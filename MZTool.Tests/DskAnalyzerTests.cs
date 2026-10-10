@@ -290,7 +290,8 @@ public class DskAnalyzerTests
                 Assert.True(Enabled("installBootSystemMenu"));
                 Assert.True(Enabled("convertFormatMenu"));
                 Assert.True(Enabled("compareDiskMenu"));
-                Assert.Null(type.GetField("filePropertiesMenu", flags));
+                Assert.NotNull(type.GetField("filePropertiesMenu", flags));
+                Assert.False(Enabled("filePropertiesMenu")); // No selected file.
                 Assert.True(Enabled("structureInspectorMenu")); Assert.Null(type.GetField("structureInspectorButton", flags));
                 Assert.Null(type.GetField("dskPropertiesButton", flags));
                 var propertyDocument = DskDocumentFactory.CreateCpm(false);

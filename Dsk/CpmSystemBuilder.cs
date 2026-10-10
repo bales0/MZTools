@@ -178,7 +178,7 @@ internal static class CpmSystemBuilder
             }
         }
 
-        DskDocument candidate = DskDocument.Open(working);
+        DskDocument candidate = target.Reopen(working);
         ValidateCandidate(target, candidate, original, tracks);
         byte[] result = candidate.Serialize();
         CpmSystemBuildReport report = CreateReport(target, source, candidate, profile, tracks, original, result);

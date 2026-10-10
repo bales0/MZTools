@@ -160,7 +160,8 @@ namespace MZTools
         Implicit,
         LoadedFromMfi,
         LoadedFromMti,
-        CreatedOrModifiedInAdvanced
+        CreatedOrModifiedInAdvanced,
+        LoadedFromM2i
     }
 
     internal enum TapeDocumentFormat
@@ -172,7 +173,8 @@ namespace MZTools
         Qdf,
         QdSharpLegacy,
         QdHxc,
-        QdFlashFloppy
+        QdFlashFloppy,
+        M12
     }
 
     internal sealed class TapeRecord
@@ -604,11 +606,18 @@ namespace MZTools
     {
         public static string GetSidecarPath(string mainPath)
         {
-            string extension = Path.GetExtension(mainPath).Equals(".mzt", StringComparison.OrdinalIgnoreCase)
-                ? ".mti"
-                : ".mfi";
+            string extension = Path.GetExtension(mainPath).ToLowerInvariant() switch
+            {
+                ".mzt" => ".mti",
+                ".m12" => ".m2i",
+                _ => ".mfi"
+            };
             return Path.ChangeExtension(mainPath, extension);
         }
+
+        internal static MetadataOrigin SingleRecordOrigin(string path) =>
+            Path.GetExtension(path).Equals(".m12", StringComparison.OrdinalIgnoreCase)
+                ? MetadataOrigin.LoadedFromM2i : MetadataOrigin.LoadedFromMfi;
 
         public static string? LoadForMzf(string mzfPath, TapeRecord record)
         {
@@ -621,7 +630,7 @@ namespace MZTools
             if (TryParseProfile(File.ReadAllLines(path), out TapeProfile profile))
             {
                 record.Profile = profile;
-                record.MetadataOrigin = MetadataOrigin.LoadedFromMfi;
+                record.MetadataOrigin = SingleRecordOrigin(mzfPath);
             }
 
             return path;
@@ -771,7 +780,7 @@ namespace MZTools
             {
                 record.RemoveTrailingData();
             }
-            ApplySavedMetadataState(new[] { record }, writeSidecar, MetadataOrigin.LoadedFromMfi);
+            ApplySavedMetadataState(new[] { record }, writeSidecar, SidecarService.SingleRecordOrigin(path));
         }
 
         public static void SaveMzt(
@@ -808,16 +817,22 @@ namespace MZTools
                 throw new ArgumentException("The current document has no file path.", nameof(mainPath));
             }
 
+            string extension = Path.GetExtension(mainPath).ToLowerInvariant();
+            if ((format == TapeDocumentFormat.M12 && extension != ".m12") ||
+                (format == TapeDocumentFormat.Mzf && extension is not (".mzf" or ".mz0" or ".mz7")) ||
+                (format == TapeDocumentFormat.Mzt && extension != ".mzt"))
+                throw new ArgumentException("The document format does not match the tape filename extension.", nameof(mainPath));
+
             byte[] content;
             MetadataOrigin persistedOrigin;
-            if (format == TapeDocumentFormat.Mzf)
+            if (format is TapeDocumentFormat.Mzf or TapeDocumentFormat.M12)
             {
                 if (records.Count != 1)
                 {
-                    throw new InvalidOperationException("An MFI sidecar requires exactly one MZF record.");
+                    throw new InvalidOperationException("An MFI/M2I sidecar requires exactly one MZF/M12 record.");
                 }
                 content = SidecarService.SerializeMfi(records[0]);
-                persistedOrigin = MetadataOrigin.LoadedFromMfi;
+                persistedOrigin = SidecarService.SingleRecordOrigin(mainPath);
             }
             else if (format == TapeDocumentFormat.Mzt)
             {
@@ -830,7 +845,7 @@ namespace MZTools
             }
             else
             {
-                throw new InvalidOperationException("MFI/MTI can be generated only for an MZF or MZT document.");
+                throw new InvalidOperationException("MFI/M2I/MTI can be generated only for an MZF, M12 or MZT document.");
             }
 
             string sidecarPath = SidecarService.GetSidecarPath(mainPath);

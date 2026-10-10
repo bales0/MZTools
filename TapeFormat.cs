@@ -3,6 +3,7 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 
 namespace MZTools
 {
@@ -578,10 +579,12 @@ namespace MZTools
             IReadOnlyList<TapeRecord> records,
             SharpTapeOutputFormat format,
             SharpTapeMachine machine = SharpTapeMachine.Mz800,
-            int wavSampleRate = WavSampleRate)
+            int wavSampleRate = WavSampleRate,
+            CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(records);
             ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (records.Count == 0)
             {
@@ -596,13 +599,13 @@ namespace MZTools
                 .ToList();
 
             using FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite);
-            using TapeSink sink = format switch
+            using TapeSink sink = new CancellableSink(format switch
             {
                 SharpTapeOutputFormat.Lep => new EdgeDurationSink(fileStream, 50),
                 SharpTapeOutputFormat.L16 => new EdgeDurationSink(fileStream, 16),
                 SharpTapeOutputFormat.Wav => new WavSink(fileStream, wavSampleRate),
                 _ => throw new ArgumentOutOfRangeException(nameof(format))
-            };
+            }, cancellationToken);
 
             foreach (IReadOnlyList<SharpTapeStage> plan in plans)
             {
@@ -842,6 +845,14 @@ namespace MZTools
             public abstract void Dispose();
         }
 
+        private sealed class CancellableSink(TapeSink inner, CancellationToken cancellationToken) : TapeSink
+        {
+            public override void WriteInterval(bool physicalHigh, double durationMicroseconds)
+            { cancellationToken.ThrowIfCancellationRequested(); inner.WriteInterval(physicalHigh, durationMicroseconds); }
+            public override void Complete() { cancellationToken.ThrowIfCancellationRequested(); inner.Complete(); }
+            public override void Dispose() => inner.Dispose();
+        }
+
         private sealed class EdgeDurationSink : TapeSink
         {
             private readonly BinaryWriter writer;
@@ -986,22 +997,22 @@ namespace MZTools
         private enum PendingStage { Body, TurboCopyLoader }
         private static ReadOnlySpan<byte> TurboCopyTag => [0x5B, 0x96, 0xA5, 0x9D, 0x9A, 0xB7, 0x5D, 0x00];
 
-        public static IReadOnlyList<TapeRecord> ReadFile(string filePath)
+        public static IReadOnlyList<TapeRecord> ReadFile(string filePath, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
             string extension = Path.GetExtension(filePath).ToLowerInvariant();
             TapeSignalSource source = extension switch
             {
-                ".lep" => ReadEdgeRuns(File.ReadAllBytes(filePath), TapeSignalFormat.Lep),
-                ".l16" => ReadEdgeRuns(File.ReadAllBytes(filePath), TapeSignalFormat.L16),
-                ".wav" => ReadWavRuns(File.ReadAllBytes(filePath)),
-                ".flac" => ReadFlacRuns(filePath),
+                ".lep" => ReadEdgeRuns(File.ReadAllBytes(filePath), TapeSignalFormat.Lep, cancellationToken),
+                ".l16" => ReadEdgeRuns(File.ReadAllBytes(filePath), TapeSignalFormat.L16, cancellationToken),
+                ".wav" => ReadWavRuns(File.ReadAllBytes(filePath), cancellationToken),
+                ".flac" => ReadFlacRuns(filePath, cancellationToken),
                 _ => throw new ArgumentException($"Unsupported tape input extension: {extension}", nameof(filePath))
             };
-            return DecodeRecords(source);
+            return DecodeRecords(source, cancellationToken);
         }
 
-        private static IReadOnlyList<TapeRecord> DecodeRecords(TapeSignalSource source)
+        private static IReadOnlyList<TapeRecord> DecodeRecords(TapeSignalSource source, CancellationToken cancellationToken)
         {
             var records = new List<TapeRecord>();
             var decoder = new SharpMzPulseDecoder();
@@ -1014,6 +1025,7 @@ namespace MZTools
 
             foreach (SignalRun run in source.Runs)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 decoder.FeedInterval(run.DurationUnits, run.PhysicalHigh);
                 while (decoder.TryTakeEvent(out SharpMzDecoderEvent decoderEvent))
                 {
@@ -1373,11 +1385,12 @@ namespace MZTools
                 _ => shortX8
             };
 
-        private static TapeSignalSource ReadEdgeRuns(byte[] bytes, TapeSignalFormat format)
+        private static TapeSignalSource ReadEdgeRuns(byte[] bytes, TapeSignalFormat format, CancellationToken cancellationToken)
         {
             var runs = new List<SignalRun>(bytes.Length);
             foreach (byte raw in bytes)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 int signed = unchecked((sbyte)raw);
                 if (signed == 0)
                 {
@@ -1407,7 +1420,7 @@ namespace MZTools
             return new TapeSignalSource(runs, format);
         }
 
-        private static TapeSignalSource ReadWavRuns(byte[] wav)
+        private static TapeSignalSource ReadWavRuns(byte[] wav, CancellationToken cancellationToken)
         {
             if (wav.Length < 12 ||
                 !wav.AsSpan(0, 4).SequenceEqual("RIFF"u8) ||
@@ -1457,6 +1470,7 @@ namespace MZTools
             bool digital8BitLevel = false;
             for (int offset = 0; offset <= data.Length - blockAlign; offset += blockAlign)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 bool current;
                 if (bits == 8)
                 {
@@ -1494,7 +1508,7 @@ namespace MZTools
             return new TapeSignalSource(runs, TapeSignalFormat.Wav, sampleRate);
         }
 
-        private static TapeSignalSource ReadFlacRuns(string filePath)
+        private static TapeSignalSource ReadFlacRuns(string filePath, CancellationToken cancellationToken)
         {
             using var reader = new FlacPcmStreamReader(filePath);
             var runs = new List<SignalRun>();
@@ -1503,6 +1517,7 @@ namespace MZTools
             bool digital8BitLevel = false;
             reader.ReadFrames((_, left, _) =>
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 bool current;
                 if (reader.Format.BitsPerSample == 8)
                 {

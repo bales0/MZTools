@@ -1,4 +1,4 @@
-using Microsoft.Win32;
+﻿using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -19,6 +19,9 @@ namespace MZTools
     {
         private const string MultiIplRowDragDataFormat = "MZTools.MultiIplEditorRows";
         private DskDocument? document;
+        private readonly Guid fileDragOwner = Guid.NewGuid();
+        private Point fileDragStart;
+        private DskFileEntry[]? fileDragSelection;
         private bool synchronizingEditSelectors;
         private sealed record HexBufferChoice(int? Block, string Label);
         private DskSectorAddress? activeHexSector;
@@ -59,8 +62,6 @@ namespace MZTools
         internal event EventHandler? DocumentStateChanged;
         internal event EventHandler? CloseRequested;
         internal event EventHandler? OpenRequested;
-        internal event EventHandler? NewQuickDiskRequested;
-        internal event EventHandler? NewDskRequested;
         private bool IplEditorMode => multiIplEditorMode || singleIplEditorMode;
         internal bool HasDocument => document != null || IplEditorMode;
         private DskDocument CurrentDocument => document ?? throw new InvalidOperationException("No DSK document is loaded.");
@@ -235,8 +236,8 @@ namespace MZTools
                     Add("Start block", nameof(DskFileEntry.StartBlock)); Add("Blocks", nameof(DskFileEntry.Blocks)); Add("Compression", nameof(DskFileEntry.Notes));
                     break;
                 case DskFileSystemType.Fsmz:
-                    Add("Name", nameof(DskFileEntry.Name), canRename); Add("Type", nameof(DskFileEntry.FileType)); Add("Size", nameof(DskFileEntry.Size));
-                    Add("Load", nameof(DskFileEntry.LoadAddress)); Add("Exec", nameof(DskFileEntry.ExecuteAddress)); Add("Start block", nameof(DskFileEntry.StartBlock)); Add("Locked", nameof(DskFileEntry.Locked));
+                    Add("Name", nameof(DskFileEntry.Name), canRename); Add("Type", nameof(DskFileEntry.FileType), canEditProperties); Add("Size", nameof(DskFileEntry.Size));
+                    Add("Load", nameof(DskFileEntry.LoadAddress), canEditProperties); Add("Exec", nameof(DskFileEntry.ExecuteAddress), canEditProperties); Add("Start block", nameof(DskFileEntry.StartBlock)); AddFlag("Locked", nameof(DskFileEntry.Locked));
                     break;
                 case DskFileSystemType.Cpm:
                     Add("User", nameof(DskFileEntry.User), canEditProperties); Add("Name", nameof(DskFileEntry.Name), canRename); Add("Ext", nameof(DskFileEntry.Extension), canRename); Add("Size", nameof(DskFileEntry.Size));
@@ -259,12 +260,30 @@ namespace MZTools
 
         private void RefreshView()
         {
+            dskMoveButtons.Visibility = multiIplEditorMode ? Visibility.Visible : Visibility.Collapsed;
+            UpdateFilePropertiesCommand();
+            verifyImageMenu.IsEnabled = document != null && (!IplEditorMode || multiIplLayoutValid);
+            normalizeContainerMenu.IsEnabled = document != null && !IplEditorMode;
+            crossDiskCopyMenu.IsEnabled = !IplEditorMode && CrossDiskTransferService.Supports(document);
+            bootProfilesMenu.IsEnabled = document?.FileSystem is CpmFileSystem && !IplEditorMode;
+            foreach (var menu in new[] { verifyImageMenu, normalizeContainerMenu, crossDiskCopyMenu, bootProfilesMenu,
+                cpmLayoutMenu, physicalPropertiesMenu, defragmentMenu, filesystemRepairMenu, bootstrapMenu, rawRangeMenu, compareDiskMenu })
+            {
+                System.Windows.Controls.ToolTipService.SetShowOnDisabled(menu, true);
+                menu.ToolTip = "Requires a compatible document and valid layout; finish pending IPL layout changes first.";
+            }
+            cpmLayoutMenu.IsEnabled = document != null && !IplEditorMode && document.FileSystem.Type is DskFileSystemType.Raw or DskFileSystemType.Cpm or DskFileSystemType.BootOnly;
+            physicalPropertiesMenu.IsEnabled = document != null && !IplEditorMode && document.Image.Tracks.Any(t => t != null);
+            defragmentMenu.IsEnabled = document != null && !IplEditorMode && !document.IsReadOnly && document.FileSystem is FsmzFileSystem or CpmFileSystem or MrsFileSystem;
+            filesystemRepairMenu.IsEnabled = document?.FileSystem is FsmzFileSystem or MrsFileSystem or CpmFileSystem && !IplEditorMode;
+            bootstrapMenu.IsEnabled = document != null && !IplEditorMode && document.Image.Tracks.Count > 1;
+            rawRangeMenu.IsEnabled = document != null && !IplEditorMode;
             compareDiskMenu.IsEnabled = document != null && (!IplEditorMode || multiIplLayoutValid);
             structureInspectorMenu.IsEnabled = DskCapabilityService.CanInspectStructure(document) && !IplEditorMode;
             structureInspectorMenu.ToolTip = structureInspectorMenu.IsEnabled
                 ? "Read-only filesystem, directory, allocation and raw structures."
                 : "Structure decoding is available for recognized FSMZ, CP/M and MRS filesystems only.";
-            convertFormatMenu.IsEnabled = document != null && DskCapabilityService.GetAvailableConversions(document).Count > 0;
+            convertFormatMenu.IsEnabled = document != null && !IplEditorMode;
             convertFormatMenu.ToolTip = convertFormatMenu.IsEnabled ? "Create a separate image; inspect capacity and metadata changes before saving." : "No safe conversion is available for this detected filesystem/layout.";
             installBootSystemMenu.IsEnabled = document != null && DskCapabilityService.GetAvailableBootSystems(document).Count > 0;
             installBootSystemMenu.ToolTip = DskCapabilityService.BootSystemAvailabilityReason(document);
@@ -290,6 +309,7 @@ namespace MZTools
             if (document.FileSystem is MultiGameIplFileSystem mappedMulti)
                 infoText.Text += "\n" + mappedMulti.MetadataLocationDescription;
             infoText.Text += "\n" + DskBootInfo.Inspect(document).Summary;
+            if (document.LastSavedSha256 is { } savedHash) infoText.Text += "\nLast saved output SHA-256: " + savedHash;
             warningText.Text = document.FileSystem.Warnings.Count == 0 ? string.Empty : string.Join("  ", document.FileSystem.Warnings);
             bool writable = !document.IsReadOnly;
             bool rawMode = document.FileSystem is RawDskFileSystem;
@@ -306,6 +326,7 @@ namespace MZTools
 
         private void RefreshMultiIplView()
         {
+            dskMoveButtons.Visibility = multiIplEditorMode ? Visibility.Visible : Visibility.Collapsed;
             RefreshDiskLayout();
             RefreshEditSelectors();
             directoryGrid.Visibility = Visibility.Collapsed;
@@ -334,6 +355,7 @@ namespace MZTools
                 if (document.FileSystem is MultiGameIplFileSystem mappedMulti)
                     infoText.Text += "\n" + mappedMulti.MetadataLocationDescription;
                 infoText.Text += "\n" + DskBootInfo.Inspect(document).Summary;
+                if (document.LastSavedSha256 is { } savedHash) infoText.Text += "\nLast saved output SHA-256: " + savedHash;
             }
             DocumentStateChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -462,6 +484,38 @@ namespace MZTools
         private void Files_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             HighlightSelectedFiles();
+            UpdateFilePropertiesCommand();
+        }
+
+        private void UpdateFilePropertiesCommand()
+        {
+            filePropertiesMenu.IsEnabled = !IplEditorMode && directoryGrid.SelectedItems.Count == 1 &&
+                DskCapabilityService.GetFilePropertyKind(document) != DskFilePropertyKind.None;
+            filePropertiesMenu.ToolTip = "Select one file. Properties belong to the current filesystem; attributes lost during cross-format copying cannot be restored here.";
+            ToolTipService.SetShowOnDisabled(filePropertiesMenu, true);
+        }
+
+        private void FileProperties_Click(object sender, RoutedEventArgs e)
+        {
+            if (document == null || !filePropertiesMenu.IsEnabled || directoryGrid.SelectedItem is not DskFileEntry entry) return;
+            try
+            {
+                var values = DskFilePropertiesDialog.Show(OwnerWindow, DskCapabilityService.GetFilePropertyKind(document), entry);
+                if (values == null) return;
+                var updated = DskFilePropertyService.Apply(document, entry, values);
+                RefreshView();
+                directoryGrid.SelectedItem = directoryGrid.Items.OfType<DskFileEntry>().FirstOrDefault(f => f.Key == updated.Key);
+            }
+            catch (Exception exception) { ShowError(exception.Message); }
+        }
+
+        private void RefreshCopiedFiles(IReadOnlyList<string> keys)
+        {
+            if (document == null) return;
+            LoadDocument(document);
+            foreach (var entry in directoryGrid.Items.OfType<DskFileEntry>().Where(f => keys.Contains(f.Key)))
+                directoryGrid.SelectedItems.Add(entry);
+            UpdateFilePropertiesCommand();
         }
         private void HighlightSelectedFiles()
         {
@@ -711,6 +765,134 @@ namespace MZTools
             }
         }
 
+        private void VerifyImage_Click(object sender, RoutedEventArgs e)
+        {
+            if (document == null || !verifyImageMenu.IsEnabled) return;
+            new DskPatchPreviewWindow(OwnerWindow, ImageVerificationService.Verify(document.Serialize(), document).Report, title: "Verify Image").ShowDialog();
+        }
+
+        private void NormalizeContainer_Click(object sender, RoutedEventArgs e)
+        {
+            if (document == null || !normalizeContainerMenu.IsEnabled) return;
+            try
+            {
+                var result = ContainerNormalizeService.Preview(document);
+                var dialog = new DskPatchPreviewWindow(OwnerWindow, result.Report, () => result.Apply(document), "Normalize Container Preview", "Apply normalization");
+                dialog.ShowDialog(); if (dialog.Applied) LoadDocument(document);
+            }
+            catch (Exception exception) { ShowError(exception.Message); }
+        }
+
+        private void CrossDiskCopy_Click(object sender, RoutedEventArgs e)
+        {
+            if (document == null || !crossDiskCopyMenu.IsEnabled) return;
+            var dialog = new CrossDiskTransferDialog(OwnerWindow, document); dialog.ShowDialog(); if (dialog.Applied) RefreshCopiedFiles(dialog.CopiedFileKeys);
+        }
+
+        private void BootProfiles_Click(object sender, RoutedEventArgs e) => ShowProfiles(true);
+        private void ShowProfiles(bool boot)
+        {
+            if (document == null || IplEditorMode) return;
+            try { var dialog = new UserProfilesDialog(OwnerWindow, document, boot); dialog.ShowDialog(); if (dialog.Applied) LoadDocument(document); }
+            catch (Exception exception) { ShowError(exception.Message); }
+        }
+        private void NativeCom_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new NativeComDialog(OwnerWindow, target: document);
+            dialog.ShowDialog();
+            if (dialog.ImportedFileKey is { } key) RefreshCopiedFiles([key]);
+        }
+
+        private void CpmLayout_Click(object sender, RoutedEventArgs e)
+        {
+            if (document == null || !cpmLayoutMenu.IsEnabled) return;
+            var dialog = new CpmLayoutDialog(OwnerWindow, document);
+            dialog.ShowDialog();
+            if (dialog.Applied) LoadDocument(document);
+        }
+
+        private void ToolsMenu_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.ContextMenu != null) { button.ContextMenu.PlacementTarget = button; button.ContextMenu.IsOpen = true; }
+        }
+
+        private void BatchProcess_Click(object sender, RoutedEventArgs e) => new BatchProcessDialog(OwnerWindow).ShowDialog();
+
+        private void PhysicalProperties_Click(object sender, RoutedEventArgs e)
+        {
+            if (document == null || !physicalPropertiesMenu.IsEnabled) return;
+            var dialog = new DskPhysicalPropertiesDialog(OwnerWindow, document);
+            dialog.ShowDialog(); if (dialog.Applied) LoadDocument(document);
+        }
+
+        private void RepairContainer_Click(object sender, RoutedEventArgs e)
+        {
+            if (IplEditorMode) { ShowError("Close the IPL editor before repairing a container."); return; }
+            try
+            {
+                byte[] source;
+                string? path = document?.FilePath;
+                if (document != null) source = document.Serialize();
+                else
+                {
+                    var picker = new OpenFileDialog { Filter = "Extended CPC DSK|*.dsk", Title = "Select a DSK to inspect for repair" };
+                    if (picker.ShowDialog(OwnerWindow) != true) return;
+                    path = picker.FileName; source = File.ReadAllBytes(path);
+                }
+                var dialog = new DskRepairDialog(OwnerWindow, source); dialog.ShowDialog();
+                if (dialog.Result == null) return;
+                if (document != null)
+                {
+                    if (!document.Serialize().AsSpan().SequenceEqual(source)) throw new InvalidOperationException("The document changed since preview.");
+                    document.ReplaceContents(dialog.Result); LoadDocument(document);
+                }
+                else
+                {
+                    var repaired = DskDocument.Open(dialog.Result, path);
+                    repaired.ReplaceContents(dialog.Result); LoadDocument(repaired);
+                }
+            }
+            catch (Exception exception) { ShowError(exception.Message); }
+        }
+
+        private void Defragment_Click(object sender, RoutedEventArgs e)
+        {
+            if (document == null || !defragmentMenu.IsEnabled) return;
+            try
+            {
+                var result = DskDefragmentService.Preview(document);
+                var dialog = new DskPatchPreviewWindow(OwnerWindow, result.Report, () => result.Apply(document), "Defragment Preview", "Apply");
+                dialog.ShowDialog(); if (dialog.Applied) LoadDocument(document);
+            }
+            catch (Exception exception) { ShowError(exception.Message); }
+        }
+
+        private void RepairFilesystem_Click(object sender, RoutedEventArgs e)
+        {
+            if (document == null || !filesystemRepairMenu.IsEnabled) return;
+            try
+            {
+                var action = DskFilesystemRepairService.For(document); var result = action.Preview(document);
+                var dialog = new DskPatchPreviewWindow(OwnerWindow, result.Report, () => action.Apply(document, result), "Safe Filesystem Repair Preview", "Apply repair");
+                dialog.ShowDialog(); if (dialog.Applied) LoadDocument(document);
+            }
+            catch (Exception exception) { ShowError(exception.Message); }
+        }
+
+        private void Bootstrap_Click(object sender, RoutedEventArgs e)
+        {
+            if (document == null || !bootstrapMenu.IsEnabled) return;
+            try { var dialog = new BootstrapDialog(OwnerWindow, document); dialog.ShowDialog(); if (dialog.Applied) LoadDocument(document); }
+            catch (Exception exception) { ShowError(exception.Message); }
+        }
+
+        private void RawRange_Click(object sender, RoutedEventArgs e)
+        {
+            if (document == null) return;
+            var dialog = new DskRawRangeDialog(OwnerWindow, document); dialog.ShowDialog();
+            if (dialog.Applied) LoadDocument(document);
+        }
+
         private void ConvertFormat_Click(object sender, RoutedEventArgs e)
         {
             if (document == null) return;
@@ -872,10 +1054,19 @@ namespace MZTools
         }
 
         private void Export_Click(object sender, RoutedEventArgs e)
+            => ExportFiles();
+
+        private void ContextExport_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem { Tag: DskFileEntry entry }) ExportFiles([entry]);
+            else if (sender is MenuItem { Tag: MultiGameIplRow row }) ExportFiles(iplSelection: [row]);
+        }
+
+        private void ExportFiles(IReadOnlyList<DskFileEntry>? fileSelection = null, MultiGameIplRow[]? iplSelection = null)
         {
             if (IplEditorMode)
             {
-                MultiGameIplRow[] selected = multiIplGrid.SelectedItems
+                MultiGameIplRow[] selected = iplSelection ?? multiIplGrid.SelectedItems
                     .OfType<MultiGameIplRow>()
                     .OrderBy(row => multiIplRows.IndexOf(row))
                     .ToArray();
@@ -893,13 +1084,14 @@ namespace MZTools
             }
 
             if (document == null) return;
-            IReadOnlyList<DskFileEntry> entries = SelectedEntries;
+            IReadOnlyList<DskFileEntry> entries = fileSelection ?? SelectedEntries;
             if (entries.Count == 0) return;
             DskFileSystemType fileSystemType = document.FileSystem.Type;
             bool canExportMzf = entries.All(entry => DskExportSupport.CanExportMzf(fileSystemType, entry));
             var dialog = new SaveFileDialog
             {
                 Filter = DskExportSupport.GetFilter(fileSystemType, canExportMzf),
+                Title = entries.Count == 1 ? $"Export {SuggestedName(entries[0])}" : $"Export {entries.Count} selected files — choose output folder and format",
                 FileName = SuggestedName(entries[0]),
                 AddExtension = canExportMzf,
                 DefaultExt = canExportMzf ? ".bin" : string.Empty,
@@ -1178,9 +1370,9 @@ namespace MZTools
             HighlightSelectedFiles();
         }
 
-        private void MultiIplCompression_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void MultiIplCompressionSettings_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            if (sender is not ComboBox combo || combo.DataContext is not MultiGameIplRow clickedRow) return;
+            if (sender is not Button { DataContext: MultiGameIplRow clickedRow }) return;
             List<MultiGameIplRow> selected = multiIplGrid.SelectedItems
                 .OfType<MultiGameIplRow>()
                 .Where(row => row.CanChangeCompression)
@@ -1190,32 +1382,21 @@ namespace MZTools
                 : clickedRow.CanChangeCompression ? [clickedRow] : null;
         }
 
-        private async void MultiIplCompression_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void MultiIplCompressionSettings_Click(object sender, RoutedEventArgs e)
         {
-            if (suppressMultiIplChanges || sender is not ComboBox combo ||
-                combo.DataContext is not MultiGameIplRow sourceRow || combo.SelectedItem is not string compression ||
-                (!combo.IsKeyboardFocusWithin && multiIplCompressionTargets == null))
-            {
-                return;
-            }
-
-            List<MultiGameIplRow> targets = multiIplCompressionTargets ?? multiIplGrid.SelectedItems
-                .OfType<MultiGameIplRow>()
-                .Where(row => row.CanChangeCompression)
-                .ToList();
-            if (!targets.Contains(sourceRow) && sourceRow.CanChangeCompression) targets = [sourceRow];
-            multiIplCompressionTargets = targets;
-            suppressMultiIplChanges = true;
-            foreach (MultiGameIplRow row in targets) row.Compression = compression;
-            suppressMultiIplChanges = false;
+            if (sender is not Button { DataContext: MultiGameIplRow clicked } || !clicked.CanChangeCompression) return;
+            var rows = multiIplCompressionTargets ?? multiIplGrid.SelectedItems.OfType<MultiGameIplRow>().Where(r => r.CanChangeCompression).ToList();
             multiIplCompressionTargets = null;
+            if (!rows.Contains(clicked)) rows = [clicked];
+            var dialog = new CompressionSettingsDialog(OwnerWindow, rows);
+            if (dialog.ShowDialog() != true || dialog.SelectedOptions == null) return;
+            suppressMultiIplChanges = true;
+            try { for (int i = 0; i < rows.Count; i++) rows[i].SetCompressionOptions(dialog.SelectedOptions, dialog.PreparedResults[i]); }
+            finally { suppressMultiIplChanges = false; }
             multiIplDraftModified = true;
             await RebuildIplAsync();
-            RestoreMultiIplSelection(targets);
+            RestoreMultiIplSelection(rows);
         }
-
-        private void MultiIplCompression_DropDownClosed(object? sender, EventArgs e) =>
-            multiIplCompressionTargets = null;
 
         private void MultiIplGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
@@ -1223,6 +1404,7 @@ namespace MZTools
             DependencyObject? source = e.OriginalSource as DependencyObject;
             DataGridRow? row = FindVisualParent<DataGridRow>(source);
             bool editorClicked = FindVisualParent<ComboBox>(source) is not null ||
+                FindVisualParent<Button>(source) is not null ||
                 FindVisualParent<TextBox>(source) is not null;
             multiIplDragStartItem = editorClicked ? null : row?.Item as MultiGameIplRow;
         }
@@ -1370,9 +1552,19 @@ namespace MZTools
 
         private void DirectoryGrid_PropertyMouseDown(object sender, MouseButtonEventArgs e)
         {
+            fileDragSelection = null;
             if (e.OriginalSource is not DependencyObject source) return;
             var cell = FindVisualParent<DataGridCell>(source);
             if (cell?.IsEditing == true) return;
+            if (cell?.DataContext is DskFileEntry dragEntry && CrossDiskTransferService.Supports(document) &&
+                FindVisualParent<CheckBox>(source) == null && FindVisualParent<TextBox>(source) == null)
+            {
+                fileDragStart = e.GetPosition(directoryGrid);
+                var keys = directoryGrid.SelectedItems.Contains(dragEntry)
+                    ? directoryGrid.SelectedItems.OfType<DskFileEntry>().Select(f => f.Key).ToHashSet()
+                    : new HashSet<string> { dragEntry.Key };
+                fileDragSelection = document!.FileSystem.ReadDirectory().Where(f => keys.Contains(f.Key)).ToArray();
+            }
             propertyEditTargets = null; propertyEditAnchor = null;
             if (cell?.DataContext is DskFileEntry entry && IsEditableProperty(cell.Column.SortMemberPath) &&
                 directoryGrid.SelectedItems.Contains(entry) && Keyboard.Modifiers == ModifierKeys.None)
@@ -1430,6 +1622,7 @@ namespace MZTools
         {
             DskFilePropertyKind.Cpm => property is nameof(DskFileEntry.User) or nameof(DskFileEntry.ReadOnly) or nameof(DskFileEntry.System) or nameof(DskFileEntry.Archived),
             DskFilePropertyKind.Mrs => property is nameof(DskFileEntry.LoadAddress) or nameof(DskFileEntry.ExecuteAddress),
+            DskFilePropertyKind.Fsmz => property is nameof(DskFileEntry.LoadAddress) or nameof(DskFileEntry.ExecuteAddress) or nameof(DskFileEntry.FileType) or nameof(DskFileEntry.Locked),
             _ => false
         };
 
@@ -1449,6 +1642,8 @@ namespace MZTools
                 values = property switch
                 {
                     nameof(DskFileEntry.User) => values with { User = int.Parse(text, System.Globalization.CultureInfo.InvariantCulture) },
+                    nameof(DskFileEntry.FileType) => values with { FileType = checked((byte)Address(text)) },
+                    nameof(DskFileEntry.Locked) => values with { Locked = Flag(text) },
                     nameof(DskFileEntry.ReadOnly) => values with { ReadOnly = Flag(text) },
                     nameof(DskFileEntry.System) => values with { System = Flag(text) },
                     nameof(DskFileEntry.Archived) => values with { Archived = Flag(text) },
@@ -1521,6 +1716,13 @@ namespace MZTools
 
         private void DirectoryGrid_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            if (e.OriginalSource is DependencyObject source && FindVisualParent<TextBox>(source) != null) return;
+            if (Keyboard.Modifiers == ModifierKeys.Control && e.Key is Key.C or Key.V)
+            {
+                e.Handled = true;
+                if (e.Key == Key.C) CopyFiles_Click(sender, e); else PasteFiles_Click(sender, e);
+                return;
+            }
             if (e.Key != Key.F2 || directoryGrid.SelectedItem is not DskFileEntry entry)
             {
                 return;
@@ -1586,12 +1788,164 @@ namespace MZTools
 
         private void Open_Click(object sender, RoutedEventArgs e) => OpenRequested?.Invoke(this, EventArgs.Empty);
 
-        private void NewQuickDisk_Click(object sender, RoutedEventArgs e) => NewQuickDiskRequested?.Invoke(this, EventArgs.Empty);
+        private void DirectoryGrid_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.OriginalSource is not DependencyObject source) return;
+            var row = FindVisualParent<DataGridRow>(source);
+            contextExportMenu.Tag = row?.Item as DskFileEntry;
+            if (row?.Item is DskFileEntry && !row.IsSelected)
+            {
+                directoryGrid.SelectedItems.Clear();
+                row.IsSelected = true;
+            }
+        }
 
-        private void NewDsk_Click(object sender, RoutedEventArgs e) => NewDskRequested?.Invoke(this, EventArgs.Empty);
+        private void DirectoryGrid_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            UpdateFilePropertiesCommand();
+            bool selected = SelectedEntries.Count > 0;
+            contextAddMenu.IsEnabled = dskAddButton.IsEnabled;
+            if (e?.CursorLeft < 0) contextExportMenu.Tag = directoryGrid.CurrentItem as DskFileEntry;
+            var exportEntry = contextExportMenu.Tag as DskFileEntry;
+            contextExportMenu.IsEnabled = exportEntry != null;
+            contextExportMenu.Header = exportEntry == null ? "Export..." : $"Export “{SuggestedName(exportEntry)}”…";
+            contextExportSelectedMenu.Header = $"Export selected ({SelectedEntries.Count})…";
+            contextExportSelectedMenu.Visibility = SelectedEntries.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+            contextRenameMenu.IsEnabled = SelectedEntries.Count == 1 && document is { IsReadOnly: false } &&
+                document.FileSystem.Type is DskFileSystemType.Fsmz or DskFileSystemType.Cpm or DskFileSystemType.Mrs;
+            contextDeleteMenu.IsEnabled = selected && dskDeleteButton.IsEnabled && document?.FileSystem.Type is
+                DskFileSystemType.Fsmz or DskFileSystemType.Cpm or DskFileSystemType.Mrs;
+            contextPropertiesMenu.IsEnabled = filePropertiesMenu.IsEnabled;
+            copyFilesMenu.IsEnabled = !IplEditorMode && CrossDiskTransferService.Supports(document) && directoryGrid.SelectedItems.OfType<DskFileEntry>().Any();
+            copyFilesMenu.ToolTip = copyFilesMenu.IsEnabled ? "Copy selected files; the source remains unchanged." : "Select files in an FSMZ, CP/M or MRS filesystem.";
+            pasteFilesMenu.IsEnabled = false;
+            pasteFilesMenu.ToolTip = "Copy files from a disk in MZTools first.";
+            try
+            {
+                if (!IplEditorMode && CrossDiskTransferService.Supports(document) && Clipboard.GetDataObject() is { } data && WorkspaceDragTransfer.IsPresent(data))
+                {
+                    var packet = WorkspaceDragTransfer.Read(data);
+                    pasteFilesMenu.IsEnabled = packet.Disk != null;
+                    pasteFilesMenu.ToolTip = packet.Disk != null ? "Preview copied files, name collisions and metadata changes before applying." : "The clipboard contains tape records, not disk files.";
+                }
+            }
+            catch (Exception exception) { pasteFilesMenu.ToolTip = exception.Message; }
+        }
+
+        private void RenameSelected_Click(object sender, RoutedEventArgs e)
+        {
+            var grid = IplEditorMode ? multiIplGrid : directoryGrid;
+            if (grid.SelectedItems.Count != 1) return;
+            var column = grid.Columns.FirstOrDefault(c => Equals(c.Header, IplEditorMode ? "Menu name" : "Name") && !c.IsReadOnly);
+            if (column == null) return;
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                grid.Focus(); grid.CurrentCell = new DataGridCellInfo(grid.SelectedItem, column); grid.BeginEdit();
+            }));
+        }
+
+        private void MultiIplGrid_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.OriginalSource is not DependencyObject source) return;
+            var row = FindVisualParent<DataGridRow>(source);
+            iplContextExportMenu.Tag = row?.Item as MultiGameIplRow;
+            if (row?.Item is MultiGameIplRow && !row.IsSelected)
+            { multiIplGrid.SelectedItems.Clear(); row.IsSelected = true; }
+        }
+
+        private void MultiIplGrid_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            var selected = multiIplGrid.SelectedItems.OfType<MultiGameIplRow>().ToArray();
+            if (e?.CursorLeft < 0) iplContextExportMenu.Tag = multiIplGrid.CurrentItem as MultiGameIplRow;
+            var exportRow = iplContextExportMenu.Tag as MultiGameIplRow;
+            iplContextExportMenu.IsEnabled = exportRow != null;
+            iplContextExportMenu.Header = exportRow == null ? "Export..." : $"Export “{exportRow.MenuName}”…";
+            iplContextExportSelectedMenu.Header = $"Export selected ({selected.Length})…";
+            iplContextExportSelectedMenu.Visibility = selected.Length > 1 ? Visibility.Visible : Visibility.Collapsed;
+            iplContextRenameMenu.IsEnabled = selected.Length == 1;
+            iplContextDeleteMenu.IsEnabled = selected.Length > 0 && (singleIplEditorMode || selected.Length < multiIplRows.Count);
+            iplContextCompressionMenu.IsEnabled = selected.Length > 0 && selected.All(r => r.CanChangeCompression);
+            iplContextCompressionMenu.ToolTip = selected.FirstOrDefault(r => !r.CanChangeCompression)?.CompressionHint;
+            ToolTipService.SetShowOnDisabled(iplContextCompressionMenu, true);
+        }
+
+        private void IplContextCompression_Click(object sender, RoutedEventArgs e)
+        {
+            if (multiIplGrid.SelectedItem is MultiGameIplRow row)
+                MultiIplCompressionSettings_Click(new Button { DataContext = row }, e);
+        }
+
+        private void CopyFiles_Click(object sender, RoutedEventArgs e)
+        {
+            if (IplEditorMode || !CrossDiskTransferService.Supports(document)) return;
+            var selected = directoryGrid.SelectedItems.OfType<DskFileEntry>().ToArray();
+            if (selected.Length == 0) return;
+            try { Clipboard.SetDataObject(WorkspaceDragTransfer.Create(fileDragOwner, WorkspaceDragTransfer.Capture(document!, selected)), true); }
+            catch (Exception exception) { ShowError(exception.Message); }
+        }
+
+        private void PasteFiles_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (Clipboard.GetDataObject() is not { } data || !WorkspaceDragTransfer.IsPresent(data)) return;
+                PreviewWorkspaceCopy(data);
+            }
+            catch (Exception exception) { ShowError(exception.Message); }
+        }
+
+        private bool PreviewWorkspaceCopy(IDataObject data)
+        {
+            if (IplEditorMode || !CrossDiskTransferService.Supports(document))
+                throw new InvalidOperationException("Copy target must be a writable FSMZ, CP/M or MRS disk.");
+            var packet = WorkspaceDragTransfer.Read(data);
+            var source = WorkspaceDragTransfer.OpenDisk(packet);
+            var dialog = new CrossDiskTransferDialog(OwnerWindow, document!, source, packet.Keys);
+            dialog.ShowDialog();
+            if (dialog.Applied) RefreshCopiedFiles(dialog.CopiedFileKeys);
+            return dialog.Applied;
+        }
+
+        private void DirectoryGrid_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton != MouseButtonState.Pressed) { fileDragSelection = null; return; }
+            if (fileDragSelection is not { Length: > 0 } selected || document == null) return;
+            Point position = e.GetPosition(directoryGrid);
+            if (Math.Abs(position.X - fileDragStart.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(position.Y - fileDragStart.Y) < SystemParameters.MinimumVerticalDragDistance) return;
+            fileDragSelection = null;
+            if (directoryGrid.IsKeyboardFocusWithin && directoryGrid.CurrentCell.Column != null &&
+                FindVisualParent<DataGridCell>(e.OriginalSource as DependencyObject)?.IsEditing == true) return;
+            try
+            {
+                var data = WorkspaceDragTransfer.Create(fileDragOwner, WorkspaceDragTransfer.Capture(document, selected));
+                DragDrop.DoDragDrop(directoryGrid, data, DragDropEffects.Copy);
+            }
+            catch (Exception exception) { ShowError(exception.Message); }
+        }
+
+        private void Control_DragOver(object sender, DragEventArgs e)
+        {
+            if (!WorkspaceDragTransfer.IsPresent(e.Data)) return;
+            e.Handled = true;
+            e.Effects = !WorkspaceDragTransfer.IsLocal(e.Data, fileDragOwner) && !IplEditorMode &&
+                CrossDiskTransferService.Supports(document) ? DragDropEffects.Copy : DragDropEffects.None;
+        }
 
         private void Control_Drop(object sender, DragEventArgs e)
         {
+            if (e.Handled) return;
+            if (WorkspaceDragTransfer.IsPresent(e.Data))
+            {
+                e.Handled = true; e.Effects = DragDropEffects.None;
+                if (WorkspaceDragTransfer.IsLocal(e.Data, fileDragOwner)) return;
+                try
+                {
+                    if (PreviewWorkspaceCopy(e.Data)) e.Effects = DragDropEffects.Copy;
+                }
+                catch (Exception exception) { ShowError(exception.Message); }
+                return;
+            }
             if (e.Handled || e.Data.GetDataPresent(MultiIplRowDragDataFormat))
             {
                 e.Handled = true;

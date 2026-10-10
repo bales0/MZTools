@@ -18,7 +18,8 @@ namespace MZTools
     {
         MzfTape,
         MztTape,
-        IplDsk
+        IplDsk,
+        NativeCom
     }
 
     internal sealed record MzfCompressionOptions(
