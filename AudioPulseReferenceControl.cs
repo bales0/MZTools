@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
@@ -31,6 +31,13 @@ internal sealed class AudioPulseReferenceControl : Expander
         var panel = new StackPanel(); Content = panel;
         var selection = new WrapPanel(); panel.Children.Add(selection); selection.Children.Add(visible); selection.Children.Add(follow); selection.Children.Add(choice);
         choice.ItemsSource = references;
+        var catalog = new Button { Content = "Browse catalog / receiver constraints…", Margin = new(4), HorizontalAlignment = HorizontalAlignment.Left };
+        selection.Children.Add(catalog);
+        catalog.Click += (_, _) => {
+            var grid = AudioSignalAnalyzerWindow.Grid();
+            grid.ItemsSource = PulseReferenceCatalog.Entries.Select(e => new { e.Id,e.Machine,e.Software,e.SoftwareVersion,e.Stage,e.Kind,e.Evidence,e.ClockHz,e.ReceiverMinUs,e.ReceiverMaxUs,e.SourceFile,e.Section,e.Derivation,e.Polarity,e.SupportedUsages,e.Limitations }).ToArray();
+            new Window { Title = "Pulse reference catalog — " + PulseReferenceCatalog.Version, Width = 1200, Height = 650, Content = grid, Owner = Window.GetWindow(this), WindowStartupLocation = WindowStartupLocation.CenterOwner }.ShowDialog();
+        };
         panel.Children.Add(source);
         guides.Columns.Add(new DataGridTextColumn { Header = "Pulse", Binding = new Binding("Group"), Width = 110 });
         guides.Columns.Add(new DataGridTextColumn { Header = "µs", Binding = new Binding("Microseconds") { StringFormat = "0.###" }, Width = 90 });
@@ -50,7 +57,7 @@ internal sealed class AudioPulseReferenceControl : Expander
             if (Selected is not { } selected) return;
             if (!automaticSelection) follow.IsChecked = false;
             Header = "Pulse references / user values (µs) — " + selected.Name;
-            source.Text = selected.Evidence + "\n" + selected.Source;
+            source.Text = $"{selected.Machine} • {selected.Stage} • {selected.Kind} • {selected.CatalogId ?? "USER"}\n{selected.Evidence}\n{selected.Source}\n{selected.Derivation}\nComparison overlay only; decoding changes only through explicit reference tests.";
             guides.ItemsSource = selected.Guides;
             for (int i = 0; i < values.Length; i++) values[i].Text = selected.Guides.FirstOrDefault(g => g.Group == AudioPulseReference.Groups[i])?.Microseconds.ToString("0.###", CultureInfo.CurrentCulture) ?? "";
             Changed?.Invoke();

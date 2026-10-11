@@ -183,6 +183,47 @@ public sealed class NativeComTests : IDisposable
     }
 
     [Fact]
+    public void CollisionRenameAndReplaceAreTransactionalAndScopedToUserZero()
+    {
+        var disk=DskDocumentFactory.CreateCpm(false);
+        disk.FileSystem.Insert("GAME.COM",[1,2,3]);
+        disk.FileSystem.Insert("GAME.COM",[4,5,6],user:15);
+        disk.FileSystem.Insert("GAME~1.COM",[7]); disk.MarkModified();
+        var existing=disk.FileSystem.ReadDirectory().Single(e=>e.Name=="GAME" && e.User==0);
+        var old=disk.FileSystem.Extract(existing);
+        var user15=disk.FileSystem.Extract(disk.FileSystem.ReadDirectory().Single(e=>e.User==15));
+        var before=disk.Serialize();
+        var conversion=MzNativeComBuilder.Build(Image(),CpmTargetProfile.BuiltIns[0],NativeMachineMode.Mz800Monitor,true);
+        Assert.True(NativeComImportService.Exists(disk,"game.com"));
+        Assert.Equal("GAME~2.COM",NativeComImportService.AvailableName(disk,"GAME.COM"));
+        var rename=NativeComImportService.Preview(disk,"GAME.COM",conversion,DiskCollisionPolicy.Rename);
+        Assert.Equal(before,disk.Serialize()); rename.Operation.Apply(disk);
+        Assert.Equal(old,disk.FileSystem.Extract(disk.FileSystem.ReadDirectory().Single(e=>e.Name=="GAME" && e.User==0)));
+        Assert.Equal(conversion.Bytes,disk.FileSystem.Extract(disk.FileSystem.ReadDirectory().Single(e=>e.Key==rename.FileKey)).Take(conversion.Bytes.Length));
+        var replace=NativeComImportService.Preview(disk,"GAME.COM",conversion,DiskCollisionPolicy.Replace);
+        replace.Operation.Apply(disk);
+        Assert.Equal(conversion.Bytes,disk.FileSystem.Extract(disk.FileSystem.ReadDirectory().Single(e=>e.Name=="GAME" && e.User==0)).Take(conversion.Bytes.Length));
+        Assert.Equal(user15,disk.FileSystem.Extract(disk.FileSystem.ReadDirectory().Single(e=>e.User==15)));
+        Assert.Equal(0,DskAnalyzer.Analyze(disk).Errors);
+    }
+
+    [Fact]
+    public void ProtectedCollisionCannotBeOverwrittenButCanBeRenamed()
+    {
+        var disk=DskDocumentFactory.CreateCpm(false); disk.FileSystem.Insert("GAME.COM",[42]); disk.MarkModified();
+        var entry=disk.FileSystem.ReadDirectory().Single();
+        DskFilePropertyService.Apply(disk,entry,DskFileProperties.From(entry) with {ReadOnly=true});
+        var before=disk.Serialize();
+        var conversion=MzNativeComBuilder.Build(Image(),CpmTargetProfile.BuiltIns[0],NativeMachineMode.Mz800Monitor,true);
+        Assert.Throws<InvalidDataException>(()=>NativeComImportService.Preview(disk,"GAME.COM",conversion,DiskCollisionPolicy.Replace));
+        Assert.Equal(before,disk.Serialize());
+        var renamed=NativeComImportService.Preview(disk,"GAME.COM",conversion,DiskCollisionPolicy.Rename);
+        renamed.Operation.Apply(disk);
+        Assert.True(disk.FileSystem.ReadDirectory().Single(e=>e.Name=="GAME").ReadOnly);
+        Assert.Equal(2,disk.FileSystem.ReadDirectory().Count);
+    }
+
+    [Fact]
     public void ImportRejectsWrongFilesystemInvalidNameAndStalePreview()
     {
         var conversion = MzNativeComBuilder.Build(Image(), CpmTargetProfile.BuiltIns[0], NativeMachineMode.Mz800Monitor, true);

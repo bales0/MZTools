@@ -56,6 +56,11 @@ namespace MZTools
     {
         private byte[] originalBytes;
         private CpmDpb? attachedDpb;
+        private DskImage? hfeBaseline;
+        private byte[]? preparedHfe;
+        private string? preparedProjectionHash;
+        internal HfeImage? SourceHfe {get;private set;}
+        internal string ContainerName=>SourceHfe?.Variant??"DSK";
         internal CpmDpb? AttachedDpb => attachedDpb;
 
         internal DskDocument(DskImage image, byte[] originalBytes, string? path, IDskFileSystem fileSystem)
@@ -71,7 +76,27 @@ namespace MZTools
         internal string? FilePath { get; private set; }
         internal bool IsModified { get; private set; }
         internal string? LastSavedSha256 { get; private set; }
-        internal bool IsReadOnly => FileSystem.IsReadOnly;
+        internal bool IsReadOnly => FileSystem.IsReadOnly || SourceHfe?.WriteAllowed==false;
+        internal static DskDocument OpenHfe(HfeImage image,string? path=null)
+        {
+            var inspection=HfeSemanticInspectionService.Inspect(image);
+            var document=inspection.Projection??throw new InvalidDataException(inspection.Report);
+            document.SourceHfe=image;document.hfeBaseline=DskImage.Parse(document.Serialize());document.FilePath=path;
+            return document;
+        }
+        internal byte[] SerializeContainer()
+        {
+            if(SourceHfe==null) return Serialize();
+            if(!IsModified) return SourceHfe.Serialize(SourceHfe.Version);
+            string hash=ImageVerificationService.Hash(Image.Serialize());
+            if(preparedHfe==null || preparedProjectionHash!=hash) {preparedHfe=SourceHfe.UpdateSectors(hfeBaseline!,Image).Serialize(SourceHfe.Version);preparedProjectionHash=hash;}
+            return (byte[])preparedHfe.Clone();
+        }
+        internal HfeImage? CurrentHfe()=>SourceHfe==null?null:HfeImage.Parse(SerializeContainer());
+        internal static DskDocument FromFormattedHfe(DskDocument projection,HfeImage image,string? path)
+        {
+            projection.SourceHfe=image;projection.hfeBaseline=DskImage.Parse(projection.Serialize());projection.FilePath=path;projection.IsModified=true;return projection;
+        }
 
         internal static DskDocument Open(string path)
         {
@@ -81,6 +106,7 @@ namespace MZTools
 
         internal static DskDocument Open(byte[] bytes, string? path = null)
         {
+            if(new HfeImage().Identify(bytes).Matches) return OpenHfe(HfeImage.Parse(bytes),path);
             byte[] original = (byte[])bytes.Clone();
             DskImage image = DskImage.Parse(bytes);
             IDskFileSystem fileSystem = DskFileSystemDetector.Detect(image);
@@ -95,6 +121,8 @@ namespace MZTools
         internal DskDocument Reopen(byte[] bytes)
         {
             var copy = Open(bytes, FilePath);
+            copy.SourceHfe=SourceHfe;copy.hfeBaseline=hfeBaseline;
+            if(SourceHfe!=null && !bytes.AsSpan().SequenceEqual(originalBytes)) copy.IsModified=true;
             if (attachedDpb != null) copy.AttachCpmLayout(attachedDpb);
             return copy;
         }
@@ -111,13 +139,14 @@ namespace MZTools
         {
             if (IsReadOnly)
             {
-                throw new InvalidOperationException("This disk was opened read-only because its filesystem is inconsistent or unknown.");
+                throw new InvalidOperationException(SourceHfe?.WriteAllowed==false?"This HFE image is write-protected.":"This disk was opened read-only because its filesystem is inconsistent or unknown.");
             }
             IsModified = true;
         }
 
         internal void ReplaceContents(byte[] bytes)
         {
+            if(SourceHfe?.WriteAllowed==false) throw new InvalidOperationException("This HFE image is write-protected.");
             DskImage replacement = DskImage.Parse(bytes);
             IDskFileSystem replacementFileSystem;
             if (attachedDpb != null)
@@ -127,6 +156,7 @@ namespace MZTools
                 replacementFileSystem = cpm;
             }
             else replacementFileSystem = DskFileSystemDetector.Detect(replacement);
+            if(SourceHfe!=null) SourceHfe.UpdateSectors(hfeBaseline!,replacement).Serialize(SourceHfe.Version);
             Image = replacement;
             FileSystem = replacementFileSystem;
             IsModified = true;
@@ -134,17 +164,30 @@ namespace MZTools
 
         internal void Save(string? path = null)
         {
-            string destination = path ?? FilePath ?? throw new InvalidOperationException("The DSK document has no output path.");
-            byte[] savedBytes = Serialize();
+            string destination = Path.GetFullPath(path ?? FilePath ?? throw new InvalidOperationException("The DSK document has no output path."));
+            if(SourceHfe!=null && !Path.GetExtension(destination).Equals(".hfe",StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Save this physical document as .hfe. Use Convert Format for DSK output.");
+            byte[] savedBytes = SerializeContainer();
             MediaConversionService.WriteVerified(destination, savedBytes, stored =>
             {
                 if (!stored.AsSpan().SequenceEqual(savedBytes)) throw new IOException("Saved DSK bytes differ from the prepared document.");
-                DskImage.Parse(stored);
+                if(SourceHfe!=null) HfeImage.Parse(stored);else DskImage.Parse(stored);
             });
-            originalBytes = savedBytes;
+            originalBytes = SourceHfe==null?savedBytes:Image.Serialize();
+            if(SourceHfe!=null) {SourceHfe=HfeImage.Parse(savedBytes);hfeBaseline=DskImage.Parse(originalBytes);}
+            preparedHfe=null;preparedProjectionHash=null;
             FilePath = destination;
             LastSavedSha256 = ImageVerificationService.Hash(savedBytes);
             IsModified = false;
+        }
+        // Explicit formatting replaces every track; it does not pretend to preserve a capture.
+        internal DskDocument Reformatted(DskDocument replacement)
+        {
+            if(SourceHfe!=null) {
+                var physical=HfeImage.FromDsk(replacement,uniformTiming:SourceHfe.Version!=HfeVersion.V3);
+                replacement.SourceHfe=HfeImage.Parse(physical.Serialize(SourceHfe.Version));
+                replacement.hfeBaseline=DskImage.Parse(replacement.Serialize());
+            }
+            replacement.FilePath=FilePath;replacement.IsModified=true;return replacement;
         }
     }
 

@@ -36,6 +36,8 @@ namespace MZTools
     internal sealed class SharpMzPulseDecoder
     {
         private const int HeaderBytes = 128;
+        // Algorithmic acquisition/acceptance limits, not historical writer framing.
+        // Preserve them independently of PulseReferenceCatalog waveform values.
         private const int MinLeaderPulses = 16;
         private const int MinMarkPulses = 12;
         private const int MaxMarkPulses = 48;
@@ -120,6 +122,7 @@ namespace MZTools
         private long completedShortPhysicalHighX8;
         private long completedLongPhysicalLowX8;
         private long completedLongPhysicalHighX8;
+        private Native1xPulseTiming validatedNativeTiming, completedNativeTiming;
         private SharpMzDecoderEvent? pendingEvent;
         private long intervalEndUnits;
         private long leaderStartUnits, syncStartUnits = -1, dataStartUnits = -1, checksumStartUnits = -1;
@@ -134,6 +137,8 @@ namespace MZTools
         internal long CompletedShortPhysicalHighX8 => ToSamples(completedShortPhysicalHighX8);
         internal long CompletedLongPhysicalLowX8 => ToSamples(completedLongPhysicalLowX8);
         internal long CompletedLongPhysicalHighX8 => ToSamples(completedLongPhysicalHighX8);
+        internal Native1xPulseTiming HeaderNativeTiming(uint sampleRate) => validatedNativeTiming.ToMicroseconds(sampleRate);
+        internal Native1xPulseTiming CompletedNativeTiming(uint sampleRate) => completedNativeTiming.ToMicroseconds(sampleRate);
         internal double LeaderAverage => leaderMean / unitsPerSample;
         internal double LeaderStdDev => leaderObservationCount > 1
             ? Math.Sqrt(leaderM2 / (leaderObservationCount - 1)) / unitsPerSample
@@ -152,6 +157,7 @@ namespace MZTools
             validatedPhysicalHighX8 = 0;
             validatedLongPhysicalLowX8 = 0;
             validatedLongPhysicalHighX8 = 0;
+            validatedNativeTiming = default;
             ClearCompletedTiming();
             pendingEvent = null;
             expectedBytes = HeaderBytes;
@@ -635,6 +641,7 @@ namespace MZTools
                     validatedPhysicalHighX8 = completedShortPhysicalHighX8;
                     validatedLongPhysicalLowX8 = completedLongPhysicalLowX8;
                     validatedLongPhysicalHighX8 = completedLongPhysicalHighX8;
+                    validatedNativeTiming = completedNativeTiming;
                     mode = DecoderMode.Stopped;
                     PublishEvent(SharpMzDecoderEventType.HeaderValid, 0, 0);
                 }
@@ -690,6 +697,7 @@ namespace MZTools
 
         private void ClearCompletedTiming()
         {
+            completedNativeTiming = default;
             completedLeaderPhysicalLowMeanX8 = 0;
             completedShortPhysicalHighX8 = 0;
             completedLongPhysicalLowX8 = 0;
@@ -698,6 +706,12 @@ namespace MZTools
 
         private void CaptureCompletedTiming()
         {
+            // Preserve unrounded means for machine metadata; byte decoding still uses the original integer timing.
+            completedNativeTiming = new Native1xPulseTiming(
+                leaderObservationCount == 0 ? 0 : leaderMean / unitsPerSample,
+                physicalHighIntervals == 0 ? 0 : physicalHighUnitsTotal / ((double)physicalHighIntervals * unitsPerSample),
+                markLongPhysicalLowIntervals == 0 ? 0 : markLongPhysicalLowUnitsTotal / ((double)markLongPhysicalLowIntervals * unitsPerSample),
+                markLongPhysicalHighIntervals == 0 ? 0 : markLongPhysicalHighUnitsTotal / ((double)markLongPhysicalHighIntervals * unitsPerSample));
             completedLeaderPhysicalLowMeanX8 = leaderObservationCount == 0
                 ? 0
                 : checked((long)Math.Round(leaderMean * 8.0));

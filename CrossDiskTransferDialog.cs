@@ -57,7 +57,7 @@ internal sealed class CrossDiskTransferDialog : Window
                 var dialog = new DskPatchPreviewWindow(this, result.Operation.Report, () =>
                 {
                     result.Operation.Apply(target);
-                }, "Cross-disk copy preview", "Apply to current disk");
+                }, "Cross-disk copy preview", "Apply to current disk", result.Presentation());
                 dialog.ShowDialog(); if (dialog.Applied) { CopiedFileKeys = result.TargetKeys ?? Array.Empty<string>(); Applied = true; Close(); }
             }
             catch (Exception e) { MessageBox.Show(this, e.Message, Title); }

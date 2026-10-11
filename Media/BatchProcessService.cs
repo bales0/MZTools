@@ -146,7 +146,7 @@ internal static class BatchProcessService
                 }
                 HfeImage? physical = new HfeImage().Identify(working).Matches ? HfeImage.Parse(working) : null;
                 DskDocument? document = physical == null ? DskDocument.Open(working, path) : null;
-                row.DetectedFormat = physical == null ? "Extended CPC DSK" : physical.IsV3 ? "HFEv3" : "HFE";
+                row.DetectedFormat = physical == null ? "Extended CPC DSK" : physical.Variant;
                 if (document != null)
                 {
                     var analysis = DskAnalyzer.Analyze(document); var boot = DskBootInfo.Inspect(document);
@@ -188,10 +188,10 @@ internal static class BatchProcessService
                 {
                     case BatchOperation.ConvertFormat:
                         if (document != null && options.TargetFormat == "DSK") { row.Result = "Already matching"; row.Reason = "Source is already Extended CPC DSK."; continue; }
-                        if (options.TargetFormat is "HFEv3" or "HFE")
+                        if (options.TargetFormat is "HFEv3" or "HFEv2" or "HFE")
                         {
-                            var conversion = physical == null ? MediaConversionService.DskToHfe(document!, options.TargetFormat == "HFEv3") :
-                                new MediaConversionPreview(physical.Serialize(options.TargetFormat == "HFEv3"), "Physical bitcells, weak bits and timing verified.", false);
+                            var conversion = physical == null ? MediaConversionService.DskToHfe(document!, options.TargetFormat == "HFEv3" ? HfeVersion.V3 : options.TargetFormat == "HFEv2" ? HfeVersion.V2 : HfeVersion.V1) :
+                                new MediaConversionPreview(physical.Serialize(options.TargetFormat == "HFEv3" ? HfeVersion.V3 : options.TargetFormat == "HFEv2" ? HfeVersion.V2 : HfeVersion.V1), "Physical bitcells, weak bits and timing verified.", false);
                             row.ImageBytes = conversion.Output; row.RequiresLossConfirmation = conversion.IsLossy; row.DetailedReport = conversion.Report;
                         }
                         else if (physical != null && options.TargetFormat == "DSK")
@@ -226,6 +226,11 @@ internal static class BatchProcessService
                         var patchPreview = DskPatchService.Preview(document, patch); row.ImageBytes = patchPreview.ResultBytes; row.DetailedReport = patchPreview.Report;
                         break;
                     case BatchOperation.ExtractAll:
+                        if(physical!=null) {
+                            var inspection=HfeSemanticInspectionService.Inspect(physical);
+                            if(!inspection.Available) throw new InvalidDataException(inspection.Report);
+                            document=inspection.Projection;
+                        }
                         if (document == null || document.IsReadOnly || document.FileSystem is RawDskFileSystem || DskAnalyzer.Analyze(document).Errors != 0) throw new InvalidDataException("Extract All requires a recognized, validated filesystem.");
                         var files = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
                         foreach (var entry in document.FileSystem.ReadDirectory())

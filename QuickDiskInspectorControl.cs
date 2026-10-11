@@ -50,8 +50,7 @@ internal sealed class QuickDiskInspectorControl : UserControl
                 if (picker.ShowDialog(Window.GetWindow(this)) == true) File.WriteAllBytes(picker.FileName, mo5.ExportRaw());
             });
         DockPanel.SetDock(buttons, Dock.Top); root.Children.Add(buttons);
-        var details = new TextBox { Text = report, IsReadOnly = true, TextWrapping = TextWrapping.Wrap,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto, MaxHeight = 220, Margin = new Thickness(0, 0, 0, 8) };
+        var details = new ReportView { Text = report, Height = 250, Margin = new Thickness(0, 0, 0, 8) };
         DockPanel.SetDock(details, Dock.Top); root.Children.Add(details);
         foreach (var (header, property) in new[] { ("Unit / physical & logical identity", "Name"), ("Position", "Position"), ("Decoded bytes", "Bytes"), ("Integrity", "Integrity") })
             units.Columns.Add(new DataGridTextColumn { Header = header, Binding = new Binding(property), Width = property == "Name" ? new DataGridLength(1, DataGridLengthUnitType.Star) : DataGridLength.Auto });
@@ -77,7 +76,7 @@ internal sealed class QuickDiskInspectorControl : UserControl
         }
         MapInteraction.EmphasizeSelection(units);
         units.PreviewKeyDown += (_, e) => { if (MapInteraction.MoveGridSelection(units, e.Key)) e.Handled = true; };
-        var selectedDetail = new TextBox { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, MinHeight = 80 };
+        var selectedDetail = new ReportView { MinHeight = 170 };
         units.SelectionChanged += (_, _) => selectedDetail.Text = units.SelectedItem is Unit unit
             ? $"{unit.Name}\nPosition: {unit.Position}; bytes: {unit.Bytes}; integrity: {unit.Integrity}\n{unit.Structure}" : "Select a decoded block/sector to inspect its structure.";
         var content = new Grid(); content.RowDefinitions.Add(new() { Height = new GridLength(2, GridUnitType.Star) });

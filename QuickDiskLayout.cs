@@ -26,6 +26,7 @@ internal sealed record QuickDiskLayout(
     IReadOnlyList<QuickDiskRegion> Regions)
 {
     internal byte[] Image { get; init; } = Array.Empty<byte>();
+    internal QuickDiskHostAnalysis? HostAnalysis {get;init;}
     internal IReadOnlyDictionary<QuickDiskRegion, byte[]> HostBytes { get; init; } = new Dictionary<QuickDiskRegion, byte[]>();
     internal byte[] GetBlockBytes(QuickDiskRegion region)
     {
@@ -125,7 +126,7 @@ internal static class QuickDiskLayoutBuilder
             long length = container.Descriptor.Length * 8L;
             return new(format, preview, true, length, container.Descriptor.Offset,
                 container.Descriptor.WindowStart * 8L, container.Descriptor.WindowEnd * 8L,
-                FillGaps(blocks, length, container.Descriptor.WindowStart * 8L, container.Descriptor.WindowEnd * 8L)) { Image = image, HostBytes = hostBytes };
+                FillGaps(blocks, length, container.Descriptor.WindowStart * 8L, container.Descriptor.WindowEnd * 8L)) { Image = image, HostBytes = hostBytes, HostAnalysis=analysis };
         }
         if (format == TapeDocumentFormat.Qdf)
         {

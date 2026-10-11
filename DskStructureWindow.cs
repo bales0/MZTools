@@ -12,7 +12,7 @@ internal sealed class DskStructureWindow : Window
     private readonly DskStructureSnapshot snapshot;
     private readonly Action<DskStructureItem?>? selectInEditor;
     private readonly DskDiskMapControl map = new();
-    private readonly TextBox detail = new() { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+    private readonly ReportView detail = new();
     private readonly Button hex = new() { Content = "Hex view metadata...", IsEnabled = false, MinWidth = 130,
         ToolTip = "Read-only hex view of the selected native metadata. Filesystem-decoded bytes; storage inversion is removed where required." };
     private readonly Button clear = new() { Content = "Clear selection", Margin = new Thickness(8, 0, 0, 0), IsEnabled = false };

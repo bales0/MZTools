@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -86,6 +86,10 @@ internal sealed record AudioBlockAnalysis(int Record, string Name, string Block,
     double? GlobalTimingScale, double? SpeedOffsetPercent, long Outliers)
 {
     public double ClassificationScale { get; init; } = 1;
+    public AudioPulseMeasurementSource? PulseSource { get; init; }
+    public string MeasurementProvenance { get; init; } = "Measured / reference comparison";
+    public int OmittedMeasurementSpans { get; init; }
+    internal IReadOnlyList<AudioAnalysisIssue> MeasurementIssues { get; init; } = [];
 }
 internal sealed record AudioDecodeAgreement(int Channel, int ZeroCrossValidBlocks, int SchmittValidBlocks,
     int CommonValidBlocks, double? AgreementPercent, string Definition)
@@ -98,6 +102,7 @@ internal sealed record AudioDecodeAgreement(int Channel, int ZeroCrossValidBlock
 internal sealed class AudioSignalAnalysis
 {
     public string Source { get; init; } = "";
+    public string PulseCatalogVersion => PulseReferenceCatalog.Version;
     public long SourceLength { get; init; }
     public DateTime SourceModifiedUtc { get; init; }
     public string Format { get; init; } = "";
@@ -230,7 +235,7 @@ internal static class AudioAnalysisReport
         var rows = new List<string[]>();
         void Row(string section, string scope, string metric, object? value, string unit = "", long? start = null, long? end = null) =>
             rows.Add([section, scope, metric, value is IFormattable f ? f.ToString(null, CultureInfo.InvariantCulture) : value?.ToString() ?? "Not available", unit, start?.ToString() ?? "", end?.ToString() ?? ""]);
-        Row("source", "", "source", analysis.Source); Row("source", "", "layer", analysis.Layer); Row("source", "", "format", analysis.Format);
+        Row("source", "", "source", analysis.Source); Row("source", "", "layer", analysis.Layer); Row("source", "", "pulse catalog", PulseReferenceCatalog.Version); Row("source", "", "format", analysis.Format);
         Row("source", "", "sample rate", analysis.SampleRate, "Hz"); Row("source", "", "channels", analysis.ChannelCount);
         Row("source", "", "bit depth", analysis.BitsPerSample, "bits"); Row("source", "", "frames", analysis.FrameCount);
         Row("source", "", "file length", analysis.SourceLength, "B"); Row("source", "", "modified UTC", analysis.SourceModifiedUtc.ToString("O", CultureInfo.InvariantCulture));
@@ -260,6 +265,22 @@ internal static class AudioAnalysisReport
             Row("block",scope,"profile",block.Profile); Row("block",scope,"reference",block.ReferenceName);
             Row("block",scope,"selected channel",block.Channel); Row("block",scope,"inverted",block.Inverted);
             Row("block",scope,"decode detector",block.DecodeDetector); Row("block",scope,"pulse measurement",block.PulseMeasurement);
+            Row("block",scope,"measurement provenance",block.MeasurementProvenance);
+            Row("block",scope,"omitted measurement spans / windows",block.OmittedMeasurementSpans);
+            if (block.PulseSource is { } pulse)
+            {
+                Row("pulse source",scope,"PCM",pulse.Pcm); Row("pulse source",scope,"detector",pulse.Detector);
+                Row("pulse source",scope,"threshold scale",pulse.ThresholdScale); Row("pulse source",scope,"deadband",pulse.ZeroDeadbandPercent,"% FS");
+                Row("pulse source",scope,"reference ID",pulse.ReferenceId); Row("pulse source",scope,"classification scale",pulse.Scale);
+                Row("pulse source",scope,"pass",pulse.PassId); Row("pulse source",scope,"preprocessing start",pulse.PreprocessingStartSample,"sample");
+                Row("pulse source",scope,"meaning",pulse.Meaning);
+                foreach (var interval in pulse.Intervals) Row("pulse source",scope,"measured interval","Selected PCM","",interval.StartSample,interval.EndSample);
+                var entry = PulseReferenceCatalog.Entries.FirstOrDefault(e => e.Id == pulse.ReferenceId);
+                if (entry != null) {
+                    Row("pulse reference",scope,"kind",entry.Kind); Row("pulse reference",scope,"source",entry.SourceFile + "#" + entry.Section);
+                    Row("pulse reference",scope,"evidence",entry.Evidence); Row("pulse reference",scope,"derivation",entry.Derivation);
+                }
+            }
             Row("block",scope,"checksum valid",block.ChecksumValid); Row("block",scope,"recorded checksum",block.RecordedChecksum);
             Row("block",scope,"calculated checksum",block.CalculatedChecksum); Row("block",scope,"recovered",block.Recovered);
             Row("block",scope,"global timing scale",block.GlobalTimingScale,"",block.StartSample,block.EndSample);

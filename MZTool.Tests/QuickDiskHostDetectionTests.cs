@@ -217,7 +217,7 @@ public class QuickDiskHostDetectionTests
 
     internal static byte[] Wrap(byte[] track, QdImageFormat format) => HxcFlashFloppyQdContainer.Write(track,
         new QuickDiskPhysicalProfile(format, track.Length, track.Length, 0, track.Length, 0xAA, 203389, track.Length + 1024));
-    private static byte[] MakeTrack(QuickDiskHostFormat format) => format switch
+    internal static byte[] MakeTrack(QuickDiskHostFormat format) => format switch
     {
         QuickDiskHostFormat.Roland => Encode(MakeRoland(), true),
         QuickDiskHostFormat.AkaiS612 => Encode(MakeAkai(false), true),

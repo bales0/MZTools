@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -134,7 +134,7 @@ namespace MZTools
             "All supported files|*.mzt;*.mzf;*.m12;*.mz0;*.mz7;*.mzq;*.qdf;*.qd;*.dsk;*.hfe;*.lep;*.l16;*.wav;*.flac|Quickdisk image (*.qd)|*.qd|MZ-800 IPL floppy (*.dsk)|*.dsk|HFE physical floppy (*.hfe)|*.hfe|Quickdisk file (*.mzq)|*.mzq|Multiple files tape (*.mzt)|*.mzt|Single tape file (*.mzf;*.m12;*.mz0;*.mz7)|*.mzf;*.m12;*.mz0;*.mz7|Quickdisk file (*.qdf)|*.qdf|LEP pulse file (*.lep)|*.lep|L16 pulse file (*.l16)|*.l16|Wave audio (*.wav)|*.wav|FLAC audio (*.flac)|*.flac|All files (*.*)|*.*";
 
         public static string GetSaveFilter() =>
-            "Quickdisk file (*.qdf)|*.qdf|Quickdisk file (*.mzq)|*.mzq|Quickdisk image - HxC (*.qd)|*.qd|Quickdisk image - FlashFloppy (*.qd)|*.qd|Quickdisk image - Sharp/MZ legacy (*.qd)|*.qd|Multiple files tape (*.mzt)|*.mzt|Single tape file (*.mzf)|*.mzf|LEP pulse file (*.lep)|*.lep|L16 pulse file (*.l16)|*.l16|Wave audio (*.wav)|*.wav|MZ-800 bootable IPL floppy (single / multi automatic) (*.dsk)|*.dsk|Single tape file (*.m12)|*.m12|All files (*.*)|*.*";
+            "Quickdisk file (*.qdf)|*.qdf|Quickdisk file (*.mzq)|*.mzq|Quickdisk image - HxC (*.qd)|*.qd|Quickdisk image - FlashFloppy (*.qd)|*.qd|Quickdisk image - Sharp/MZ legacy (*.qd)|*.qd|Multiple files tape (*.mzt)|*.mzt|Single tape file (*.mzf)|*.mzf|Single tape file (*.m12)|*.m12|All files (*.*)|*.*";
 
         public static string GetExportFilter(bool singleRecord = false) =>
             "Multiple files tape (*.mzt)|*.mzt|Single tape file (*.mzf)|*.mzf" +
@@ -208,6 +208,7 @@ namespace MZTools
             MapInteraction.EmphasizeSelection(MzfDataGrid);
             MzfDisplayDataCollection = new ObservableCollection<MzfDisplayData>();
             MzfDataGrid.ItemsSource = MzfDisplayDataCollection;
+            InitializeQuickDiskVisual();
             quickDiskMap.RegionSelected += region =>
             {
                 if (ReferenceEquals(quickDiskBlocks.SelectedItem, region)) SynchronizeQuickDiskBlockSelection();
@@ -386,7 +387,7 @@ namespace MZTools
             TapeDocumentFormat.QdSharpLegacy => 5,
             TapeDocumentFormat.Mzt => 6,
             TapeDocumentFormat.Mzf => 7,
-            TapeDocumentFormat.M12 => 12,
+            TapeDocumentFormat.M12 => 8,
             _ => 1
         };
 
@@ -559,7 +560,8 @@ namespace MZTools
             quickDiskInspectorHost.Visibility = document.IsReadOnlyQuickDisk ? Visibility.Visible : Visibility.Collapsed;
             statusBorder.Visibility = documentOpen ? Visibility.Visible : Visibility.Collapsed;
             addButton.IsEnabled = documentOpen && !document.IsReadOnlyQuickDisk;
-            saveButton.IsEnabled = CanSaveTapeDocumentInPlace();
+            saveButton.IsEnabled = document.IsModified && CanSaveTapeDocumentInPlace();
+            saveButton.ToolTip = document.FilePath == null ? "Use Save As to choose the active file." : "Save current document: " + document.FilePath;
             saveAsButton.IsEnabled = documentOpen && !document.IsReadOnlyQuickDisk;
             closeButton.IsEnabled = documentOpen;
             MzfDataGrid.IsReadOnly = document.IsReadOnlyQuickDisk;
@@ -611,6 +613,7 @@ namespace MZTools
                     infoText.Content = "Read-only physical QuickDisk inspection. This is not an identified native SHARP MZ-800 format; MZF editing and SHARP rebuilding are disabled.";
             }
             UpdateQuickDiskFeatureVisibility();
+            RefreshQuickDiskVisual();
             quickDiskMapDirty = true;
             quickDiskMapTab.Visibility = document.IsQuickDisk ? Visibility.Visible : Visibility.Collapsed;
             if (!document.IsQuickDisk)
@@ -704,7 +707,7 @@ namespace MZTools
                 }
                 quickDiskMap.HighlightFiles(GetSelectedGridIndices());
             }
-            finally { synchronizingQuickDiskSelection = false; UpdateQuickDiskSelectionButtons(); }
+            finally { synchronizingQuickDiskSelection = false; UpdateQuickDiskSelectionButtons(); SyncQuickDiskVisualSelection(); }
         }
 
         private void UpdateQuickDiskSelectionButtons()
@@ -795,7 +798,9 @@ namespace MZTools
             // QD containers (including MZQ/QDF) share the QuickDisk workspace.
             bool emptyWorkspace = document.Format == TapeDocumentFormat.None && dskEditorControl.Visibility != Visibility.Visible;
             batchProcessMenu.Visibility = repairDskFileMenu.Visibility = emptyWorkspace ? Visibility.Visible : Visibility.Collapsed;
-            toolsButton.Visibility = !document.IsQuickDisk ? Visibility.Visible : Visibility.Collapsed;
+            toolsButton.Visibility = Visibility.Visible;
+            qdVisualAnalysisMenu.Visibility=document.IsQuickDisk?Visibility.Visible:Visibility.Collapsed;
+            analyzeAudioMenu.Visibility=document.IsQuickDisk?Visibility.Collapsed:Visibility.Visible;
             newQuickDiskButton.Visibility = newDskButton.Visibility = emptyWorkspace ? Visibility.Visible : Visibility.Collapsed;
             bool quickDiskAvailable = document.IsQdImage;
             bool diskInfoAvailable = quickDiskAvailable ||
@@ -1445,14 +1450,6 @@ namespace MZTools
             throw new InvalidOperationException("This document cannot be saved back to its source format. Use Save As instead.");
         }
 
-        private bool SaveIplRecords(string path, IReadOnlyList<TapeRecord> records)
-        {
-            byte[]? image = PrepareIplImage(records);
-            if (image == null) return false;
-            File.WriteAllBytes(path, image);
-            return true;
-        }
-
         private byte[]? PrepareIplImage(IReadOnlyList<TapeRecord> records)
         {
             if (records.Count == 0) throw new InvalidOperationException("IPL DSK requires at least one program.");
@@ -1473,7 +1470,7 @@ namespace MZTools
         private void button_Click_SaveAs(object sender, RoutedEventArgs e)
         {
             if (document.IsReadOnlyQuickDisk) return;
-            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            SaveFileDialog saveFileDialog = new SaveFileDialog { Title="Save As — WAV / LEP / L16 / IPL output is available through Export" };
             saveFileDialog.Filter = GetSaveFilter();
             string filenameWithoutExtension = System.IO.Path.GetFileNameWithoutExtension(actFileName);
             saveFileDialog.FileName = filenameWithoutExtension;
@@ -1485,11 +1482,9 @@ namespace MZTools
                 string fileExtension = System.IO.Path.GetExtension(filePath).ToLower();
                 TapeDocumentFormat outputFormat = ResolveSaveFormat(fileExtension, saveFileDialog.FilterIndex);
 
-                bool waveformOutput = fileExtension is ".lep" or ".l16" or ".wav";
-                bool iplDskOutput = fileExtension == ".dsk";
-                if (outputFormat == TapeDocumentFormat.None && !waveformOutput && !iplDskOutput)
+                if (outputFormat == TapeDocumentFormat.None)
                 {
-                    MessageBox.Show($"The selected filter does not define a writer for {fileExtension}.", "Cannot save", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Save As cannot bind this document to {fileExtension}. Use Export for WAV, LEP, L16 or IPL DSK output.", "Cannot save", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -1499,14 +1494,7 @@ namespace MZTools
                     return;
                 }
 
-                if (waveformOutput && mzfBlocks.Count == 0)
-                {
-                    MessageBox.Show("Waveform output requires at least one file.", "Cannot save", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
-
-                if (!waveformOutput && !iplDskOutput &&
-                    !TryValidateOutputFormat(outputFormat, fileExtension, out validationError))
+                if (!TryValidateOutputFormat(outputFormat, fileExtension, out validationError))
                 {
                     MessageBox.Show(validationError, "Cannot save", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
@@ -1515,11 +1503,7 @@ namespace MZTools
                 try
                 {
                     bool allowImportedNonStandard = CanPreserveImportedNonStandard(outputFormat);
-                    if (iplDskOutput)
-                    {
-                        if (!SaveIplRecords(filePath, mzfBlocks)) return;
-                    }
-                    else if (outputFormat == TapeDocumentFormat.Mzq)
+                    if (outputFormat == TapeDocumentFormat.Mzq)
                     {
                         using (var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
                         {
@@ -1600,25 +1584,6 @@ namespace MZTools
                         TapeDocumentWriter.SaveMzt(filePath, mzfBlocks, generateSidecar);
                         document.ContainerTrailingData = Array.Empty<byte>();
                         SetCurrentDocumentAfterSave(filePath, TapeDocumentFormat.Mzt, GetExistingSidecarPath(filePath));
-                    }
-                    else if (fileExtension == ".lep" || fileExtension == ".l16" || fileExtension == ".wav")
-                    {
-                        if (!TryChooseWaveformSaveOptions(
-                            fileExtension,
-                            mzfBlocks.Count,
-                            out SharpTapeMachine machine,
-                            out bool separateFiles,
-                            out int wavSampleRate))
-                        {
-                            return;
-                        }
-                        ExportWaveform(
-                            filePath,
-                            mzfBlocks,
-                            SharpTapeExporter.GetFormat(fileExtension),
-                            machine,
-                            separateFiles,
-                            wavSampleRate);
                     }
                     else
                     {
@@ -1703,6 +1668,7 @@ namespace MZTools
                 }
                 finally { synchronizingQuickDiskSelection = false; }
             }
+            SyncQuickDiskVisualSelection();
             moveUpButton.IsEnabled = selectedIndices.Length > 0 && selectedIndices[0] > 0;
             moveDownButton.IsEnabled = selectedIndices.Length > 0 && selectedIndices[^1] < mzfBlocks.Count - 1;
             UpdateQuickDiskSelectionButtons();
@@ -2427,7 +2393,11 @@ namespace MZTools
                 }
                 else if (fileExtension == ".hfe")
                 {
-                    new PhysicalTrackViewerWindow(this, HfeImage.Parse(File.ReadAllBytes(filePath)), filePath).ShowDialog();
+                    var physical=HfeImage.Parse(File.ReadAllBytes(filePath));
+                    DskDocument? editable=null;
+                    try {editable=DskDocument.OpenHfe(physical,filePath);} catch(InvalidDataException) { }
+                    if(editable!=null) ShowDskDocument(editable);
+                    else new PhysicalTrackViewerWindow(this,physical,filePath,formatted=>ShowDskDocument(formatted)).ShowDialog();
                     return false;
                 }
                 else if (fileExtension == ".dsk")
@@ -2888,39 +2858,25 @@ namespace MZTools
             {
                 if (options.Format == DskNewFormat.IplMulti)
                 {
-                    ShowNewMultiIplEditor();
+                    ShowNewMultiIplEditor(options.HfeVersion);
                     return;
                 }
                 if (options.Format == DskNewFormat.IplSingle)
                 {
-                    ShowNewSingleIplEditor();
+                    ShowNewSingleIplEditor(options.HfeVersion);
                     return;
                 }
 
-                DskDocument dsk = options.Format switch
-                {
-                    DskNewFormat.MzBasic => DskDocumentFactory.CreateFsmz(ipldisk: false, options.Tracks, options.Sides),
-                    DskNewFormat.IplDisk => DskDocumentFactory.CreateFsmz(ipldisk: true, options.Tracks, options.Sides),
-                    DskNewFormat.PersonalCpm => DskDocumentFactory.CreatePersonalCpm80(sds400: false),
-                    DskNewFormat.Sds400 => DskDocumentFactory.CreatePersonalCpm80(sds400: true),
-                    DskNewFormat.LecCpmDd => DskDocumentFactory.CreateCpm(highDensity: false, options.Tracks, options.Sides),
-                    DskNewFormat.LecCpmHd => DskDocumentFactory.CreateCpm(highDensity: true, options.Tracks, options.Sides),
-                    DskNewFormat.Mrs => DskDocumentFactory.CreateMrs(options.Tracks, options.Sides),
-                    DskNewFormat.Lemmings => DskDocumentFactory.CreateLemmings(options.Tracks, options.Sides),
-                    DskNewFormat.CustomRaw => DskDocumentFactory.CreateRaw(
-                        options.Tracks, options.Sides, options.Sectors, options.SectorSize, 1,
-                        options.SectorSize == 256 ? (byte)0x2A : (byte)0x4E, options.Filler, "MZTools", options.SectorOrder, options.SectorIds),
-                    _ => throw new ArgumentOutOfRangeException()
-                };
+                DskDocument dsk = DiskFormatting.CreateNew(options);
                 ShowDskDocument(dsk, tapeReplacementConfirmed: true);
             }
             catch (Exception exception)
             {
-                MessageBox.Show(this, exception.Message, "New DSK", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(this, exception.Message, "New disk image", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
-        private void ShowNewMultiIplEditor()
+        private void ShowNewMultiIplEditor(HfeVersion? version=null)
         {
             if (dskEditorControl.Visibility == Visibility.Visible && !dskEditorControl.TryCloseDocument())
             {
@@ -2929,13 +2885,13 @@ namespace MZTools
             document.Clear();
             actFileName = string.Empty;
             RefreshGrid();
-            dskEditorControl.LoadNewMultiIpl();
+            dskEditorControl.LoadNewMultiIpl(version);
             dskEditorControl.Visibility = Visibility.Visible;
             UpdateQuickDiskFeatureVisibility();
             Title = BuildWindowTitle(dskEditorControl.DocumentTitle);
         }
 
-        private void ShowNewSingleIplEditor()
+        private void ShowNewSingleIplEditor(HfeVersion? version=null)
         {
             if (dskEditorControl.Visibility == Visibility.Visible && !dskEditorControl.TryCloseDocument())
             {
@@ -2944,7 +2900,7 @@ namespace MZTools
             document.Clear();
             actFileName = string.Empty;
             RefreshGrid();
-            dskEditorControl.LoadNewSingleIpl();
+            dskEditorControl.LoadNewSingleIpl(version);
             dskEditorControl.Visibility = Visibility.Visible;
             UpdateQuickDiskFeatureVisibility();
             Title = BuildWindowTitle(dskEditorControl.DocumentTitle);

@@ -9,9 +9,27 @@ namespace MZTools;
 
 internal enum DiskCollisionPolicy { Skip, Rename, Replace, Cancel }
 internal sealed record DiskCopyRequest(string SourceKey, string? TargetName = null);
-internal sealed record DiskCopyPreview(DskOperationPreview Operation, IReadOnlyList<string> MetadataChanges, IReadOnlyList<string>? TargetKeys = null)
+internal sealed record DiskCopyFileChange(string SourceName,string TargetName,string Result,long SourceBytes,long? TargetBytes,
+    int SourceUser,int? TargetUser,IReadOnlyList<string[]> Metadata);
+internal sealed record DiskCopyPreview(DskOperationPreview Operation, IReadOnlyList<string> MetadataChanges, IReadOnlyList<string>? TargetKeys = null,
+    IReadOnlyList<DiskCopyFileChange>? Files = null)
 {
     internal bool RequiresLossConfirmation => MetadataChanges.Count > 0;
+    internal ReportPresentation Presentation()
+    {
+        var original=ReportPresentation.FromText(string.Join("\n",Operation.Report.Split('\n').Where(line=>
+            !(line.Contains(" -> ") && line.Contains("; payload ")) && !line.TrimStart().StartsWith("Target metadata:") && !line.TrimEnd().EndsWith(": skipped collision.") && !MetadataChanges.Contains(line.Trim()))));
+        var files=Files??Array.Empty<DiskCopyFileChange>();
+        var tables=new List<ReportTable> {
+            new("Files",new[] {"Source file","Target file","Action / validation","Source bytes","Target bytes","Source user","Target user"},
+                files.Select(f=>new[] {f.SourceName,f.TargetName,f.Result,f.SourceBytes.ToString(),f.TargetBytes?.ToString()??"—",f.SourceUser.ToString(),f.TargetUser?.ToString()??"—"}).ToArray()),
+            new("File properties",new[] {"Source file","Target file","Property","Source","Target"},
+                files.SelectMany(f=>f.Metadata.Select(m=>new[] {f.SourceName,f.TargetName,m[0],m[1],m[2]})).ToArray()),
+            new("Metadata changes",new[] {"Details"},MetadataChanges.Count==0?new[] {new[] {"No metadata changes reported."}}:MetadataChanges.Select(s=>new[] {s}).ToArray())
+        };
+        tables.AddRange(original.Tables.Select(t=>t.Title=="Metadata changes / losses"?t with {Title="Notes"}:t));
+        return new("Copy files to current disk",$"{files.Count} selected · {files.Count(f=>f.TargetBytes!=null)} to copy · {files.Count(f=>f.TargetBytes==null)} skipped · Apply changes the target in memory; Save remains separate.",Operation.Report,tables);
+    }
 }
 
 internal static class CrossDiskTransferService
@@ -32,6 +50,7 @@ internal static class CrossDiskTransferService
         var report = new StringBuilder($"Copy files: {source.FileSystem.DisplayName} -> {target.FileSystem.DisplayName}\nSource SHA-256: {Hash(source.Serialize())}\nTarget free space before: {target.FileSystem.FreeBytes} B\nTarget directory before: {DirectoryCapacity(target.FileSystem)}\nCollision policy: {collision}\n");
         var changes = new List<string>();
         var targetKeys = new List<string>();
+        var fileChanges = new List<DiskCopyFileChange>();
         foreach (var request in requests)
         {
             var entry = sourceCopy.FileSystem.ReadDirectory().Single(e => e.Key == request.SourceKey);
@@ -49,7 +68,7 @@ internal static class CrossDiskTransferService
             if (existing != null)
             {
                 if (collision == DiskCollisionPolicy.Cancel) throw new InvalidDataException($"Name collision: {name} (user {user}). No changes applied.");
-                if (collision == DiskCollisionPolicy.Skip) { report.AppendLine($"{originalName}: skipped collision."); continue; }
+                if (collision == DiskCollisionPolicy.Skip) { report.AppendLine($"{originalName}: skipped collision."); fileChanges.Add(new(originalName,name,"Skipped: existing file",file.Data.Length,null,entry.User,null,Array.Empty<string[]>())); continue; }
                 if (collision == DiskCollisionPolicy.Rename)
                 {
                     int dot = name.LastIndexOf('.');
@@ -81,13 +100,22 @@ internal static class CrossDiskTransferService
             if (extracted.Length < file.Data.Length || !extracted.AsSpan(0, file.Data.Length).SequenceEqual(file.Data))
                 throw new InvalidDataException($"{name}: payload verification failed.");
             if (extracted.Length != file.Data.Length) changes.Add($"{name}: record/block padding adds {extracted.Length - file.Data.Length} B; exact original length is not representable.");
+            string Address(ushort? value)=>value is ushort a?$"0x{a:X4}":"Not represented";
+            fileChanges.Add(new(originalName,name,existing==null?"Copy; payload verified":collision==DiskCollisionPolicy.Rename?"Rename; payload verified":"Replace; payload verified",
+                file.Data.Length,extracted.Length,entry.User,inserted.User,new[] {
+                    new[] {"Type",file.FileType?.ToString("X2")??"Not represented",candidate.FileSystem is CpmFileSystem?"Not represented":inserted.FileType.ToString("X2")},
+                    new[] {"LOAD",Address(file.LoadAddress),candidate.FileSystem is CpmFileSystem?"Not represented":Address(inserted.LoadAddress)},
+                    new[] {"EXEC",Address(file.ExecuteAddress),candidate.FileSystem is CpmFileSystem?"Not represented":Address(inserted.ExecuteAddress)},
+                    new[] {"Read-only",file.ReadOnly.ToString(),inserted.ReadOnly.ToString()},new[] {"System",file.System.ToString(),inserted.System.ToString()},
+                    new[] {"Archived",file.Archived.ToString(),inserted.Archived.ToString()},new[] {"Locked",file.Locked.ToString(),inserted.Locked.ToString()}
+                }));
             report.AppendLine($"{originalName} -> {name}; user {entry.User} -> {user}; payload {file.Data.Length} B; type {file.FileType}; LOAD={file.LoadAddress:X4}; EXEC={file.ExecuteAddress:X4}; RO/SYS/ARC={file.ReadOnly}/{file.System}/{file.Archived}; lock={file.Locked}; payload verification passed.");
             report.AppendLine($"  Target metadata: type={inserted.FileType}; LOAD={inserted.LoadAddress:X4}; EXEC={inserted.ExecuteAddress:X4}; user={inserted.User}; RO/SYS/ARC={inserted.ReadOnly}/{inserted.System}/{inserted.Archived}; lock={inserted.Locked}. Filesystem-only fields not represented by the target are listed as changes/losses.");
         }
         var output = candidate.Image.Serialize(); var reopened = target.Reopen(output);
         if (DskAnalyzer.Analyze(reopened).Errors != 0) throw new InvalidDataException("Reopened target failed validation.");
         report.AppendLine($"Target free space after: {reopened.FileSystem.FreeBytes} B\nTarget directory after: {DirectoryCapacity(reopened.FileSystem)}\nDirectory capacity/allocation: insertion and reopen validation passed.\nMetadata changes / losses:\n{string.Join("\n", changes)}\nDirectory slots, allocation positions and format-specific raw directory fields are rebuilt. Supported metadata is preserved as listed above.\nSource remains unchanged. Apply changes only the target in memory; Save / Save As is separate.");
-        return new(new(target.Serialize(), output, report.ToString(), target), changes, targetKeys);
+        return new(new(target.Serialize(), output, report.ToString(), target), changes, targetKeys,fileChanges);
     }
 
     private static string Hash(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes));

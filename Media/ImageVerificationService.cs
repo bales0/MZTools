@@ -20,14 +20,14 @@ internal static class ImageVerificationService
             if (bytes.Length >= 8 && (bytes.AsSpan(0, 8).SequenceEqual("HXCPICFE"u8) || bytes.AsSpan(0, 8).SequenceEqual("HXCHFEV3"u8)))
             {
                 var hfe = HfeImage.Parse(bytes);
-                report.AppendLine($"HFE{(hfe.IsV3 ? "v3" : "")}: header/LUT, track offsets/lengths/overlaps validated.\nGeometry: {hfe.Cylinders} x {hfe.Sides}");
+                report.AppendLine($"{hfe.Variant}: header/LUT, track offsets/lengths/overlaps validated.\nGeometry: {hfe.Cylinders} x {hfe.Sides}");
                 int unknown = 0, crc = 0, weak = 0;
                 foreach (var track in hfe.Tracks)
                 {
                     if (track.Encoding == PhysicalEncoding.Unknown || track.Sectors.Count == 0) unknown++;
                     crc += track.Sectors.Count(s => !s.HeaderCrcValid || !s.DataCrcValid);
                     if (track.WeakBitMask.Any(b => b != 0)) weak++;
-                    report.AppendLine($"C{track.Cylinder} H{track.Side}: encoding={track.Encoding}; decoded sectors={track.Sectors.Count}; CRC={(track.Sectors.Count == 0 ? "unknown / not decoded" : track.Sectors.Count(s => !s.HeaderCrcValid || !s.DataCrcValid).ToString())}; weak metadata={(hfe.IsV3 ? track.WeakBitMask.Any(b => b != 0).ToString() : "not represented by HFE v1")}");
+                    report.AppendLine($"C{track.Cylinder} H{track.Side}: encoding={track.Encoding}; decoded sectors={track.Sectors.Count}; CRC={(track.Sectors.Count == 0 ? "unknown / not decoded" : track.Sectors.Count(s => !s.HeaderCrcValid || !s.DataCrcValid).ToString())}; weak metadata={(hfe.Version!=HfeVersion.V1 ? track.WeakBitMask.Any(b => b != 0).ToString() : "not represented by HFE v1")}");
                 }
                 report.AppendLine(HfeSemanticInspectionService.Inspect(hfe).Report);
                 report.AppendLine("Canonical structure: no physical rewrite proposed. Undecoded regions and preservation bytes retained. No runtime boot certification.");

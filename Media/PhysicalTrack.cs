@@ -28,6 +28,7 @@ internal sealed record PhysicalTiming(long CellOffset, int Divisor)
 }
 internal sealed record PhysicalSector(byte C, byte H, byte R, byte N, byte[] Data, long HeaderCell, long DataCell,
     bool HeaderCrcValid, bool DataCrcValid, byte AddressMark, byte DataMark, byte[] WeakBitMask);
+internal sealed record HfeV2Control(long CellOffset,byte Opcode,byte Value,byte Reserved);
 internal sealed class PhysicalTrack
 {
     internal int Cylinder { get; init; }
@@ -42,6 +43,7 @@ internal sealed class PhysicalTrack
     internal IReadOnlyList<PhysicalTiming> Timing { get; init; } = [];
     internal IReadOnlyList<long> IndexCells { get; init; } = [];
     internal IReadOnlyList<PhysicalSector> Sectors { get; set; } = [];
+    internal IReadOnlyList<HfeV2Control> V2Controls {get;init;}=[];
 }
 
 // Shared LSB-packed physical storage, also used by the QuickDisk MFM codec.

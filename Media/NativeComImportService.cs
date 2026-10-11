@@ -14,7 +14,21 @@ internal static class NativeComImportService
         : disk.FileSystem is not CpmFileSystem ? "Import requires a CP/M filesystem. COM files cannot be run from this filesystem."
         : null;
 
-    internal static NativeComImportPreview Preview(DskDocument disk, string name, MzNativeComResult conversion)
+    internal static bool Exists(DskDocument disk,string name) => disk.FileSystem.ReadDirectory().Any(e=>e.User==0 &&
+        (e.Name+"."+e.Extension).Equals(name,StringComparison.OrdinalIgnoreCase));
+
+    internal static string AvailableName(DskDocument disk,string name)
+    {
+        string stem=Path.GetFileNameWithoutExtension(name);
+        for(int i=1;i<1000000;i++) {
+            string suffix="~"+i;
+            string candidate=stem[..Math.Min(stem.Length,8-suffix.Length)]+suffix+".COM";
+            if(!Exists(disk,candidate)) return candidate;
+        }
+        throw new IOException("No free COM filename is available.");
+    }
+
+    internal static NativeComImportPreview Preview(DskDocument disk, string name, MzNativeComResult conversion, DiskCollisionPolicy collision=DiskCollisionPolicy.Cancel)
     {
         if (UnavailableReason(disk) is { } reason) throw new InvalidOperationException(reason);
         if (!conversion.Plan.Supported) throw new InvalidDataException(conversion.Plan.UnsupportedReason ?? "Unsupported conversion.");
@@ -23,9 +37,16 @@ internal static class NativeComImportService
         if (DskAnalyzer.Analyze(candidate).Errors != 0) throw new InvalidDataException("Resolve current disk allocation/container errors before importing.");
         DskFileTransferService.ValidateName(name, candidate.FileSystem);
         if (!Path.GetExtension(name).Equals(".COM", StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Use a CP/M 8.3 filename with the .COM extension.");
-        if (candidate.FileSystem.ReadDirectory().Any(e => e.User == 0 &&
-            (e.Name + "." + e.Extension).Equals(name, StringComparison.OrdinalIgnoreCase)))
-            throw new InvalidDataException($"{name} already exists in user 0. Choose another name; existing files are preserved.");
+        var existing=candidate.FileSystem.ReadDirectory().SingleOrDefault(e=>e.User==0 &&
+            (e.Name+"."+e.Extension).Equals(name,StringComparison.OrdinalIgnoreCase));
+        if(existing!=null) {
+            if(collision==DiskCollisionPolicy.Rename) name=AvailableName(candidate,name);
+            else if(collision==DiskCollisionPolicy.Replace) {
+                if(existing.ReadOnly || existing.System || existing.Locked)
+                    throw new InvalidDataException($"{name} is protected. Choose Rename to preserve the existing file.");
+                candidate.FileSystem.Delete(existing);
+            } else throw new InvalidDataException($"{name} already exists in user 0. Choose Overwrite, Rename or Cancel.");
+        }
         candidate.FileSystem.Insert(name, conversion.Bytes);
         candidate.MarkModified();
         byte[] output = candidate.Serialize();

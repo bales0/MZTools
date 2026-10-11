@@ -14,12 +14,16 @@ public sealed class DskDiskMapControl : FrameworkElement
     private DskLayoutModel? layout;
     private readonly HashSet<string> selectedFiles = new();
     private DskSectorLayout? selectedSector;
+    private readonly HashSet<DskSectorAddress> selectedKeys=new();
+    internal event Action<DskSectorLayout?,ModifierKeys>? SelectionRequested;
+    internal IReadOnlyList<DskSectorAddress> OrderedAddresses=>layout?.Tracks.SelectMany(Ordered).Select(s=>s.Address).ToArray()??Array.Empty<DskSectorAddress>();
+    internal void SetSelection(IEnumerable<DskSectorAddress> keys,DskSectorLayout? active) { selectedKeys.Clear(); selectedKeys.UnionWith(keys); selectedSector=active; InvalidateVisual(); }
     private double zoom = 1;
     private bool logical;
     private const double LabelWidth = 115, CellWidth = 38, RowHeight = 25;
     public DskDiskMapControl() { Focusable = true; }
     internal event Action<DskSectorLayout?>? SectorSelected;
-    internal void SetLayout(DskLayoutModel? value) { layout = value; selectedSector = null; selectedFiles.Clear(); InvalidateMeasure(); InvalidateVisual(); }
+    internal void SetLayout(DskLayoutModel? value) { layout = value; selectedSector = null; selectedKeys.Clear(); selectedFiles.Clear(); InvalidateMeasure(); InvalidateVisual(); }
     internal void SetZoom(double value) { zoom = value; InvalidateMeasure(); InvalidateVisual(); }
     internal void SetLogical(bool value) { logical = value; InvalidateVisual(); }
     internal void HighlightFiles(IEnumerable<string> keys) { selectedFiles.Clear(); selectedFiles.UnionWith(keys); InvalidateVisual(); }
@@ -49,12 +53,12 @@ public sealed class DskDiskMapControl : FrameworkElement
             foreach (var sector in Ordered(track))
             {
                 var rect = new Rect((LabelWidth + col * CellWidth) * zoom, y * zoom, (CellWidth - 2) * zoom, (RowHeight - 2) * zoom);
-                bool highlight = sector == selectedSector || sector.Owners.Any(o => selectedFiles.Contains(o.FileKey)) || selectedFiles.Contains($"{sector.Track}:{sector.PhysicalIndex}");
+                bool highlight = selectedKeys.Contains(sector.Address) || sector == selectedSector || sector.Owners.Any(o => selectedFiles.Contains(o.FileKey)) || selectedFiles.Contains($"{sector.Track}:{sector.PhysicalIndex}");
                 Brush fill = highlight ? DiskMapVisuals.Selection : sector.HasIssue ? Brushes.Khaki :
                     (sector.Role & (DskSectorRole.Boot | DskSectorRole.System | DskSectorRole.SystemFile | DskSectorRole.Directory | DskSectorRole.Fat | DskSectorRole.AllocationMap)) != 0 ? DiskMapVisuals.Metadata :
                     sector.Role.HasFlag(DskSectorRole.Data) ? DiskMapVisuals.Data : SystemColors.WindowBrush;
                 dc.DrawRectangle(fill, new Pen(Brushes.DarkSlateGray, 1), rect);
-                if (highlight) DiskMapVisuals.DrawSelection(dc, rect, sector == selectedSector);
+                if (highlight) DiskMapVisuals.DrawSelection(dc, rect, selectedKeys.Contains(sector.Address) || sector == selectedSector);
                 Text(dc, $"{(sector.HasIssue ? "!" : "")}{sector.R}", LabelWidth + col * CellWidth + 3, y + 3,
                     highlight ? Brushes.Black : sector.HasIssue ? SystemColors.InfoTextBrush :
                     fill == SystemColors.WindowBrush ? SystemColors.WindowTextBrush : SystemColors.ControlTextBrush);
@@ -79,12 +83,14 @@ public sealed class DskDiskMapControl : FrameworkElement
         base.OnMouseLeftButtonDown(e);
         Focus();
         var sector = Hit(e.GetPosition(this));
+        if(SelectionRequested!=null) { SelectionRequested(sector,Keyboard.Modifiers); e.Handled=true; return; }
         if (sector == selectedSector) sector = null;
         selectedSector = sector; InvalidateVisual(); SectorSelected?.Invoke(sector); e.Handled = true;
     }
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
+        if(e.Key==Key.Escape && SelectionRequested!=null) { SelectionRequested(null,ModifierKeys.None); e.Handled=true; return; }
         int direction = MapInteraction.Direction(e.Key);
         if (direction != 0 && MoveSelection(direction)) e.Handled = true;
     }
@@ -94,6 +100,7 @@ public sealed class DskDiskMapControl : FrameworkElement
         if (sectors.Length == 0) return false;
         int current = Array.IndexOf(sectors, selectedSector);
         int next = current < 0 ? (direction > 0 ? 0 : sectors.Length - 1) : Math.Clamp(current + Math.Sign(direction), 0, sectors.Length - 1);
-        SelectSector(sectors[next]); SectorSelected?.Invoke(sectors[next]); return true;
+        if(SelectionRequested!=null) SelectionRequested(sectors[next],Keyboard.Modifiers);
+        else { SelectSector(sectors[next]); SectorSelected?.Invoke(sectors[next]); } return true;
     }
 }

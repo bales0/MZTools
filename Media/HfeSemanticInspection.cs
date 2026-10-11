@@ -10,20 +10,22 @@ internal sealed record HfeSemanticInspection(bool Available, string Report, stri
     string BootType = "Unknown", string BootProfile = "", string BootableState = "Unverified")
 {
     internal BatchContentItem[] Contents { get; init; } = [];
+    internal DskDocument? Projection {get;init;}
+    internal DskLayoutModel? ValidatedLayout {get;init;}
 }
 
 internal static class HfeSemanticInspectionService
 {
     internal static HfeSemanticInspection Inspect(HfeImage source)
     {
-        // Build only a private sector projection. Never expose an editable document or write
-        // this synthetic container back over the physical image.
+        // Validate a sector projection without changing the physical image. The main
+        // editor retains HFE separately and writes sector changes back to its cells.
         try
         {
             if (source.Tracks.Any(t => t.WeakBitMask.Any(b => b != 0) || t.Sectors.Any(s => !s.HeaderCrcValid || !s.DataCrcValid)))
                 return new(false, "Filesystem inspection unavailable: weak cells or CRC errors prevent a certain sector interpretation. Physical inspection remains available.");
             var document = DskDocument.Open(MediaConversionService.HfeToDsk(source).Output);
-            if (document.FileSystem is not (FsmzFileSystem or CpmFileSystem or MrsFileSystem))
+            if (document.FileSystem is not (FsmzFileSystem or CpmFileSystem or MrsFileSystem or SingleGameIplFileSystem or MultiGameIplFileSystem))
                 return new(false, "No validated Sharp filesystem was recognized. Physical inspection remains available.");
             // A decoded Sharp sector layout requires matching address fields and exact ID sets.
             // Rotational order is retained in the projection; it is not a filesystem address map.
@@ -36,7 +38,10 @@ internal static class HfeSemanticInspectionService
                     return new(false, "Decoded sector identities do not exactly match a known Sharp layout. Physical inspection remains available.");
             }
             var analysis = DskAnalyzer.Analyze(document);
-            if (analysis.Errors != 0 || document.IsReadOnly)
+            // IPL filesystems are deliberately read-only through generic file operations;
+            // their dedicated editor rebuilds the complete IPL image instead.
+            bool supportedIpl=document.FileSystem is SingleGameIplFileSystem || document.FileSystem is MultiGameIplFileSystem {CanConfigure:true};
+            if (analysis.Errors != 0 || document.IsReadOnly && !supportedIpl)
                 return new(false, "Filesystem projection failed validation. No semantic interpretation was attached.\n" + analysis.Report());
             var files = document.FileSystem.ReadDirectory();
             foreach (var file in files) document.FileSystem.Extract(file);
@@ -51,7 +56,7 @@ internal static class HfeSemanticInspectionService
             report.AppendLine(analysis.Report());
             return new(true, report.ToString(), document.FileSystem.Type.ToString(), document.FileSystem.DisplayName,
                 files.Count, document.FileSystem.UsedBytes, document.FileSystem.FreeBytes, boot.System, profile, boot.Bootable)
-            { Contents = files.Select((file, index) => BatchContentItem.FromDisk(file, index + 1)).ToArray() };
+            { Projection=document,ValidatedLayout=analysis,Contents = files.Select((file, index) => BatchContentItem.FromDisk(file, index + 1)).ToArray() };
         }
         catch (Exception e) when (e is InvalidDataException or ArgumentException or OverflowException or InvalidOperationException)
         {

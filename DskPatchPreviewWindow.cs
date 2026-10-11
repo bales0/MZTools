@@ -7,9 +7,9 @@ namespace MZTools;
 
 internal sealed class DskPatchPreviewWindow : Window
 {
-    internal DskPatchPreviewWindow(Window? owner, string report, Action? apply = null, string title = "DSK Patch Preview", string applyLabel = "Apply patch")
+    internal DskPatchPreviewWindow(Window? owner, string report, Action? apply = null, string title = "DSK Patch Preview", string applyLabel = "Apply patch", ReportPresentation? presentation = null)
     {
-        Owner = owner; Title = title; Width = 850; Height = 650; MinWidth = 600; MinHeight = 400;
+        Owner = owner; Title = title; Width = 1120; Height = 720; MinWidth = 720; MinHeight = 460;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         var panel = new DockPanel { Margin = new Thickness(12) }; Content = panel;
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
@@ -25,8 +25,7 @@ internal sealed class DskPatchPreviewWindow : Window
         }
         var close = new Button { Content = "Close", MinWidth = 90, IsCancel = true, Margin = new Thickness(6) };
         close.Click += (_, _) => Close(); buttons.Children.Add(close);
-        panel.Children.Add(new TextBox { Text = report, IsReadOnly = true, FontFamily = new FontFamily("Consolas"),
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto });
+        var view=new ReportView(); view.Show(presentation??ReportPresentation.FromText(report)); panel.Children.Add(view);
     }
     internal bool Applied { get; private set; }
 }

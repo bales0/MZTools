@@ -1,6 +1,6 @@
 # Third-party notices
 
-## HFE / HFEv3
+## HFE / HFEv2 / HFEv3
 
 The HFE header, interleaved side storage, HFEv3 opcode and 36 MHz timing
 rules in `Media/HfeImage.cs` are C# adaptations of
@@ -118,3 +118,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 The ZX7 decoder variants embedded in the referenced MZF tool also credit
 Antonio Villena, Metalbrain and Urusergi in the upstream source comments. Those
 credits are retained here.
+
+HFEv2 revision and four-byte instruction semantics additionally follow the
+[official HxC HFE specification](https://hxc2001.com/floppy_drive_emulator/HFE-file-format.html)
+and the maintained [jfdelnero/HxCFloppyEmulator](https://github.com/jfdelnero/HxCFloppyEmulator)
+`exthfe_writer.c`. The same author, license and warranty notice above apply.

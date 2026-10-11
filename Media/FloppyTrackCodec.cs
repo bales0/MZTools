@@ -2,11 +2,27 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 
 namespace MZTools;
 
 internal static class FloppyTrackCodec
 {
+    internal static void WriteSectorData(PhysicalTrack source,byte[] cells,PhysicalSector sector,byte[] data)
+    {
+        if(source.Encoding==PhysicalEncoding.Unknown || data.Length!=sector.Data.Length || !sector.HeaderCrcValid || !sector.DataCrcValid || source.WeakBitMask.Any(b=>b!=0))
+            throw new InvalidDataException("Sector editing requires known encoding, valid CRC, matching length and no weak cells.");
+        bool mfm=source.Encoding==PhysicalEncoding.Mfm;
+        ushort crc=Crc((mfm?new byte[] {0xA1,0xA1,0xA1}:Array.Empty<byte>()).Concat(new[] {sector.DataMark}).Concat(data).ToArray());
+        var bytes=data.Concat(new[] {(byte)(crc>>8),(byte)crc}).ToArray();
+        int count=checked((int)source.BitCellCount),cell=(int)sector.DataCell;
+        bool previous=PackedBitCells.Get(cells,(cell+count-1)%count);
+        foreach(byte value in bytes) for(int bit=7;bit>=0;bit--) {
+            bool current=(value&(1<<bit))!=0;PackedBitCells.Set(cells,cell, !mfm || !previous && !current);cell=(cell+1)%count;
+            PackedBitCells.Set(cells,cell,current);cell=(cell+1)%count;previous=current;
+        }
+        if(mfm) {bool next=PackedBitCells.Get(cells,(cell+1)%count);PackedBitCells.Set(cells,cell,!previous && !next);}
+    }
     internal static ushort Crc(ReadOnlySpan<byte> bytes)
     {
         ushort crc = 0xFFFF;
@@ -29,7 +45,7 @@ internal static class FloppyTrackCodec
         for (int i = 7; i >= 0; i--) value = (byte)((value << 1) | ((word >> (i * 2)) & 1));
         return value;
     }
-    internal static IReadOnlyList<PhysicalSector> Decode(PhysicalTrack track)
+    internal static IReadOnlyList<PhysicalSector> Decode(PhysicalTrack track, CancellationToken cancellationToken = default)
     {
         var result = new List<PhysicalSector>(); int length = checked((int)track.BitCellCount);
         if (length < 160) return result;
@@ -37,6 +53,7 @@ internal static class FloppyTrackCodec
         var marks = new List<(int Cell, byte Mark)>();
         for (int cell = 0; cell < length; cell++)
         {
+            if ((cell & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (mfm)
             {
                 if (Word(track, cell) != 0x4489 || Word(track, cell + 16) != 0x4489 || Word(track, cell + 32) != 0x4489) continue;
@@ -82,7 +99,7 @@ internal static class FloppyTrackCodec
         return result.OrderBy(s => s.HeaderCell).ToArray();
     }
 
-    internal static PhysicalTrack Encode(DskImage.DskTrack source, int cylinder, int side)
+    internal static PhysicalTrack Encode(DskImage.DskTrack source, int cylinder, int side, CancellationToken cancellationToken = default,int? bitRate=null)
     {
         // DSK contains sector descriptors, not real gaps/timing. Generate valid MFM
         // CRC independently of ST1/ST2; no physical corruption is inferred.
@@ -98,6 +115,7 @@ internal static class FloppyTrackCodec
         Fill(0x4E, 80);
         foreach (var sector in source.Sectors)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (sector.Data.Length != (128 << sector.SizeCode)) throw new InvalidDataException("Unsupported DSK sector size.");
             Mark(0xFE);
             byte[] header = [0xA1, 0xA1, 0xA1, 0xFE, sector.Cylinder, sector.Side, sector.SectorId, sector.SizeCode];
@@ -106,14 +124,14 @@ internal static class FloppyTrackCodec
             Mark(dam); foreach (byte b in sector.Data) Byte(b);
             CrcBytes(new byte[] { 0xA1, 0xA1, 0xA1, dam }.Concat(sector.Data).ToArray()); Fill(0x4E, source.Gap);
         }
-        int rate = bits.Count <= 100_000 ? 250_000 : 500_000;
-        if (bits.Count > 200_000) throw new InvalidDataException("The DSK track cannot fit the supported generated DD/HD revolution.");
+        int rate = bitRate??(bits.Count <= 100_000 ? 250_000 : 500_000);
+        if (rate is not (250_000 or 500_000) || bits.Count > rate*2/5) throw new InvalidDataException("The DSK track cannot fit the supported generated DD/HD revolution.");
         // Generated revolution: 300 RPM. This is a conversion choice, not source timing.
         Fill(0x4E, (rate * 2 / 5 - bits.Count + 15) / 16);
         var packed = new byte[(bits.Count + 7) / 8];
         for (int i = 0; i < bits.Count; i++) PackedBitCells.Set(packed, i, bits[i]);
         var track = new PhysicalTrack { Cylinder = cylinder, Side = side, Rpm = 300, BitRate = rate, Encoding = PhysicalEncoding.Mfm, PackedBitCells = packed, BitCellCount = bits.Count };
-        track.Sectors = Decode(track);
+        track.Sectors = Decode(track, cancellationToken);
         if (track.Sectors.Count != source.Sectors.Count || track.Sectors.Any(s => !s.HeaderCrcValid || !s.DataCrcValid)) throw new InvalidDataException("Generated physical sectors did not validate.");
         for (int i = 0; i < source.Sectors.Count; i++)
             if (!source.Sectors[i].Data.AsSpan().SequenceEqual(track.Sectors[i].Data)) throw new InvalidDataException("Generated physical payload differs.");

@@ -13,10 +13,7 @@ internal static class DiskMapVisuals
 
     internal static void DrawSelection(DrawingContext dc, Rect rectangle, bool primary)
     {
-        dc.DrawRectangle(null, new Pen(Brushes.Black, primary ? 3 : 2), rectangle);
-        if (rectangle.Width < 5 || rectangle.Height < 5) return;
-        rectangle.Inflate(-1.5, -1.5);
-        dc.DrawRectangle(null, new Pen(Brushes.White, 1), rectangle);
+        dc.DrawRectangle(null, new Pen(Brushes.DodgerBlue, primary ? 3 : 2), rectangle);
     }
 
     // Blank space includes the surrounding panel, not just the drawing surface.

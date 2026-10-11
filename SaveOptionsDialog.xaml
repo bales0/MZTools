@@ -28,17 +28,19 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="Default tape machine:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBlock Text="Tape machine / 1:1 timing:" VerticalAlignment="Center" Margin="0,0,10,0"/>
                 <ComboBox x:Name="machineComboBox" Grid.Column="1" SelectedIndex="0" MinWidth="130">
                     <ComboBoxItem Content="MZ-800"/>
                     <ComboBoxItem Content="MZ-700"/>
+                    <ComboBoxItem Content="MZ-700 PAL — ROM 1Z-013A (exact context)"/>
+                    <ComboBoxItem Content="MZ-700 NTSC — ROM 1Z-009A (exact context)"/>
                 </ComboBox>
             </Grid>
 
             <TextBlock Foreground="DimGray"
                        TextWrapping="Wrap"
                        Margin="0,7,0,0"
-                       Text="Loader and speed are taken from each table row. This machine is used only for records without an explicit profile."/>
+                       Text="MZ-800 / MZ-700 defaults apply to records without an explicit profile. PAL / NTSC ROM choices explicitly set timing for all NORMAL 1:1 and MZ700 1:1 records, including imported records. Other row profiles retain their loader and speed."/>
 
             <StackPanel x:Name="sampleRateOptionsPanel" Margin="0,14,0,0" Visibility="Collapsed">
                 <Grid>
@@ -110,16 +112,11 @@
                 Visibility="Collapsed">
             <StackPanel>
                 <TextBlock x:Name="compressionPreviewTextBlock" TextWrapping="Wrap"/>
-                <TextBox x:Name="compressionDetailsTextBox"
+                <local:ReportView x:Name="compressionDetailsTextBox"
                          Margin="0,9,0,0"
-                         MaxHeight="190"
+                         Height="240"
+                         Width="720"
                          MinWidth="560"
-                         Padding="4"
-                         FontFamily="Consolas"
-                         IsReadOnly="True"
-                         TextWrapping="NoWrap"
-                         HorizontalScrollBarVisibility="Auto"
-                         VerticalScrollBarVisibility="Auto"
                          Visibility="Collapsed"/>
                 <ProgressBar x:Name="compressionPreviewProgressBar"
                              Height="5"

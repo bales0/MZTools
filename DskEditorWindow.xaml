@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="MZTools.DskEditorControl"
+<UserControl x:Class="MZTools.DskEditorControl"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:MZTools"
@@ -16,7 +16,7 @@
             <Button x:Name="diskMenuButton" Content="Disk &#x25BE;" Style="{StaticResource TopToolbarButton}" Click="DiskMenu_Click">
                 <Button.ContextMenu><ContextMenu>
                     <MenuItem x:Name="convertFormatMenu" Header="Convert Format..." IsEnabled="False" Click="ConvertFormat_Click"/>
-                    <MenuItem x:Name="verifyImageMenu" Header="Verify Image..." Click="VerifyImage_Click"/>
+                    <MenuItem x:Name="formatDiskMenu" Header="Format disk…" Click="FormatDisk_Click"/>
                     <MenuItem x:Name="normalizeContainerMenu" Header="Normalize Container..." Click="NormalizeContainer_Click"/>
                     <MenuItem x:Name="compareDiskMenu" Header="Compare with..." IsEnabled="False" Click="CompareDisk_Click"/>
                     <MenuItem Header="Batch Process..." Click="BatchProcess_Click"/>
@@ -42,15 +42,13 @@
             </Button>
             <Button Content="Tools &#x25BE;" Style="{StaticResource TopToolbarButton}" Click="DiskMenu_Click">
                 <Button.ContextMenu><ContextMenu>
-                    <MenuItem Header="Hex view..." Click="Hex_Click"/>
-                    <MenuItem x:Name="physicalPropertiesMenu" Header="Physical Properties..." IsEnabled="False" Click="PhysicalProperties_Click"/>
-                    <MenuItem x:Name="rawRangeMenu" Header="Export / Import Selected Sectors..." IsEnabled="False" Click="RawRange_Click"/>
+                    <MenuItem Header="Visual analysis…" Click="VisualAnalysis_Click"/>
                     <MenuItem Header="MZF/M12 → COM..." Click="NativeCom_Click"/>
                 </ContextMenu></Button.ContextMenu>
             </Button>
             <Button Content="Open..." Click="Open_Click" Style="{StaticResource TopToolbarButton}"/>
             <Button x:Name="dskAddButton" Content="Add..." Click="Add_Click" Style="{StaticResource TopToolbarButton}"/>
-            <Button Content="Export..." Click="Export_Click" Style="{StaticResource TopToolbarButton}"/>
+            <Button x:Name="dskExportButton" Content="Export..." Click="Export_Click" Style="{StaticResource TopToolbarButton}"/>
             <Button x:Name="dskDeleteButton" Content="Delete" Click="Delete_Click" Style="{StaticResource TopToolbarButton}"/>
             <Button x:Name="dskSaveButton" Content="Save" Click="Save_Click" Style="{StaticResource TopToolbarButton}"/>
             <Button x:Name="dskSaveAsButton" Content="Save As..." Click="SaveAs_Click" Style="{StaticResource TopToolbarButton}"/>
@@ -154,7 +152,7 @@
                 </ScrollViewer>
                 <GridSplitter Grid.Row="2" Grid.Column="1" Width="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="LightGray"/>
                 <Grid Grid.Row="2" Grid.Column="2" Margin="6,0,0,0">
-                    <Grid.RowDefinitions><RowDefinition Height="42"/><RowDefinition Height="*"/><RowDefinition Height="110"/></Grid.RowDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="42"/><RowDefinition Height="3*" MinHeight="90"/><RowDefinition Height="6"/><RowDefinition x:Name="mapDetailRow" Height="2*" MinHeight="28"/></Grid.RowDefinitions>
                     <UniformGrid Columns="5" Margin="0,0,0,4">
                         <Button x:Name="analysisAllButton" Content="All" Tag="0" Click="AnalysisCount_Click" FontSize="11"/>
                         <Button x:Name="analysisErrorsButton" Content="Errors" Tag="1" Click="AnalysisCount_Click" FontSize="11"/>
@@ -164,7 +162,7 @@
                     </UniformGrid>
                     <TabControl x:Name="mapInspectorTabs" Grid.Row="1">
                     <TabItem Header="Blocks">
-                    <DataGrid x:Name="mapBlocksGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column" SelectionMode="Single" SelectionChanged="MapBlocks_SelectionChanged" PreviewKeyDown="MapBlocks_KeyDown">
+                    <DataGrid x:Name="mapBlocksGrid" AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False" HeadersVisibility="Column" SelectionMode="Extended" SelectionUnit="FullRow" SelectionChanged="MapBlocks_SelectionChanged" PreviewKeyDown="MapBlocks_KeyDown">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Track" Binding="{Binding Track}" Width="55"/>
                             <DataGridTextColumn Header="R" Binding="{Binding R}" Width="40"/>
@@ -200,7 +198,10 @@
                         </DockPanel>
                     </TabItem>
                     </TabControl>
-                    <TextBox x:Name="sectorDetailText" Grid.Row="2" Margin="0,6,0,0" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"/>
+                    <GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch" ResizeDirection="Rows" Background="LightGray"/>
+                    <Expander Grid.Row="3" Header="Selection / sector details" IsExpanded="True" Expanded="MapDetails_Expanded" Collapsed="MapDetails_Collapsed" VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                        <local:ReportView x:Name="sectorDetailText" Margin="0,4,0,0"/>
+                    </Expander>
                 </Grid>
             </Grid>
             <Grid Grid.Row="1" Margin="8,0,8,8">

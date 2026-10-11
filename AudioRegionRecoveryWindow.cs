@@ -35,7 +35,7 @@ internal sealed partial class AudioRegionRecoveryWindow : Window
     private readonly TextBox referenceTolerance = new() { Text = "20", Width = 60, Margin = new(5) };
     private readonly ComboBox channel = new() { Width = 120, Margin = new(5) };
     private readonly TextBox zeroDeadband = new() { Text = "0", Width = 65, Margin = new(5), ToolTip = "Minimum gate around zero after DC filtering, ±% of full-scale PCM. 0 disables the additional gate. Does not move samples." };
-    private readonly TextBox thresholds = new() { Text = "0.4; 0.65; 1; 1.4", Width = 145, Margin = new(5) }, timeScales = new() { Text = "0.9; 1; 1.1", Width = 125, Margin = new(5) }, shortPulse = new() { Text = "238", Width = 70, Margin = new(5) }, tolerance = new() { Text = "35", Width = 60, Margin = new(5) };
+    private readonly TextBox thresholds = new() { Text = "0.4; 0.65; 1; 1.4", Width = 145, Margin = new(5) }, timeScales = new() { Text = "0.9; 1; 1.1", Width = 125, Margin = new(5) }, shortPulse = new() { Text = Math.Round(SharpZ80TimingTable.Rom800Normal.ShortHighMicroseconds).ToString(CultureInfo.InvariantCulture), Width = 70, Margin = new(5) }, tolerance = new() { Text = "35", Width = 60, Margin = new(5) };
     private static CheckBox Choice(string label, bool selected) => new() { Content = label, IsChecked = selected, Margin = new(6), VerticalAlignment = VerticalAlignment.Center };
     internal AudioRegionRecoveryResult? Result { get; private set; }
     internal AudioRegionRecoveryWindow(Window owner, AudioSignalAnalysis source, long start, long end)
@@ -47,7 +47,7 @@ internal sealed partial class AudioRegionRecoveryWindow : Window
         top.Children.Add(new TextBlock { Text = Path.GetFileName(source.Source), FontSize = 20, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap });
         top.Children.Add(new TextBlock { Text = "Choose one or more detectors and classification tests. All checked detectors run automatically with the selected tests. Adaptive classification can be off when reference, fixed timing or fuzzy tests are selected. The common ±0.5-sample option tests pulse lengths without moving PCM or timestamps. Include leader, header and payload for a complete program; supply the expected length to search for a payload without a header. Checksums remain mandatory for valid blocks.", TextWrapping = TextWrapping.Wrap, Margin = new(5) });
         top.Children.Add(testSettings);
-        foreach (var choice in new Control[] { adaptive, fixedTiming, fuzzy, zero, schmitt, adaptiveCrossing, normal, inverted, referenceTests, halfSample }) testSettings.Children.Add(choice);
+        foreach (var choice in new Control[] { adaptive, fixedTiming, fuzzy, zero, schmitt, adaptiveCrossing, normal, inverted, halfSample }) testSettings.Children.Add(choice);
         channel.Items.Add("All channels"); channel.Items.Add(source.ChannelCount == 1 ? "Mono" : "Left"); if (source.ChannelCount == 2) { channel.Items.Add("Right"); channel.Items.Add("Mix (L + R) / 2"); } channel.SelectedIndex = 0; testSettings.Children.Add(channel);
         foreach (var item in new (string Label, TextBox Input)[] { ("Gating scales (; separated)", thresholds), ("Ignore near zero (±% FS)", zeroDeadband), ("SHORT classifier (µs)", shortPulse), ("Time scales (; separated)", timeScales), ("Fuzzy tolerance (%)", tolerance) })
         {
@@ -61,11 +61,15 @@ internal sealed partial class AudioRegionRecoveryWindow : Window
         referenceSelection.ItemsSource = referenceControl.References; referenceSelection.SelectedIndex = 0;
         referenceSelection.Resources[SystemColors.InactiveSelectionHighlightBrushKey] = SystemColors.HighlightBrush;
         referenceSelection.Resources[SystemColors.InactiveSelectionHighlightTextBrushKey] = SystemColors.HighlightTextBrush;
-        var referenceInputs = new WrapPanel(); referenceInputs.Children.Add(referenceScope); referenceInputs.Children.Add(new TextBlock { Text = "Tolerance (%)", VerticalAlignment = VerticalAlignment.Center }); referenceInputs.Children.Add(referenceTolerance); 
+        var referenceInputs = new WrapPanel(); referenceInputs.Children.Add(referenceTests); referenceInputs.Children.Add(referenceScope); referenceInputs.Children.Add(new TextBlock { Text = "Tolerance (%)", VerticalAlignment = VerticalAlignment.Center }); referenceInputs.Children.Add(referenceTolerance);
         referencePanel.Children.Add(referenceInputs); referencePanel.Children.Add(referenceSelection);
-        referencePanel.Children.Add(new TextBlock { Text = "Select profiles with Ctrl / Shift. Add or edit user values under Histogram → Pulse references. All profiles includes those user values. Each profile tests all documented High/Low durations within this explicit tolerance. Checksums must still match. A separate header-discovery pass allows ROM headers with faster copier payloads.", TextWrapping = TextWrapping.Wrap, Margin = new(5) });
+        referencePanel.Children.Add(new TextBlock { Text = "Selecting a profile enables reference tests and switches to Selected profiles. Ctrl / Shift selects multiple profiles. All profiles also includes user values added under Histogram → Pulse references. Reference tests compare documented pulse durations; they do not force the output loader identity. Checksums must still match. A separate header-discovery pass allows ROM headers with faster copier payloads.", TextWrapping = TextWrapping.Wrap, Margin = new(5) });
         var referenceExpander = new Expander { Header = "Reference test settings / profile selection", Content = referencePanel, MaxWidth = 1000, Margin = new(5) }; testSettings.Children.Add(referenceExpander);
-        void UpdateSettings() { zeroDeadband.IsEnabled = adaptiveCrossing.IsChecked == true; thresholds.IsEnabled = schmitt.IsChecked == true || adaptiveCrossing.IsChecked == true; shortPulse.IsEnabled = timeScales.IsEnabled = fixedTiming.IsChecked == true; tolerance.IsEnabled = fuzzy.IsChecked == true; referencePanel.IsEnabled = referenceTests.IsChecked == true; referenceSelection.IsEnabled = referenceScope.SelectedIndex == 1; }
+        void UpdateSettings() { zeroDeadband.IsEnabled = adaptiveCrossing.IsChecked == true; thresholds.IsEnabled = schmitt.IsChecked == true || adaptiveCrossing.IsChecked == true; shortPulse.IsEnabled = timeScales.IsEnabled = fixedTiming.IsChecked == true; tolerance.IsEnabled = fuzzy.IsChecked == true; }
+        referenceSelection.SelectionChanged += (_, _) => {
+            if (referenceSelection.SelectedItems.Count == 0) return;
+            referenceTests.IsChecked = true; referenceScope.SelectedIndex = 1;
+        };
         zero.Click += (_, _) => UpdateSettings(); schmitt.Checked += (_, _) => UpdateSettings(); schmitt.Unchecked += (_, _) => UpdateSettings(); adaptiveCrossing.Checked += (_, _) => UpdateSettings(); adaptiveCrossing.Unchecked += (_, _) => UpdateSettings(); referenceTests.Click += (_, _) => UpdateSettings(); referenceScope.SelectionChanged += (_, _) => UpdateSettings();
         schmitt.Click += (_, _) => UpdateSettings(); fixedTiming.Click += (_, _) => UpdateSettings(); fuzzy.Click += (_, _) => UpdateSettings(); UpdateSettings();
         var inputs = new WrapPanel(); top.Children.Add(inputs);
@@ -86,6 +90,7 @@ internal sealed partial class AudioRegionRecoveryWindow : Window
             tabs.Items.Add(new TabItem { Header = item.Name, Content = item.Table });
         InitializePreview(top, tabs);
         InitializeHeaderless(top, tabs, footer);
+        InitializeComparison(tabs);
         scan.Click += async (_, _) => await Scan(); cancel.Click += (_, _) => { work?.Cancel(); previewWork?.Cancel(); zoomWork?.Cancel(); wavWork?.Cancel(); };
         exportWave.Click += async (_, _) => await ChooseWaveExport(); waveform.SelectionChanged += UpdateWaveExport;
         programs.SelectionChanged += (_, _) => saveProgram.IsEnabled = work == null && wavWork == null && programs.SelectedItem != null;
@@ -142,6 +147,7 @@ internal sealed partial class AudioRegionRecoveryWindow : Window
             }, cancellation.Token);
             if (closed || cancellation.IsCancellationRequested) return;
             Result = result;
+            RefreshComparison();
             scannedTransform = transform;
             completedHistogramSettings = HistogramSettingsKey();
             RefreshHistogram();
@@ -151,7 +157,7 @@ internal sealed partial class AudioRegionRecoveryWindow : Window
                 PayloadChecksum = result.Recoveries[i].ReconstructionUsed ? "Reconstructed by existing checksum recovery" : result.Recoveries[i].Payload.Candidate.ChecksumValid ? "OK" : "Failed", result.Recoveries[i].ReconstructionUsed,
                 HeaderTests = result.Recoveries[i].Header.Candidate.RecoveryTest, PayloadTests = result.Recoveries[i].Payload.Candidate.RecoveryTest }).ToArray();
             candidates.ItemsSource = result.Candidates.Select((c, i) => new { Number = i + 1, Block = c.Kind.ToString(), Bytes = c.Data.Length, Channel = c.Channel + 1, c.Inverted,
-                Detector = c.PulseMode.ToString(), Status = CandidateStatus(c), c.ChecksumValid, c.ChecksumAvailable, c.LengthVerified, c.BoundaryEvidence, LeaderSample = c.SignalTrace?.LeaderStart, MarkSample = c.SignalTrace?.SyncStart, c.RecordedChecksum, c.CalculatedChecksum, StartSeconds = c.StartSample / (double)result.SampleRate, EndSeconds = c.EndSample / (double)result.SampleRate, Tests = c.RecoveryTest }).ToArray();
+                Detector = c.PulseMode.ToString(), Threshold = c.SignalPass?.ThresholdScale, PreprocessingStart = c.SignalPass?.PreprocessingStartSample, Pass = c.SignalPass?.PassId, Status = CandidateStatus(c), c.ChecksumValid, c.ChecksumAvailable, c.LengthVerified, c.BoundaryEvidence, LeaderSample = c.SignalTrace?.LeaderStart, MarkSample = c.SignalTrace?.SyncStart, c.RecordedChecksum, c.CalculatedChecksum, StartSeconds = c.StartSample / (double)result.SampleRate, EndSeconds = c.EndSample / (double)result.SampleRate, Tests = c.RecoveryTest }).ToArray();
             passes.ItemsSource = result.Passes;
             recoveryEvents.ItemsSource = result.Diagnostics;
             messages.ItemsSource = result.Failures.Select(f => new { Category = "Unresolved", f.Reason, f.ExpectedLength, StartSeconds = f.StartSample / (double)result.SampleRate, EndSeconds = f.EndSample / (double)result.SampleRate })

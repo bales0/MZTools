@@ -54,7 +54,7 @@ internal sealed class NativeComDialog : Window
         var saveReport = new Button { Content = "Save report...", Margin = new Thickness(4) };
         var close = new Button { Content = "Close", IsCancel = true, Margin = new Thickness(4) };
         actions.Children.Add(import); actions.Children.Add(export); actions.Children.Add(close); close.Click += (_, _) => Close();
-        var report = new TextBox { IsReadOnly = true, AcceptsReturn = true, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto };
+        var report = new ReportView();
         var details = new DockPanel(); DockPanel.SetDock(saveReport, Dock.Bottom); details.Children.Add(saveReport); details.Children.Add(report);
         options.Children.Add(new Expander { Header = "Technical details", Content = details, Margin = new Thickness(4), MaxHeight = 260 });
         root.Children.Remove(options);
@@ -70,12 +70,14 @@ internal sealed class NativeComDialog : Window
             string? importReason = NativeComImportService.UnavailableReason(target);
             if (importReason == null)
             {
-                try { NativeComImportService.Preview(target!, importName.Text.Trim(), result); import.IsEnabled = true; }
+                try { NativeComImportService.Preview(target!, importName.Text.Trim(), result, DiskCollisionPolicy.Rename); import.IsEnabled = true; }
                 catch (Exception e) { importReason = e.Message; }
             }
             import.ToolTip = importReason ?? "Add the COM file to the current CP/M disk. Save the disk afterwards.";
             availability.Text = $"Ready: {result.Bytes.Length:N0} bytes. The original MZF/M12 is unchanged.\n" +
-                (importReason == null ? "Import adds the file to CP/M user 0. Save the disk afterwards." : "Save is available. Import: " + importReason);
+                (importReason == null ? NativeComImportService.Exists(target!,importName.Text.Trim())
+                    ? "This filename exists in user 0. Import will offer Overwrite / Rename / Cancel. Save the disk afterwards."
+                    : "Import adds the file to CP/M user 0. Save the disk afterwards." : "Save is available. Import: " + importReason);
         }
         async void Analyze()
         {
@@ -145,7 +147,14 @@ internal sealed class NativeComDialog : Window
             if (result == null || target == null) return;
             try
             {
-                var candidate = NativeComImportService.Preview(target, importName.Text.Trim(), result);
+                string name=importName.Text.Trim();
+                var policy=DiskCollisionPolicy.Cancel;
+                if(NativeComImportService.Exists(target,name)) {
+                    var choice=ChooseCollision(this,name,NativeComImportService.AvailableName(target,name));
+                    if(choice==null) return;
+                    policy=choice.Value.Policy; name=choice.Value.Name;
+                }
+                var candidate = NativeComImportService.Preview(target, name, result, policy);
                 candidate.Operation.Apply(target);
                 ImportedFileKey = candidate.FileKey;
                 Close();
@@ -167,6 +176,24 @@ internal sealed class NativeComDialog : Window
             if (picker.ShowDialog(this) == true) try { File.WriteAllText(picker.FileName, report.Text); } catch (Exception e) { MessageBox.Show(this, e.Message, Title); }
         };
         Analyze();
+    }
+
+    private static (DiskCollisionPolicy Policy,string Name)? ChooseCollision(Window owner,string existing,string suggestion)
+    {
+        var dialog=new Window {Owner=owner,Title="COM filename already exists",Width=500,SizeToContent=SizeToContent.Height,
+            ResizeMode=ResizeMode.NoResize,WindowStartupLocation=WindowStartupLocation.CenterOwner};
+        var panel=new StackPanel {Margin=new Thickness(16)}; dialog.Content=panel;
+        panel.Children.Add(new TextBlock {Text=$"{existing} already exists in CP/M user 0. Overwrite replaces it; Rename keeps both files.",TextWrapping=TextWrapping.Wrap});
+        panel.Children.Add(new TextBlock {Text="New filename for Rename:",Margin=new Thickness(0,12,0,4)});
+        var name=new TextBox {Text=suggestion}; panel.Children.Add(name);
+        var buttons=new WrapPanel {Margin=new Thickness(0,12,0,0)}; panel.Children.Add(buttons);
+        (DiskCollisionPolicy Policy,string Name)? result=null;
+        var overwrite=new Button {Content="Overwrite",Margin=new Thickness(4),Padding=new Thickness(12,4,12,4)};
+        overwrite.Click+=(_,_)=> {result=(DiskCollisionPolicy.Replace,existing); dialog.DialogResult=true;}; buttons.Children.Add(overwrite);
+        var rename=new Button {Content="Rename",IsDefault=true,Margin=new Thickness(4),Padding=new Thickness(12,4,12,4)};
+        rename.Click+=(_,_)=> {result=(DiskCollisionPolicy.Cancel,name.Text.Trim()); dialog.DialogResult=true;}; buttons.Children.Add(rename);
+        buttons.Children.Add(new Button {Content="Cancel",IsCancel=true,Margin=new Thickness(4),Padding=new Thickness(12,4,12,4)});
+        return dialog.ShowDialog()==true?result:null;
     }
 
     internal static void WriteVerified(string path, byte[] bytes)

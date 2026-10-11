@@ -45,53 +45,42 @@ namespace MZTools
     internal static class SharpZ80TimingTable
     {
         internal static readonly SharpZ80TimingReference Rom800Normal =
-            new("NRL1:1 / IC header / TC header+loader", TapeProfile.Normal1_1,
-                237.956, 258.819, 469.145, 487.189, 11000, 5500, "ROM800");
+            PulseReferenceCatalog.Decoder("NRL1:1 / IC header / TC header+loader", TapeProfile.Normal1_1, "ROM800", PulseReferenceCatalog.HeaderLeader, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference Ic1_1 =
-            new("IC1:1 data", TapeProfile.Ic1_1,
-                234.573, 263.894, 469.145, 494.802, 0, 5500, "IC1200");
+            PulseReferenceCatalog.Decoder("IC1:1 data", TapeProfile.Ic1_1, "IC1200", 0, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference Normal1_2 =
-            new("NRL1:2", TapeProfile.Normal1_2,
-                113.621, 139.278, 234.573, 260.229, 11000, 5500, "IC2400");
+            PulseReferenceCatalog.Decoder("NRL1:2", TapeProfile.Normal1_2, "IC2400", PulseReferenceCatalog.HeaderLeader, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference Ic1_2 =
-            new("IC1:2 data", TapeProfile.Ic1_2,
-                113.621, 139.278, 234.573, 260.229, 0, 5500, "IC2400");
+            PulseReferenceCatalog.Decoder("IC1:2 data", TapeProfile.Ic1_2, "IC2400", 0, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference Normal1_3 =
-            new("NRL1:3", TapeProfile.Normal1_3,
-                87.965, 124.617, 175.930, 223.577, 11000, 5500, "IC2800");
+            PulseReferenceCatalog.Decoder("NRL1:3", TapeProfile.Normal1_3, "IC2800", PulseReferenceCatalog.HeaderLeader, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference Ic1_3 =
-            new("IC1:3 data", TapeProfile.Ic1_3,
-                87.965, 124.617, 175.930, 223.577, 0, 5500, "IC2800");
+            PulseReferenceCatalog.Decoder("IC1:3 data", TapeProfile.Ic1_3, "IC2800", 0, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference Normal1_4 =
-            new("NRL1:4", TapeProfile.Normal1_4,
-                76.969, 117.286, 157.604, 179.595, 11000, 5500, "IC3200");
+            PulseReferenceCatalog.Decoder("NRL1:4", TapeProfile.Normal1_4, "IC3200", PulseReferenceCatalog.HeaderLeader, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference Ic1_4 =
-            new("IC1:4 data", TapeProfile.Ic1_4,
-                76.969, 117.286, 157.604, 179.595, 0, 5500, "IC3200");
+            PulseReferenceCatalog.Decoder("IC1:4 data", TapeProfile.Ic1_4, "IC3200", 0, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference Mz700Normal =
-            new("MZ700 NRL1:1 / MZ7-3 header", TapeProfile.Mz700_1_1,
-                240.000, 264.000, 464.000, 494.000, 11000, 5500, "ROM700");
+            PulseReferenceCatalog.Decoder("MZ700 NRL1:1 / MZ7-3 header", TapeProfile.Mz700_1_1, "ROM700", PulseReferenceCatalog.HeaderLeader, PulseReferenceCatalog.DataLeader);
+        internal static readonly IReadOnlyList<SharpZ80TimingReference> NativeMz700References = new[] {
+            Mz700Normal,
+            PulseReferenceCatalog.Decoder("MZ700 PAL ROM", TapeProfile.Mz700_1_1, "ROM700 PAL", PulseReferenceCatalog.HeaderLeader, PulseReferenceCatalog.DataLeader, "rom700pal"),
+            PulseReferenceCatalog.Decoder("MZ700 NTSC ROM", TapeProfile.Mz700_1_1, "ROM700 NTSC", PulseReferenceCatalog.HeaderLeader, PulseReferenceCatalog.DataLeader, "rom700ntsc")
+        };
         internal static readonly SharpZ80TimingReference Mz700Fast3 =
-            new("MZ700 FAST3 data", TapeProfile.Mz700_1_3,
-                80.000, 80.000, 160.000, 160.000, 0, 5500, "ROM700");
+            PulseReferenceCatalog.Decoder("MZ700 FAST3 data", TapeProfile.Mz700_1_3, "ROM700", 0, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference Tc1_1 =
-            new("TC1:1 data", TapeProfile.Tc1_1,
-                250.909, 250.000, 500.909, 500.909, 0, 5500, "TurboCopy");
+            PulseReferenceCatalog.Decoder("TC1:1 data", TapeProfile.Tc1_1, "TurboCopy", 0, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference Tc1_2 =
-            new("TC1:2 data", TapeProfile.Tc1_2,
-                141.818, 140.909, 282.727, 282.727, 0, 5500, "TurboCopy");
+            PulseReferenceCatalog.Decoder("TC1:2 data", TapeProfile.Tc1_2, "TurboCopy", 0, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference Tc1_3 =
-            new("TC1:3 data", TapeProfile.Tc1_3,
-                105.455, 104.545, 210.000, 210.000, 0, 5500, "TurboCopy");
+            PulseReferenceCatalog.Decoder("TC1:3 data", TapeProfile.Tc1_3, "TurboCopy", 0, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference UltraPreTransferRom800 =
-            new("UL pre-transfer data/marks", TapeProfile.Ultra,
-                237.956, 258.819, 469.145, 487.189, 0, 0, "ROM800");
+            PulseReferenceCatalog.Decoder("UL pre-transfer data/marks", TapeProfile.Ultra, "ROM800", 0, 0);
         internal static readonly SharpZ80TimingReference Ultra800Leader =
-            new("UL / UL800 leader", TapeProfile.UltraMz800,
-                237.956, 258.819, double.NaN, double.NaN, 2000, 1000, "ROM800");
+            PulseReferenceCatalog.Decoder("UL / UL800 leader", TapeProfile.UltraMz800, "ROM800", PulseReferenceCatalog.UltraHeaderLeader, PulseReferenceCatalog.UltraDataLeader);
         internal static readonly SharpZ80TimingReference Ultra700Leader =
-            new("UL700 leader", TapeProfile.UltraMz700,
-                240.000, 264.000, double.NaN, double.NaN, 2000, 1000, "ROM700");
+            PulseReferenceCatalog.Decoder("UL700 leader", TapeProfile.UltraMz700, "ROM700", PulseReferenceCatalog.UltraHeaderLeader, PulseReferenceCatalog.UltraDataLeader);
 
         // Only these profiles can be inferred from an ordinary checksummed MZ header
         // by timing alone. IC/TC are identified structurally and their data speed is
@@ -118,6 +107,7 @@ namespace MZTools
     internal sealed class SharpBlockCandidate
     {
         internal SharpBlockSignalTrace? SignalTrace { get; init; }
+        internal AudioSignalPassOrigin? SignalPass { get; set; }
         internal string RecoveryTest { get; set; } = "";
         internal bool ChecksumAvailable { get; init; } = true;
         internal bool LengthVerified { get; set; } = true;
@@ -150,6 +140,19 @@ namespace MZTools
     internal sealed class WavBlockRecoveryInfo
     {
         internal required SharpBlockCandidate Candidate { get; init; }
+    }
+
+    internal readonly record struct Native1xPulseTiming(double ShortHigh, double ShortLow, double LongHigh, double LongLow)
+    {
+        internal Native1xPulseTiming ToMicroseconds(uint sampleRate) => new(
+            ShortHigh * 1000000.0 / sampleRate, ShortLow * 1000000.0 / sampleRate,
+            LongHigh * 1000000.0 / sampleRate, LongLow * 1000000.0 / sampleRate);
+        internal static Native1xPulseTiming FromCandidate(SharpBlockCandidate candidate) => new(
+            candidate.TimingShortHighMicroseconds, candidate.TimingShortLowMicroseconds,
+            candidate.TimingLongHighMicroseconds, candidate.TimingLongLowMicroseconds);
+        internal bool IsComplete => double.IsFinite(ShortHigh) && ShortHigh > 0 &&
+            double.IsFinite(ShortLow) && ShortLow > 0 && double.IsFinite(LongHigh) && LongHigh > 0 &&
+            double.IsFinite(LongLow) && LongLow > 0;
     }
 
     internal readonly record struct Native1xTimingAnalysis(
@@ -424,10 +427,10 @@ namespace MZTools
                 }
                 var lengths = expectedLength.HasValue ? new HashSet<int> { expectedLength.Value } : new HashSet<int>();
                 var plan = plans[pass];
-                if (diagnostics != null) diagnostics.Context = $"{plan.Name}; gating ×{plan.Threshold:G}; {options.Transform.Description}; zero deadband ±{options.ZeroDeadband * 100:G}% FS";
+                if (diagnostics != null) diagnostics.Context = $"Pass {pass + 1}: {plan.Name}; gating ×{plan.Threshold:G}; {options.Transform.Description}; zero deadband ±{options.ZeroDeadband * 100:G}% FS";
                 if (plan.Reference != null) foreach (var header in all.Where(c => c.Kind == SharpBlockKind.Header && c.ChecksumValid && c.Data.Length == 128))
                     lengths.Add(BinaryPrimitives.ReadUInt16LittleEndian(header.Data.AsSpan(18, 2)));
-                var measurements = new AudioRecoveryMeasurements(reader.Format.SampleRate, start, end, options, plan.Reference, plan.Scale.HasValue ? options.ShortMicroseconds * plan.Scale.Value : null);
+                var measurements = new AudioRecoveryMeasurements(reader.Format.SampleRate, start, end, options with { ThresholdScales = [plan.Threshold] }, plan.Reference, plan.Scale.HasValue ? options.ShortMicroseconds * plan.Scale.Value : null, path, $"Pass {pass + 1}");
                 for (int c = 0; c < (options.Transform.Mix ? 1 : reader.Format.Channels); c++) measurements.IncludeChannel(c);
                 var analyzers = Enumerable.Range(0, options.Transform.Mix ? 1 : reader.Format.Channels).Select(c => new ChannelAnalyzer(c, reader.Format.SampleRate, candidates, lengths,
                     schmittScale: plan.Threshold, decode: !options.Channel.HasValue || options.Channel.Value == c, recovery: options,
@@ -449,6 +452,8 @@ namespace MZTools
                 if (plan.Reference == null) description += $"; per-pulse ±0.5 sample {(options.HalfSample ? "on" : "off")}";
                 foreach (var candidate in candidates) candidate.RecoveryTest = description;
                 all.AddRange(candidates);
+                if (diagnostics != null && !options.PayloadOnly)
+                    RecordAssemblyDiagnostics(candidates, AssembleCandidates(candidates, reader.Format.SampleRate, end).Recoveries, reader.Format.SampleRate, diagnostics, diagnostics.Context);
                 passes.Add(new(plan.Threshold, candidates.Count(c => c.Kind == SharpBlockKind.Header && c.ChecksumValid), candidates.Count(c => c.Kind == SharpBlockKind.Payload && c.ChecksumValid), candidates.Count)
                 { Test = plan.Name, Measurements = measurements.Finish(), ZeroDeadbandPercent = options.ZeroDeadband * 100, TimeScale = plan.Scale, ShortMicroseconds = plan.Scale.HasValue ? options.ShortMicroseconds * plan.Scale.Value : null,
                     FuzzyTolerance = plan.Fuzzy, Reference = plan.Reference?.Name, ReferenceSource = plan.Reference?.Source, ReferenceEvidence = plan.Reference?.Evidence,
@@ -473,7 +478,10 @@ namespace MZTools
                 unique.Any(c => c.Kind == SharpBlockKind.Payload && c.ChecksumValid) ? [] : [new(path,
                     "No verified payload: inspect recovery diagnostics; include leader/mark and checksum, or supply the expected length.", start, end, expectedLength.HasValue ? (ushort)expectedLength : null, null, false, unique.Length > 0, true)] }
                 : AssembleCandidates(unique, reader.Format.SampleRate, end);
-            if (!options.PayloadOnly) RecordAssemblyDiagnostics(unique, assembled.Recoveries, reader.Format.SampleRate, diagnostics);
+            if (diagnostics != null && !options.PayloadOnly) {
+                diagnostics.Context = "Cross-pass final assembly; not a single-pass result";
+                RecordAssemblyDiagnostics(unique, assembled.Recoveries, reader.Format.SampleRate, diagnostics, diagnostics.Context);
+            }
             info.Refresh(); if (info.Length != originalLength || info.LastWriteTimeUtc != originalModified) throw new IOException("The source changed during recovery. Analyze it again.");
             progress?.Report(new("Range scan complete", 1, end, end, unique.Length));
             return new(Path.GetFullPath(path), reader.Format.SampleRate, start, end, assembled.Records, assembled.Recoveries, unique,
@@ -500,10 +508,11 @@ namespace MZTools
         }
 
         internal static void VisitRangeSignal(IPcmAudioStreamReader reader, long start, long end, AudioPcmTransform transform,
-            double schmittScale, Action<long, int, int> frames, Action<int, WavPulseMode, bool, double, long> pulses, CancellationToken token, bool measureAdaptive = false)
+            double schmittScale, Action<long, int, int> frames, Action<int, WavPulseMode, bool, double, long> pulses, CancellationToken token, bool measureAdaptive = false, double zeroDeadband = 0)
         {
             var channels = Enumerable.Range(0, transform.Mix ? 1 : reader.Format.Channels).Select(c =>
-                new ChannelAnalyzer(c, reader.Format.SampleRate, [], [], schmittScale, decode: false, measuredObserver: pulses, measureAdaptive: measureAdaptive)).ToArray();
+                new ChannelAnalyzer(c, reader.Format.SampleRate, [], [], schmittScale, decode: false, measuredObserver: pulses, measureAdaptive: measureAdaptive,
+                    recovery: measureAdaptive ? new() { AdaptiveZeroCrossing = true, ZeroDeadband = zeroDeadband } : null)).ToArray();
             transform.Visit(reader, start, end, (sample, left, right) =>
             {
                 frames(sample, left, right); channels[0].Process(sample, left);
@@ -803,10 +812,10 @@ namespace MZTools
         }
 
         private static void RecordAssemblyDiagnostics(IEnumerable<SharpBlockCandidate> source,
-            IReadOnlyList<WavRecoveryInfo> recovered, uint sampleRate, AudioRecoveryDiagnostics? diagnostics)
+            IReadOnlyList<WavRecoveryInfo> recovered, uint sampleRate, AudioRecoveryDiagnostics? diagnostics, string context = "Assembly")
         {
             if (diagnostics == null) return;
-            diagnostics.Context = "Assembly";
+            diagnostics.Context = context;
             var candidates = source.ToArray();
             var headers = candidates.Where(c => c.Kind == SharpBlockKind.Header && c.ChecksumValid).ToArray();
             foreach (var c in candidates.Where(c => c.Kind == SharpBlockKind.Payload))
@@ -893,15 +902,24 @@ namespace MZTools
                 selectedPayload,
                 sampleRate);
 
+            return ClassifyNative1xTiming(Native1xPulseTiming.FromCandidate(header), Native1xPulseTiming.FromCandidate(payload));
+        }
+
+        internal static Native1xTimingAnalysis ClassifyNative1xTiming(Native1xPulseTiming header, Native1xPulseTiming payload)
+        {
+            // Use one documented MZ700 reference for both blocks, including the regional ROM paths.
+            var reference700 = SharpZ80TimingTable.NativeMz700References.OrderBy(reference =>
+                MeanFinite(FitCandidateTiming(reference, header).RelativeError, FitCandidateTiming(reference, payload).RelativeError)).First();
+
             SharpTimingMatch header800 = FitCandidateTiming(SharpZ80TimingTable.Rom800Normal, header);
-            SharpTimingMatch header700 = FitCandidateTiming(SharpZ80TimingTable.Mz700Normal, header);
+            SharpTimingMatch header700 = FitCandidateTiming(reference700, header);
             SharpTimingMatch payload800 = FitCandidateTiming(SharpZ80TimingTable.Rom800Normal, payload);
-            SharpTimingMatch payload700 = FitCandidateTiming(SharpZ80TimingTable.Mz700Normal, payload);
+            SharpTimingMatch payload700 = FitCandidateTiming(reference700, payload);
 
             double headerRatio = PeriodRatio(header);
             double payloadRatio = PeriodRatio(payload);
             double ratio800 = ReferencePeriodRatio(SharpZ80TimingTable.Rom800Normal);
-            double ratio700 = ReferencePeriodRatio(SharpZ80TimingTable.Mz700Normal);
+            double ratio700 = ReferencePeriodRatio(reference700);
 
             bool headerRatioVotes700 = RatioVotesMz700(headerRatio, ratio800, ratio700);
             bool payloadRatioVotes700 = RatioVotesMz700(payloadRatio, ratio800, ratio700);
@@ -988,14 +1006,17 @@ namespace MZTools
                 candidate.TimingLongHighMicroseconds,
                 candidate.TimingLongLowMicroseconds);
 
-        private static double PeriodRatio(SharpBlockCandidate candidate)
+        private static SharpTimingMatch FitCandidateTiming(SharpZ80TimingReference reference, Native1xPulseTiming timing) =>
+            SharpTapeCandidateScanner.FitTiming(reference, timing.ShortHigh, timing.ShortLow, timing.LongHigh, timing.LongLow);
+
+        private static double PeriodRatio(Native1xPulseTiming candidate)
         {
-            if (!HasCompleteTiming(candidate))
+            if (!candidate.IsComplete)
             {
                 return double.NaN;
             }
-            double shortPeriod = candidate.TimingShortHighMicroseconds + candidate.TimingShortLowMicroseconds;
-            double longPeriod = candidate.TimingLongHighMicroseconds + candidate.TimingLongLowMicroseconds;
+            double shortPeriod = candidate.ShortHigh + candidate.ShortLow;
+            double longPeriod = candidate.LongHigh + candidate.LongLow;
             return shortPeriod > 0 ? longPeriod / shortPeriod : double.NaN;
         }
 
@@ -1181,6 +1202,16 @@ namespace MZTools
 
         private sealed class ChannelAnalyzer
         {
+            private readonly List<SharpBlockCandidate> candidateOutput;
+            private readonly AudioRecoveryOptions? recoveryOptions;
+            private readonly string sourcePassId;
+            private long? firstSample;
+            private void StampCandidates(int before)
+            {
+                for (int i = before; i < candidateOutput.Count; i++)
+                    candidateOutput[i].SignalPass = new(firstSample ?? 0, candidateOutput[i].PulseMode == WavPulseMode.ZeroCrossing ? 1 : schmittScale,
+                        recoveryOptions?.ZeroDeadband ?? 0, sourcePassId, recoveryOptions?.Transform ?? new());
+            }
             private readonly SignalPreprocessor preprocessor;
             private readonly PulseDetector zeroCrossing;
             private readonly PulseDetector schmitt;
@@ -1202,6 +1233,7 @@ namespace MZTools
                 bool decode = true, AudioRecoveryOptions? recovery = null, double? fixedShortUnits = null, double? fuzzyTolerance = null, ReferencePulseRules? reference = null, Action<int, WavPulseMode, bool, double, long>? measuredObserver = null, bool measureAdaptive = false, Action<AudioHeaderRejection>? headerRejected = null, AudioRecoveryDiagnostics? diagnostics = null)
             {
                 this.schmittScale = schmittScale;
+                candidateOutput = output; recoveryOptions = recovery; sourcePassId = diagnostics?.Context ?? $"Signal ×{schmittScale:G}";
                 preprocessor = new SignalPreprocessor(sampleRate);
                 zeroNormal = new SharpTapeCandidateScanner(channel, false, WavPulseMode.ZeroCrossing, sampleRate, output, expectedLengths, fixedShortUnits, fuzzyTolerance, reference, halfSample: recovery?.HalfSample == true, headerRejected: headerRejected, diagnostics: diagnostics, payloadOnly: recovery?.PayloadOnly == true, unknownLength: recovery?.UnknownLength == true);
                 zeroInverted = new SharpTapeCandidateScanner(channel, true, WavPulseMode.ZeroCrossing, sampleRate, output, expectedLengths, fixedShortUnits, fuzzyTolerance, reference, halfSample: recovery?.HalfSample == true, headerRejected: headerRejected, diagnostics: diagnostics, payloadOnly: recovery?.PayloadOnly == true, unknownLength: recovery?.UnknownLength == true);
@@ -1247,19 +1279,24 @@ namespace MZTools
 
             internal void Process(long sampleIndex, int pcm)
             {
+                firstSample ??= sampleIndex;
+                int before = candidateOutput.Count;
                 (double filtered, double threshold) = preprocessor.Process(pcm / 8388608.0);
                 zeroCrossing.Process(sampleIndex, filtered >= 0);
                 schmitt.ProcessSchmitt(sampleIndex, filtered, threshold * schmittScale);
                 peakCrossing?.Process(sampleIndex, filtered, threshold * schmittScale);
+                if (before != candidateOutput.Count) StampCandidates(before);
             }
 
             internal void Flush(long endSample)
             {
+                int before = candidateOutput.Count;
                 zeroCrossing.Flush(endSample);
                 schmitt.Flush(endSample);
                 peakCrossing?.Flush();
                 zeroNormal.Finish(endSample); zeroInverted.Finish(endSample); schmittNormal.Finish(endSample); schmittInverted.Finish(endSample);
                 peakNormalScanner?.Finish(endSample); peakInvertedScanner?.Finish(endSample);
+                StampCandidates(before);
             }
         }
 
@@ -1788,7 +1825,7 @@ namespace MZTools
                 LeaderAverage = headerDecoder.LeaderAverage,
                 LeaderStdDev = headerDecoder.LeaderStdDev,
                 PulseConfidence = pulseConfidence * headerDecoder.PulseConfidence *
-                    Math.Min(1.0, Math.Max(0.25, decoderEvent.LeaderPulses / 5500.0)),
+                    Math.Min(1.0, Math.Max(0.25, decoderEvent.LeaderPulses / (double)PulseReferenceCatalog.DataLeader)),
                 PolarityConfidence = polarityConfidence ??
                     (headerDecoder.HeaderShortPhysicalHighX8 -
                         headerDecoder.HeaderShortPhysicalLowX8),

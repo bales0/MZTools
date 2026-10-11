@@ -4,6 +4,71 @@ namespace MZTools.Tests;
 
 public class HfeTests
 {
+    [Fact]
+    public void V2IndependentInstructionsPreserveCellsWeakIndexAndControls()
+    {
+        var bytes=Vector(false,[0x12,0,1,72,0xAA,0,4,1,0,0,3,0,0,0,2,0xCC,0,0,7,2,0,0,4,0,0,0,5,0,0]); bytes[8]=1;
+        var image=HfeImage.Parse(bytes); var track=image.Tracks.Single();
+        Assert.Equal(HfeVersion.V2,image.Version); Assert.Equal("HFEv2",image.Identify(bytes).Variant);
+        Assert.Equal(24,track.BitCellCount); Assert.Equal(new long[] {8},track.IndexCells);
+        Assert.Equal(8,track.WeakBitMask.Sum(b=>System.Numerics.BitOperations.PopCount((uint)b)));
+        Assert.Equal(4,track.V2Controls.Count); Assert.Equal((byte)72,track.V2Controls[0].Value);
+        Assert.Equal(bytes,image.Serialize(HfeVersion.V2));
+        HfeImage.VerifyPhysical(image,HfeImage.Parse(image.Serialize(HfeVersion.V2,false)));
+        Assert.Throws<InvalidDataException>(()=>image.Serialize(HfeVersion.V3));
+        Assert.Throws<InvalidDataException>(()=>image.Serialize(HfeVersion.V1));
+    }
+    [Fact]
+    public void V2BreakBufferSkipsPaddingWithoutCreatingCells()
+    {
+        var stream=Enumerable.Repeat((byte)0xFF,260).ToArray();
+        new byte[] {0x12,0,6,0xAA,0xAA}.CopyTo(stream,0);
+        new byte[] {0,3,0x34,0}.CopyTo(stream,256);
+        var bytes=Vector(false,stream);bytes[8]=1;
+        var image=HfeImage.Parse(bytes);Assert.Equal(16,image.Tracks.Single().BitCellCount);
+        HfeImage.VerifyPhysical(image,HfeImage.Parse(image.Serialize(HfeVersion.V2,false)));
+        HfeImage.VerifyPhysical(image,HfeImage.Parse(image.Serialize(HfeVersion.V3)));
+    }
+    [Fact]
+    public void V2RewriteKeepsInstructionsInsideSideBuffers()
+    {
+        var stream=Enumerable.Repeat((byte)0x12,248)
+            .Concat(new byte[] {0,2,0xAA,0,0,1,72,0})
+            .Concat(Enumerable.Repeat((byte)0x34,251))
+            .Concat(new byte[] {0,3,0,0,0x56,0x78}).ToArray();
+        var bytes=Vector(false,stream);bytes[8]=1;var image=HfeImage.Parse(bytes);
+        var rewritten=image.Serialize(HfeVersion.V2,false);var decoded=HfeImage.Parse(rewritten);
+        HfeImage.VerifyPhysical(image,decoded);
+        int length=BinaryPrimitives.ReadUInt16LittleEndian(rewritten.AsSpan(514))/2;
+        for(int i=0;i<length;i++) {
+            byte value=PackedBitCells.Reverse(rewritten[1024+i/256*512+i%256]);
+            if(value!=0) continue;
+            Assert.True(i%256<=252,"Four-byte v2 instruction crosses the hardware buffer");
+            byte op=PackedBitCells.Reverse(rewritten[1024+(i+1)/256*512+(i+1)%256]);
+            i+=3;if(op==6) i=((i+1+255)/256)*256-1;
+        }
+    }
+    [Theory]
+    [InlineData(new byte[] {0})]
+    [InlineData(new byte[] {0,3})]
+    [InlineData(new byte[] {0,8,0,0})]
+    public void InvalidV2InstructionsAreRejected(byte[] stream)
+    {
+        var bytes=Vector(false,stream);bytes[8]=1;
+        Assert.Throws<InvalidDataException>(()=>HfeImage.Parse(bytes));
+    }
+    [Theory]
+    [InlineData(1)] [InlineData(2)] [InlineData(3)]
+    public void AllVersionsExportAndDecodeTwoSidedDisk(int versionNumber)
+    {
+        var version=(HfeVersion)versionNumber;
+        var document=DskDocumentFactory.CreateFsmz(tracks:4);
+        var before=document.Serialize(); var generated=HfeImage.FromDsk(document);
+        var image=HfeImage.Parse(generated.Serialize(version));
+        Assert.Equal(version,image.Version); HfeImage.VerifyPhysical(generated,image);
+        Assert.Equal(before,document.Serialize());
+        Assert.Contains("HFEv2",BatchMediaPolicy.Targets);
+    }
     [Theory]
     [InlineData(false)] [InlineData(true)]
     public void UnknownEncodingOpensPhysicalViewAndOnlyAllowsOriginalVariantCopy(bool v3)
@@ -179,5 +244,85 @@ public class HfeTests
         var bad = Assert.Single(HfeImage.Parse(bytes).Tracks[0].Sectors); Assert.False(bad.DataCrcValid); Assert.True(bad.HeaderCrcValid);
         var converted = DskImage.Parse(MediaConversionService.HfeToDsk(HfeImage.Parse(bytes)).Output);
         Assert.Equal(0x20, converted.Tracks[0]!.Sectors[0].FdcStatus1); Assert.Equal(0x20, converted.Tracks[0]!.Sectors[0].FdcStatus2);
+    }
+}
+
+
+
+public sealed class HfeNewImageTests
+{
+    [Theory]
+    [InlineData(1)] [InlineData(2)] [InlineData(3)]
+    public void CustomGeometryIdsAndFillerArePreserved(int variant)
+    {
+        var options=new DskNewOptions(DskNewFormat.CustomRaw,3,1,3,1024,0xA7,
+            DskDocumentFactory.RawSectorOrder.Custom,new[] {9,7,3},(HfeVersion)variant);
+        var created=DiskFormatting.CreateNew(options);
+        var physical=HfeImage.Parse(created.SerializeContainer());
+        AssertSectorsEqual(DiskFormatting.Create(options).Image,physical);
+        Assert.All(physical.Tracks,track=> {
+            Assert.Equal(new byte[] {9,7,3},track.Sectors.Select(s=>s.R));
+            Assert.All(track.Sectors,sector=>Assert.All(sector.Data,value=>Assert.Equal((byte)0xA7,value)));
+        });
+    }
+
+    [Theory]
+    [InlineData(1)] [InlineData(2)] [InlineData(3)]
+    public void AllFilesystemPresetsKeepTheirSectorsInNewHfe(int variant)
+    {
+        foreach(var format in new[] {DskNewFormat.MzBasic,DskNewFormat.IplDisk,DskNewFormat.PersonalCpm,DskNewFormat.Sds400,DskNewFormat.LecCpmDd,DskNewFormat.LecCpmHd,DskNewFormat.Mrs,DskNewFormat.Lemmings,DskNewFormat.CustomRaw}) {
+            var options=new DskNewOptions(format,format==DskNewFormat.Lemmings?80:40,2,HfeVersion:(HfeVersion)variant);
+            var expected=DiskFormatting.Create(options);
+            var actual=DiskFormatting.CreateNew(options);
+            Assert.Null(actual.FilePath);Assert.True(actual.IsModified);
+            var reopened=HfeImage.Parse(actual.SerializeContainer());Assert.Equal((HfeVersion)variant,reopened.Version);
+            AssertSectorsEqual(expected.Image,reopened);
+        }
+    }
+
+    [Theory]
+    [InlineData(1,false)] [InlineData(2,false)] [InlineData(3,false)]
+    [InlineData(1,true)] [InlineData(2,true)] [InlineData(3,true)]
+    public void IplHfeSavesReopensAndRebuildsWithoutLosingVariant(int variant,bool multi)
+    {
+        var record=TapeTestData.ReadRecord(TapeTestData.CreateMzf(Enumerable.Range(0,700).Select(i=>(byte)i).ToArray()));
+        byte[] Build(string name)=>multi?Mz800MultiGameIplDskWriter.Build([
+            new(record,name,new MzfCompressionOptions(MzfCompressionAlgorithm.None),record.Body.MzfBody.Length),
+            new(record,"SECOND",new MzfCompressionOptions(MzfCompressionAlgorithm.None),record.Body.MzfBody.Length)]).Image:Mz800IplDskWriter.Build(record,name);
+        byte[] initial=Build("FIRST");var expected=DskDocument.Open(initial);
+        var document=DiskFormatting.SetNewContainer(DskDocument.Open(initial),(HfeVersion)variant);
+        AssertSectorsEqual(expected.Image,HfeImage.Parse(document.SerializeContainer()));
+        string directory=TapeTestData.CreateTempDirectory();
+        try {
+            string path=Path.Combine(directory,"ipl.hfe");document.Save(path);
+            var opened=DskDocument.Open(path);
+            Assert.Equal(multi?DskFileSystemType.MultiIpl:DskFileSystemType.SingleIpl,opened.FileSystem.Type);
+            Assert.Equal(multi?2:1,opened.FileSystem.ReadDirectory().Count);
+            foreach(var entry in opened.FileSystem.ReadDirectory()) Assert.Equal(record.Body.MzfBody,opened.FileSystem.Extract(entry));
+            byte[] rebuilt=Build("RENAMED");opened.ReplaceContents(rebuilt);opened.Save();
+            var physical=HfeImage.Parse(File.ReadAllBytes(path));Assert.Equal((HfeVersion)variant,physical.Version);
+            AssertSectorsEqual(DskDocument.Open(rebuilt).Image,physical);
+            Assert.Contains(DskDocument.Open(path).FileSystem.ReadDirectory(),entry=>entry.Name=="RENAMED");
+            if(multi) {
+                // Native IPL stores sector payload inverted; the ROM displays decoded bytes.
+                byte[] content=physical.Tracks.SelectMany(t=>t.Sectors).SelectMany(s=>s.Data).Select(value=>(byte)~value).ToArray();
+                Assert.True(content.AsSpan().IndexOf(SharpMzEncoding.ConvertASCIIStringToSHASCIIBytes("MZTools Multiboot"))>=0);
+                Assert.True(content.AsSpan().IndexOf(SharpMzEncoding.ConvertASCIIStringToSHASCIIBytes("MZTools Multi Game"))<0);
+            }
+        } finally {Directory.Delete(directory,true);}
+    }
+
+    private static void AssertSectorsEqual(DskImage expected,HfeImage actual)
+    {
+        Assert.Equal(expected.TrackCount,actual.Cylinders);Assert.Equal(expected.SideCount,actual.Sides);
+        foreach(var track in actual.Tracks) {
+            var sectors=expected.GetTrack(track.Cylinder,track.Side).Sectors;
+            Assert.Equal(sectors.Count,track.Sectors.Count);
+            for(int index=0;index<sectors.Count;index++) {
+                var sector=sectors[index];var decoded=track.Sectors[index];
+                Assert.Equal(sector.SectorId,decoded.R);Assert.Equal(sector.Data,decoded.Data);
+                Assert.True(decoded.HeaderCrcValid && decoded.DataCrcValid);
+            }
+        }
     }
 }

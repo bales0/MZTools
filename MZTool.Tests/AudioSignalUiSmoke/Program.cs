@@ -92,6 +92,8 @@ internal static class Program
                 var payloadRegion = model.Regions.First(r => r.Kind == "Payload");
                 var payloadBlock = model.Blocks.First(b => b.Record == payloadRegion.Record && b.Block == "Payload" && b.Channel == payloadRegion.Channel);
                 records.SelectedItem = payloadBlock;
+                var pulseSource = (ComboBox)Field(window,"pulseSourceChoice")!;
+                if (pulseSource.SelectedIndex != 0 || payloadBlock.PulseSource?.Detector != payloadBlock.DecodeDetector) throw new Exception("Default measurement is not the decoding detector.");
                 if (!ReferenceEquals(regions.SelectedItem, payloadRegion)) throw new Exception("Record selection did not synchronize Regions.");
                 tabs.SelectedIndex = 0; await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
                 records.RaiseEvent(new MouseButtonEventArgs(Mouse.PrimaryDevice, Environment.TickCount, MouseButton.Left) { RoutedEvent = Control.MouseDoubleClickEvent });
@@ -138,6 +140,14 @@ internal static class Program
                 var recovery = new AudioRegionRecoveryWindow(window, model, first, last); recovery.Show();
                 try
                 {
+                    var manualReferences = (ListBox)Field(recovery, "referenceSelection")!;
+                    var manualReferenceTests = (CheckBox)Field(recovery, "referenceTests")!;
+                    var manualReferenceScope = (ComboBox)Field(recovery, "referenceScope")!;
+                    if (!manualReferences.IsEnabled || !manualReferenceScope.IsEnabled) throw new Exception("Manual reference selection is inaccessible.");
+                    manualReferences.SelectedIndex = 1;
+                    if (manualReferenceTests.IsChecked != true || manualReferenceScope.SelectedIndex != 1) throw new Exception("Selecting a reference did not enable its tests.");
+                    manualReferenceTests.IsChecked = false;
+                    manualReferenceScope.SelectedIndex = 0;
                     var candidateHexButton = (Button)Field(recovery, "candidateHex")!;
                     var candidateHexMenu = (MenuItem)Field(recovery, "candidateHexMenu")!;
                     if (candidateHexButton.IsEnabled || candidateHexMenu.IsEnabled) throw new Exception("Candidate hex is enabled without a result.");
@@ -234,6 +244,11 @@ internal static class Program
                     if (((WrapPanel)Field(recovery, "testSettings")!).IsEnabled) throw new Exception("Manual settings were editable during scan.");
                     if (candidateHexButton.IsEnabled || candidateHexMenu.IsEnabled) throw new Exception("Candidate hex remains enabled during a scan.");
                     await manual;
+                    var comparisonLeft = (ComboBox)Field(recovery,"comparisonLeft")!;
+                    var comparisonRight = (ComboBox)Field(recovery,"comparisonRight")!;
+                    if (comparisonLeft.Items.Count != recovery.Result!.Passes.Count || comparisonRight.Items.Count != recovery.Result.Passes.Count) throw new Exception("Pass comparison did not refresh after Deep analysis.");
+                    var compared = AudioDecodePassComparison.Compare(recovery.Result,0,1);
+                    if (compared.Rows.Count == 0) throw new Exception("Pass comparison has no evidence rows.");
                     if (recovery.Result == completed || recovery.Result?.Passes.Count != 2 || recovery.Result.Records.Count == 0 || recovery.Result.Passes.Any(p => p.Test == "Adaptive")) throw new Exception("Selected manual tests failed: " + ((TextBlock)Field(recovery, "status")!).Text);
                     if (recovery.Result.Candidates.Any(c => c.PulseMode != WavPulseMode.Schmitt || c.Inverted || string.IsNullOrEmpty(c.RecoveryTest))) throw new Exception("Manual detector/polarity/provenance was lost.");
                     if (recovery.Result.Passes.Any(p => !p.HalfSample || p.Reference != null)) throw new Exception("Common half-sample setting did not reach non-reference tests.");

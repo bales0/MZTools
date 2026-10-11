@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -42,7 +42,7 @@ internal static class AudioSignalAnalysisService
                 else regions.Add(new(block + " (partial trace)", candidate.StartSample, candidate.EndSample, i + 1, candidate.Channel + 1, "Only decoder anchors available; leader/sync boundaries unknown."));
                 if (recovery.ReconstructionUsed || recovery.SelectiveRecoveryUsed)
                     regions.Add(new("Recovered", trace?.DataStart ?? candidate.StartSample, candidate.EndSample, i + 1, candidate.Channel + 1, "Existing decoder reconstruction/selective recovery."));
-                accumulators.Add(new(i + 1, name, candidate, recovery.FinalProfile, recovery.ReconstructionUsed || recovery.SelectiveRecoveryUsed, f.SampleRate));
+                accumulators.Add(new(i + 1, name, candidate, recovery.FinalProfile, recovery.ReconstructionUsed || recovery.SelectiveRecoveryUsed, f.SampleRate, path));
             }
         }
         foreach (var failure in decoded.Failures) regions.Add(new("Unresolved", failure.StartSample, failure.EndSample, null, null, failure.Reason));
@@ -67,6 +67,16 @@ internal static class AudioSignalAnalysisService
                 if (block.Channel == channel && end > block.Start && end <= block.End && end - duration >= block.Start)
                     block.Add(mode, high, duration, end);
         }, token);
+        foreach (var group in accumulators.Where(b => b.RequiresReplay).GroupBy(b => b.Origin!))
+        {
+            token.ThrowIfCancellationRequested();
+            var origin = group.Key; var replayBlocks = group.ToArray();
+            WavHeuristicAnalyzer.VisitRangeSignal(reader, origin.PreprocessingStartSample, replayBlocks.Max(b => b.End), origin.Transform,
+                origin.ThresholdScale, (_, _, _) => { }, (channel, mode, high, duration, end) => {
+                    foreach (var block in replayBlocks)
+                        if (block.Channel == channel) block.Add(mode, high, duration, end, false);
+                }, token, measureAdaptive: replayBlocks.Any(b => b.Detector == WavPulseMode.AdaptiveZeroCrossing), zeroDeadband: origin.ZeroDeadband);
+        }
         regions.AddRange(quiet.Finish(f.FrameCount));
         regions = regions.Select(r => r with { SampleRate = f.SampleRate }).OrderBy(r => r.StartSample).ToList();
         var blocks = accumulators.Select(b => b.Finish()).ToArray();
@@ -104,10 +114,9 @@ internal static class AudioSignalAnalysisService
         {
             void Issue(string code, string message, long start, long end) => issues.Add(new(code, DskIssueSeverity.Warning, message, start, end, b.Record, b.Channel, b.Block));
             long count = b.Distributions.Sum(d => d.Count);
-            if (count > 0 && b.Outliers > count * .01) Issue("AUDIO_PULSE_OUTLIERS", $"{b.Outliers:N0}/{count:N0} pulses differ by >35% from the scaled reference.", b.StartSample, b.EndSample);
+            issues.AddRange(b.MeasurementIssues.Where(i => i.Code != "AUDIO_PULSE_OUTLIERS" || count > 0 && b.Outliers > count * .01)
+                .Select(i => i with { Record = b.Record, Channel = b.Channel, Block = b.Block }));
             if (b.Drift.Count > 1 && b.Drift.Max(w => w.TimingScale) - b.Drift.Min(w => w.TimingScale) > .03 * (b.GlobalTimingScale ?? 1)) Issue("AUDIO_TIMING_DRIFT", "Timing scale varies by more than 3% across 256-pulse windows.", b.StartSample, b.EndSample);
-            for (int j = 1; j < b.Drift.Count; j++) if (Math.Abs(b.Drift[j].TimingScale / b.Drift[j - 1].TimingScale - 1) > .1)
-                Issue("AUDIO_TIMING_DISCONTINUITY", "Adjacent timing windows differ by more than 10%.", b.Drift[j - 1].StartSample, b.Drift[j].EndSample);
             if (b.Agreement.PulseAgreementPercent is < 95) Issue("AUDIO_THRESHOLD_SENSITIVE", "Zero-crossing and Schmitt pulses agree below 95%; inspect noise and threshold sensitivity.", b.StartSample, b.EndSample);
         }
         foreach (var a in agreements.Where(a => a.AgreementPercent is < 95 || a.RecordAgreementPercent is < 95)) issues.Add(new("AUDIO_THRESHOLD_SENSITIVE", DskIssueSeverity.Warning, a.Definition + $" Candidate agreement {a.AgreementPercent:F1}%; record agreement {a.RecordAgreementPercent:F1}%.", 0, f.FrameCount, Channel: a.Channel));
@@ -186,19 +195,24 @@ internal sealed class AudioBlockAccumulator
     private readonly int record; private readonly string name; private readonly SharpBlockCandidate candidate;
     private readonly TapeProfile profile; private readonly bool recovered; private readonly uint rate;
     private readonly SharpZ80TimingReference reference;
-    private readonly AudioDurationCounter[] counters = [new(), new(), new(), new()];
-    private readonly List<AudioPulsePoint> scatter = []; private readonly List<AudioDriftWindow> drift = [];
     private readonly AudioPulseAgreementCounter agreement = new();
-    private long pairs, outliers, pendingSample; private double? pendingHigh; private bool pendingLong, pendingOutlier;
-    private int scatterStride = 1, windowCount; private long windowStart, windowEnd;
-    private double ratioSum, ratioSquares, residualSquares, shortSum, longSum, totalRatio; private int shortCount, longCount; private long totalCount;
+    private readonly AudioPulseMeasurementEngine engine;
+    internal AudioSignalPassOrigin? Origin => candidate.SignalPass;
+    internal WavPulseMode Detector => candidate.PulseMode;
+    internal bool RequiresReplay => Origin != null && (Origin.PreprocessingStartSample != 0 || Origin.ThresholdScale != 1 || candidate.PulseMode == WavPulseMode.AdaptiveZeroCrossing);
     internal int Channel => candidate.Channel;
     internal long Start => candidate.SignalTrace?.LeaderStart ?? candidate.StartSample;
     internal long End => candidate.EndSample;
-    internal AudioBlockAccumulator(int record, string name, SharpBlockCandidate candidate, TapeProfile profile, bool recovered, uint rate)
+    internal AudioBlockAccumulator(int record, string name, SharpBlockCandidate candidate, TapeProfile profile, bool recovered, uint rate, string pcm = "")
     {
         this.record = record; this.name = name; this.candidate = candidate; this.profile = profile; this.recovered = recovered; this.rate = rate;
         reference = Reference(candidate.Kind == SharpBlockKind.Header ? candidate.Profile : profile, candidate.Kind);
+        double scale = candidate.TimingScale > 0 && double.IsFinite(candidate.TimingScale) ? candidate.TimingScale : 1;
+        engine = new(new AudioPulseMeasurementSource(pcm,rate,Start,End,candidate.Channel+1,candidate.PulseMode.ToString(),candidate.Inverted,
+            candidate.SignalPass?.ThresholdScale ?? 1, (candidate.SignalPass?.ZeroDeadband ?? 0)*100,
+            PulseReferenceCatalog.ProfileId(reference.Profile),scale,"Used for decoding",candidate.SignalPass?.PassId ?? "Unknown / reconstructed provenance")
+            { PreprocessingStartSample = candidate.SignalPass?.PreprocessingStartSample ?? 0 },
+            AudioPulseMeasurementEngine.Targets(reference));
     }
     internal static SharpZ80TimingReference Reference(TapeProfile p, SharpBlockKind kind) => p switch
     {
@@ -216,49 +230,24 @@ internal sealed class AudioBlockAccumulator
         _ => SharpZ80TimingTable.Rom800Normal
     };
     private double Ref(bool high, bool isLong) => isLong ? high ? reference.LongHighMicroseconds : reference.LongLowMicroseconds : high ? reference.ShortHighMicroseconds : reference.ShortLowMicroseconds;
-    internal void Add(WavPulseMode mode, bool physicalHigh, long duration, long end)
+    internal void Add(WavPulseMode mode, bool physicalHigh, double duration, long end, bool comparisonAgreement = true)
     {
         bool high = physicalHigh == candidate.Inverted;
         double us = duration * 1_000_000.0 / rate, scale = candidate.TimingScale > 0 && double.IsFinite(candidate.TimingScale) ? candidate.TimingScale : 1;
         bool isLong = double.IsFinite(Ref(high, true)) && Math.Abs(us - Ref(high, true) * scale) < Math.Abs(us - Ref(high, false) * scale);
-        agreement.Add(mode, physicalHigh, duration, end, isLong);
-        if (mode != WavPulseMode.ZeroCrossing) return;
-        counters[(isLong ? 2 : 0) + (high ? 0 : 1)].Add(duration);
-        double expected = Ref(high, isLong), ratio = us / expected;
-        bool outlier = Math.Abs(ratio / scale - 1) > .35;
-        if (outlier) outliers++;
-        if (high) { pendingHigh = us; pendingLong = isLong; pendingOutlier = outlier; pendingSample = end - duration; }
-        else if (pendingHigh.HasValue)
-        {
-            pairs++;
-            if (pairs % scatterStride == 0) scatter.Add(new(pendingSample, pendingLong, pendingHigh.Value, us, pendingOutlier || outlier));
-            if (scatter.Count > 20000) { int kept = 0; for (int j = 0; j < scatter.Count; j += 2) scatter[kept++] = scatter[j]; scatter.RemoveRange(kept, scatter.Count - kept); scatterStride *= 2; }
-            pendingHigh = null;
-        }
-        if (windowCount == 0) windowStart = end - duration;
-        windowEnd = end; windowCount++; ratioSum += ratio; ratioSquares += ratio * ratio; residualSquares += Math.Pow(ratio / scale - 1, 2);
-        totalRatio += ratio; totalCount++;
-        if (isLong) { longSum += us; longCount++; } else { shortSum += us; shortCount++; }
-        if (windowCount == 256) FlushWindow();
-    }
-    private void FlushWindow()
-    {
-        if (windowCount == 0) return;
-        double mean = ratioSum / windowCount;
-        drift.Add(new(windowStart, windowEnd, windowCount, mean, shortCount > 0 ? shortSum / shortCount : null, longCount > 0 ? longSum / longCount : null,
-            100 * Math.Sqrt(residualSquares / windowCount), 100 * Math.Sqrt(Math.Max(0, ratioSquares / windowCount - mean * mean)) / mean));
-        windowCount = shortCount = longCount = 0; ratioSum = ratioSquares = residualSquares = shortSum = longSum = 0;
+        if (comparisonAgreement && mode != WavPulseMode.AdaptiveZeroCrossing) agreement.Add(mode, physicalHigh, (long)Math.Round(duration), end, isLong);
+        if (mode == candidate.PulseMode && (!comparisonAgreement || !RequiresReplay)) engine.Add(physicalHigh, duration, end);
     }
     internal AudioBlockAnalysis Finish()
     {
-        FlushWindow(); double? scale = totalCount > 0 ? totalRatio / totalCount : null;
-        var groups = new[] { "SHORT High", "SHORT Low", "LONG High", "LONG Low" };
-        return new(record, name, candidate.Kind.ToString(), TapeProfileNames.ToDisplayName(profile), reference.Name, candidate.Channel + 1,
-            candidate.Inverted, candidate.PulseMode.ToString(), "ZeroCrossing, standard preprocessing; 256-pulse drift windows; scatter downsampled to ≤20,000 pairs", Start, End,
-            candidate.ChecksumValid, candidate.RecordedChecksum, candidate.CalculatedChecksum, recovered,
-            counters.Select((c, i) => c.Finish(groups[i], rate, double.IsFinite(Ref(i % 2 == 0, i >= 2)) ? Ref(i % 2 == 0, i >= 2) : null)).ToArray(),
-            scatter, pairs, drift, agreement.Finish(), scale, scale is > 0 ? (1 / scale.Value - 1) * 100 : null, outliers)
-            { ClassificationScale = candidate.TimingScale > 0 && double.IsFinite(candidate.TimingScale) ? candidate.TimingScale : 1 };
+        var metrics = engine.Finish();
+        return new(record,name,candidate.Kind.ToString(),TapeProfileNames.ToDisplayName(profile),reference.Name,candidate.Channel+1,
+            candidate.Inverted,candidate.PulseMode.ToString(),$"{candidate.PulseMode} ×{candidate.SignalPass?.ThresholdScale ?? 1:G}; 256-pulse windows; comparison metrics",Start,End,
+            candidate.ChecksumValid,candidate.RecordedChecksum,candidate.CalculatedChecksum,recovered,
+            metrics.Distributions,metrics.Scatter,metrics.ScatterPairs,metrics.Drift,agreement.Finish(),metrics.GlobalScale,
+            metrics.GlobalScale is > 0 ? (1 / metrics.GlobalScale.Value - 1)*100 : null,metrics.Outliers)
+            { ClassificationScale = engine.Source.Scale, PulseSource = engine.Source, OmittedMeasurementSpans = metrics.Omitted, MeasurementIssues = metrics.Issues,
+              MeasurementProvenance = candidate.SignalPass == null ? "Mixed / unknown candidate provenance; comparison stream only" : "Used for decoding; measured replay of the original preprocessing interval" };
     }
 }
 

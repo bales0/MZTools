@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,6 +8,7 @@ namespace MZTools;
 
 internal sealed partial class AudioSignalAnalyzerWindow
 {
+    private readonly ComboBox pulseSourceChoice = new() { MinWidth = 175, Margin = new(4) };
     private CancellationTokenSource? pulseWork;
     private AudioBlockAnalysis? selectionBlock;
     private (long Start, long End)[] selectedIntervals = [];
@@ -49,6 +50,12 @@ internal sealed partial class AudioSignalAnalyzerWindow
         var reference = records.SelectedItem as AudioBlockAnalysis;
         bool mix = source.ChannelCount == 2 && channelChoice.SelectedIndex == 2;
         int selectedChannel = source.ChannelCount == 2 && channelChoice.SelectedIndex == 1 ? 1 : 0;
+        bool used = pulseSourceChoice.SelectedIndex == 0 && reference?.PulseSource != null;
+        var detector = used && Enum.TryParse<WavPulseMode>(reference!.DecodeDetector, out var decodedDetector) ? decodedDetector : pulseSourceChoice.SelectedIndex switch {
+            2 => WavPulseMode.Schmitt, 3 => WavPulseMode.AdaptiveZeroCrossing, _ => WavPulseMode.ZeroCrossing };
+        double gate = used ? reference!.PulseSource!.ThresholdScale : 1;
+        long? preprocessingStart = used ? reference!.PulseSource!.PreprocessingStartSample : null;
+        double deadband = used ? reference!.PulseSource!.ZeroDeadbandPercent / 100 : 0;
         var cancellation = new CancellationTokenSource(); pulseWork = cancellation;
         selectionBlock = null;
         histogram.HistogramSeries = []; distributions.ItemsSource = null;
@@ -58,7 +65,7 @@ internal sealed partial class AudioSignalAnalyzerWindow
         {
             await Task.Delay(150, cancellation.Token);
             var block = await Task.Run(() => AudioRangeInspection.AnalyzeSelection(source, intervals,
-                selectedChannel, mix, reference, cancellation.Token), cancellation.Token);
+                selectedChannel, mix, reference, cancellation.Token, detector, gate, preprocessingStart, deadband), cancellation.Token);
             if (closed || cancellation.IsCancellationRequested || analysis != source) return;
             selectionBlock = block;
             foreach (var chart in new[] { histogram, scatter, drift }) { chart.Block = block; chart.InvalidateVisual(); }

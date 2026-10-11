@@ -343,6 +343,10 @@ namespace MZTools
             internal byte DefaultSizeCode { get => rawHeader[0x14]; set => rawHeader[0x14] = value; }
             internal byte Gap { get => rawHeader[0x16]; set => rawHeader[0x16] = value; }
             internal byte Filler { get => rawHeader[0x17]; set => rawHeader[0x17] = value; }
+            internal byte StoredDataRate => rawHeader[0x12];
+            internal byte StoredRecordingMode => rawHeader[0x13];
+            internal DskTrack CloneForInspection() => new((byte[])rawHeader.Clone(),Sectors.Select(s=>s.CloneForInspection()).ToList(),
+                (byte[])padding.Clone(),PhysicalIndex,FileOffset);
             internal List<DskSector> Sectors { get; }
 
             internal static DskTrack Parse(ReadOnlySpan<byte> block, int physicalIndex, int fileOffset)
@@ -459,6 +463,7 @@ namespace MZTools
             internal byte FdcStatus2 { get => descriptor[5]; set => descriptor[5] = value; }
             internal int DeclaredDataLength => BinaryPrimitives.ReadUInt16LittleEndian(descriptor.AsSpan(6, 2));
             internal byte[] Data { get; set; }
+            internal DskSector CloneForInspection() => new((byte[])descriptor.Clone(),(byte[])Data.Clone(),PhysicalIndex);
 
             internal byte[] SerializeDescriptor()
             {

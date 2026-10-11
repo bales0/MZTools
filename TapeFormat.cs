@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
@@ -10,7 +10,9 @@ namespace MZTools
     internal enum SharpPulseTimingSource
     {
         Fixed,
-        Mz800Rom1Z013B
+        Mz800Rom1Z013B,
+        Mz700Rom1Z013APal,
+        Mz700Rom1Z009ANtsc
     }
 
     internal enum SharpConnectorLevel
@@ -42,39 +44,16 @@ namespace MZTools
 
     internal static class SharpTapeProfileEncoder
     {
-        private const double Mz800RomClockHz = 3_546_875.0;
-        private const double TurboCopyClockMhz = 1.10;
-
-        // Native MZ-800 monitor 1Z-013B. LOW widths are selected by the
-        // waveform writer from leader/mark/data context and the following bit.
-        private static readonly SharpPulseProfile Mz800Normal =
-            new(RomTicks(844), RomTicks(906), RomTicks(1664), RomTicks(1726), SharpPulseTimingSource.Mz800Rom1Z013B);
-
-        // Intercopy V10.2 writer rows, derived from speed table $16F7 and
-        // physical writer $1D8E. Historical labels 1:3 and 1:4 correspond to
-        // the 2800 Bd (7:3) and 3200 Bd (8:3) rows.
-        private static readonly SharpPulseProfile Intercopy1200 = new(234.573, 263.894, 469.145, 494.802);
-        private static readonly SharpPulseProfile Intercopy2400 = new(113.621, 139.278, 234.573, 260.229);
-        private static readonly SharpPulseProfile Intercopy2800 = new(87.965, 124.617, 175.930, 223.577);
-        private static readonly SharpPulseProfile Intercopy3200 = new(76.969, 117.286, 157.604, 179.595);
-        private static readonly SharpPulseProfile Mz700Normal = new(240, 264, 464, 494);
-        private static readonly SharpPulseProfile Mz700Fast3 = new(80, 80, 160, 160);
-
-        // TurboCopy V1.22 writer: 8253 counter 0, MODE 3, nominal CKMS 1.10 MHz.
-        // Source formula: SHORT_COUNT=floor(480*numerator/denominator)+71,
-        // LONG_COUNT=2*SHORT_COUNT. The values below model the raw MODE3 halves.
-        // TC 1x: ratio 1/1 -> SHORT_COUNT=551 -> 276/275 ticks,
-        //        LONG_COUNT=1102 -> 551/551 ticks.
-        private static readonly SharpPulseProfile Tc1 =
-            new(TcTicks(276), TcTicks(275), TcTicks(551), TcTicks(551));
-        // TC 2x: ratio 1/2 -> SHORT_COUNT=311 -> 156/155 ticks,
-        //        LONG_COUNT=622 -> 311/311 ticks.
-        private static readonly SharpPulseProfile Tc2 =
-            new(TcTicks(156), TcTicks(155), TcTicks(311), TcTicks(311));
-        // TC 3x: ratio 1/3 -> SHORT_COUNT=231 -> 116/115 ticks,
-        //        LONG_COUNT=462 -> 231/231 ticks.
-        private static readonly SharpPulseProfile Tc3 =
-            new(TcTicks(116), TcTicks(115), TcTicks(231), TcTicks(231));
+        private static readonly SharpPulseProfile Mz800Normal = PulseReferenceCatalog.GetWriterTiming("rom800");
+        private static readonly SharpPulseProfile Intercopy1200 = PulseReferenceCatalog.GetWriterTiming("ic1200");
+        private static readonly SharpPulseProfile Intercopy2400 = PulseReferenceCatalog.GetWriterTiming("ic2400");
+        private static readonly SharpPulseProfile Intercopy2800 = PulseReferenceCatalog.GetWriterTiming("ic2800");
+        private static readonly SharpPulseProfile Intercopy3200 = PulseReferenceCatalog.GetWriterTiming("ic3200");
+        private static readonly SharpPulseProfile Mz700Normal = PulseReferenceCatalog.GetWriterTiming("service700");
+        private static readonly SharpPulseProfile Mz700Fast3 = PulseReferenceCatalog.GetWriterTiming("fast3");
+        private static readonly SharpPulseProfile Tc1 = PulseReferenceCatalog.GetWriterTiming("tc1");
+        private static readonly SharpPulseProfile Tc2 = PulseReferenceCatalog.GetWriterTiming("tc2");
+        private static readonly SharpPulseProfile Tc3 = PulseReferenceCatalog.GetWriterTiming("tc3");
 
         private static readonly byte[] IcLoader =
         [
@@ -141,6 +120,11 @@ namespace MZTools
             byte[] header = record.GetSerializedHeader();
             byte[] body = record.Body.MzfBody;
             TapeProfile profile = record.Profile;
+            // Opt-in ROM-derived regional timing; keep existing machine defaults byte-exact.
+            if (profile is TapeProfile.Normal1_1 or TapeProfile.Mz700_1_1 &&
+                implicitMachine is SharpTapeMachine.Mz700PalRom or SharpTapeMachine.Mz700NtscRom)
+                return BuildConventional(header, body, PulseReferenceCatalog.GetWriterTiming(
+                    implicitMachine == SharpTapeMachine.Mz700PalRom ? "rom700pal" : "rom700ntsc"));
             if (profile == TapeProfile.Normal1_1 &&
                 record.MetadataOrigin == MetadataOrigin.Implicit &&
                 implicitMachine == SharpTapeMachine.Mz700)
@@ -201,7 +185,7 @@ namespace MZTools
                 DataStage(
                     body,
                     turboPulses,
-                    delayBeforeMilliseconds: 345,
+                    delayBeforeMilliseconds: PulseReferenceCatalog.IcDelayMs,
                     delayPhysicalLevel: SharpConnectorLevel.Low)
             ];
         }
@@ -231,13 +215,13 @@ namespace MZTools
             return
             [
                 HeaderStage(header, Mz800Normal),
-                DataStage(loader, Mz800Normal, trailingPulses: 98, trailingLong: false),
+                DataStage(loader, Mz800Normal, trailingPulses: PulseReferenceCatalog.TcTrailing, trailingLong: false),
                 DataStage(
                     body,
                     turboPulses,
-                    trailingPulses: 98,
+                    trailingPulses: PulseReferenceCatalog.TcTrailing,
                     trailingLong: false,
-                    delayBeforeMilliseconds: 110,
+                    delayBeforeMilliseconds: PulseReferenceCatalog.TcDelayMs,
                     delayPhysicalLevel: SharpConnectorLevel.Low)
             ];
         }
@@ -269,7 +253,7 @@ namespace MZTools
                 DataStage(
                     body,
                     Mz700Fast3,
-                    delayBeforeMilliseconds: 400,
+                    delayBeforeMilliseconds: PulseReferenceCatalog.Fast3DelayMs,
                     delayPhysicalLevel: SharpConnectorLevel.Low)
             ];
         }
@@ -428,22 +412,22 @@ namespace MZTools
             leftStart < rightStart + rightLength && rightStart < leftStart + leftLength;
 
         private static SharpTapeStage HeaderStage(byte[] data, SharpPulseProfile pulses) =>
-            new(data, pulses, 11000, 40, 40, 2, 2, true);
+            new(data, pulses, PulseReferenceCatalog.HeaderLeader, PulseReferenceCatalog.HeaderMark, PulseReferenceCatalog.HeaderMark, PulseReferenceCatalog.FinalMark, PulseReferenceCatalog.Trailing, true);
 
         private static SharpTapeStage DataStage(
             byte[] data,
             SharpPulseProfile pulses,
-            int trailingPulses = 2,
+            int trailingPulses = PulseReferenceCatalog.Trailing,
             bool trailingLong = true,
             int delayBeforeMilliseconds = 0,
             SharpConnectorLevel delayPhysicalLevel = SharpConnectorLevel.Low) =>
             new(
                 data,
                 pulses,
-                5500,
-                20,
-                20,
-                2,
+                PulseReferenceCatalog.DataLeader,
+                PulseReferenceCatalog.DataMark,
+                PulseReferenceCatalog.DataMark,
+                PulseReferenceCatalog.FinalMark,
                 trailingPulses,
                 trailingLong,
                 delayBeforeMilliseconds,
@@ -455,9 +439,9 @@ namespace MZTools
         private static void WriteU16(byte[] data, int offset, ushort value) =>
             BinaryPrimitives.WriteUInt16LittleEndian(data.AsSpan(offset, 2), value);
 
-        internal static double RomTicks(int ticks) => ticks * 1_000_000.0 / Mz800RomClockHz;
+        internal static double RomTicks(int ticks) => PulseReferenceCatalog.RomTicks(ticks);
 
-        internal static double TcTicks(int ticks) => ticks / TurboCopyClockMhz;
+        internal static double TcTicks(int ticks) => PulseReferenceCatalog.TcTicks(ticks);
     }
 }
 
@@ -473,7 +457,9 @@ namespace MZTools
     internal enum SharpTapeMachine
     {
         Mz800,
-        Mz700
+        Mz700,
+        Mz700PalRom,
+        Mz700NtscRom
     }
 
     internal readonly record struct SharpConnectorPulse(
@@ -594,9 +580,23 @@ namespace MZTools
 
             // Build every plan before creating the destination so an invalid
             // loader cannot leave a truncated output file behind.
-            List<IReadOnlyList<SharpTapeStage>> plans = records
-                .Select(record => SharpTapeProfileEncoder.Build(record, machine))
-                .ToList();
+            var plans = new List<IReadOnlyList<SharpTapeStage>>(records.Count);
+            for (int index = 0; index < records.Count; index++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                TapeRecord record = records[index];
+                try { plans.Add(SharpTapeProfileEncoder.Build(record, machine)); }
+                catch (InvalidOperationException exception)
+                {
+                    string name = SharpMzEncoding.ConvertMzfNameToASCIIString(record.Header.MzfFname).Trim();
+                    int load = record.Header.MzfStart;
+                    int length = record.Body.MzfBody.Length;
+                    throw new InvalidOperationException(
+                        $"Cannot export record {index + 1} \"{name}\" (profile {TapeProfileNames.ToDisplayName(record.Profile)}, " +
+                        $"LOAD ${load:X4}, length {length} B / ${length:X4}, end exclusive ${load + length:X}). " +
+                        exception.Message, exception);
+                }
+            }
 
             using FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite);
             using TapeSink sink = new CancellableSink(format switch
@@ -787,22 +787,14 @@ namespace MZTools
             PulseRegion region,
             bool nextIsLong)
         {
-            if (profile.TimingSource != SharpPulseTimingSource.Mz800Rom1Z013B)
+            if (profile.TimingSource == SharpPulseTimingSource.Fixed)
             {
                 return isLong ? profile.LongLowMicroseconds : profile.ShortLowMicroseconds;
             }
 
-            return region switch
-            {
-                PulseRegion.Leader when !isLong => SharpTapeProfileEncoder.RomTicks(918),
-                PulseRegion.TapeMark when isLong => SharpTapeProfileEncoder.RomTicks(1728),
-                PulseRegion.TapeMark => SharpTapeProfileEncoder.RomTicks(908),
-                PulseRegion.Data when isLong && nextIsLong => SharpTapeProfileEncoder.RomTicks(1716),
-                PulseRegion.Data when isLong => SharpTapeProfileEncoder.RomTicks(1726),
-                PulseRegion.Data when nextIsLong => SharpTapeProfileEncoder.RomTicks(896),
-                PulseRegion.Data => SharpTapeProfileEncoder.RomTicks(906),
-                _ => throw new InvalidOperationException("Invalid native MZ-800 pulse context.")
-            };
+            return PulseReferenceCatalog.GetRomLow(profile.TimingSource switch {
+                SharpPulseTimingSource.Mz700Rom1Z013APal => "rom700pal", SharpPulseTimingSource.Mz700Rom1Z009ANtsc => "rom700ntsc", _ => "rom800"
+            }, isLong, region.ToString(), nextIsLong);
         }
 
         private static void WriteDelay(
@@ -1016,9 +1008,11 @@ namespace MZTools
         {
             var records = new List<TapeRecord>();
             var decoder = new SharpMzPulseDecoder();
+            SharpMzPulseDecoder? headerSearch = null;
             var blockData = new List<byte>();
             byte[]? header = null;
             TapeProfile profile = TapeProfile.Normal1_1;
+            Native1xPulseTiming nativeHeaderTiming = default;
             PendingStage pendingStage = PendingStage.Body;
             SharpMzDecoderEvent? failedDataCopy = null;
             decoder.BeginHeader();
@@ -1027,10 +1021,36 @@ namespace MZTools
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 decoder.FeedInterval(run.DurationUnits, run.PhysicalHigh);
+                if (headerSearch != null)
+                {
+                    headerSearch.FeedInterval(run.DurationUnits, run.PhysicalHigh);
+                    if (headerSearch.ValidatedHeader != null && decoder.ValidatedHeader == null)
+                    {
+                        decoder = headerSearch;
+                        headerSearch = null;
+                    }
+                    else
+                    {
+                        while (headerSearch.TryTakeEvent(out var searchEvent))
+                            if (searchEvent.Type == SharpMzDecoderEventType.HeaderInvalid) headerSearch.BeginHeader();
+                    }
+                }
                 while (decoder.TryTakeEvent(out SharpMzDecoderEvent decoderEvent))
                 {
+                    if (decoderEvent.Type == SharpMzDecoderEventType.HeaderInvalid)
+                    {
+                        // Keep conventional duplicate-copy recovery alive, but also search for a fresh
+                        // framed header: a false candidate must not hide later programs or speeds.
+                        if (headerSearch == null)
+                        {
+                            headerSearch = new SharpMzPulseDecoder();
+                            headerSearch.BeginHeader();
+                        }
+                        continue;
+                    }
                     if (decoderEvent.Type == SharpMzDecoderEventType.HeaderValid)
                     {
+                        headerSearch = null;
                         byte[] encodedHeader = decoder.ValidatedHeader
                             ?? throw new InvalidDataException("The tape decoder reported a header without its data.");
                         if (encodedHeader[0] == 0 ||
@@ -1045,6 +1065,10 @@ namespace MZTools
                         }
 
                         header = encodedHeader;
+                        if (source.Format == TapeSignalFormat.Wav)
+                        {
+                            nativeHeaderTiming = decoder.HeaderNativeTiming(source.SampleRate);
+                        }
                         profile = ProfileFromTone(
                             decoder.HeaderShortPhysicalLowX8,
                             decoder.HeaderShortPhysicalHighX8,
@@ -1137,6 +1161,11 @@ namespace MZTools
                     using var stream = new MemoryStream(mzf, writable: false);
                     using var reader = new BinaryReader(stream);
                     TapeRecord record = new MZTFileReader().ReadMzfRecord(reader);
+                    if (source.Format == TapeSignalFormat.Wav && profile is TapeProfile.Normal1_1 or TapeProfile.Mz700_1_1)
+                    {
+                        var payloadTiming = decoder.CompletedNativeTiming(source.SampleRate);
+                        profile = WavHeuristicAnalyzer.ClassifyNative1xTiming(nativeHeaderTiming, payloadTiming).ResultProfile;
+                    }
                     record.Profile = profile;
                     record.MetadataOrigin = MetadataOrigin.CreatedOrModifiedInAdvanced;
                     records.Add(record);

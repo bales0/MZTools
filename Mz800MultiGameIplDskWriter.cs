@@ -363,7 +363,7 @@ namespace MZTools
             int pageCount)
         {
             var result = new List<byte>();
-            AppendTextLine(result, "MZTools Multi Game");
+            AppendTextLine(result, "MZTools Multiboot");
             AppendTextLine(result, $"Page {page + 1}/{pageCount}");
             result.Add(0x0D);
             int first = page * ItemsPerPage;

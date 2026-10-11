@@ -8,12 +8,14 @@ internal sealed record MediaConversionPreview(byte[] Output, string Report, bool
 internal static class MediaConversionService
 {
     internal static MediaConversionPreview DskToHfe(DskDocument source, bool v3)
+        => DskToHfe(source,v3?HfeVersion.V3:HfeVersion.V1);
+    internal static MediaConversionPreview DskToHfe(DskDocument source, HfeVersion version)
     {
         var physical = HfeImage.FromDsk(source);
-        byte[] output = physical.Serialize(v3);
+        byte[] output = physical.Serialize(version);
         HfeImage.VerifyPhysical(physical, HfeImage.Parse(output));
         bool status = source.Image.Tracks.SelectMany(t => t!.Sectors).Any(s => s.FdcStatus1 != 0 || (s.FdcStatus2 & ~0x40) != 0);
-        return new(output, $"DSK → {(v3 ? "HFEv3" : "HFE")}\nPreserved: C/H/R/N, sector payloads and physical descriptor order, deleted-data marks.\nGenerated: MFM gaps, valid CRC, 250/500 kbit/s and 300 RPM. DSK has no original physical timing.\nDSK ST1/ST2 do not prove physical bad CRC; no CRC corruption is fabricated.\nLost: DSK creator, container padding/trailing bytes and FDC status metadata.\n" + (status ? "WARNING: FDC status metadata is present and will not be encoded as physical errors.\n" : ""), true);
+        return new(output, $"DSK → {version}\nPreserved: C/H/R/N, sector payloads and physical descriptor order, deleted-data marks.\nGenerated: MFM gaps, valid CRC, 250/500 kbit/s and 300 RPM. DSK has no original physical timing.\nDSK ST1/ST2 do not prove physical bad CRC; no CRC corruption is fabricated.\nLost: DSK creator, container padding/trailing bytes and FDC status metadata.\n" + (status ? "WARNING: FDC status metadata is present and will not be encoded as physical errors.\n" : ""), true);
     }
 
     internal static MediaConversionPreview HfeToDsk(HfeImage source)
@@ -41,7 +43,7 @@ internal static class MediaConversionService
         byte[] output = image.Serialize(); var check = DskImage.Parse(output);
         for (int i = 0; i < source.Tracks.Count; i++) for (int p = 0; p < source.Tracks[i].Sectors.Count; p++)
             if (!source.Tracks[i].Sectors[p].Data.AsSpan().SequenceEqual(check.Tracks[i]!.Sectors[p].Data)) throw new InvalidDataException("Converted DSK payload failed validation.");
-        return new(output, "HFE → Extended CPC DSK (lossy)\nPreserved: decoded C/H/R/N, sector order, data, deleted marks and CRC-error status semantics.\nLost: raw bitcells, exact gaps, physical offsets, encoding, bitrate, RPM, index positions and timing changes.\nUnsupported: weak bits cannot be preserved; decoded weak data is only one deterministic inspection sample.\nUndecoded regions cannot be represented as DSK sectors.\nExplicit loss confirmation is required.\n" + DskAnalyzer.Analyze(check).Report(), true);
+        return new(output, "HFE → Extended CPC DSK (lossy)\nPreserved: decoded C/H/R/N, sector order, data, deleted marks and CRC-error status semantics.\nLost: raw bitcells, exact gaps, physical offsets, encoding, bitrate, RPM, index positions, timing changes and HFEv2 baud/index-state/write-mode controls.\nUnsupported: weak bits cannot be preserved; decoded weak data is only one deterministic inspection sample.\nUndecoded regions cannot be represented as DSK sectors.\nExplicit loss confirmation is required.\n" + DskAnalyzer.Analyze(check).Report(), true);
     }
 
     internal static void WriteVerified(string path, byte[] bytes, Action<byte[]> verify, string? sourcePath = null)

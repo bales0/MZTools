@@ -43,7 +43,7 @@ internal sealed record AudioRecoveryOptions
     internal bool Adaptive { get; init; } = true;
     internal bool FixedTiming { get; init; }
     internal bool Fuzzy { get; init; }
-    internal double ShortMicroseconds { get; init; } = 238;
+    internal double ShortMicroseconds { get; init; } = Math.Round(PulseReferenceCatalog.GetWriterTiming("rom800").ShortHighMicroseconds);
     internal double[] TimeScales { get; init; } = [.9, 1, 1.1];
     internal double FuzzyTolerance { get; init; } = .35;
     internal AudioPcmTransform Transform { get; init; } = new();

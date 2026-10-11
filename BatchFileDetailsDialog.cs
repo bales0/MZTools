@@ -78,17 +78,14 @@ internal sealed class BatchFileDetailsDialog : Window
         Column(messagesTable, "Category", nameof(BatchDetailField.Property), 100);
         Column(messagesTable, "Message", nameof(BatchDetailField.Value), double.NaN, wrap: true);
         tabs.Items.Add(new TabItem { Header = $"Messages ({messages.Count})", Content = messagesTable });
-        tabs.Items.Add(new TabItem { Header = "Technical details", Content = new TextBox {
-            Text = row.DetailedReport, IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.NoWrap,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            FontFamily = new System.Windows.Media.FontFamily("Consolas") } });
+        tabs.Items.Add(new TabItem { Header = "Technical details", Content = new ReportView { Text = row.DetailedReport } });
         var checks = Table(row.IntegrityChecks, "BatchIntegrityChecks");
         Column(checks, "File / scope", nameof(BatchIntegrityCheck.Subject), 200);
         Column(checks, "Check", nameof(BatchIntegrityCheck.Check), 180);
         Column(checks, "Result", nameof(BatchIntegrityCheck.Result), 110);
         Column(checks, "Details / limits", nameof(BatchIntegrityCheck.Details), double.NaN, wrap: true);
         tabs.Items.Insert(3, new TabItem { Header = $"Integrity checks ({row.IntegrityChecks.Count})", Content = row.IntegrityChecks.Count > 0 ? checks :
-            new TextBlock { Text = "Catalog lists source contents. It does not run a separate integrity test. Select Test integrity to see individual checks and their limits. Audio decoding already checks tape blocks while reading the catalog.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(16) } });
+            new TextBlock { Text = "No individual integrity checks are available for this result. See Messages for the inspection outcome and its limits.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(16) } });
         if (row.IntegrityChecks.Count > 0) tabs.SelectedIndex = 3;
         if (row.Contents.Count == 0) tabs.SelectedIndex = messages.Any(m => m.Property == "Error") ? 2 : 1;
 

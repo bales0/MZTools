@@ -16,9 +16,7 @@ internal sealed class CpmSystemBuilderDialog : Window
     private readonly DockPanel sourceRow = new() { Visibility = Visibility.Collapsed };
     private bool loadingBundled;
     private readonly TextBlock profileText = new() { TextWrapping = TextWrapping.Wrap };
-    private readonly TextBox report = new() { IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.NoWrap,
-        VerticalScrollBarVisibility = ScrollBarVisibility.Auto, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-        FontFamily = new System.Windows.Media.FontFamily("Consolas") };
+    private readonly ReportView report = new();
     private readonly Button install = new() { Content = "Install into current disk", MinWidth = 145, IsEnabled = false };
     private readonly Button copyReport = new() { Content = "Copy report", MinWidth = 95, IsEnabled = false };
     private readonly Button saveReport = new() { Content = "Save report...", MinWidth = 95, IsEnabled = false };

@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -31,9 +31,13 @@ namespace MZTools
         private Window? hexWindow;
         internal Func<bool>? ConfirmDiscardHexChanges { get; set; }
         private DskLayoutModel? diskLayout;
+        private string currentImageHash="";
+        private bool canonicalCreatorPadding;
         private DskSectorLayout? selectedMapSector;
         private readonly HashSet<DskSectorAddress> relatedMapSectors = new();
         private readonly ObservableCollection<MultiGameIplRow> multiIplRows = new();
+        private HfeVersion? newIplHfeVersion;
+        private string NewIplContainer => newIplHfeVersion switch {HfeVersion.V1=>"HFE",HfeVersion.V2=>"HFEv2",HfeVersion.V3=>"HFEv3",_=>"DSK"};
         private CancellationTokenSource? multiIplCancellation;
         private bool multiIplEditorMode;
         private bool singleIplEditorMode;
@@ -56,7 +60,9 @@ namespace MZTools
             mapBlocksGrid.LoadingRow += (_, e) => MapInteraction.SetIsRelated(e.Row,
                 e.Row.Item is DskSectorLayout sector && relatedMapSectors.Contains(sector.Address));
             multiIplGrid.ItemsSource = multiIplRows;
-            diskMap.SectorSelected += SelectLayoutSector;
+            InitializeSectorSelection();
+            InitializeVisualCommands();
+            dskViews.SelectionChanged+=(_,e)=> { if(ReferenceEquals(e.Source,dskViews)) UpdateFileToolbar(); };
         }
 
         internal event EventHandler? DocumentStateChanged;
@@ -67,17 +73,18 @@ namespace MZTools
         private DskDocument CurrentDocument => document ?? throw new InvalidOperationException("No DSK document is loaded.");
         internal string DocumentTitle => document == null
             ? multiIplEditorMode
-                ? $"MZTools - new multi-program IPL DSK{(multiIplDraftModified ? " *" : string.Empty)}"
+                ? $"MZTools - new Multiboot IPL {NewIplContainer}{(multiIplDraftModified ? " *" : string.Empty)}"
                 : singleIplEditorMode
-                    ? $"MZTools - new single-program IPL DSK{(multiIplDraftModified ? " *" : string.Empty)}"
+                    ? $"MZTools - new single-program IPL {NewIplContainer}{(multiIplDraftModified ? " *" : string.Empty)}"
                     : "MZTools"
-            : $"MZTools - {Path.GetFileName(document.FilePath) ?? "new image"}{(document.IsModified || IplEditorMode && multiIplDraftModified ? " *" : string.Empty)}";
+            : $"MZTools - {document.FilePath ?? "new image"}{(document.IsModified || IplEditorMode && multiIplDraftModified ? " *" : string.Empty)}";
 
         internal void LoadDocument(DskDocument value)
         {
             CancelMultiIplRefresh();
             warningText.Text = string.Empty;
             document = value;
+            newIplHfeVersion=value.SourceHfe?.Version;
             editHexHost.Content = null;
             activeHexSector = null;
             activeHexBlock = null;
@@ -108,11 +115,12 @@ namespace MZTools
             RefreshView();
         }
 
-        internal void LoadNewMultiIpl()
+        internal void LoadNewMultiIpl(HfeVersion? version=null)
         {
             CancelMultiIplRefresh();
             warningText.Text = string.Empty;
             document = null;
+            newIplHfeVersion=version;
             editHexHost.Content = null; activeHexSector = null; activeHexBlock = null;
             multiIplEditorMode = true;
             singleIplEditorMode = false;
@@ -125,11 +133,12 @@ namespace MZTools
             RefreshView();
         }
 
-        internal void LoadNewSingleIpl()
+        internal void LoadNewSingleIpl(HfeVersion? version=null)
         {
             CancelMultiIplRefresh();
             warningText.Text = string.Empty;
             document = null;
+            newIplHfeVersion=version;
             editHexHost.Content = null; activeHexSector = null; activeHexBlock = null;
             multiIplEditorMode = false;
             singleIplEditorMode = true;
@@ -262,22 +271,21 @@ namespace MZTools
         {
             dskMoveButtons.Visibility = multiIplEditorMode ? Visibility.Visible : Visibility.Collapsed;
             UpdateFilePropertiesCommand();
-            verifyImageMenu.IsEnabled = document != null && (!IplEditorMode || multiIplLayoutValid);
-            normalizeContainerMenu.IsEnabled = document != null && !IplEditorMode;
+            UpdateFileToolbar();
+            normalizeContainerMenu.IsEnabled = document != null && document.SourceHfe==null && !IplEditorMode;
+            formatDiskMenu.IsEnabled=document!=null;
             crossDiskCopyMenu.IsEnabled = !IplEditorMode && CrossDiskTransferService.Supports(document);
             bootProfilesMenu.IsEnabled = document?.FileSystem is CpmFileSystem && !IplEditorMode;
-            foreach (var menu in new[] { verifyImageMenu, normalizeContainerMenu, crossDiskCopyMenu, bootProfilesMenu,
-                cpmLayoutMenu, physicalPropertiesMenu, defragmentMenu, filesystemRepairMenu, bootstrapMenu, rawRangeMenu, compareDiskMenu })
+            foreach (var menu in new[] { normalizeContainerMenu, crossDiskCopyMenu, bootProfilesMenu,
+                cpmLayoutMenu, defragmentMenu, filesystemRepairMenu, bootstrapMenu, compareDiskMenu })
             {
                 System.Windows.Controls.ToolTipService.SetShowOnDisabled(menu, true);
                 menu.ToolTip = "Requires a compatible document and valid layout; finish pending IPL layout changes first.";
             }
             cpmLayoutMenu.IsEnabled = document != null && !IplEditorMode && document.FileSystem.Type is DskFileSystemType.Raw or DskFileSystemType.Cpm or DskFileSystemType.BootOnly;
-            physicalPropertiesMenu.IsEnabled = document != null && !IplEditorMode && document.Image.Tracks.Any(t => t != null);
             defragmentMenu.IsEnabled = document != null && !IplEditorMode && !document.IsReadOnly && document.FileSystem is FsmzFileSystem or CpmFileSystem or MrsFileSystem;
             filesystemRepairMenu.IsEnabled = document?.FileSystem is FsmzFileSystem or MrsFileSystem or CpmFileSystem && !IplEditorMode;
             bootstrapMenu.IsEnabled = document != null && !IplEditorMode && document.Image.Tracks.Count > 1;
-            rawRangeMenu.IsEnabled = document != null && !IplEditorMode;
             compareDiskMenu.IsEnabled = document != null && (!IplEditorMode || multiIplLayoutValid);
             structureInspectorMenu.IsEnabled = DskCapabilityService.CanInspectStructure(document) && !IplEditorMode;
             structureInspectorMenu.ToolTip = structureInspectorMenu.IsEnabled
@@ -304,7 +312,7 @@ namespace MZTools
             dskShowSectorsCheckBox.Visibility = bootOnly ? Visibility.Visible : Visibility.Collapsed;
             DskImage image = document.Image;
             string sizes = string.Join(", ", image.Tracks.Where(track => track != null).SelectMany(track => track!.Sectors).Select(sector => sector.Data.Length).Distinct().Order());
-            infoText.Text = $"Container: Extended CPC DSK | Creator: {image.Creator} | Tracks: {image.TrackCount} | Sides: {image.SideCount} | Physical tracks: {image.Tracks.Count} | Image: {image.Serialize().Length:N0} B\n" +
+            infoText.Text = $"Container: {document.ContainerName} | Creator: {(document.SourceHfe==null?image.Creator:"not stored in HFE")} | Tracks: {image.TrackCount} | Sides: {image.SideCount} | Physical tracks: {image.Tracks.Count} | Image: {document.SerializeContainer().Length:N0} B\n" +
                 $"Filesystem: {document.FileSystem.DisplayName} | Sector sizes: {sizes} B | Used: {document.FileSystem.UsedBytes:N0} B | Free: {document.FileSystem.FreeBytes:N0} B";
             if (document.FileSystem is MultiGameIplFileSystem mappedMulti)
                 infoText.Text += "\n" + mappedMulti.MetadataLocationDescription;
@@ -318,7 +326,8 @@ namespace MZTools
             dskAddButton.IsEnabled = multiIpl?.CanConfigure == true || writable && (!bootOnly || showRawSectors);
             dskDeleteButton.IsEnabled = writable && !rawMode;
             dskMoveButtons.IsEnabled = false;
-            dskSaveButton.IsEnabled = document.FilePath != null;
+            dskSaveButton.IsEnabled = document.IsModified && document.FilePath != null;
+            dskSaveButton.ToolTip = document.FilePath == null ? "Use Save As to choose the active file." : "Save current document: " + document.FilePath;
             dskSaveAsButton.IsEnabled = true;
             multiIplProgressBar.Visibility = Visibility.Collapsed;
             DocumentStateChanged?.Invoke(this, EventArgs.Empty);
@@ -340,7 +349,7 @@ namespace MZTools
             if (document == null)
             {
                 string kind = singleIplEditorMode ? "single-program" : "multi-program";
-                infoText.Text = $"Container: Extended CPC DSK | New MZTools {kind} IPL | Capacity: {Mz800DskImage.LogicalSectorCount * Mz800DskImage.SectorSize:N0} B\n" +
+                infoText.Text = $"Container: {NewIplContainer} | New MZTools {kind} IPL | Capacity: {Mz800DskImage.LogicalSectorCount * Mz800DskImage.SectorSize:N0} B\n" +
                     "Add MZF programs, edit their menu names and choose compression directly in this table.\n" +
                     "Bootable: Not yet — image has not been generated | System: None (IPL program loader will be generated)";
                 warningText.Text = multiIplRows.Count == 0
@@ -350,7 +359,7 @@ namespace MZTools
             else
             {
                 DskImage image = document.Image;
-                infoText.Text = $"Container: Extended CPC DSK | Creator: {image.Creator} | Tracks: {image.TrackCount} | Sides: {image.SideCount} | Image: {image.Serialize().Length:N0} B\n" +
+                infoText.Text = $"Container: {document.ContainerName} | Creator: {(document.SourceHfe==null?image.Creator:"not stored in HFE")} | Tracks: {image.TrackCount} | Sides: {image.SideCount} | Image: {document.SerializeContainer().Length:N0} B\n" +
                     $"Filesystem: {document.FileSystem.DisplayName} | Programs: {multiIplRows.Count} | Used: {document.FileSystem.UsedBytes:N0} B | Free: {document.FileSystem.FreeBytes:N0} B";
                 if (document.FileSystem is MultiGameIplFileSystem mappedMulti)
                     infoText.Text += "\n" + mappedMulti.MetadataLocationDescription;
@@ -368,8 +377,10 @@ namespace MZTools
                 document?.FilePath != null,
                 multiIplRows.Count,
                 singleIplEditorMode,
-                multiIplLayoutValid);
+                multiIplLayoutValid,
+                document?.IsModified == true || multiIplDraftModified);
             dskSaveButton.IsEnabled = save;
+            dskSaveButton.ToolTip = document?.FilePath == null ? "Use Save As to choose the active file." : "Save current document: " + document.FilePath;
             dskSaveAsButton.IsEnabled = saveAs;
         }
 
@@ -379,11 +390,12 @@ namespace MZTools
             bool hasPath,
             int programCount,
             bool single,
-            bool layoutValid)
+            bool layoutValid,
+            bool modified = true)
         {
             bool validCount = single ? programCount == 1 : programCount > 0;
             bool canSave = !busy && hasDocument && validCount && layoutValid;
-            return (canSave && hasPath, canSave);
+            return (canSave && hasPath && modified, canSave);
         }
 
         private void ShowSectors_Changed(object sender, RoutedEventArgs e)
@@ -394,6 +406,11 @@ namespace MZTools
         private void RefreshDiskLayout()
         {
             diskLayout = document == null ? null : DskAnalyzer.Analyze(document);
+            if(document!=null) {
+                byte[] bytes=document.SerializeContainer(); currentImageHash=ImageVerificationService.Hash(bytes);
+                canonicalCreatorPadding=document.SourceHfe==null && ContainerNormalizeService.Candidate(document).AsSpan().SequenceEqual(bytes);
+                infoText.ToolTip=document.SourceHfe!=null?$"Current {document.ContainerName} SHA-256: {currentImageHash}\nFilesystem is a sector projection; Save preserves original physical layout and updates changed data fields/CRC.":$"Current image SHA-256: {currentImageHash}\nCreator padding: {(canonicalCreatorPadding?"canonical":"non-canonical; Normalize Container is available")}";
+            } else { currentImageHash=""; infoText.ToolTip=null; }
             selectedMapSector = null;
             diskMap.SetLayout(diskLayout);
             mapBlocksGrid.ItemsSource = diskLayout?.Sectors.ToArray();
@@ -404,10 +421,11 @@ namespace MZTools
             if (!logicalMapOption.IsEnabled) mapOrderBox.SelectedIndex = 0;
             UpdateAnalysisFilter();
             HighlightSelectedFiles();
+            RefreshVisualSnapshot();
         }
 
         private bool synchronizingMapSelection;
-        private void SelectLayoutSector(DskSectorLayout? sector)
+        private void SelectLayoutSectorCore(DskSectorLayout? sector)
         {
             if (sector == null) { ClearMapSelection(); return; }
             if (activeHexSector != sector.Address && !ConfirmHexSwitch())
@@ -442,13 +460,14 @@ namespace MZTools
             if (hexWindow != null || editHexHost.Content is DskHexEditorControl)
                 OpenWritableHex(activeHexSector == sector.Address ? activeHexBlock : null);
             mapBlocksGrid.ScrollIntoView(sector);
+            SyncVisualSelection();
         }
 
         private void UpdateMapSelectionButtons()
         {
             if (dskClearSelectionButton == null) return;
             dskClearSelectionButton.IsEnabled = diskLayout != null &&
-                (selectedMapSector != null || issuesGrid?.SelectedItem != null ||
+                (selectedSectorKeys.Count > 0 || selectedMapSector != null || issuesGrid?.SelectedItem != null ||
                  directoryGrid?.SelectedItems.Count > 0 || multiIplGrid?.SelectedItems.Count > 0);
         }
 
@@ -459,6 +478,7 @@ namespace MZTools
             try
             {
                 selectedMapSector = null;
+                selectedSectorKeys.Clear(); sectorAnchor=null;
                 diskMap.SelectSector(null);
                 diskMap.HighlightFiles(Array.Empty<string>());
                 UpdateRelatedMapRows(Array.Empty<string>());
@@ -468,24 +488,35 @@ namespace MZTools
                 multiIplGrid.SelectedItems.Clear();
                 sectorDetailText.Text = string.Empty;
             }
-            finally { synchronizingMapSelection = false; UpdateMapSelectionButtons(); RefreshEditSelectors(); }
+            finally { synchronizingMapSelection = false; RefreshSectorSelection(); UpdateMapSelectionButtons(); RefreshEditSelectors(); SyncVisualSelection(); }
         }
-        private void ClearMapSelection_Click(object sender, RoutedEventArgs e) => ClearMapSelection();
+        private void ClearMapSelection_Click(object sender, RoutedEventArgs e) => ApplySectorSelection(Array.Empty<DskSectorAddress>(),null);
         private void MapBackground_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (DiskMapVisuals.IsBlankClick(e.OriginalSource as DependencyObject))
-            { directoryGrid.UnselectAll(); multiIplGrid.UnselectAll(); ClearMapSelection(); }
+            { ApplySectorSelection(Array.Empty<DskSectorAddress>(),null); }
         }
         private void MapBlocks_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (synchronizingMapSelection) return;
-            SelectLayoutSector(mapBlocksGrid.SelectedItem as DskSectorLayout);
+            var items=mapBlocksGrid.SelectedItems.OfType<DskSectorLayout>().ToArray();
+            var focus=e.AddedItems.OfType<DskSectorLayout>().LastOrDefault()?.Address??items.LastOrDefault()?.Address;
+            if(ApplySectorSelection(items.Select(s=>s.Address),focus) && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) sectorAnchor=focus;
         }
 
         private void Files_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             HighlightSelectedFiles();
             UpdateFilePropertiesCommand();
+            UpdateFileToolbar();
+        }
+
+        private void UpdateFileToolbar()
+        {
+            if(dskViews==null || dskExportButton==null) return;
+            bool files=dskViews.SelectedItem==filesTab && (IplEditorMode || document?.FileSystem is not RawDskFileSystem) &&
+                !directoryGrid.SelectedItems.OfType<DskFileEntry>().Any(IsRawSectorEntry);
+            dskExportButton.Visibility=dskDeleteButton.Visibility=dskAddButton.Visibility=files?Visibility.Visible:Visibility.Collapsed;
         }
 
         private void UpdateFilePropertiesCommand()
@@ -539,6 +570,8 @@ namespace MZTools
                 : directoryGrid.SelectedItems.OfType<DskFileEntry>().Select(entry => entry.Key)).ToHashSet();
             diskMap.HighlightFiles(keys);
             UpdateRelatedMapRows(keys);
+            if(!synchronizingMapSelection) { selectedSectorKeys.Clear(); selectedSectorKeys.UnionWith(relatedMapSectors); RefreshSectorSelection(); }
+            SyncVisualSelection();
             UpdateMapSelectionButtons();
             if (!synchronizingMapSelection && selectedMapSector == null) RefreshEditSelectors();
         }
@@ -561,6 +594,8 @@ namespace MZTools
 
         private void MapBlocks_KeyDown(object sender, KeyEventArgs e)
         {
+            if(e.Key==Key.Escape) { ApplySectorSelection(Array.Empty<DskSectorAddress>(),null); e.Handled=true; return; }
+            if(Keyboard.Modifiers!=ModifierKeys.None) return;
             if (MapInteraction.MoveGridSelection(mapBlocksGrid, e.Key)) e.Handled = true;
         }
         private void RefreshEditSelectors()
@@ -719,13 +754,22 @@ namespace MZTools
         private void Issue_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (synchronizingMapSelection) return;
+            if (!ConfirmHexSwitch())
+            {
+                synchronizingMapSelection = true;
+                try { issuesGrid.SelectedItem = e.RemovedItems.OfType<DskAnalysisIssue>().FirstOrDefault(); }
+                finally { synchronizingMapSelection = false; }
+                return;
+            }
+            if (editHexHost.Content is DskHexEditorControl confirmedHex && confirmedHex.HasPendingChanges)
+                confirmedHex.Revert();
             if (issuesGrid.SelectedItem is not DskAnalysisIssue issue) { ClearMapSelection(false); return; }
             ClearMapSelection(false);
             synchronizingMapSelection = true;
             try
             {
                 var sector = issue.Track is int track
-                    ? diskLayout?.Sectors.FirstOrDefault(s => s.Track == track && (issue.Sector == null || s.PhysicalIndex == issue.Sector))
+                    ? diskLayout?.Sectors.FirstOrDefault(s => s.Track == track && s.PhysicalIndex == issue.Sector)
                     : issue.FileKey != null ? diskLayout?.Sectors.FirstOrDefault(s => s.Owners.Any(o => o.FileKey == issue.FileKey)) : null;
                 if (sector != null)
                 {
@@ -746,6 +790,8 @@ namespace MZTools
                     (sector == null ? "" : $"\n\n{sector.Detail}");
             }
             finally { synchronizingMapSelection = false; UpdateMapSelectionButtons(); }
+            if (issue.Track is int visualTrack && issue.Sector == null)
+                visualInspector?.SyncSelection(visualTrack, null);
         }
         private void CopyAnalysis_Click(object sender, RoutedEventArgs e)
         {
@@ -764,12 +810,6 @@ namespace MZTools
                 button.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
                 button.ContextMenu.IsOpen = true;
             }
-        }
-
-        private void VerifyImage_Click(object sender, RoutedEventArgs e)
-        {
-            if (document == null || !verifyImageMenu.IsEnabled) return;
-            new DskPatchPreviewWindow(OwnerWindow, ImageVerificationService.Verify(document.Serialize(), document).Report, title: "Verify Image").ShowDialog();
         }
 
         private void NormalizeContainer_Click(object sender, RoutedEventArgs e)
@@ -818,13 +858,6 @@ namespace MZTools
         }
 
         private void BatchProcess_Click(object sender, RoutedEventArgs e) => new BatchProcessDialog(OwnerWindow).ShowDialog();
-
-        private void PhysicalProperties_Click(object sender, RoutedEventArgs e)
-        {
-            if (document == null || !physicalPropertiesMenu.IsEnabled) return;
-            var dialog = new DskPhysicalPropertiesDialog(OwnerWindow, document);
-            dialog.ShowDialog(); if (dialog.Applied) LoadDocument(document);
-        }
 
         private void RepairContainer_Click(object sender, RoutedEventArgs e)
         {
@@ -889,8 +922,8 @@ namespace MZTools
 
         private void RawRange_Click(object sender, RoutedEventArgs e)
         {
-            if (document == null) return;
-            var dialog = new DskRawRangeDialog(OwnerWindow, document); dialog.ShowDialog();
+            if (document == null || IplEditorMode || !ConfirmHexSwitch()) return;
+            var dialog = new DskRawRangeDialog(OwnerWindow, document,selectedSectorKeys); dialog.ShowDialog();
             if (dialog.Applied) LoadDocument(document);
         }
 
@@ -899,7 +932,7 @@ namespace MZTools
             if (document == null) return;
             var result = DskConversionDialog.Show(OwnerWindow, document);
             if (result?.CanConvert != true) return;
-            var save = new SaveFileDialog { Filter = "DSK image|*.dsk", FileName = "converted.dsk", Title = "Convert and Save As — original remains unchanged" };
+            var save = new SaveFileDialog { Filter = "DSK image|*.dsk", FileName = "converted.dsk", Title = "Export converted image — current image remains open" };
             if (save.ShowDialog(OwnerWindow) != true) return;
             if (document.FilePath != null && Path.GetFullPath(save.FileName).Equals(Path.GetFullPath(document.FilePath), StringComparison.OrdinalIgnoreCase))
             { ShowError("Conversion must be saved under a different path; the source image cannot be overwritten."); return; }
@@ -1022,7 +1055,7 @@ namespace MZTools
         {
             var dialog = new OpenFileDialog
             {
-                Title = singleIplEditorMode ? "Select program for single-program IPL DSK" : "Add programs to multi-program IPL DSK",
+                Title = singleIplEditorMode ? "Select program for single-program IPL image" : "Add programs to Multiboot IPL image",
                 Filter = "MZF program (*.mzf;*.mz0;*.mz7)|*.mzf;*.mz0;*.mz7|All files (*.*)|*.*",
                 Multiselect = multiIplEditorMode
             };
@@ -1284,7 +1317,7 @@ namespace MZTools
 
                 if (document == null)
                 {
-                    document = DskDocument.Open(imageBytes);
+                    document = DiskFormatting.SetNewContainer(DskDocument.Open(imageBytes),newIplHfeVersion);
                 }
                 document.ReplaceContents(imageBytes);
                 multiIplDraftModified = true;
@@ -1759,6 +1792,12 @@ namespace MZTools
             catch (Exception exception) { ShowError(exception.Message); }
         }
 
+        private void FormatDisk_Click(object sender,RoutedEventArgs e)
+        {
+            if(document==null || !ConfirmHexSwitch()) return;
+            DiskFormatting.Show(OwnerWindow,document,null,document.FilePath,formatted=>LoadDocument(formatted));
+        }
+
         private void Save_Click(object sender, RoutedEventArgs e)
         {
             if (IplEditorMode && !multiIplLayoutValid) { ShowError("Wait for a valid IPL layout before saving."); return; }
@@ -1771,7 +1810,7 @@ namespace MZTools
         {
             if (IplEditorMode && !multiIplLayoutValid) { ShowError("Wait for a valid IPL layout before saving."); return; }
             if (document == null) { ShowError("Add at least one program before saving the image."); return; }
-            var dialog = new SaveFileDialog { Filter = "Extended CPC DSK|*.dsk", FileName = Path.GetFileName(document.FilePath) ?? "disk.dsk" };
+            var dialog = new SaveFileDialog { Title="Save As — switch active disk image", Filter = document.SourceHfe==null?"Extended CPC DSK|*.dsk":"HFE physical image|*.hfe", FileName = Path.GetFileName(document.FilePath) ?? (document.SourceHfe==null?"disk.dsk":"disk.hfe"), InitialDirectory=document.FilePath==null?"":Path.GetDirectoryName(Path.GetFullPath(document.FilePath)) };
             if (dialog.ShowDialog(OwnerWindow) != true) return;
             try { CanonicalizeMultiIplForSave(); document.Save(dialog.FileName); multiIplDraftModified = false; RefreshView(); } catch (Exception exception) { ShowError(exception.Message); }
         }
@@ -2024,7 +2063,7 @@ namespace MZTools
                 CloseHexWindow();
                 return true;
             }
-            MessageBoxResult result = MessageBox.Show(OwnerWindow, "Save changes to this DSK image?", "Unsaved changes", MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
+            MessageBoxResult result = MessageBox.Show(OwnerWindow, $"Save changes to this {document?.ContainerName??"disk"} image?", "Unsaved changes", MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
             if (result == MessageBoxResult.Cancel) return false;
             if (result == MessageBoxResult.Yes)
             {

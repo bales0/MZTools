@@ -19,8 +19,8 @@ internal sealed class DskCompareWindow : Window
     private readonly DskDiskMapControl leftMap = new(), rightMap = new();
     private readonly ScrollViewer leftScroll = new(), rightScroll = new();
     private readonly Dictionary<ScrollViewer, (double X, double Y)> pendingScrolls = new();
-    private readonly TextBox detail = new() { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
-    private readonly TextBox rightDetail = new() { IsReadOnly = true, TextWrapping = TextWrapping.Wrap, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+    private readonly ReportView detail = new();
+    private readonly ReportView rightDetail = new();
     private readonly TextBlock changeDetail = new() { TextWrapping = TextWrapping.Wrap };
     private readonly Button hex = new() { Content = "Hex diff...", IsEnabled = false, MinWidth = 100 };
     private DskDiffItem? selected;

@@ -50,6 +50,12 @@ internal sealed partial class AudioSignalAnalyzerWindow : Window
         AddButton(navigation, "Selected block", () => { if (records.SelectedItems.Count > 1) ShowSelectedRows(records); else if (records.SelectedItem is AudioBlockAnalysis b) waveform.ShowRange(b.StartSample, b.EndSample); });
         AddButton(navigation, "Selected record", () => { if (analysis != null && records.SelectedItem is AudioBlockAnalysis b) { var selectedRecords = records.SelectedItems.Cast<AudioBlockAnalysis>().Select(p => p.Record).ToHashSet(); var parts = analysis.Blocks.Where(p => selectedRecords.Contains(p.Record)).ToArray(); waveform.ShowRange(parts.Min(p => p.StartSample), parts.Max(p => p.EndSample)); } });
         navigation.Children.Add(deepAnalysis);
+        pulseSourceChoice.ItemsSource = new[] { "Used for decoding", "Compare Zero crossing", "Compare Hysteresis", "Compare Adaptive peak" };
+        pulseSourceChoice.SelectedIndex = 0; navigation.Children.Add(pulseSourceChoice);
+        pulseSourceChoice.SelectionChanged += (_, _) => {
+            if (pulseSourceChoice.SelectedIndex == 0 && records.SelectedItems.Count == 1) { CancelSelectionMeasurement(); SelectBlock(); }
+            else if (waveform.SelectionStart.HasValue && waveform.SelectionEnd.HasValue) MeasureSelection([(waveform.SelectionStart.Value,waveform.SelectionEnd.Value)]);
+        };
         deepAnalysis.Click += (_, _) => { if (analysis != null) new AudioRegionRecoveryWindow(this, analysis, waveform.SelectionStart ?? waveform.Start, waveform.SelectionEnd ?? waveform.End).ShowDialog(); };
         channelChoice.SelectionChanged += (_, _) => { waveform.ChannelMode = Math.Max(0, channelChoice.SelectedIndex); waveform.InvalidateVisual(); UpdateWaveExport(); if (selectedIntervals.Length > 0) MeasureSelection(selectedIntervals); }; navigation.Children.Add(channelChoice);
         navigation.Children.Add(new TextBlock { Text = "Time in seconds • amplitude in FS • sample bounds are half-open", Margin = new(8), VerticalAlignment = VerticalAlignment.Center });
@@ -70,7 +76,7 @@ internal sealed partial class AudioSignalAnalyzerWindow : Window
         distributions.Height = 110; pulseHeader.Children.Add(distributions);
         var charts = new TabControl(); charts.Items.Add(new TabItem { Header = "Histogram", Content = histogram }); charts.Items.Add(new TabItem { Header = "High / Low scatter", Content = scatter }); charts.Items.Add(new TabItem { Header = "Drift", Content = drift }); pulsePanel.Children.Add(charts);
         AddTab("Pulse statistics", new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Content = pulsePanel }); AddTab("Channels / levels", channels); AddTab("Detector agreement", agreement); AddTab("Issues", issues); AddTab("Regions", regions);
-        AddTab("Definitions", new ScrollViewer { Content = new TextBlock { Text = new AudioSignalAnalysis().Limits + "\n\nPulse agreement: one-to-one physical-level matches with end positions within max(2 samples, 10% of pulse duration), bounded 64-pulse queues. Classification agreement compares SHORT/LONG for matched pulses.\n\nOnly regions with decoder trace positions are labelled leader/sync/data/checksum. Unassigned audio contributes to Estimated noise; it may contain music, speech or undecodable tape data.\n\nSelected blocks and arbitrary interval pulse measurements use standard ZeroCrossing preprocessing, even when decoding used Schmitt or selective recovery. Short-term variation is the per-window local standard deviation; drift is change in timing scale between windows; global speed offset is reported separately.\n\nHistogram bins are exact sample-duration counts. Scatter is bounded to 20,000 pairs by deterministic thinning. Charts are read-only; this analyzer never rewrites the capture.", TextWrapping = TextWrapping.Wrap, Margin = new(12), FontSize = 14 } });
+        AddTab("Definitions", new ScrollViewer { Content = new TextBlock { Text = new AudioSignalAnalysis().Limits + "\n\nPulse agreement: one-to-one physical-level matches with end positions within max(2 samples, 10% of pulse duration), bounded 64-pulse queues. Classification agreement compares SHORT/LONG for matched pulses.\n\nOnly regions with decoder trace positions are labelled leader/sync/data/checksum. Unassigned audio contributes to Estimated noise; it may contain music, speech or undecodable tape data.\n\nUsed for decoding measures each candidate detector and original preprocessing interval/threshold; explicit detector comparisons and arbitrary intervals are reference comparisons. Reconstructed provenance may be mixed or unknown. Short-term variation is the per-window local standard deviation; drift is change in timing scale between windows; global speed offset is reported separately.\n\nHistogram bins are exact sample-duration counts. Scatter is bounded to 20,000 pairs by deterministic thinning. Charts are read-only; this analyzer never rewrites the capture.", TextWrapping = TextWrapping.Wrap, Margin = new(12), FontSize = 14 } });
         open.Click += (_, _) => ChooseSource(); cancel.Click += (_, _) => { work?.Cancel(); wavWork?.Cancel(); }; report.Click += (_, _) => ExportReport();
         records.SelectionChanged += (_, _) =>
         {
@@ -170,10 +176,11 @@ internal sealed partial class AudioSignalAnalyzerWindow : Window
     private void SelectBlock()
     {
         var b = records.SelectedItem as AudioBlockAnalysis;
+        if (b != null && pulseSourceChoice.SelectedIndex > 0) { MeasureSelection([(b.StartSample,b.EndSample)]); return; }
         foreach (var chart in new[] { histogram, scatter, drift }) { chart.Block = b; chart.InvalidateVisual(); }
         distributions.ItemsSource = b?.Distributions;
         referenceControl.FollowBlock(b);
-        blockSummary.Text = b == null ? "Select a decoded block in Records / blocks." : $"{b.Record}: {b.Name} / {b.Block} • {b.Profile} • reference {b.ReferenceName}\nChannel {b.Channel}, {b.DecodeDetector}, inverted {b.Inverted}, checksum {(b.ChecksumValid ? "valid" : "failed")}, recovered {b.Recovered}\n{b.PulseMeasurement}\nGlobal scale {b.GlobalTimingScale:F4} • speed {b.SpeedOffsetPercent:+0.00;-0.00;0}% • pulse agreement {b.Agreement.PulseAgreementPercent:F1}% • classification agreement {b.Agreement.ClassificationAgreementPercent:F1}%";
+        blockSummary.Text = b == null ? "Select a decoded block in Records / blocks." : $"{b.Record}: {b.Name} / {b.Block} • {b.Profile} • reference {b.ReferenceName}\nChannel {b.Channel}, {b.DecodeDetector}, inverted {b.Inverted}, checksum {(b.ChecksumValid ? "valid" : "failed")}, recovered {b.Recovered}\n{b.PulseMeasurement} • {b.MeasurementProvenance}\nGlobal scale {b.GlobalTimingScale:F4} • speed {b.SpeedOffsetPercent:+0.00;-0.00;0}% • pulse agreement {b.Agreement.PulseAgreementPercent:F1}% • classification agreement {b.Agreement.ClassificationAgreementPercent:F1}%";
         SelectDistribution();
     }
     private void SelectDistribution()

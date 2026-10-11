@@ -4,6 +4,19 @@ namespace MZTools.Tests;
 
 public sealed class BatchProcessTests : IDisposable
 {
+    [Fact]
+    public void HfeV2BatchConversionCatalogAndExtractionPreserveSource()
+    {
+        var document=DskDocumentFactory.CreateFsmz(tracks:4);document.FileSystem.Insert("TEST",new byte[] {1,2,3});document.MarkModified();
+        string source=Disk("v2.dsk",document); var bytes=File.ReadAllBytes(source);
+        var conversion=BatchProcessService.Preview([source],Options(BatchOperation.ConvertFormat) with {TargetFormat="HFEv2"});
+        var row=conversion.Rows.Single();Assert.NotNull(row.ImageBytes);Assert.Equal(HfeVersion.V2,HfeImage.Parse(row.ImageBytes!).Version);
+        Assert.Equal(bytes,File.ReadAllBytes(source));
+        string hfe=Path.Combine(root,"v2.hfe");File.WriteAllBytes(hfe,row.ImageBytes!);
+        var catalog=BatchProcessService.Preview([hfe],Options(BatchOperation.Analyze));Assert.Equal("HFEv2",catalog.Rows.Single().DetectedFormat);
+        var extract=BatchProcessService.Preview([hfe],Options(BatchOperation.ExtractAll));
+        Assert.NotEmpty(extract.Rows.Single().ExtractedFiles!);Assert.Equal(row.ImageBytes,File.ReadAllBytes(hfe));
+    }
     private readonly string root = Path.Combine(Path.GetTempPath(), "MZToolsBatchTests-" + Guid.NewGuid().ToString("N"));
     public BatchProcessTests() => Directory.CreateDirectory(root);
     public void Dispose() { if (Directory.Exists(root)) Directory.Delete(root, true); }

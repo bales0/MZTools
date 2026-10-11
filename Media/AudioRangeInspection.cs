@@ -25,39 +25,61 @@ internal static class AudioRangeInspection
 
     internal static AudioBlockAnalysis AnalyzeSelection(AudioSignalAnalysis source,
         System.Collections.Generic.IEnumerable<(long Start, long End)> ranges, int channel, bool mix,
-        AudioBlockAnalysis? referenceBlock, CancellationToken token = default)
+        AudioBlockAnalysis? referenceBlock, CancellationToken token = default, WavPulseMode detector = WavPulseMode.ZeroCrossing,
+        double thresholdScale = 1, long? preprocessingStart = null, double zeroDeadband = 0)
     {
         var spans = MergeRanges(ranges);
         if (spans.Length == 0) throw new ArgumentException("Select a nonempty audio interval.");
         var counts = AudioPulseReference.Groups.Select(_ => new AudioDurationCounter()).ToArray();
         AudioBlockAnalysis? first = null;
-        long outliers = 0;
+        long outliers = 0, pairs = 0, measuredCount = 0, scatterStride = 1, seenScatter = 0;
+        double ratioSum = 0;
+        int omitted = 0;
+        var scatter = new System.Collections.Generic.List<AudioPulsePoint>();
+        var drift = new System.Collections.Generic.List<AudioDriftWindow>();
         foreach (var span in spans)
         {
             token.ThrowIfCancellationRequested();
             var block = Analyze(source, span.Start, span.End, new(Mix: mix), channel,
-                WavPulseMode.ZeroCrossing, 1, referenceBlock?.Inverted ?? false, referenceBlock, token).Block;
+                detector, thresholdScale, referenceBlock?.Inverted ?? false, referenceBlock, token,
+                preprocessingStart: preprocessingStart, zeroDeadband: zeroDeadband).Block;
             first ??= block; outliers += block.Outliers;
+            long count = block.Distributions.Sum(d => d.Count);
+            if (block.GlobalTimingScale is double timing) { ratioSum += timing * count; measuredCount += count; }
+            pairs += block.ScatterPairs; omitted += block.OmittedMeasurementSpans;
+            foreach (var point in block.Scatter) {
+                if (++seenScatter % scatterStride == 0) scatter.Add(point);
+                if (scatter.Count > 20000) {
+                    int kept = 0; for(int i=0;i<scatter.Count;i+=2) scatter[kept++] = scatter[i];
+                    scatter.RemoveRange(kept,scatter.Count-kept); scatterStride *= 2;
+                }
+            }
+            foreach (var window in block.Drift) { if (drift.Count < 4096) drift.Add(window); else omitted++; }
             for (int i = 0; i < counts.Length; i++)
                 foreach (var bin in block.Distributions[i].Histogram)
                     counts[i].Add(bin.DurationMicroseconds * source.SampleRate / 1e6, bin.Count);
         }
+        double? global = measuredCount > 0 ? ratioSum / measuredCount : null;
         return first! with { StartSample = spans[0].Start, EndSample = spans[^1].End, Outliers = outliers,
+            Scatter = scatter.ToArray(), ScatterPairs = pairs, Drift = drift.ToArray(), GlobalTimingScale = global,
+            SpeedOffsetPercent = global is > 0 ? (1/global.Value-1)*100 : null, OmittedMeasurementSpans = omitted,
+            PulseSource = first!.PulseSource! with { StartSample = spans[0].Start, EndSample = spans[^1].End,
+                Intervals = spans.Select(s => new AudioMeasurementInterval(s.Start,s.End)).ToArray() },
             PulseMeasurement = $"{spans.Length} selected interval(s), overlap counted once • " + first!.PulseMeasurement,
             Distributions = counts.Select((c, i) => c.Finish(AudioPulseReference.Groups[i], source.SampleRate, first.Distributions[i].Reference)).ToArray() };
     }
 
     internal static AudioRangePreview Analyze(AudioSignalAnalysis source, long start, long end, AudioPcmTransform transform,
         int channel, WavPulseMode detector, double thresholdScale, bool inverted, AudioBlockAnalysis? referenceBlock,
-        CancellationToken token = default, bool waveformOnly = false)
+        CancellationToken token = default, bool waveformOnly = false, long? preprocessingStart = null, double zeroDeadband = 0)
     {
         if (!double.IsFinite(thresholdScale) || thresholdScale < .1 || thresholdScale > 4) throw new ArgumentException("Measurement Schmitt scale must be 0.1–4.");
         VerifySource(source);
         using var reader = AudioSignalAnalysisService.OpenReader(source.Source);
         (start, end) = transform.Bounds(reader.Format, start, end);
+        preprocessingStart = Math.Min(preprocessingStart ?? start, start);
         int count = transform.Mix ? 1 : reader.Format.Channels;
         if (channel < 0 || channel >= count) throw new ArgumentException("Select an available histogram channel.");
-        var counters = new[] { new AudioDurationCounter(), new AudioDurationCounter(), new AudioDurationCounter(), new AudioDurationCounter() };
         double[] references = referenceBlock?.Distributions.Select(d => d.Reference ?? double.NaN).ToArray() ??
             [SharpZ80TimingTable.Rom800Normal.ShortHighMicroseconds, SharpZ80TimingTable.Rom800Normal.ShortLowMicroseconds,
              SharpZ80TimingTable.Rom800Normal.LongHighMicroseconds, SharpZ80TimingTable.Rom800Normal.LongLowMicroseconds];
@@ -66,9 +88,12 @@ internal static class AudioRangeInspection
         var envelope = new WaveformEnvelopeBuilder(start, end, 65536);
         int positiveFullScale = 8388608 - (1 << (24 - reader.Format.BitsPerSample));
         var findings = new AudioIssueSpans(4096);
-        int windowCount = 0; long windowStart = start, previousStart = start, outliers = 0; double ratioSum = 0; double? previousMean = null;
+        var engine = new AudioPulseMeasurementEngine(new(source.Source, source.SampleRate, start, end, channel+1, detector.ToString(), inverted,
+            thresholdScale, zeroDeadband*100, referenceBlock?.PulseSource?.ReferenceId ?? "rom800", scale, "Selected interval / comparison", "Visual range")
+            { PreprocessingStartSample = preprocessingStart ?? start }, references.Select(r => new[] {r}).ToArray());
         Action<long, int, int> frames = (sample, left, right) =>
         {
+            if (sample < start) return;
             envelope.Add(sample, left, right);
             int value = channel == 0 ? left : right;
             if (value >= positiveFullScale || value <= -8388608) findings.Add("AUDIO_CLIPPING", "PCM reaches full scale.", sample, sample + 1, channel + 1);
@@ -76,39 +101,25 @@ internal static class AudioRangeInspection
         Action<int, WavPulseMode, bool, double, long> pulses = (ch, mode, high, duration, pulseEnd) =>
         {
             if (ch != channel || mode != detector || pulseEnd - duration < start || pulseEnd > end || duration <= 0) return;
-            bool logicalHigh = high == inverted;
-            int shortIndex = logicalHigh ? 0 : 1;
-            double us = duration * 1e6 / reader.Format.SampleRate;
-            bool isLong = Math.Abs(us - references[shortIndex + 2] * scale) < Math.Abs(us - references[shortIndex] * scale);
-            int group = shortIndex + (isLong ? 2 : 0); counters[group].Add(duration);
-            double ratio = us / references[group];
-            if (Math.Abs(ratio / scale - 1) > .35)
-            { outliers++; findings.Add("AUDIO_PULSE_OUTLIERS", "Measured pulse differs by more than 35% from the scaled classification reference; this does not prove a damaged byte.", (long)Math.Floor(pulseEnd - duration), pulseEnd, channel + 1); }
-            if (windowCount == 0) windowStart = (long)Math.Floor(pulseEnd - duration);
-            ratioSum += ratio; windowCount++;
-            if (windowCount == 256)
-            {
-                double mean = ratioSum / windowCount;
-                if (previousMean is > 0 && Math.Abs(mean / previousMean.Value - 1) > .1)
-                    findings.Add("AUDIO_TIMING_DISCONTINUITY", "Adjacent 256-pulse windows differ by more than 10%.", previousStart, pulseEnd, channel + 1);
-                previousMean = mean; previousStart = windowStart; ratioSum = 0; windowCount = 0;
-            }
+            engine.Add(high, duration, pulseEnd);
         };
         if (waveformOnly) transform.Visit(reader, start, end, frames, token);
-        else WavHeuristicAnalyzer.VisitRangeSignal(reader, start, end, transform, thresholdScale, frames, pulses, token, measureAdaptive: detector == WavPulseMode.AdaptiveZeroCrossing);
+        else WavHeuristicAnalyzer.VisitRangeSignal(reader, preprocessingStart ?? start, end, transform, thresholdScale, frames, pulses, token,
+            measureAdaptive: detector == WavPulseMode.AdaptiveZeroCrossing, zeroDeadband: zeroDeadband);
         token.ThrowIfCancellationRequested(); VerifySource(source);
         string measurement = $"{(transform.Mix ? "Mix" : reader.Format.Channels == 1 ? "Mono" : channel == 0 ? "Left" : "Right")} • {detector}" +
             (detector != WavPulseMode.ZeroCrossing ? $" ×{thresholdScale:G}" : "") + $" • {(inverted ? "inverted" : "normal")} classification • {transform.Description}";
+        var metrics = engine.Finish();
         var block = new AudioBlockAnalysis(1, "Selected audio", "Range", referenceBlock?.Profile ?? "NORMAL 1:1", referenceBlock?.ReferenceName ?? SharpZ80TimingTable.Rom800Normal.Name,
             channel + 1, inverted, detector.ToString(), measurement, start, end, false, 0, 0, false,
-            counters.Select((c, i) => c.Finish(AudioPulseReference.Groups[i], reader.Format.SampleRate, references[i])).ToArray(), [], 0, [],
-            new(0, 0, 0, null, null), null, null, outliers) { ClassificationScale = scale };
+            metrics.Distributions, metrics.Scatter, metrics.ScatterPairs, metrics.Drift,
+            new(0, 0, 0, null, null), metrics.GlobalScale, metrics.GlobalScale is > 0 ? (1 / metrics.GlobalScale.Value - 1) * 100 : null, metrics.Outliers) { ClassificationScale = scale, PulseSource = engine.Source, OmittedMeasurementSpans = metrics.Omitted };
         var analysis = new AudioSignalAnalysis { Source = source.Source, SourceLength = source.SourceLength, SourceModifiedUtc = source.SourceModifiedUtc,
             Format = source.Format, SampleRate = source.SampleRate, BitsPerSample = source.BitsPerSample, ChannelCount = (ushort)count,
-            FrameCount = source.FrameCount, Blocks = [block], Issues = findings.Items,
+            FrameCount = source.FrameCount, Blocks = [block], Issues = findings.Items.Concat(metrics.Issues).ToArray(),
             Regions = [new AudioSignalRegion("Unassigned audio", start, end, null, null, "Selected PCM interval; no program association inferred.") { SampleRate = source.SampleRate }],
             Waveform = new(envelope.Finish(), source.FrameCount, (ushort)count) };
-        return new(analysis, block, start, end, measurement, findings.Omitted);
+        return new(analysis, block, start, end, measurement, findings.Omitted + metrics.Omitted);
     }
     internal static void VerifySource(AudioSignalAnalysis source)
     {

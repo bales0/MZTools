@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Update="ReferenceGolden\*.json" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
@@ -18,6 +19,8 @@
   <ItemGroup>
     <ProjectReference Include="..\MZTools.csproj" />
     <Compile Remove="AudioSignalUiSmoke\**\*.cs" />
+    <Compile Remove="DskVisualUiSmoke\**\*.cs" />
+    <Compile Remove="ReportUiSmoke\**\*.cs" />
   </ItemGroup>
 
   <ItemGroup>

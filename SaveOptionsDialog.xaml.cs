@@ -110,9 +110,9 @@ namespace MZTools
 
         internal IReadOnlyList<TapeRecord> PackedRecords { get; private set; } = Array.Empty<TapeRecord>();
 
-        internal SharpTapeMachine SelectedMachine => machineComboBox.SelectedIndex == 1
-            ? SharpTapeMachine.Mz700
-            : SharpTapeMachine.Mz800;
+        internal SharpTapeMachine SelectedMachine => machineComboBox.SelectedIndex switch {
+            1 => SharpTapeMachine.Mz700, 2 => SharpTapeMachine.Mz700PalRom,
+            3 => SharpTapeMachine.Mz700NtscRom, _ => SharpTapeMachine.Mz800 };
 
         internal bool SeparateFiles => separateRadioButton.IsChecked == true;
 

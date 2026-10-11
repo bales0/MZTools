@@ -31,7 +31,7 @@ internal sealed class DskHexEditorControl : UserControl
     private readonly DskDocument document;
     private readonly DskHexEditSession session;
     private readonly TextBox edited = HexBox();
-    private readonly TextBox diff = HexBox();
+    private readonly ReportView diff = new();
     private readonly TextBox editedAscii = CharacterBox();
     private readonly TextBox editedMz = CharacterBox();
     private readonly ScrollViewer originalScroll = BufferScroll();
@@ -119,8 +119,10 @@ internal sealed class DskHexEditorControl : UserControl
             bool accept = false;
             if (preview.RequiresFilesystemConfirmation)
             {
-                accept = MessageBox.Show(Window.GetWindow(this), "Filesystem detection or validation changed. Apply these bytes anyway?\n\n" + preview.Report,
-                    "Confirm filesystem impact", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes;
+                var confirmation=new DskPatchPreviewWindow(Window.GetWindow(this),
+                    "Filesystem detection or validation changed. Review the impact before applying.\n\n"+preview.Report,
+                    ()=>{},"Confirm filesystem impact","Accept filesystem impact");
+                confirmation.ShowDialog(); accept=confirmation.Applied;
                 if (!accept) return;
             }
             try { ApplyPreview(accept); Completed?.Invoke(this, EventArgs.Empty); }
@@ -207,7 +209,7 @@ internal sealed class DskHexEditorControl : UserControl
         var panel = new Grid(); panel.RowDefinitions.Add(new() { Height = GridLength.Auto }); panel.RowDefinitions.Add(new());
         panel.Children.Add(new TextBlock { Text = label }); Grid.SetRow(scroll, 1); panel.Children.Add(scroll); return panel;
     }
-    private static Grid Panel(string label, TextBox text)
+    private static Grid Panel(string label, FrameworkElement text)
     {
         var panel = new Grid(); panel.RowDefinitions.Add(new() { Height = GridLength.Auto }); panel.RowDefinitions.Add(new());
         panel.Children.Add(new TextBlock { Text = label }); Grid.SetRow(text, 1); panel.Children.Add(text); return panel;

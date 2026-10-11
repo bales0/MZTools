@@ -1,4 +1,4 @@
-﻿<Window x:Class="MZTools.MainWindow"
+<Window x:Class="MZTools.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -19,7 +19,8 @@
                 <Button x:Name="toolsButton" Content="Tools &#x25BE;" Style="{StaticResource TopToolbarButton}" Click="ToolsMenu_Click">
                     <Button.ContextMenu><ContextMenu>
                         <MenuItem x:Name="batchProcessMenu" Header="Batch Process..." Click="BatchProcess_Click"/>
-                        <MenuItem Header="Analyze Audio (WAV / FLAC)..." Click="AnalyzeAudio_Click"/>
+                        <MenuItem x:Name="qdVisualAnalysisMenu" Header="Visual analysis…" Click="QuickDiskVisual_Click" Visibility="Collapsed"/>
+                        <MenuItem x:Name="analyzeAudioMenu" Header="Analyze Audio (WAV / FLAC)..." Click="AnalyzeAudio_Click"/>
                         <MenuItem x:Name="repairDskFileMenu" Header="Inspect / Repair DSK Container..." Click="RepairDskFile_Click"/>
                         <MenuItem x:Name="mzfCpmMenu" Header="MZF/M12 → COM..." Click="NativeCom_Click"/>
                     </ContextMenu></Button.ContextMenu>
@@ -44,7 +45,7 @@
                 </Grid>
                 <Border Style="{StaticResource TopToolbarSeparator}"/>
                 <Button x:Name="newQuickDiskButton" Content="New QD..." Click="button_Click_NewQuickDisk" Style="{StaticResource TopToolbarButton}"/>
-                <Button x:Name="newDskButton" Content="New DSK..." Click="button_Click_NewDsk" Style="{StaticResource TopToolbarButton}"/>
+                <Button x:Name="newDskButton" Content="New disk..." Click="button_Click_NewDsk" Style="{StaticResource TopToolbarButton}"/>
                 <Button x:Name="formatQuickDiskButton" Content="Format..." Click="button_Click_FormatQuickDisk" Style="{StaticResource TopToolbarButton}" Visibility="Collapsed"/>
             </WrapPanel>
         </Border>
@@ -163,7 +164,11 @@
                 </ScrollViewer>
                 <GridSplitter Grid.Row="2" Grid.Column="1" Width="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="LightGray"/>
                 <Grid Grid.Row="2" Grid.Column="2" Margin="6,0,0,0">
-                <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="110"/></Grid.RowDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="2*" MinHeight="60"/>
+                    <RowDefinition Height="6"/>
+                    <RowDefinition Height="3*" MinHeight="150"/>
+                </Grid.RowDefinitions>
                 <DataGrid x:Name="quickDiskBlocks" AutoGenerateColumns="False" IsReadOnly="True"
                           CanUserAddRows="False" HeadersVisibility="Column" SelectionMode="Single" SelectionChanged="QuickDiskBlocks_SelectionChanged" PreviewKeyDown="QuickDiskBlocks_KeyDown">
                     <DataGrid.Columns>
@@ -177,7 +182,8 @@
                         <DataGridTextColumn Header="EXEC" Binding="{Binding ExecuteText}" Width="75"/>
                     </DataGrid.Columns>
                 </DataGrid>
-                <TextBox x:Name="quickDiskMapDetail" Grid.Row="1" Margin="0,6,0,0" IsReadOnly="True" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" Text="* Length is in the units shown above. Gaps are not necessarily free space."/>
+                <GridSplitter Grid.Row="1" Height="6" HorizontalAlignment="Stretch" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" Background="LightGray" ToolTip="Drag to resize blocks and details"/>
+                <local:ReportView x:Name="quickDiskMapDetail" Grid.Row="2" CompactHeader="True" SingleLineHeading="True" Margin="0,4,0,0" Text="* Length is in the units shown above. Gaps are not necessarily free space."/>
                 </Grid>
             </Grid>
         </TabItem>

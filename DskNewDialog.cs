@@ -30,7 +30,8 @@ namespace MZTools
         int SectorSize = 256,
         byte Filler = 0xFF,
         DskDocumentFactory.RawSectorOrder SectorOrder = DskDocumentFactory.RawSectorOrder.Normal,
-        IReadOnlyList<int>? SectorIds = null);
+        IReadOnlyList<int>? SectorIds = null,
+        HfeVersion? HfeVersion = null);
 
     internal sealed class DskNewDialog : Window
     {
@@ -40,6 +41,8 @@ namespace MZTools
         }
 
         private readonly ComboBox formatBox = new() { MinWidth = 390 };
+        private readonly ComboBox containerBox = new() { ItemsSource=new[] {"DSK", "HFE", "HFEv2", "HFEv3"}, SelectedIndex=0, MinWidth=160 };
+        private FrameworkElement containerRow = null!;
         private readonly TextBox tracksBox = new() { Text = "40", MinWidth = 100 };
         private readonly ComboBox sidesBox = new() { ItemsSource = new[] { "1", "2" }, SelectedIndex = 1, MinWidth = 100 };
         private readonly TextBox sectorsBox = new() { Text = "16", MinWidth = 100 };
@@ -72,15 +75,15 @@ namespace MZTools
         private DskNewDialog(Window owner)
         {
             Owner = owner;
-            Title = "New DSK";
+            Title = "New disk image";
             SizeToContent = SizeToContent.WidthAndHeight;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             ResizeMode = ResizeMode.NoResize;
 
             formatBox.ItemsSource = new[]
             {
-                new FormatChoice(DskNewFormat.IplSingle, "MZ IPL DSK — single program (320 KiB)"),
-                new FormatChoice(DskNewFormat.IplMulti, "MZTools IPL DSK — multiple programs (320 KiB)"),
+                new FormatChoice(DskNewFormat.IplSingle, "MZ IPL — single program (320 KiB)"),
+                new FormatChoice(DskNewFormat.IplMulti, "MZTools Multiboot — multiple programs (320 KiB)"),
                 new FormatChoice(DskNewFormat.MzBasic, "MZ-BASIC / FSMZ — 63 directory entries (standard 320 KiB)"),
                 new FormatChoice(DskNewFormat.IplDisk, "IPLDISK filesystem — 127 directory entries (standard 320 KiB)"),
                 new FormatChoice(DskNewFormat.PersonalCpm, "P-CP/M80 original (320 KiB)"),
@@ -96,6 +99,7 @@ namespace MZTools
             formatBox.SelectedIndex = 2;
 
             var panel = new StackPanel { Margin = new Thickness(14) };
+            containerRow=Row("Image format:",containerBox);panel.Children.Add(containerRow);
             panel.Children.Add(Row("Format:", formatBox));
             panel.Children.Add(Row("Tracks per side:", tracksBox));
             panel.Children.Add(Row("Sides:", sidesBox));
@@ -136,6 +140,16 @@ namespace MZTools
         {
             var dialog = new DskNewDialog(owner);
             return dialog.ShowDialog() == true ? dialog.Options : null;
+        }
+        internal static DskNewOptions? ShowFormatting(Window owner,int tracks,int sides)
+        {
+            var dialog=new DskNewDialog(owner) {Title="Format disk — choose filesystem and geometry"};
+            dialog.containerRow.Visibility=Visibility.Collapsed;
+            dialog.formatBox.ItemsSource=((IEnumerable<FormatChoice>)dialog.formatBox.ItemsSource).Where(f=>f.Format is not (DskNewFormat.IplSingle or DskNewFormat.IplMulti)).ToArray();
+            dialog.formatBox.SelectedIndex=0;
+            dialog.tracksBox.Text=tracks.ToString(CultureInfo.InvariantCulture);dialog.sidesBox.SelectedIndex=sides-1;
+            foreach(var button in ((StackPanel)dialog.Content).Children.OfType<StackPanel>().SelectMany(p=>p.Children.OfType<Button>()).Where(b=>b.Content as string=="Create")) button.Content="Preview format…";
+            return dialog.ShowDialog()==true?dialog.Options:null;
         }
 
         private static FrameworkElement Row(string label, FrameworkElement control)
@@ -296,12 +310,13 @@ namespace MZTools
                         ids = parsed;
                     }
                 }
-                Options = new DskNewOptions(choice.Format, tracks, sides, sectors, sectorSize, filler, order, ids);
+                Options = new DskNewOptions(choice.Format, tracks, sides, sectors, sectorSize, filler, order, ids,
+                    containerBox.SelectedIndex==0?null:(HfeVersion)containerBox.SelectedIndex);
                 DialogResult = true;
             }
             catch (Exception exception)
             {
-                MessageBox.Show(this, exception.Message, "New DSK", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(this, exception.Message, "New disk image", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

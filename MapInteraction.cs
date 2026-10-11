@@ -9,6 +9,7 @@ namespace MZTools;
 
 internal static class MapInteraction
 {
+    internal static readonly DependencyProperty LinkLabelProperty=DependencyProperty.RegisterAttached("LinkLabel",typeof(string),typeof(MapInteraction),new FrameworkPropertyMetadata(""));
     internal static readonly DependencyProperty IsRelatedProperty = DependencyProperty.RegisterAttached(
         "IsRelated", typeof(bool), typeof(MapInteraction), new FrameworkPropertyMetadata(false));
     internal static void SetIsRelated(DataGridRow row, bool value) => row.SetValue(IsRelatedProperty, value);
