@@ -35,6 +35,11 @@ internal sealed partial class AudioSignalAnalyzerWindow : Window
     private CancellationTokenSource? work, rangeWork;
     private bool closed;
     private bool synchronizingSelection;
+    internal async Task OpenRecordedManualAsync(string path)
+    {
+        await Analyze(path);
+        if (!closed && analysis != null) new AudioRegionRecoveryWindow(this,analysis,0,analysis.FrameCount).ShowDialog();
+    }
     internal AudioSignalAnalyzerWindow(Window? owner = null, string? source = null)
     {
         Title = "Visual Media Analysis — WAV / FLAC"; Width = 1200; Height = 850; MinWidth = 850; MinHeight = 650;

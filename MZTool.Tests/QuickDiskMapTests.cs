@@ -501,8 +501,11 @@ public class QuickDiskMapTests
         byte[] selected = Pixels();
         Assert.Equal(new byte[] { 237, 149, 100, 255 }, Pixel(selected, 330, 44)); // blue
         Assert.Equal(Pixel(unselected, 768, 44), Pixel(selected, 768, 44));
-        Assert.True(Pixel(selected, 110, 44)[0] < 40, "Selection has a dark outside border.");
-        Assert.True(Pixel(selected, 111, 44)[0] > 200, "Selection has a bright inside border.");
+        // The primary outline is a 3-pixel DodgerBlue stroke centered at x=110.
+        // Check fully covered pixels on both sides; edge pixels may be antialiased.
+        byte[] outlineBlue = [255, 144, 30, 255]; // Pbgra32: B, G, R, A
+        Assert.Equal(outlineBlue, Pixel(selected, 109, 44));
+        Assert.Equal(outlineBlue, Pixel(selected, 110, 44));
         surfaceType.GetMethod("HighlightFiles", flags)!.Invoke(surface, [new[] { 1 }]);
         Assert.Equal(Pixel(unselected, 768, 44), Pixel(Pixels(), 768, 44));
         surfaceType.GetMethod("Select", flags)!.Invoke(surface, [null]);

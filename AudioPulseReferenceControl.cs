@@ -25,9 +25,10 @@ internal sealed class AudioPulseReferenceControl : Expander
     internal AudioPulseReference? Selected => choice.SelectedItem as AudioPulseReference;
     internal bool ShowGrid => visible.IsChecked == true;
     internal event Action? Changed;
-    internal AudioPulseReferenceControl()
+    internal AudioPulseReferenceControl(bool followSelectedBlock = true)
     {
         Header = "Pulse references / user values (µs)"; Margin = new(4);
+        if(!followSelectedBlock) { follow.IsChecked=false; follow.Visibility=Visibility.Collapsed; }
         var panel = new StackPanel(); Content = panel;
         var selection = new WrapPanel(); panel.Children.Add(selection); selection.Children.Add(visible); selection.Children.Add(follow); selection.Children.Add(choice);
         choice.ItemsSource = references;

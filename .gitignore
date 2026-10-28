@@ -17,6 +17,7 @@ MZTool.Tests/*
 !MZTool.Tests/DskExtendedLengthTests.cs
 !MZTool.Tests/DskCompareTests.cs
 !MZTool.Tests/Mz800IplDskWriterTests.cs
+!MZTool.Tests/Mz800IplDskReaderTests.cs
 !MZTool.Tests/DskHexEditTests.cs
 !MZTool.Tests/DskFilePropertyTests.cs
 !MZTool.Tests/DskPatchTests.cs

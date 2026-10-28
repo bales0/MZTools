@@ -7,12 +7,36 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MZTools", "MZTools.csproj",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MZTool.Tests", "MZTool.Tests\MZTools.Tests.csproj", "{5F8A2317-29DF-4B03-AD26-F624A689187F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MZTools.Capture", "MZTools.Capture\MZTools.Capture.csproj", "{9047FA64-CB95-40BD-97C2-49865D57936B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MZTools.Capture.Tests", "MZTools.Capture.Tests\MZTools.Capture.Tests.csproj", "{BE47FEC1-BDFD-498C-890D-68D71A4C4057}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MZTools.Capture.Windows", "MZTools.Capture.Windows\MZTools.Capture.Windows.csproj", "{ACF16E5A-8F03-4D6E-B9CC-B0349A56EE32}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MZTools.Capture.Windows.Tests", "MZTools.Capture.Windows.Tests\MZTools.Capture.Windows.Tests.csproj", "{1DDF9315-5633-4A9B-9280-524DA397FE69}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{ACF16E5A-8F03-4D6E-B9CC-B0349A56EE32}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ACF16E5A-8F03-4D6E-B9CC-B0349A56EE32}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ACF16E5A-8F03-4D6E-B9CC-B0349A56EE32}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ACF16E5A-8F03-4D6E-B9CC-B0349A56EE32}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1DDF9315-5633-4A9B-9280-524DA397FE69}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1DDF9315-5633-4A9B-9280-524DA397FE69}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1DDF9315-5633-4A9B-9280-524DA397FE69}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1DDF9315-5633-4A9B-9280-524DA397FE69}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9047FA64-CB95-40BD-97C2-49865D57936B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9047FA64-CB95-40BD-97C2-49865D57936B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9047FA64-CB95-40BD-97C2-49865D57936B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9047FA64-CB95-40BD-97C2-49865D57936B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BE47FEC1-BDFD-498C-890D-68D71A4C4057}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BE47FEC1-BDFD-498C-890D-68D71A4C4057}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BE47FEC1-BDFD-498C-890D-68D71A4C4057}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BE47FEC1-BDFD-498C-890D-68D71A4C4057}.Release|Any CPU.Build.0 = Release|Any CPU
 		{BA76DECA-8B8B-449D-AD2C-78D4DFA7FB64}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{BA76DECA-8B8B-449D-AD2C-78D4DFA7FB64}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BA76DECA-8B8B-449D-AD2C-78D4DFA7FB64}.Release|Any CPU.ActiveCfg = Release|Any CPU

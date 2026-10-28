@@ -27,6 +27,22 @@ MZTools provides:
 - standard and extended MZ-800 QuickDisk directory handling,
 - tape profiles, waveform conversion, compression, metadata sidecars and IPL floppy tools.
 
+### Live tape recorder and signal analysis
+
+**Tools → Record Audio / Live Tape Analysis…** opens explicit Monitor/Record/Stop controls,
+live waveform, digital levels and FFT, relative Head alignment with A/B comparison,
+and opt-in pulse timing against the shared reference catalog. Windows input uses
+shared/RAW WASAPI; a synthetic demo works without audio hardware. WAV recording has
+bounded independent archive/preview paths, safe finalization, RIFF segmentation and
+SHA-256 sidecar reports, with links to the existing offline analyzers.
+
+See the [user guide and hardware acceptance procedure](docs/LIVE_TAPE_RECORDER_GUIDE.md),
+[implementation/regression audit](docs/LIVE_TAPE_RECORDER_IMPLEMENTATION.md) and
+[future Avalonia adapter specification](docs/LIVE_TAPE_RECORDER_AVALONIA_ADAPTER.md).
+Physical capture is **NOT TESTED ON HARDWARE**. The full unit-test run passes with
+three documented fixture skips; optional unconfigured branches are listed separately
+in the audit. No absolute head-angle or live decoder acceptance is claimed.
+
 ### Visual audio analysis
 
 **Tools → Analyze Audio (WAV / FLAC)** opens a read-only signal inspector. The audio import summary also has a **Visual analysis** shortcut.

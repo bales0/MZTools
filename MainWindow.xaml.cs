@@ -636,6 +636,12 @@ namespace MZTools
         private void BatchProcess_Click(object sender, RoutedEventArgs e) => new BatchProcessDialog(this).ShowDialog();
 
         private void AnalyzeAudio_Click(object sender, RoutedEventArgs e) => new AudioSignalAnalyzerWindow(this).Show();
+        private void RecordAudio_Click(object sender, RoutedEventArgs e) => new AudioRecorderWindow().Show();
+        internal void ImportRecordedAudio(string path)
+        {
+            AddFile(path,bindAsCurrent:true,selectedAudioImportMode:WavImportMode.Heuristic,
+                selectedAudioReportMode:AudioReportMode.Summary);
+        }
 
         private void RepairDskFile_Click(object sender, RoutedEventArgs e)
         {

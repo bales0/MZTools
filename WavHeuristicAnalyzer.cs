@@ -1,4 +1,4 @@
-﻿using System.Buffers.Binary;
+using System.Buffers.Binary;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -1300,38 +1300,11 @@ namespace MZTools
             }
         }
 
-        private sealed class SignalPreprocessor
+        private sealed class SignalPreprocessor(uint sampleRate)
         {
-            private readonly double dcAlpha;
-            private readonly double highPassAlpha;
-            private readonly double envelopeAttack;
-            private readonly double envelopeRelease;
-            private double dc;
-            private double previousCentered;
-            private double highPassed;
-            private double envelope;
-
-            internal SignalPreprocessor(uint sampleRate)
-            {
-                dcAlpha = 1.0 - Math.Exp(-1.0 / (sampleRate * 0.75));
-                highPassAlpha = Math.Exp(-2.0 * Math.PI * 20.0 / sampleRate);
-                envelopeAttack = 1.0 - Math.Exp(-1.0 / (sampleRate * 0.005));
-                envelopeRelease = 1.0 - Math.Exp(-1.0 / (sampleRate * 0.250));
-            }
-
-            internal (double Filtered, double Threshold) Process(double sample)
-            {
-                dc += (sample - dc) * dcAlpha;
-                double centered = sample - dc;
-                highPassed = highPassAlpha * (highPassed + centered - previousCentered);
-                previousCentered = centered;
-                double magnitude = Math.Abs(highPassed);
-                envelope += (magnitude - envelope) *
-                    (magnitude > envelope ? envelopeAttack : envelopeRelease);
-                return (highPassed, Math.Max(0.0025, envelope * 0.22));
-            }
+            private readonly MZTools.Capture.TapeSignalPreprocessor shared = new(sampleRate);
+            internal (double Filtered, double Threshold) Process(double sample) => shared.Process(sample);
         }
-
         private sealed class PulseDetector
         {
             private readonly Action<bool, long, long, double> emit;
