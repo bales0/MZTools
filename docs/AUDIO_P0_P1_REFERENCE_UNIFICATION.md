@@ -2,6 +2,13 @@
 
 Baseline HEAD: `2e575acc5b6e68f4cfe8f93880c626767ebd5013`. Results below apply to the working tree implementing P0/P1. No source recordings are included in the change.
 
+**Current catalog update, 2026-10-28:** separately approved IC cleanup phase 2 removes
+the three old IC compatibility rows from the active catalog, manual All/Selected
+profiles and comparison UI. There are now 15 built-in comparison references. Exact
+IC writers, IC receiver windows, TC compatibility and FAST3 remain. The original
+P0/P1 counts and IC compatibility descriptions below are retained as history; see
+[the phase-2 audit](IC_PROFILE_NAMING_PHASE2.md).
+
 ## Baseline and fixture availability
 
 Before production changes, 231 targeted audio tests passed. The baseline captured SHA-256 for all 13 existing PWM profiles × WAV/LEP/L16 (39 files). The same 39 outputs after migration match byte for byte; the permanent golden is [export-fingerprints.json](../MZTool.Tests/ReferenceGolden/export-fingerprints.json). The generator uses the existing deterministic MZF test header, body `00 FF 55 AA 01 02 03 04`, default MZ800 machine and default sample rate. It does not regenerate its golden on a normal test run.

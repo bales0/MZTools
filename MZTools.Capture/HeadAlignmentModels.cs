@@ -20,7 +20,12 @@ public sealed record HeadAlignmentOptions
 }
 public sealed record HeadAlignmentChannel(string Channel,bool Assessable,string Quality,double AcRms,double Dc,
     double? HighBandPercent,double? NormalizedSlopePerMs,double? RiseMicroseconds,double? FallMicroseconds,
-    int RiseCount,int FallCount,long ClippedSamples);
+    int RiseCount,int FallCount,long ClippedSamples)
+{
+    public HeadEdgeEvidence? EdgeEvidence { get; init; }
+}
+public sealed record HeadEdgeEvidence(double RiseMadPercent,double FallMadPercent,double BacktrackingFraction,
+    double OvershootFraction,double PositiveFraction,double PlateauFraction,double TransitionsPerSecond);
 public sealed record HeadAlignmentStereo(bool Assessable,string Status,double? ZeroLagCorrelation,
     double? BestCorrelation,double? Coherence,double? DelaySamples,double? DelayMicroseconds,
     double? SignalPhaseDegrees,double? TonePurity,double? PhaseStability,double? LevelDifferenceDb,
@@ -28,7 +33,7 @@ public sealed record HeadAlignmentStereo(bool Assessable,string Status,double? Z
 public sealed record HeadAlignmentMeasurement(AudioCaptureFormat Format,HeadAlignmentOptions Options,long StartFrame,long EndFrame,
     IReadOnlyList<HeadAlignmentChannel> Channels,HeadAlignmentStereo Stereo)
 {
-    public const string Limitation="Relative head alignment assistance — not calibrated angle measurement. Content, EQ and gain affect these indicators.";
+    public const string Limitation="Match playback to this tape recording — relative assistance, not a calibrated head angle. Recorded alignment, content, EQ and gain affect the result.";
     public string Method=>"Hann band energy; P5–P95 10–90% transitions; DC-removed correlation; four non-overlapping Hann coherence segments. Positive delay means Right lags Left; signal phase is R−L modulo one cycle.";
 }
 public sealed record HeadAlignmentContext(string DeviceId,string ProcessingSignature,string PassageId,bool SamePassageConfirmed);

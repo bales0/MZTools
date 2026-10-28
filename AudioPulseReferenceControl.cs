@@ -10,9 +10,9 @@ namespace MZTools;
 
 internal sealed class AudioPulseReferenceControl : Expander
 {
-    private readonly ObservableCollection<AudioPulseReference> references = new(AudioPulseReferences.BuiltIn);
+    private readonly ObservableCollection<AudioPulseReference> references = new(AudioPulseReferences.Choices);
     private readonly ComboBox choice = new() { DisplayMemberPath = "Name", MinWidth = 260, Margin = new(4) };
-    private readonly CheckBox visible = new() { Content = "Show reference grid", IsChecked = true, Margin = new(5), VerticalAlignment = VerticalAlignment.Center };
+    private readonly CheckBox visible = new() { Content = "Show reference markers / guides", IsChecked = true, Margin = new(5), VerticalAlignment = VerticalAlignment.Center };
     private readonly CheckBox follow = new() { Content = "Follow selected block", IsChecked = true, Margin = new(5), VerticalAlignment = VerticalAlignment.Center };
     private bool automaticSelection;
     private AudioBlockAnalysis? block;
@@ -25,9 +25,10 @@ internal sealed class AudioPulseReferenceControl : Expander
     internal AudioPulseReference? Selected => choice.SelectedItem as AudioPulseReference;
     internal bool ShowGrid => visible.IsChecked == true;
     internal event Action? Changed;
+    internal event Action? VisibilityChanged;
     internal AudioPulseReferenceControl(bool followSelectedBlock = true)
     {
-        Header = "Pulse references / user values (µs)"; Margin = new(4);
+        Header = "Pulse references / user values (µs)"; Margin = new(0);
         if(!followSelectedBlock) { follow.IsChecked=false; follow.Visibility=Visibility.Collapsed; }
         var panel = new StackPanel(); Content = panel;
         var selection = new WrapPanel(); panel.Children.Add(selection); selection.Children.Add(visible); selection.Children.Add(follow); selection.Children.Add(choice);
@@ -39,7 +40,7 @@ internal sealed class AudioPulseReferenceControl : Expander
             grid.ItemsSource = PulseReferenceCatalog.Entries.Select(e => new { e.Id,e.Machine,e.Software,e.SoftwareVersion,e.Stage,e.Kind,e.Evidence,e.ClockHz,e.ReceiverMinUs,e.ReceiverMaxUs,e.SourceFile,e.Section,e.Derivation,e.Polarity,e.SupportedUsages,e.Limitations }).ToArray();
             new Window { Title = "Pulse reference catalog — " + PulseReferenceCatalog.Version, Width = 1200, Height = 650, Content = grid, Owner = Window.GetWindow(this), WindowStartupLocation = WindowStartupLocation.CenterOwner }.ShowDialog();
         };
-        panel.Children.Add(source);
+        panel.Children.Add(new Expander { Header="Reference details / source",Content=source,Margin=new(5,0,5,0) });
         guides.Columns.Add(new DataGridTextColumn { Header = "Pulse", Binding = new Binding("Group"), Width = 110 });
         guides.Columns.Add(new DataGridTextColumn { Header = "µs", Binding = new Binding("Microseconds") { StringFormat = "0.###" }, Width = 90 });
         guides.Columns.Add(new DataGridTextColumn { Header = "Context", Binding = new Binding("Context"), Width = new(1, DataGridLengthUnitType.Star) });
@@ -63,7 +64,7 @@ internal sealed class AudioPulseReferenceControl : Expander
             for (int i = 0; i < values.Length; i++) values[i].Text = selected.Guides.FirstOrDefault(g => g.Group == AudioPulseReference.Groups[i])?.Microseconds.ToString("0.###", CultureInfo.CurrentCulture) ?? "";
             Changed?.Invoke();
         };
-        visible.Checked += (_, _) => Changed?.Invoke(); visible.Unchecked += (_, _) => Changed?.Invoke();
+        visible.Checked += (_, _) => VisibilityChanged?.Invoke(); visible.Unchecked += (_, _) => VisibilityChanged?.Invoke();
         follow.Checked += (_, _) => FollowBlock(block);
         add.Click += (_, _) =>
         {
@@ -80,7 +81,7 @@ internal sealed class AudioPulseReferenceControl : Expander
         if (available.Length == 0) return;
         double Difference(AudioPulseReference reference) => available.Sum(d => reference.Guides.Where(g => g.Group == d.Group)
             .Select(g => Math.Abs(g.Microseconds / d.Reference!.Value - 1)).DefaultIfEmpty(10).Min());
-        var match = AudioPulseReferences.BuiltIn.MinBy(Difference);
+        var match = AudioPulseReferences.Choices.OrderBy(r=>block.Profile.StartsWith(r.Name,StringComparison.Ordinal)||block.Profile.StartsWith("IC ",StringComparison.Ordinal)&&r.Name.StartsWith("IC ",StringComparison.Ordinal)?0:1).MinBy(Difference);
         automaticSelection = true;
         try { choice.SelectedItem = match; }
         finally { automaticSelection = false; }

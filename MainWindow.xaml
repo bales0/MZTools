@@ -7,6 +7,9 @@
         mc:Ignorable="d"
         Title="MZTools" Height="600" Width="1320" MinHeight="480" MinWidth="900" Icon="/MZTools;component/images/MZTool.ico"
         AllowDrop="True" DragEnter="Window_DragEnter" DragOver="Window_DragEnter" Drop="Window_Drop" Closing="MainWindow_Closing" PreviewMouseLeftButtonDown="MapBackground_MouseDown">
+    <Window.Resources>
+        <local:TapeLoaderLabelConverter x:Key="TapeLoaderLabel"/>
+    </Window.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -124,7 +127,11 @@
                                       PreviewMouseLeftButtonDown="ProfileComboBox_PreviewMouseLeftButtonDown"
                                       MinWidth="88"
                                       Padding="2,0"
-                                      ToolTip="Ctrl/Shift-select rows to change the profile for all selected records."/>
+                                      ToolTip="{Binding ProfileDescription}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate><TextBlock Text="{Binding Converter={StaticResource TapeLoaderLabel}}"/></DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
@@ -137,7 +144,7 @@
                                       PreviewMouseLeftButtonDown="ProfileComboBox_PreviewMouseLeftButtonDown"
                                       MinWidth="58"
                                       Padding="2,0"
-                                      ToolTip="Ctrl/Shift-select rows to change the profile for all selected records."/>
+                                      ToolTip="{Binding ProfileDescription}"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>

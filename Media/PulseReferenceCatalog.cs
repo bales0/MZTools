@@ -58,10 +58,11 @@ internal static class PulseReferenceCatalog
         }
         Fixed("service800", "MZ800", "MZ-800 service nominal", PulseReferenceKind.ServiceNominal, "OFFICIAL-HW; nominal, not ROM software edges", Rom, "65-comparison-with-sharp-service-values", 240,278,470,494);
         Fixed("service700", "MZ700", "MZ-700 service nominal", PulseReferenceKind.ServiceNominal, "OFFICIAL-HW; nominal; existing writer compatibility default", Rom, "55-why-the-current-mz-700-profile-works", 240,264,464,494);
-        Fixed("ic1200", "MZ800", "Intercopy writer 1200 Bd", PulseReferenceKind.WriterExact, "COPIER-WRITER-EXACT", Copier, "61-1200-bd",234.573,263.894,469.145,494.802,"832/936/1664/1755 T at PAL clock; existing writer rounds to 0.001 µs");
-        Fixed("ic2400", "MZ800", "Intercopy writer 2400 Bd", PulseReferenceKind.WriterExact, "COPIER-WRITER-EXACT", Copier, "62-2400-bd",113.621,139.278,234.573,260.229,"403/494/832/923 T at PAL clock; existing writer rounds to 0.001 µs");
-        Fixed("ic2800", "MZ800", "Intercopy writer 2800 Bd (7:3)", PulseReferenceKind.WriterExact, "COPIER-WRITER-EXACT; project alias 1:3", Copier, "63-2800-bd",87.965,124.617,175.930,223.577,"312/442/624/793 T at PAL clock; existing writer rounds to 0.001 µs");
-        Fixed("ic3200", "MZ800", "Intercopy writer 3200 Bd (8:3)", PulseReferenceKind.WriterExact, "COPIER-WRITER-EXACT; project alias 1:4", Copier, "64-3200-bd",76.969,117.286,157.604,179.595,"273/416/559/637 T at PAL clock; existing writer rounds to 0.001 µs");
+        Fixed("ic1200", "MZ800", TapeProfileNames.IcWriterName(TapeProfile.Ic1_1), PulseReferenceKind.WriterExact, "COPIER-WRITER-EXACT", Copier, "61-1200-bd",234.573,263.894,469.145,494.802,"832/936/1664/1755 T at PAL clock; existing writer rounds to 0.001 µs");
+        Fixed("ic2400", "MZ800", TapeProfileNames.IcWriterName(TapeProfile.Ic1_2), PulseReferenceKind.WriterExact, "COPIER-WRITER-EXACT", Copier, "62-2400-bd",113.621,139.278,234.573,260.229,"403/494/832/923 T at PAL clock; existing writer rounds to 0.001 µs");
+        Fixed("ic2800", "MZ800", TapeProfileNames.IcWriterName(TapeProfile.Ic1_3), PulseReferenceKind.WriterExact, "COPIER-WRITER-EXACT; project alias 1:3", Copier, "63-2800-bd",87.965,124.617,175.930,223.577,"312/442/624/793 T at PAL clock; existing writer rounds to 0.001 µs");
+        Fixed("ic3200", "MZ800", TapeProfileNames.IcWriterName(TapeProfile.Ic1_4), PulseReferenceKind.WriterExact, "COPIER-WRITER-EXACT; project alias 1:4", Copier, "64-3200-bd",76.969,117.286,157.604,179.595,"273/416/559/637 T at PAL clock; existing writer rounds to 0.001 µs");
+        for(int index=entries.Count-4;index<entries.Count;index++) entries[index]=entries[index] with { Stage=TapeProfileNames.IcWriterStage };
         for (int speed = 1; speed <= 3; speed++)
         {
             int count = 480 / speed + 71;
@@ -72,9 +73,6 @@ internal static class PulseReferenceCatalog
                 "SHORT_COUNT=floor(480/ratio)+71; MODE3 ceil/floor halves; LONG_COUNT=2*SHORT_COUNT; polling ≈25 PAL T");
             entries[^1] = entries[^1] with { ClockHz = TcClockMhz * 1e6, Writer = timing };
         }
-        Fixed("iccompat2", "MZ800", "IC 1:2 compatibility waveform", PulseReferenceKind.ProjectCompatibility,"PROJECT-COMPAT; not receiver decision timing",Copier,"8-intercopy-ic-loader--receiver-timing-is-not-the-writer-waveform",144,112,256,224);
-        Fixed("iccompat3", "MZ800", "IC 1:3 compatibility waveform", PulseReferenceKind.ProjectCompatibility,"PROJECT-COMPAT; not receiver decision timing",Copier,"8-intercopy-ic-loader--receiver-timing-is-not-the-writer-waveform",112,96,224,192);
-        Fixed("iccompat4", "MZ800", "IC 1:4 compatibility waveform", PulseReferenceKind.ProjectCompatibility,"PROJECT-COMPAT; not receiver decision timing",Copier,"8-intercopy-ic-loader--receiver-timing-is-not-the-writer-waveform",112,80,176,160);
         Fixed("tccompat2", "MZ800", "TC 1:2 compatibility waveform", PulseReferenceKind.ProjectCompatibility,"PROJECT-COMPAT; not timer OUT0 or receiver decision timing",Copier,"19-turbocopy-current-project-waveform-vs-writer-reference",144,144,288,288);
         Fixed("tccompat3", "MZ800", "TC 1:3 compatibility waveform", PulseReferenceKind.ProjectCompatibility,"PROJECT-COMPAT; not timer OUT0 or receiver decision timing",Copier,"19-turbocopy-current-project-waveform-vs-writer-reference",112,112,204,204);
         Fixed("fast3", "MZ700", "MZ-700 FAST3 compatibility waveform", PulseReferenceKind.ProjectCompatibility,"PROJECT-COMPAT; not receiver decision timing",Rom,"93-fast3-current-pwm-and-margins",80,80,160,160);

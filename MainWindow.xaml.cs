@@ -38,6 +38,7 @@ public class MzfDisplayData : INotifyPropertyChanged
     public string Compression { get; set; } = string.Empty;
 
     public IReadOnlyList<string> LoaderTypes => MZTools.TapeProfileComponents.LoaderTypes;
+    public string ProfileDescription => MZTools.TapeProfileNames.Description(MZTools.TapeProfileComponents.Combine(loaderType,speed))+"\nCtrl/Shift-select rows to apply the profile to all selected records.";
 
     public string LoaderType
     {
@@ -53,6 +54,7 @@ public class MzfDisplayData : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(AvailableSpeeds));
             OnPropertyChanged(nameof(Speed));
+            OnPropertyChanged(nameof(ProfileDescription));
         }
     }
 
@@ -71,6 +73,7 @@ public class MzfDisplayData : INotifyPropertyChanged
             }
             speed = normalized;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(ProfileDescription));
         }
     }
 
@@ -80,6 +83,7 @@ public class MzfDisplayData : INotifyPropertyChanged
         OnPropertyChanged(nameof(LoaderType));
         OnPropertyChanged(nameof(AvailableSpeeds));
         OnPropertyChanged(nameof(Speed));
+        OnPropertyChanged(nameof(ProfileDescription));
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -90,6 +94,11 @@ public class MzfDisplayData : INotifyPropertyChanged
 
 namespace MZTools
 {
+    public sealed class TapeLoaderLabelConverter : IValueConverter
+    {
+        public object Convert(object value,Type targetType,object parameter,System.Globalization.CultureInfo culture)=>value is string key?TapeProfileNames.LoaderDisplayName(key):value;
+        public object ConvertBack(object value,Type targetType,object parameter,System.Globalization.CultureInfo culture)=>Binding.DoNothing;
+    }
     internal static class ListReorder
     {
         internal static bool MoveItems<T>(IList<T> items, IEnumerable<int> sourceIndices, int insertionIndex)
@@ -131,7 +140,7 @@ namespace MZTools
     internal static class FeatureModePolicy
     {
         public static string GetOpenFilter() =>
-            "All supported files|*.mzt;*.mzf;*.m12;*.mz0;*.mz7;*.mzq;*.qdf;*.qd;*.dsk;*.hfe;*.lep;*.l16;*.wav;*.flac|Quickdisk image (*.qd)|*.qd|MZ-800 IPL floppy (*.dsk)|*.dsk|HFE physical floppy (*.hfe)|*.hfe|Quickdisk file (*.mzq)|*.mzq|Multiple files tape (*.mzt)|*.mzt|Single tape file (*.mzf;*.m12;*.mz0;*.mz7)|*.mzf;*.m12;*.mz0;*.mz7|Quickdisk file (*.qdf)|*.qdf|LEP pulse file (*.lep)|*.lep|L16 pulse file (*.l16)|*.l16|Wave audio (*.wav)|*.wav|FLAC audio (*.flac)|*.flac|All files (*.*)|*.*";
+            "All supported files|*.mzt;*.mzf;*.m12;*.mz0;*.mz7;*.mzq;*.qdf;*.qd;*.dsk;*.hfe;*.lep;*.l16;*.wav;*.flac;*.wav.json|Quickdisk image (*.qd)|*.qd|MZ-800 IPL floppy (*.dsk)|*.dsk|HFE physical floppy (*.hfe)|*.hfe|Quickdisk file (*.mzq)|*.mzq|Multiple files tape (*.mzt)|*.mzt|Single tape file (*.mzf;*.m12;*.mz0;*.mz7)|*.mzf;*.m12;*.mz0;*.mz7|Quickdisk file (*.qdf)|*.qdf|LEP pulse file (*.lep)|*.lep|L16 pulse file (*.l16)|*.l16|Wave audio (*.wav)|*.wav|FLAC audio (*.flac)|*.flac|Segmented recording (*.wav.json)|*.wav.json|All files (*.*)|*.*";
 
         public static string GetSaveFilter() =>
             "Quickdisk file (*.qdf)|*.qdf|Quickdisk file (*.mzq)|*.mzq|Quickdisk image - HxC (*.qd)|*.qd|Quickdisk image - FlashFloppy (*.qd)|*.qd|Quickdisk image - Sharp/MZ legacy (*.qd)|*.qd|Multiple files tape (*.mzt)|*.mzt|Single tape file (*.mzf)|*.mzf|Single tape file (*.m12)|*.m12|All files (*.*)|*.*";
@@ -636,7 +645,7 @@ namespace MZTools
         private void BatchProcess_Click(object sender, RoutedEventArgs e) => new BatchProcessDialog(this).ShowDialog();
 
         private void AnalyzeAudio_Click(object sender, RoutedEventArgs e) => new AudioSignalAnalyzerWindow(this).Show();
-        private void RecordAudio_Click(object sender, RoutedEventArgs e) => new AudioRecorderWindow().Show();
+        private void RecordAudio_Click(object sender, RoutedEventArgs e) => new AudioRecorderWindow { Owner=this,WindowStartupLocation=WindowStartupLocation.CenterOwner }.Show();
         internal void ImportRecordedAudio(string path)
         {
             AddFile(path,bindAsCurrent:true,selectedAudioImportMode:WavImportMode.Heuristic,
@@ -2347,9 +2356,11 @@ namespace MZTools
                 return false;
             }
             string fileExtension = System.IO.Path.GetExtension(filePath).ToLowerInvariant();
-            WavImportMode wavImportMode = selectedAudioImportMode ?? WavImportMode.Standard;
+            bool joinedAudio=SegmentedPcmStreamReader.IsManifest(filePath);
+            bool audioInput=fileExtension is ".wav" or ".flac" || joinedAudio;
+            WavImportMode wavImportMode = selectedAudioImportMode ?? (joinedAudio?WavImportMode.Heuristic:WavImportMode.Standard);
             AudioReportMode wavReportMode = selectedAudioReportMode ?? AudioReportMode.Summary;
-            if ((fileExtension is ".wav" or ".flac") &&
+            if (audioInput && !joinedAudio &&
                 !selectedAudioImportMode.HasValue)
             {
                 string sourceFormat = fileExtension == ".flac" ? "FLAC" : "WAV";
@@ -2442,9 +2453,9 @@ namespace MZTools
                     containerTrailing = result.ContainerTrailingData;
                     loadedSidecar = SidecarService.LoadForMzt(filePath, recordsToAdd);
                 }
-                else if (fileExtension is ".wav" or ".flac" or ".lep" or ".l16")
+                else if (audioInput || fileExtension is ".lep" or ".l16")
                 {
-                    if (fileExtension is ".wav" or ".flac")
+                    if (audioInput)
                     {
                         audioImportResult = ImportAudioFile(
                             filePath,
@@ -2534,7 +2545,7 @@ namespace MZTools
             }
             catch (Exception ex)
             {
-                if ((fileExtension is ".wav" or ".flac") && audioResultSink != null && !audioResultReported)
+                if (audioInput && audioResultSink != null && !audioResultReported)
                 {
                     audioResultSink(audioImportResult ?? new AudioFileImportResult
                     {
@@ -2544,7 +2555,7 @@ namespace MZTools
                         ReportMode = wavReportMode
                     });
                 }
-                if (!deferAudioErrors || fileExtension is not (".wav" or ".flac"))
+                if (!deferAudioErrors || !audioInput)
                 {
                     MessageBox.Show(ex.Message, "Error reading file", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
@@ -2955,8 +2966,11 @@ namespace MZTools
             return true;
         }
 
-        private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
+        private bool recorderCloseInProgress,recorderClosePrepared;
+        private async void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
+            if(recorderClosePrepared) return;
+            if(recorderCloseInProgress) { e.Cancel=true; return; }
             if (dskEditorControl.Visibility == Visibility.Visible && !dskEditorControl.TryCloseDocument())
             {
                 e.Cancel = true;
@@ -2965,7 +2979,25 @@ namespace MZTools
             if (dskEditorControl.Visibility != Visibility.Visible && !TryCloseTapeDocument())
             {
                 e.Cancel = true;
+                return;
             }
+            var recorders=OwnedWindows.OfType<AudioRecorderWindow>().ToArray();
+            if(recorders.Length==0) return;
+            e.Cancel=true; recorderCloseInProgress=true;
+            bool wasEnabled=IsEnabled; IsEnabled=false;
+            try
+            {
+                await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background);
+                foreach(var recorder in recorders)
+                {
+                    if(!await recorder.PrepareToCloseAsync()) return;
+                    if(recorder.IsVisible) recorder.Close();
+                }
+                recorderClosePrepared=true;
+                Close();
+            }
+            catch(Exception error) { MessageBox.Show(this,"Cannot finish closing the recorder: "+error.Message,"Audio capture",MessageBoxButton.OK,MessageBoxImage.Error); }
+            finally { recorderClosePrepared=false; recorderCloseInProgress=false; IsEnabled=wasEnabled; }
         }
 
         private bool TryChooseNewQuickDiskFormat(out TapeDocumentFormat format)

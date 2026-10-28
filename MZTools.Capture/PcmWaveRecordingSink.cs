@@ -31,6 +31,8 @@ public sealed class PcmWaveRecordingSink : IAudioRecordingSink, ICaptureSessionR
         Converters = { new JsonStringEnumConverter() }
     };
     public AudioRecordingResult? RecordingResult => Volatile.Read(ref result);
+    private int DataOffset=>RiffWaveLayout.DataOffset(conversion!.Output,options.PreserveNativeFormat);
+    private byte[] Header(long frames)=>RiffWaveLayout.Header(conversion!.Output,frames,options.PreserveNativeFormat);
 
     public PcmWaveRecordingSink(WaveRecordingOptions options, IAudioRecordingStorage? storage = null)
     {
@@ -44,11 +46,11 @@ public sealed class PcmWaveRecordingSink : IAudioRecordingSink, ICaptureSessionR
         ObjectDisposedException.ThrowIf(disposed, this);
         if (started) throw new InvalidOperationException("Recording sink already started.");
         cancellationToken.ThrowIfCancellationRequested();
-        conversion = AudioPcmQuantizer.Plan(stream.ActualFormat, options.AllowPcm24Conversion);
+        conversion = AudioPcmQuantizer.Plan(stream.ActualFormat, options.AllowPcm24Conversion,options.PreserveNativeFormat);
         if (options.RequireAnalyzerCompatibleRate && !RiffWaveLayout.AnalyzerSupportsRate(conversion.Output.SampleRate))
             throw new NotSupportedException("Choose a sample rate supported by the existing analyzer: 22050, 44100, 48000, 88200 or 96000 Hz. Recording never resamples.");
-        capacity = RiffWaveLayout.FrameCapacity(conversion.Output, options.SegmentDataLimit);
-        _ = RiffWaveLayout.Header(conversion.Output,0); // Validate byte rate before any file is created.
+        capacity = RiffWaveLayout.FrameCapacity(conversion.Output, options.SegmentDataLimit,options.PreserveNativeFormat);
+        _ = Header(0); // Validate byte rate before any file is created.
         target = Path.GetFullPath(options.DestinationPath);
         if (!string.Equals(Path.GetExtension(target),".wav",StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("Choose a WAV destination.");
         if (storage.Exists(target) || storage.Exists(target + ".json")) throw new IOException("The recording or sidecar destination already exists. Choose a new name.");
@@ -130,7 +132,7 @@ public sealed class PcmWaveRecordingSink : IAudioRecordingSink, ICaptureSessionR
         current = stream; currentTemporary = temporary; currentTarget = destination; currentFirstFrame = nextFrame; currentFrames = 0; currentError = null;
         currentPcmHash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256); currentHashedFrames = 0;
         if (!stream.CanSeek || !stream.CanRead || !stream.CanWrite) throw new IOException("Recording storage must be readable, writable and seekable.");
-        await stream.WriteAsync(RiffWaveLayout.Header(conversion!.Output,0),token).ConfigureAwait(false);
+        await stream.WriteAsync(Header(0),token).ConfigureAwait(false);
         await stream.FlushAsync(token).ConfigureAwait(false); storage.FlushToDisk(stream);
     }
 
@@ -156,7 +158,7 @@ public sealed class PcmWaveRecordingSink : IAudioRecordingSink, ICaptureSessionR
             await using (var repair = storage.OpenExisting(path))
             {
                 fileBytes = repair.Length;
-                long stored = Math.Max(0,repair.Length-44);
+                long stored = Math.Max(0,repair.Length-DataOffset);
                 if (stored > capacity*conversion!.Output.BlockAlign) throw new InvalidDataException("Stored audio exceeds the RIFF segment boundary.");
                 int align = conversion!.Output.BlockAlign;
                 frames = stored/align; dataBytes = frames*align;
@@ -164,19 +166,19 @@ public sealed class PcmWaveRecordingSink : IAudioRecordingSink, ICaptureSessionR
                 if (fragmentBytes > 0)
                 {
                     // Preserve every acquired byte in place. A final incomplete frame is outside the declared PCM data.
-                    byte[] fragment = new byte[fragmentBytes]; repair.Position = 44+dataBytes;
+                    byte[] fragment = new byte[fragmentBytes]; repair.Position = DataOffset+dataBytes;
                     await repair.ReadExactlyAsync(fragment).ConfigureAwait(false); trailing = Convert.ToHexString(fragment);
                     partial = true; damaged = true;
                     currentError ??= "Trailing incomplete PCM frame preserved after declared audio; see trailingPartialFrameHex.";
                 }
-                byte[] header = RiffWaveLayout.Header(conversion.Output,frames);
+                byte[] header = Header(frames);
                 repair.Position = 0; await repair.WriteAsync(header).ConfigureAwait(false);
-                long minimumLength = 44+dataBytes+(dataBytes&1);
+                long minimumLength = DataOffset+dataBytes+(dataBytes&1);
                 if (repair.Length < minimumLength)
                 { repair.Position = repair.Length; await repair.WriteAsync(new byte[(int)(minimumLength-repair.Length)]).ConfigureAwait(false); }
                 await repair.FlushAsync().ConfigureAwait(false); storage.FlushToDisk(repair);
                 fileBytes = repair.Length;
-                repair.Position = 0; byte[] actualHeader = new byte[44]; await repair.ReadExactlyAsync(actualHeader).ConfigureAwait(false);
+                repair.Position = 0; byte[] actualHeader = new byte[DataOffset]; await repair.ReadExactlyAsync(actualHeader).ConfigureAwait(false);
                 if (!actualHeader.AsSpan().SequenceEqual(header)) throw new IOException("WAV header verification failed.");
                 finalized = true;
             }
@@ -202,10 +204,10 @@ public sealed class PcmWaveRecordingSink : IAudioRecordingSink, ICaptureSessionR
             try
             {
                 await using var stream = storage.OpenRead(segment.Path);
-                byte[] header = new byte[44]; await stream.ReadExactlyAsync(header).ConfigureAwait(false);
-                if (stream.Length != segment.FileBytes || !header.AsSpan().SequenceEqual(RiffWaveLayout.Header(conversion!.Output,segment.Frames)))
+                byte[] header = new byte[DataOffset]; await stream.ReadExactlyAsync(header).ConfigureAwait(false);
+                if (stream.Length != segment.FileBytes || !header.AsSpan().SequenceEqual(Header(segment.Frames)))
                 { segments[i] = segment with { HeaderFinalized = false }; throw new IOException("A closed recording segment changed before verification: " + segment.Path); }
-                var hashes = await HashFileAsync(stream,segment.DataBytes).ConfigureAwait(false);
+                var hashes = await HashFileAsync(stream,segment.DataBytes,DataOffset).ConfigureAwait(false);
                 bool? matches = expectedPcmHashes[i] == null ? null : hashes.Pcm == expectedPcmHashes[i];
                 segments[i] = segment with { FileSha256 = hashes.File, PcmSha256 = hashes.Pcm, PcmMatchesWrittenBytes = matches };
                 if (matches == false) throw new IOException("Recorded PCM differs from the successfully written stream: " + segment.Path);
@@ -219,7 +221,7 @@ public sealed class PcmWaveRecordingSink : IAudioRecordingSink, ICaptureSessionR
         if (failure != null) throw new IOException("Recording read-back verification failed; files retained.",failure);
     }
 
-    private static async Task<(string File,string Pcm)> HashFileAsync(Stream stream,long dataBytes)
+    private static async Task<(string File,string Pcm)> HashFileAsync(Stream stream,long dataBytes,int dataOffset)
     {
         using var file = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         using var pcm = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
@@ -228,8 +230,8 @@ public sealed class PcmWaveRecordingSink : IAudioRecordingSink, ICaptureSessionR
         while ((count = await stream.ReadAsync(buffer).ConfigureAwait(false)) > 0)
         {
             file.AppendData(buffer,0,count);
-            int from = (int)Math.Clamp(44-position,0,count);
-            int to = (int)Math.Clamp(44+dataBytes-position,0,count);
+            int from = (int)Math.Clamp(dataOffset-position,0,count);
+            int to = (int)Math.Clamp(dataOffset+dataBytes-position,0,count);
             if (to > from) pcm.AppendData(buffer,from,to-from);
             position += count;
         }
@@ -251,7 +253,7 @@ public sealed class PcmWaveRecordingSink : IAudioRecordingSink, ICaptureSessionR
             completed && sourceDigest != null && !damaged && sourceFrames == saved,saturated,Array.AsReadOnly(segments.ToArray()),
             RecordingResult?.SidecarFinalized == true ? target + ".json" : sidecarTemporary,
             RecordingResult?.SidecarFinalized == true,
-            saved > 0 && segments.All(s => s.HeaderFinalized) && RiffWaveLayout.AnalyzerSupportsRate(conversion.Output.SampleRate),
+            saved > 0 && segments.All(s => s.HeaderFinalized) && RiffWaveLayout.AnalyzerSupports(conversion.Output,options.PreserveNativeFormat),
             Array.AsReadOnly(errors.ToArray())));
     }
 
@@ -296,4 +298,108 @@ public sealed class PcmWaveRecordingSink : IAudioRecordingSink, ICaptureSessionR
 
     private static string TemporarySibling(string destination,string suffix) => Path.Combine(Path.GetDirectoryName(destination)!,
         "." + Path.GetFileName(destination) + "." + Guid.NewGuid().ToString("N") + suffix);
+}
+
+/// <summary>Records beside the destination; replaces an approved recording only after verified completion.</summary>
+internal sealed class ReplacementRecordingSink : IAudioRecordingSink, ICaptureSessionReportSink
+{
+    private readonly WaveRecordingOptions options;
+    private readonly string destination,staging;
+    private readonly Dictionary<string,string> approved;
+    private readonly object publication=new();
+    private PcmWaveRecordingSink? writer;
+    private AudioRecordingResult? published;
+    private bool suppressed;
+    internal bool Committed { get; private set; }
+    public AudioRecordingResult? RecordingResult => published??writer?.RecordingResult;
+    private static StringComparer Paths=>OperatingSystem.IsWindows()?StringComparer.OrdinalIgnoreCase:StringComparer.Ordinal;
+    private static readonly JsonSerializerOptions json=new() { WriteIndented=true,PropertyNamingPolicy=JsonNamingPolicy.CamelCase,Converters={new JsonStringEnumConverter()} };
+    internal ReplacementRecordingSink(WaveRecordingOptions options)
+    {
+        this.options=options; destination=Path.GetFullPath(options.DestinationPath);
+        staging=Path.Combine(Path.GetDirectoryName(destination)!,"."+Path.GetFileNameWithoutExtension(destination)+"."+Guid.NewGuid().ToString("N")+".replacement.wav");
+        approved=new(Paths);
+        void Add(string path) { if(Directory.Exists(path)) throw new IOException("Destination is a directory: "+path); if(File.Exists(path)) approved[path]=Hash(path); }
+        Add(destination); Add(destination+".json");
+        if(File.Exists(destination+".json"))
+        {
+            try
+            {
+                using var document=JsonDocument.Parse(File.ReadAllBytes(destination+".json"));
+                var root=document.RootElement;
+                if(root.TryGetProperty("schema",out var schema)&&schema.GetString()=="mztools-live-capture-v1"&&root.TryGetProperty("recording",out var recording)&&recording.TryGetProperty("segments",out var segments))
+                {
+                    int index=0;
+                    foreach(var segment in segments.EnumerateArray())
+                    {
+                        string expected=Target(index++);
+                        if(segment.TryGetProperty("path",out var path)&&path.ValueKind==JsonValueKind.String&&Paths.Equals(Path.GetFullPath(path.GetString()!),expected)) Add(expected);
+                    }
+                }
+            }
+            catch(JsonException) { /* Non-MZTools sidecar: consent covers the chosen WAV/JSON only. */ }
+        }
+    }
+    private string Target(int index)=>index==0?destination:Path.Combine(Path.GetDirectoryName(destination)!,Path.GetFileNameWithoutExtension(destination)+"_"+(index+1).ToString("D3",System.Globalization.CultureInfo.InvariantCulture)+".wav");
+    private static string Hash(string path) { using var file=File.OpenRead(path); return Convert.ToHexString(SHA256.HashData(file)); }
+    internal void SuppressReplacement()
+    {
+        lock(publication) { if(Committed) throw new InvalidOperationException("Recording has already been saved; it cannot be cancelled as an active replacement."); suppressed=true; }
+    }
+    public ValueTask StartAsync(AudioCaptureStreamInfo stream,CancellationToken token=default)
+    { writer=new(options with { DestinationPath=staging }); return writer.StartAsync(stream,token); }
+    public ValueTask ConsumeAsync(CapturedAudioChunk chunk,CancellationToken token=default)=>writer!.ConsumeAsync(chunk,token);
+    public ValueTask CompleteAsync(CaptureCompletion completion,CancellationToken token=default)=>writer!.CompleteAsync(completion,token);
+    public ValueTask DisposeAsync()=>writer?.DisposeAsync()??ValueTask.CompletedTask;
+    public async ValueTask WriteSessionReportAsync(CaptureSessionReport report,CancellationToken token=default)
+    {
+        if(writer==null) return;
+        await writer.WriteSessionReportAsync(report,token).ConfigureAwait(false);
+        var result=writer.RecordingResult;
+        if(report.Integrity!=CaptureIntegrity.Complete||report.Reason is not (CaptureEndReason.Stopped or CaptureEndReason.SourceCompleted)||result is not { SavedFrames:>0,SidecarFinalized:true }||result.Segments.Any(s=>!s.Published||!s.HeaderFinalized||s.PcmMatchesWrittenBytes!=true)) return;
+        await Task.Run(()=>Publish(result),CancellationToken.None).ConfigureAwait(false);
+    }
+    private void Publish(AudioRecordingResult result)
+    {
+        lock(publication)
+        {
+            if(suppressed||Committed) return;
+            var rewritten=result with { Segments=Array.AsReadOnly(result.Segments.Select((s,i)=>s with { Path=Target(i) }).ToArray()),SidecarPath=destination+".json" };
+            var moves=result.Segments.Select((s,i)=>(Source:s.Path,Target:Target(i))).Append((Source:result.SidecarPath!,Target:destination+".json")).ToArray();
+            foreach(var old in approved)
+                if(!File.Exists(old.Key)||Hash(old.Key)!=old.Value) throw new IOException("Original recording changed during capture; replacement retained separately: "+old.Key);
+            foreach(var move in moves)
+                if(Directory.Exists(move.Target)||File.Exists(move.Target)&&!approved.ContainsKey(move.Target)) throw new IOException("Unapproved destination appeared; replacement retained separately: "+move.Target);
+            foreach(var segment in result.Segments)
+                if(Hash(segment.Path)!=segment.FileSha256) throw new IOException("Replacement PCM file changed before publication: "+segment.Path);
+            byte[] originalJson=File.ReadAllBytes(result.SidecarPath!);
+            var document=System.Text.Json.Nodes.JsonNode.Parse(originalJson)!.AsObject();
+            document["recording"]=JsonSerializer.SerializeToNode(rewritten,json);
+            var backups=new List<(string Original,string Backup)>(); var installed=new List<(string Source,string Target)>();
+            try
+            {
+                using(var file=new FileStream(result.SidecarPath!,FileMode.Truncate,FileAccess.Write))
+                { JsonSerializer.Serialize(file,document,json); file.Flush(true); }
+                foreach(var old in approved.Keys)
+                {
+                    string backup=old+"."+Guid.NewGuid().ToString("N")+".previous";
+                    File.Move(old,backup); backups.Add((old,backup));
+                }
+                foreach(var move in moves) { File.Move(move.Source,move.Target); installed.Add(move); }
+                published=rewritten; Committed=true;
+            }
+            catch(Exception failure)
+            {
+                var errors=new List<string>();
+                foreach(var move in installed.AsEnumerable().Reverse())
+                    try { File.Move(move.Target,move.Source); } catch(Exception error) { errors.Add(move.Target+": "+error.Message); }
+                foreach(var old in backups.AsEnumerable().Reverse())
+                    try { File.Move(old.Backup,old.Original); } catch(Exception error) { errors.Add("Original retained at "+old.Backup+": "+error.Message); }
+                try { File.WriteAllBytes(result.SidecarPath!,originalJson); } catch(Exception error) { errors.Add(error.Message); }
+                throw new IOException("Could not replace recording. New data retained at "+staging+". "+string.Join("; ",errors),failure);
+            }
+            foreach(var old in backups)
+                try { File.Delete(old.Backup); } catch(IOException) { /* Retain backup if external access prevents cleanup. */ } catch(UnauthorizedAccessException) { }
+        }
+    }
 }

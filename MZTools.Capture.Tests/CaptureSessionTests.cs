@@ -64,6 +64,66 @@ public class CaptureSessionTests
         Assert.Equal(1, device.StopCalls); Assert.Equal(1, device.DisposeCalls);
     }
 
+    [Theory]
+    [InlineData("stop",false)]
+    [InlineData("stop",true)]
+    [InlineData("cancel",false)]
+    [InlineData("cancel",true)]
+    [InlineData("dispose",false)]
+    [InlineData("dispose",true)]
+    public async Task StopBeforeNativeStartReturns_CannotPublishSuccessAndDrainsAcceptedPcm(string action,bool recording)
+    {
+        using var folder=new RecordingTestFolder(); using var cancellation=new CancellationTokenSource();
+        var backend=new ManualBackend(); await using var controller=Create(backend);
+        var consumer=new MemorySink(); byte[] payload=[11,22,33,44]; Task? stopWait=null;
+        backend.DuringStart=device=>
+        {
+            // Deliberately ignore cancellation and return successfully, like a native
+            // initialization call which has no managed cancellation checkpoint.
+            device.Emit(payload,new(0,2,0));
+            if(action=="stop") stopWait=controller.StopAsync();
+            else if(action=="dispose") stopWait=controller.DisposeAsync().AsTask();
+            else cancellation.Cancel();
+        };
+        var sink=recording?new PcmWaveRecordingSink(new(folder.PathFor("start-stop.wav"))):null;
+        var start=controller.StartAsync(sink,consumer,cancellation.Token);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(()=>start.WaitAsync(Timeout));
+        var report=await controller.Completion!.WaitAsync(Timeout);
+        if(stopWait!=null) await stopWait.WaitAsync(Timeout);
+        Assert.True(start.IsCanceled);
+        Assert.Equal(action=="cancel"?CaptureEndReason.Cancelled:CaptureEndReason.Stopped,report.Reason);
+        Assert.Equal(action=="dispose"?CaptureSessionState.Disposed:CaptureSessionState.Completed,controller.State);
+        Assert.Equal(1,backend.Last!.StopCalls); Assert.Equal(1,backend.Last.DisposeCalls);
+        Assert.Equal(0,backend.Last.DataSubscribers); Assert.Equal(0,report.Statistics.LeasedBuffers);
+        Assert.Equal(payload,consumer.Bytes); Assert.Equal(1,consumer.DisposeCalls);
+        if(recording)
+        {
+            Assert.True(report.SinkFinalized); Assert.Equal(CaptureIntegrity.Complete,report.Integrity);
+            Assert.Equal(2,report.Statistics.WrittenFrames);
+            Assert.True(report.Recording!.SidecarFinalized);
+            var segment=Assert.Single(report.Recording.Segments);
+            Assert.True(segment.HeaderFinalized); Assert.True(segment.Published); Assert.True(segment.PcmMatchesWrittenBytes);
+            Assert.Equal(payload,File.ReadAllBytes(segment.Path).AsSpan(44).ToArray());
+        }
+        else { Assert.Null(report.Recording); Assert.Equal(CaptureIntegrity.NotRecorded,report.Integrity); }
+    }
+
+    [Theory]
+    [InlineData(CaptureEndReason.SourceCompleted)]
+    [InlineData(CaptureEndReason.DeviceLost)]
+    public async Task BackendEndsInsideStart_FiniteCompletionSucceedsButFailureDoesNot(CaptureEndReason reason)
+    {
+        var backend=new ManualBackend { DuringStart=device=>device.Finish(reason) };
+        await using var controller=Create(backend);
+        var start=controller.StartAsync();
+        if(reason==CaptureEndReason.SourceCompleted) await start.WaitAsync(Timeout);
+        else await Assert.ThrowsAnyAsync<Exception>(()=>start.WaitAsync(Timeout));
+        var report=await controller.Completion!.WaitAsync(Timeout);
+        Assert.Equal(reason,report.Reason);
+        Assert.Equal(reason==CaptureEndReason.SourceCompleted?CaptureSessionState.Completed:CaptureSessionState.Failed,controller.State);
+        Assert.Equal(1,backend.Last!.StopCalls); Assert.Equal(1,backend.Last.DisposeCalls);
+    }
+
     [Fact]
     public async Task CancellationAfterStart_StopsWithoutDiscardingAcceptedFrames()
     {
@@ -292,6 +352,7 @@ internal sealed class ManualBackend : IAudioCaptureBackend
     internal readonly TaskCompletionSource OpenEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
     internal readonly TaskCompletionSource<ManualStream> Created = new(TaskCreationOptions.RunContinuationsAsynchronously);
     internal bool HoldOpen, HoldStart, OpenFailure;
+    internal Action<ManualStream>? DuringStart;
     internal int OpenCalls, ErrorsOnStop;
     internal AudioCaptureFormat? ActualFormat;
     internal ManualStream? Last;
@@ -317,7 +378,7 @@ internal sealed class ManualBackend : IAudioCaptureBackend
         internal void Emit(byte[] data, AudioCapturePacket packet) => DataAvailable?.Invoke(data,packet);
         internal void Finish(CaptureEndReason reason = CaptureEndReason.SourceCompleted) => Stopped?.Invoke(new(reason));
         public async ValueTask StartAsync(CancellationToken cancellationToken = default)
-        { StartEntered.TrySetResult(); if (backend.HoldStart) await Task.Delay(System.Threading.Timeout.InfiniteTimeSpan,cancellationToken); }
+        { StartEntered.TrySetResult(); backend.DuringStart?.Invoke(this); if (backend.HoldStart) await Task.Delay(System.Threading.Timeout.InfiniteTimeSpan,cancellationToken); }
         public ValueTask StopAsync(CancellationToken cancellationToken = default)
         { StopCalls++; for(int i=0;i<backend.ErrorsOnStop;i++) Finish(CaptureEndReason.BackendError); return ValueTask.CompletedTask; }
         public ValueTask DisposeAsync() { DisposeCalls++; return ValueTask.CompletedTask; }

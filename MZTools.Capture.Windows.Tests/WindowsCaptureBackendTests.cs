@@ -10,6 +10,116 @@ public class WindowsCaptureBackendTests
     private static TimeSpan Timeout => TimeSpan.FromSeconds(10);
 
     [Fact]
+    public async Task ReplacementRollback_RestoresOriginalWaveIfSidecarCannotBeMoved()
+    {
+        string directory=Path.Combine(Path.GetTempPath(),"mztools-replace-"+Guid.NewGuid().ToString("N")); Directory.CreateDirectory(directory);
+        try
+        {
+            string path=Path.Combine(directory,"original.wav"); var platform=new FakeWindowsPlatform(); await using var model=new AudioRecorderViewModel();
+            var backend=new WindowsAudioCaptureBackend(platform); var request=new AudioCaptureRequest("input",Format);
+            await model.StartAsync(backend,request,new(path)); platform.Last!.Emit([1,2,3,4],AudioClientBufferFlags.None,0,0); await model.StopAsync();
+            byte[] wave=File.ReadAllBytes(path),json=File.ReadAllBytes(path+".json");
+            await model.StartAsync(backend,request,new(path),overwrite:true); platform.Last!.Emit([5,6,7,8],AudioClientBufferFlags.None,0,0);
+            using(var locked=new FileStream(path+".json",FileMode.Open,FileAccess.Read,FileShare.Read))
+            {
+                var report=await model.StopAsync(); Assert.Equal(CaptureIntegrity.Incomplete,report!.Integrity);
+                Assert.Equal(wave,File.ReadAllBytes(path)); Assert.Equal(json,File.ReadAllBytes(path+".json"));
+                Assert.All(report.Recording!.Segments,s=>Assert.True(File.Exists(s.Path)));
+            }
+        }
+        finally { foreach(string path in Directory.GetFiles(directory)) File.Delete(path); Directory.Delete(directory); }
+    }
+
+    [Fact]
+    public async Task DiscardLockedSegment_RemainsRetryableAndCannotStartOverPendingDeletion()
+    {
+        string directory=Path.Combine(Path.GetTempPath(),"mztools-discard-"+Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            string path=Path.Combine(directory,"locked.wav"); var platform=new FakeWindowsPlatform();
+            await using var model=new AudioRecorderViewModel();
+            await model.StartAsync(new WindowsAudioCaptureBackend(platform),new("input",Format),new(path) { SegmentDataLimit=4 });
+            platform.Last!.Emit([1,2,3,4,5,6,7,8],AudioClientBufferFlags.None,0,0);
+            var deadline=DateTime.UtcNow.Add(Timeout);
+            while(!File.Exists(path)) { if(DateTime.UtcNow>deadline) throw new TimeoutException(); await Task.Delay(10); }
+            using(var locked=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read))
+            {
+                await Assert.ThrowsAsync<IOException>(()=>model.DiscardAsync());
+                Assert.True(model.HasPendingDiscard); Assert.True(model.CanDiscard); Assert.False(model.IsBusy);
+                Assert.True(File.Exists(path)); Assert.Contains(path,model.Error!);
+                await Assert.ThrowsAsync<InvalidOperationException>(()=>model.StartAsync(new WindowsAudioCaptureBackend(platform),new("input",Format)));
+            }
+            await model.DiscardAsync();
+            Assert.False(model.HasPendingDiscard); Assert.False(model.CanDiscard); Assert.Null(model.Error);
+            Assert.Empty(model.Recordings); Assert.Empty(Directory.GetFiles(directory));
+        }
+        finally { foreach(string path in Directory.GetFiles(directory)) File.Delete(path); Directory.Delete(directory); }
+    }
+
+    [Theory]
+    [InlineData(AudioSampleRepresentation.Signed16,1)]
+    [InlineData(AudioSampleRepresentation.Signed24,2)]
+    [InlineData(AudioSampleRepresentation.Float32,2)]
+    public async Task EmptyCallbacks_DoNotStopCaptureRebasePositionsOrAlterPcm(AudioSampleRepresentation representation,int channels)
+    {
+        var format = new AudioCaptureFormat(48000,channels,representation);
+        var platform = new FakeWindowsPlatform(); var backend = new WindowsAudioCaptureBackend(platform);
+        var consumer = new PacketConsumer();
+        await using var session = new CaptureSession(backend,new("input",format),new() { AnalysisQueueCapacity = 8 });
+        await session.StartAsync(analysis:consumer).WaitAsync(Timeout);
+        var transport = platform.Last!;
+        transport.Emit([],AudioClientBufferFlags.None,-1,-1);
+        byte[] first = Enumerable.Range(0,480*format.BlockAlign).Select(i => (byte)i).ToArray();
+        byte[] second = Enumerable.Repeat((byte)0xA5,480*format.BlockAlign).ToArray();
+        transport.Emit(first,AudioClientBufferFlags.None,1200,50000);
+        transport.Emit([],AudioClientBufferFlags.Silent,-1,-1);
+        transport.Emit(second,AudioClientBufferFlags.None,1680,150000);
+        transport.Emit([],AudioClientBufferFlags.None,2160,250000);
+        var report = await session.StopAsync().WaitAsync(Timeout);
+        Assert.Equal(CaptureSessionState.Completed,session.State);
+        Assert.Equal(960,report!.Statistics.AnalyzedFrames);
+        Assert.Equal(0,report.Statistics.KnownMissingFrames);
+        Assert.Equal(1200,report.Stream!.DeviceFrameOrigin);
+        Assert.Equal(50000,report.Stream.FirstPacketTimestampTicks);
+        Assert.Equal(first.Concat(second),consumer.Data);
+        Assert.Equal(new long[] { 0,480 },consumer.Packets.Select(p => p.FirstFrame));
+    }
+
+    [Fact]
+    public async Task EmptyCallback_DoesNotConcealGapBeforeNextRealPacket()
+    {
+        var platform = new FakeWindowsPlatform(); var backend = new WindowsAudioCaptureBackend(platform);
+        await using var session = new CaptureSession(backend,new("input",Format));
+        await session.StartAsync().WaitAsync(Timeout);
+        platform.Last!.Emit([1,2],AudioClientBufferFlags.None,100,10000);
+        platform.Last.Emit([],AudioClientBufferFlags.None,101,10208);
+        platform.Last.Emit([3,4],AudioClientBufferFlags.None,104,11000);
+        var report = await session.Completion!.WaitAsync(Timeout);
+        Assert.Equal(CaptureEndReason.Discontinuity,report.Reason);
+        Assert.Equal(3,report.Statistics.KnownMissingFrames);
+    }
+
+    [Theory]
+    [InlineData(AudioClientBufferFlags.None)]
+    [InlineData(AudioClientBufferFlags.Silent)]
+    public async Task NonemptyPartialFrame_IsRejectedWithBufferAndFormatDiagnostics(AudioClientBufferFlags flags)
+    {
+        var format = new AudioCaptureFormat(96000,2,AudioSampleRepresentation.Signed24);
+        var platform = new FakeWindowsPlatform(); var backend = new WindowsAudioCaptureBackend(platform);
+        var consumer = new PacketConsumer();
+        await using var session = new CaptureSession(backend,new("input",format));
+        await session.StartAsync(analysis:consumer).WaitAsync(Timeout);
+        platform.Last!.Emit([1,2,3,4,5,6,7],flags,100,10000);
+        var report = await session.Completion!.WaitAsync(Timeout);
+        Assert.Equal(CaptureEndReason.InvalidPacket,report.Reason);
+        Assert.Empty(consumer.Data); Assert.Null(report.Stream!.DeviceFrameOrigin);
+        Assert.Contains(report.Diagnostics,d => d.Message.Contains("buffer 7 bytes") &&
+            d.Message.Contains("alignment 6 bytes") && d.Message.Contains("96000 Hz, 2 channel(s)") &&
+            d.Message.Contains("Signed24, 24 valid bits") && d.Message.Contains($"flags {flags}"));
+    }
+
+    [Fact]
     public async Task EnumerationAndOpen_DoNotStartTheInputOrChangeDefaultDevices()
     {
         var platform = new FakeWindowsPlatform(); var backend = new WindowsAudioCaptureBackend(platform);
@@ -139,17 +249,16 @@ public class WindowsCaptureBackendTests
     }
 
     [Fact]
-    public void ExclusiveMode_IsNotAdvertisedAndFailsBeforeAnyInputIsOpened()
+    public async Task ExclusiveMode_RequiresExactFormatAndNeverStartsDuringProbe()
     {
         var request = new AudioCaptureRequest("input",Format); var options = new WindowsAudioCaptureOptions { Mode = WindowsAudioCaptureMode.Exclusive };
-        Assert.Equal(new[] {WindowsAudioCaptureMode.Shared},WindowsAudioCaptureBackend.SupportedModes);
+        Assert.Contains(WindowsAudioCaptureMode.Exclusive,WindowsAudioCaptureBackend.SupportedModes);
         var fake = new FakeWindowsPlatform();
-        Assert.Throws<NotSupportedException>(() => new WindowsAudioCaptureBackend(fake,options));
-        Assert.Equal(0,fake.Opens);
-        var native = new WasapiCapturePlatform();
-        Assert.Throws<NotSupportedException>(() => native.Enumerate(options,CancellationToken.None));
-        Assert.Throws<NotSupportedException>(() => native.Open(request,options,CancellationToken.None));
-        Assert.Throws<NotSupportedException>(() => WasapiCapturePlatform.Negotiate(request,options,null));
+        var backend=new WindowsAudioCaptureBackend(fake,options); await using var session=await backend.OpenAsync(request);
+        Assert.Equal(0,fake.Last!.Starts); Assert.Equal(WindowsAudioCaptureMode.Exclusive,fake.Options!.Mode);
+        Assert.Equal(Format,WasapiCapturePlatform.Negotiate(request,options,null));
+        Assert.Throws<ArgumentException>(()=>WasapiCapturePlatform.Negotiate(request with { AllowFormatFallback=true },options,null));
+        Assert.Throws<ArgumentException>(()=>new WindowsAudioCaptureBackend(options with { AllowEngineFormatConversion=true }));
     }
 
     [Theory]

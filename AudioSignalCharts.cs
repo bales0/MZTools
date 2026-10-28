@@ -34,6 +34,35 @@ internal sealed class AudioSignalChart : FrameworkElement
     internal bool InvertRight { get; set; }
     internal bool ShowIssueMarkers { get; set; }
     internal string SingleChannelLabel { get; set; } = "Mono";
+    internal bool AutoScale { get; set; }
+    internal double Gain { get; set; } = 1;
+    internal double EffectiveGain => AutoScale ? 1 : Gain;
+    internal string ChannelLegend => Analysis?.ChannelCount==1 ? "blue " + SingleChannelLabel : "blue Left • orange Right";
+    internal bool IsFit { get; private set; } = true;
+    internal bool IsHistogramFit => histogramView==null;
+    internal event Action? FitChanged;
+    internal static void MarkFit(Button button,bool active)
+    {
+        if(active) { button.Background=Brushes.LightSkyBlue; button.BorderBrush=Brushes.RoyalBlue; button.FontWeight=FontWeights.Bold; }
+        else { button.ClearValue(Control.BackgroundProperty); button.ClearValue(Control.BorderBrushProperty); button.ClearValue(Control.FontWeightProperty); }
+        button.ToolTip=active?"Active: range follows available data. Manual zoom or pan ends Fit.":"Fit available data";
+    }
+    internal void AddFitButton(Panel panel,string label,bool histogram=false)
+    {
+        var button=new Button { Content=label,Margin=new(4),Padding=new(7,3,7,3) };
+        panel.Children.Add(button); button.Click+=(_,_)=>{ if(histogram) FitHistogram(); else Fit(); };
+        void Refresh()=>MarkFit(button,histogram?IsHistogramFit:IsFit);
+        FitChanged+=Refresh; Refresh();
+    }
+    internal void AddScaleControls(Panel panel)
+    {
+        var auto=new CheckBox { Content="Auto scale",IsChecked=AutoScale,Margin=new(4),VerticalAlignment=VerticalAlignment.Center };
+        var gain=new ComboBox { ItemsSource=new[]{"0.5","1","2","4","8"},SelectedItem=Gain.ToString("G",CultureInfo.InvariantCulture),MinWidth=60,Margin=new(4),IsEnabled=!AutoScale };
+        panel.Children.Add(new TextBlock { Text="Gain",Margin=new(4),VerticalAlignment=VerticalAlignment.Center }); panel.Children.Add(gain); panel.Children.Add(auto);
+        gain.SelectionChanged+=(_,_)=>{ if(gain.SelectedItem is string text) Gain=double.Parse(text,CultureInfo.InvariantCulture); InvalidateVisual(); };
+        auto.Checked+=(_,_)=>{ AutoScale=true; gain.IsEnabled=false; InvalidateVisual(); };
+        auto.Unchecked+=(_,_)=>{ AutoScale=false; gain.IsEnabled=true; InvalidateVisual(); };
+    }
     internal long? RangeStart { get; set; }
     internal long? RangeEnd { get; set; }
     internal event Action<AudioAnalysisIssue>? IssueSelected;
@@ -173,7 +202,7 @@ internal sealed class AudioSignalChart : FrameworkElement
         if (issue != null) { SetSelection(issue.StartSample, issue.EndSample); IssueSelected?.Invoke(issue); }
         return issue;
     }
-    internal void Fit() { if (Analysis != null) SetRange(RangeStart ?? 0, Math.Max(1, (RangeEnd ?? Analysis.FrameCount) - (RangeStart ?? 0))); }
+    internal void Fit() { if (Analysis != null) SetRange(RangeStart ?? 0, Math.Max(1, (RangeEnd ?? Analysis.FrameCount) - (RangeStart ?? 0))); IsFit=true; FitChanged?.Invoke(); }
     internal void Zoom(double factor, double anchor = .5)
     {
         long count = Math.Max(8, (long)((End - Start) * factor));
@@ -182,6 +211,7 @@ internal sealed class AudioSignalChart : FrameworkElement
     internal void ShowRange(long start, long end) => SetRange(start, Math.Max(8, end - start));
     private void SetRange(long start, long count)
     {
+        IsFit=false; FitChanged?.Invoke();
         long first = RangeStart ?? 0, last = RangeEnd ?? Math.Max(1, Analysis?.FrameCount ?? 1);
         long frames = Math.Max(1, last - first); count = Math.Clamp(count, 1, frames);
         Start = Math.Clamp(start, first, last - count); End = Start + count;
@@ -192,18 +222,19 @@ internal sealed class AudioSignalChart : FrameworkElement
         var series = HistogramSeries ?? (Distribution == null ? Array.Empty<AudioPulseDistribution>() : new[] { Distribution });
         if (series.Count == 0) return new(0, 1);
         var groups = series.Select(d => d.Group).ToHashSet();
-        var guides = !ShowReferenceGuides ? Array.Empty<AudioPulseGuide>() : ReferenceOverlay?.Guides.Where(g => groups.Contains(g.Group)).ToArray()
+        // Visibility changes only drawing; the automatic viewport keeps the same reference domain.
+        var guides = ReferenceOverlay?.Guides.Where(g => groups.Contains(g.Group)).ToArray()
             ?? series.Where(d => d.Reference is > 0).Select(d => new AudioPulseGuide(d.Group, d.Reference!.Value, "Decoder reference")).ToArray();
         return AudioHistogramRange.Create(series[0] with { Histogram = series.SelectMany(d => d.Histogram).Concat(guides.Select(g => new AudioHistogramBin(g.Microseconds, 1))).ToArray(), Reference = null }, Analysis?.SampleRate ?? 0);
     }
-    internal void FitHistogram() { histogramView = null; histogramZoomAnchor = histogramZoomPointer = null; InvalidateVisual(); }
+    internal void FitHistogram() { histogramView = null; histogramZoomAnchor = histogramZoomPointer = null; InvalidateVisual(); FitChanged?.Invoke(); }
     internal void ShowHistogramRange(double min, double max)
     {
         histogramZoomAnchor = histogramZoomPointer = null;
         if (!double.IsFinite(min) || !double.IsFinite(max) || max <= min) throw new ArgumentException("Choose a finite, nonempty histogram interval in µs.");
         var bounds = FullHistogramRange();
         double minimumWidth = Math.Min(bounds.Max - bounds.Min, Math.Max(.01, 125000.0 / Math.Max(1, Analysis?.SampleRate ?? 0)));
-        histogramView = bounds.Constrain(min, max, minimumWidth); InvalidateVisual();
+        histogramView = bounds.Constrain(min, max, minimumWidth); InvalidateVisual(); FitChanged?.Invoke();
     }
     internal void ZoomHistogram(double factor, double anchor = .5)
     {
@@ -274,8 +305,9 @@ internal sealed class AudioSignalChart : FrameworkElement
             var channelBuckets = right && RightShiftSamples != 0 ? envelope.VisibleBuckets(Start - RightShiftSamples, End - RightShiftSamples, Math.Max(1, (int)Math.Ceiling(PlotWidth))) : visible;
             if (channelBuckets.Count == 0) return;
             bool samples = channelBuckets.All(b => b.EndSample - b.StartSample == 1);
+            double peak=AutoScale?Math.Max(.00001,channelBuckets.Max(b=>right?Math.Max(Math.Abs(b.RightMin),Math.Abs(b.RightMax)):Math.Max(Math.Abs(b.LeftMin),Math.Abs(b.LeftMax)))):1;
             var geometry = new StreamGeometry();
-            double Y(WaveformBucket b, bool upper) => mid - (right ? InvertRight ? upper ? -b.RightMin : -b.RightMax : upper ? b.RightMax : b.RightMin : upper ? b.LeftMax : b.LeftMin) * amplitude;
+            double Y(WaveformBucket b, bool upper) => mid - Math.Clamp((right ? InvertRight ? upper ? -b.RightMin : -b.RightMax : upper ? b.RightMax : b.RightMin : upper ? b.LeftMax : b.LeftMin)*EffectiveGain/peak,-1,1) * amplitude;
             double ClippedX(long sample) => Math.Clamp(X(sample + (right ? RightShiftSamples : 0)), Left, Left + PlotWidth);
             using (var context = geometry.Open())
             {
@@ -313,8 +345,9 @@ internal sealed class AudioSignalChart : FrameworkElement
             double x = Math.Max(Left, X(SelectionStart.Value)), right = Math.Min(Left + PlotWidth, X(SelectionEnd.Value));
             dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(35, 20, 80, 190)), new Pen(Brushes.RoyalBlue, 1.5), new(x, Top, Math.Max(1, right - x), PlotHeight));
         }
-        Text(dc, "+1 FS", 4, Top + 20); Text(dc, "0", 38, mid - 7); Text(dc, "−1 FS", 4, Top + PlotHeight - 15);
-        AxisTime(dc, Start, End); Text(dc, $"PCM • {(Analysis.ChannelCount == 1 ? "blue " + SingleChannelLabel : "blue Left • orange Right")} • gray: unassigned • wheel: zoom • drag: pan • Shift+drag: select audio", Left, 3);
+        string level=AutoScale?"1 rel":$"{1/EffectiveGain:G3} FS";
+        Text(dc, "+"+level, 4, Top + 20); Text(dc, "0", 38, mid - 7); Text(dc, "−"+level, 4, Top + PlotHeight - 15);
+        AxisTime(dc, Start, End); Text(dc, $"PCM • {ChannelLegend} • {(AutoScale?"Auto scale":$"FS ×{Gain:G3}")} • gray: unassigned • wheel: zoom • drag: pan • Shift+drag: select audio", Left, 3);
         if (ShowIssueMarkers) Text(dc, "Red: measured anomalies • orange: failed / unresolved block, exact damaged byte unknown", Left, 18, size: 10);
     }
     private void AxisTime(DrawingContext dc, long start, long end)
@@ -357,10 +390,12 @@ internal sealed class AudioSignalChart : FrameworkElement
         {
             double x = Left + X(guide.Microseconds);
             int lane = Array.IndexOf(AudioPulseReference.Groups, guide.Group);
+            dc.PushOpacity(.35); dc.DrawLine(new Pen(PulseBrush(guide.Group),.8) { DashStyle=DashStyles.Dot },new(x,Top),new(x,Top+PlotHeight)); dc.Pop();
             // Four thin lanes preserve both colours when HIGH/LOW references coincide.
             dc.DrawRectangle(PulseBrush(guide.Group), null, new(Math.Clamp(x - 3, Left, Left + PlotWidth - 6), Top + PlotHeight + 1 + Math.Max(0, lane) * 2, 6, 2));
             dc.DrawLine(new Pen(PulseBrush(guide.Group), 1), new(x, Top + PlotHeight - 4), new(x, Top + PlotHeight));
-            referenceHits.Add((x, $"{ReferenceOverlay?.Name ?? "Decoder reference"}\n{guide.Group}: {guide.Microseconds:F3} µs • {guide.Context}\n{ReferenceOverlay?.Evidence}\n{ReferenceOverlay?.Source}"));
+            string contextNote=ReferenceOverlay?.Guides.Count(g=>g.Group==guide.Group)>1?"\nROM LOW has separate leader, tape-mark and neighboring-data contexts.":"";
+            referenceHits.Add((x, $"{ReferenceOverlay?.Name ?? "Decoder reference"}\n{guide.Group}: {guide.Microseconds:F3} µs • {guide.Context}{contextNote}\n{ReferenceOverlay?.Evidence}\n{ReferenceOverlay?.Source}"));
         }
         Text(dc, $"{HistogramViewportLabel} • {range.Min:F1} … {range.Max:F1} µs • visible {RenderedHistogramCount:N0} / {series.Sum(d => d.Count):N0} pulses", Left, 2, histogramView == null ? Brushes.DimGray : Brushes.DarkOrange);
         Text(dc, "Blue SHORT High • red SHORT Low • green LONG High • orange LONG Low", Left, 17, size: 10);

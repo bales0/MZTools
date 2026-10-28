@@ -20,6 +20,8 @@ internal sealed class HeadAlignmentPanel : DockPanel
     private readonly TextBlock scope=Text("Start Monitor or Record to measure."),status=Text(""),comparisonStatus=Text("Not assessable: save A and B."),saved=Text(""),validation=Text("");
     private readonly DataGrid channels=Table(),stereo=Table();
     private readonly ComparisonBars bars=new();
+    internal readonly HeadEdgeAdjustmentControl Adjustment=new();
+    internal readonly HeadStereoIndicator StereoIndicator=new();
     private HeadAlignmentMeasurement? current;
     private AudioCaptureStreamInfo? stream;
     private HeadAlignmentOptions? displayedOptions;
@@ -28,8 +30,10 @@ internal sealed class HeadAlignmentPanel : DockPanel
     {
         var header=new StackPanel(); SetDock(header,Dock.Top); Children.Add(header);
         var warning=Text(HeadAlignmentMeasurement.Limitation); warning.FontWeight=FontWeights.SemiBold; warning.Foreground=Brushes.DarkSlateBlue; header.Children.Add(warning);
-        var options=new WrapPanel(); Add(options,"Band low / split / high (Hz)",bandLow); options.Children.Add(bandSplit); options.Children.Add(bandHigh); Add(options,"Window N",WindowSize); options.Children.Add(KnownTone); options.Children.Add(Tone); header.Children.Add(options); header.Children.Add(validation); header.Children.Add(scope);
+        var options=new WrapPanel(); Add(options,"Band low / split / high (Hz)",bandLow); options.Children.Add(bandSplit); options.Children.Add(bandHigh); Add(options,"Window N",WindowSize); options.Children.Add(KnownTone); options.Children.Add(Tone); header.Children.Add(options); header.Children.Add(validation); header.Children.Add(new Expander { Header="Measurement interval / method",Content=scope });
+        validation.Visibility=Visibility.Collapsed;
         var tabs=new TabControl(); Children.Add(tabs);
+        tabs.Items.Add(new TabItem { Header="Match this tape",Content=Adjustment });
         var indicators=new Grid(); indicators.RowDefinitions.Add(new() { Height=new(135),MinHeight=110 }); indicators.RowDefinitions.Add(new() { Height=new(5) }); indicators.RowDefinitions.Add(new() { Height=new(1,GridUnitType.Star),MinHeight=100 });
         var mono=new DockPanel(); var explanation=Text("Individual indicators — AC RMS, band-energy fraction, slope and median P5–P95 10–90% transitions. Gain/EQ and changing data content affect every comparison."); SetDock(explanation,Dock.Top); mono.Children.Add(explanation); mono.Children.Add(channels); indicators.Children.Add(mono);
         var splitter=new GridSplitter { Height=5,HorizontalAlignment=HorizontalAlignment.Stretch,Background=Brushes.LightGray }; Grid.SetRow(splitter,1); indicators.Children.Add(splitter);
@@ -40,6 +44,7 @@ internal sealed class HeadAlignmentPanel : DockPanel
         var buttons=new WrapPanel(); buttons.Children.Add(SaveA); buttons.Children.Add(SaveB); var clear=Button("Clear A/B"); buttons.Children.Add(clear); actions.Children.Add(buttons); actions.Children.Add(saved); actions.Children.Add(comparisonStatus);
         var key=Text("A = blue • B = orange • HF: 0–100%; FS/coherence: 0–1; other rows scaled separately (signed values centered at zero). Δ = B−A. Higher HF/slope or shorter transitions may indicate more bandwidth only for the same passage; no combined score."); SetDock(key,Dock.Bottom); comparison.Children.Add(key); comparison.Children.Add(new ScrollViewer { Content=bars,VerticalScrollBarVisibility=ScrollBarVisibility.Auto,HorizontalScrollBarVisibility=ScrollBarVisibility.Auto });
         tabs.Items.Add(new TabItem { Header="Compare A/B",Content=comparison });
+        tabs.Items.Add(new TabItem { Header="Stereo L/R",Content=StereoIndicator });
         AddColumn(channels,"Channel","Channel",75); AddColumn(channels,"AC RMS FS","AcRms",95,"F4"); AddColumn(channels,"DC FS","Dc",85,"F4"); AddColumn(channels,"High band %","HighBandPercent",100,"F2"); AddColumn(channels,"Slope 1/ms","NormalizedSlopePerMs",100,"F3"); AddColumn(channels,"Rise µs","RiseMicroseconds",85,"F2"); AddColumn(channels,"Fall µs","FallMicroseconds",85,"F2"); AddColumn(channels,"Rise count","RiseCount",85,"N0"); AddColumn(channels,"Fall count","FallCount",85,"N0"); AddColumn(channels,"Clipped","ClippedSamples",80,"N0"); AddColumn(channels,"Quality","Quality",500);
         AddColumn(stereo,"Metric","Metric",220); AddColumn(stereo,"Value","Value",155); AddColumn(stereo,"Meaning","Meaning",650);
         foreach(var field in new[]{bandLow,bandSplit,bandHigh,Tone}) field.TextChanged+=(_,_)=>SettingsChanged();
@@ -50,16 +55,20 @@ internal sealed class HeadAlignmentPanel : DockPanel
     }
     internal HeadAlignmentOptions? Options(int rate)
     {
+        validation.Visibility=Visibility.Visible;
         bool Read(TextBox field,out double value)=>double.TryParse(field.Text,NumberStyles.Float,CultureInfo.CurrentCulture,out value)&&double.IsFinite(value);
         if(!Read(bandLow,out double low)||!Read(bandSplit,out double split)||!Read(bandHigh,out double high)||KnownTone.IsChecked==true&&!Read(Tone,out _)) { validation.Text="Enter finite numeric band/tone values. Measurements are unavailable until corrected."; return null; }
         double? tone=KnownTone.IsChecked==true?double.Parse(Tone.Text,CultureInfo.CurrentCulture):null;
         var result=new HeadAlignmentOptions { BandLowHz=low,BandSplitHz=split,BandHighHz=high,KnownToneHz=tone };
         // Mirror public option constraints here so invalid UI input never interrupts capture or preview.
         if(low<=0||split<=low||Math.Min(high,rate*.5)<=split||high<=split||tone.HasValue&&(tone<=0||tone>=rate*.5)) { validation.Text="Require 0 < low < split < high (limited to Nyquist), and 0 < tone < Nyquist."; return null; }
-        validation.Text=""; return result;
+        validation.Text=""; validation.Visibility=Visibility.Collapsed; return result;
     }
-    internal void Update(HeadAlignmentMeasurement? measurement,AudioCaptureStreamInfo? source)
+    internal void SetCaptureActive(bool active) { Adjustment.SetActive(active); if(!active) StereoIndicator.Update(null,false); }
+    internal void Update(HeadAlignmentMeasurement? measurement,AudioCaptureStreamInfo? source,long discontinuities=0,bool active=true)
     {
+        Adjustment.Update(measurement,source,discontinuities,active);
+        StereoIndicator.Update(measurement,active);
         current=measurement; stream=source; displayedOptions=measurement?.Options;
         if(measurement==null) { channels.ItemsSource=null; stereo.ItemsSource=null; status.Text="Not assessable: no current alignment measurement."; scope.Text="Open this tab while monitoring/recording; a full FFT window is required."; UpdateSaveButtons(); return; }
         channels.ItemsSource=measurement.Channels;
@@ -77,7 +86,7 @@ internal sealed class HeadAlignmentPanel : DockPanel
             new StereoRow("Lag spread / unique peak",s.LagSpreadSamples.HasValue?$"{s.LagSpreadSamples:F1} samples / {s.DelayPeakUnique}":"Not assessable","Spread of four segment peak lags; maximum search ±48 samples.") };
         UpdateSaveButtons();
     }
-    private void SettingsChanged() { current=null; displayedOptions=null; UpdateSaveButtons(); status.Text="Settings changed — waiting for a new measurement."; Changed?.Invoke(); }
+    private void SettingsChanged() { current=null; displayedOptions=null; Adjustment.Reset("Analysis settings changed — set a new zero."); UpdateSaveButtons(); status.Text="Settings changed — waiting for a new measurement."; Changed?.Invoke(); }
     private void UpdateSaveButtons() => SaveA.IsEnabled=SaveB.IsEnabled=current!=null&&stream!=null&&current.Channels.All(c=>c.Assessable)&&displayedOptions!=null;
     internal void Save(bool reference)
     {
@@ -123,5 +132,60 @@ internal sealed class HeadAlignmentPanel : DockPanel
                 dc.DrawLine(new Pen(Brushes.Gainsboro,1),new(0,y+40),new(ActualWidth,y+40));
             }
         }
+    }
+}
+
+// Presentation of existing qualified stereo measurements; never changes PCM or detector settings.
+internal sealed class HeadStereoIndicator:FrameworkElement
+{
+    internal double? Correlation { get; private set; }
+    internal double? Delay { get; private set; }
+    internal double? Phase { get; private set; }
+    private double delayLimit=1000;
+    private double? tone;
+    private bool stereo;
+    internal HeadStereoIndicator() { ClipToBounds=true; }
+    internal void Update(HeadAlignmentMeasurement? measurement,bool active)
+    {
+        static double? Finite(double? value)=>value.HasValue&&double.IsFinite(value.Value)?value:null;
+        stereo=active&&measurement?.Format.Channels==2;
+        tone=measurement?.Options.KnownToneHz;
+        var result=measurement?.Stereo;
+        Correlation=stereo?Finite(result?.ZeroLagCorrelation):null;
+        Delay=stereo&&result?.Assessable==true&&!tone.HasValue?Finite(result.DelayMicroseconds):null;
+        Phase=stereo&&result?.Assessable==true&&tone.HasValue?Finite(result.SignalPhaseDegrees):null;
+        if(measurement!=null) delayLimit=measurement.Options.MaximumLagSamples*1e6/measurement.Format.SampleRate;
+        string information=!active?"Stopped / no live measurement":!stereo?"Stereo input required":result?.Status??"No current stereo measurement";
+        string values=$"Zero-lag correlation {Correlation?.ToString("F3",CultureInfo.CurrentCulture)??"unavailable"}; delay {Delay?.ToString("F2",CultureInfo.CurrentCulture)??"unavailable"} µs; phase {Phase?.ToString("F2",CultureInfo.CurrentCulture)??"unavailable"} degrees.";
+        ToolTip=new ToolTip { Content=new TextBlock { Text=information+"\n"+values,TextWrapping=TextWrapping.Wrap },MaxWidth=620,Placement=System.Windows.Controls.Primitives.PlacementMode.Mouse,HorizontalOffset=16,VerticalOffset=20 };
+        System.Windows.Automation.AutomationProperties.SetName(this,"Stereo L/R. "+information+". "+values);
+        InvalidateVisual();
+    }
+    protected override void OnRender(DrawingContext dc)
+    {
+        double width=ActualWidth,height=ActualHeight; if(width<100||height<100) return;
+        void Text(string value,double x,double y,double size=13,Brush? color=null)=>dc.DrawText(new FormattedText(value,CultureInfo.CurrentCulture,FlowDirection.LeftToRight,new Typeface("Segoe UI"),size,color??Brushes.Black,VisualTreeHelper.GetDpi(this).PixelsPerDip),new(x,y));
+        double card=(height-42)/3;
+        void Meter(int row,string title,double? value,double limit,string unit,string missing,Brush brush)
+        {
+            double top=8+row*card;
+            dc.DrawRoundedRectangle(Brushes.WhiteSmoke,new Pen(Brushes.LightGray,1),new Rect(8,top,width-16,Math.Max(1,card-8)),8,8);
+            Text(title,20,top+8);
+            Text(value.HasValue?$"{value.Value:+0.00;-0.00;0.00}{unit}":"—  "+missing,20,top+29,Math.Min(23,Math.Max(14,card*.18)),value.HasValue?brush:Brushes.DimGray);
+            double left=24,right=width-24,y=top+card-35,center=(left+right)/2;
+            dc.DrawLine(new Pen(Brushes.LightGray,7),new(left,y),new(right,y));
+            dc.DrawLine(new Pen(Brushes.Gray,1),new(center,y-9),new(center,y+9));
+            if(value.HasValue)
+            {
+                double position=center+Math.Clamp(value.Value/limit,-1,1)*(right-left)/2;
+                dc.DrawLine(new Pen(brush,7),new(center,y),new(position,y)); dc.DrawEllipse(brush,new Pen(Brushes.White,1),new(position,y),6,6);
+            }
+            Text((-limit).ToString("G4",CultureInfo.CurrentCulture)+unit,left,y+9,11,Brushes.DimGray); Text("0",center-4,y+9,11,Brushes.DimGray);
+            Text("+"+limit.ToString("G4",CultureInfo.CurrentCulture)+unit,right-65,y+9,11,Brushes.DimGray);
+        }
+        Meter(0,"L/R correlation at zero lag",Correlation,1,"",stereo?"No current usable correlation":"Stereo / live input required",Brushes.Teal);
+        Meter(1,"Right delay relative to Left • positive = Right lags",Delay,delayLimit," µs",tone.HasValue?"Periodic tone: absolute delay is ambiguous":"Unique, stable correlation peak required",Brushes.RoyalBlue);
+        Meter(2,"Signal phase R−L"+(tone.HasValue?$" • declared tone {tone:G} Hz":" • known tone required"),Phase,180,"°","Qualified known stereo tone required",Brushes.DarkOrange);
+        Text("Correlation is not phase. Phase is modulo one cycle; no mechanical head angle. Details: hover.",14,height-25,12,Brushes.DimGray);
     }
 }

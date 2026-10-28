@@ -12,6 +12,7 @@ internal static class AudioSignalAnalysisService
     internal static IPcmAudioStreamReader OpenReader(string path) => Path.GetExtension(path).ToLowerInvariant() switch
     {
         ".wav" => new WavPcmStreamReader(path), ".flac" => new FlacPcmStreamReader(path),
+        ".json" when SegmentedPcmStreamReader.IsManifest(path) => new SegmentedPcmStreamReader(path),
         _ => throw new ArgumentException("Select a WAV or FLAC file.")
     };
 
@@ -130,6 +131,7 @@ internal static class AudioSignalAnalysisService
         bool equal = best.Length == 2 && best[0].ValidRecords == best[1].ValidRecords && best[0].ValidChecksumCandidates == best[1].ValidChecksumCandidates && best[0].ChecksumCandidates == best[1].ChecksumCandidates && best[0].ClippingCount == best[1].ClippingCount && best[0].TimingErrorPercent == best[1].TimingErrorPercent && best[0].LeaderStabilityPercent == best[1].LeaderStabilityPercent;
         bool poor = issues.Any(i => i.Severity == DskIssueSeverity.Error) || channels.Any(c => c.ClippingPercent > 2);
         original.Refresh(); if (original.Length != length || original.LastWriteTimeUtc != modified) throw new IOException("The source changed during analysis. Analyze the file again.");
+        if(SegmentedPcmStreamReader.IsManifest(path)) { using var verified=new SegmentedPcmStreamReader(path); }
         return new()
         {
             Source = Path.GetFullPath(path), SourceLength = length, SourceModifiedUtc = modified, Format = reader.SourceFormat, SampleRate = f.SampleRate, BitsPerSample = f.BitsPerSample,

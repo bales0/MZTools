@@ -31,8 +31,11 @@ MZTools provides:
 
 **Tools → Record Audio / Live Tape Analysis…** opens explicit Monitor/Record/Stop controls,
 live waveform, digital levels and FFT, relative Head alignment with A/B comparison,
-and opt-in pulse timing against the shared reference catalog. Windows input uses
-shared/RAW WASAPI; a synthetic demo works without audio hardware. WAV recording has
+and opt-in pulse timing against the shared reference catalog. Head matching has one
+combined-edge analog needle per L/R channel with manual zero for a particular tape copy.
+Windows input offers shared/RAW WASAPI and exact driver-accepted exclusive formats;
+native recording preserves rate, valid bits and delivered PCM/float bytes without resampling.
+A synthetic demo works without audio hardware. WAV recording has
 bounded independent archive/preview paths, safe finalization, RIFF segmentation and
 SHA-256 sidecar reports, with links to the existing offline analyzers.
 
@@ -65,16 +68,16 @@ Each tape record can be assigned a **Loader** and **Speed** profile.
 
 Currently supported profiles include:
 
-- NORMAL 1:1
-- NORMAL 1:2
-- NORMAL 1:3
-- NORMAL 1:4
+- NORMAL 1:1 (ROM)
+- NORMAL 1:2 (IC NORMAL timing, direct recording)
+- NORMAL 1:3 (IC NORMAL timing, direct recording)
+- NORMAL 1:4 (IC NORMAL timing, direct recording)
 - MZ700 1:1
 - MZ700 FAST3
-- IC 1:1
-- IC 1:2
-- IC 1:3
-- IC 1:4
+- IC FAST IPL 1:1
+- IC FAST IPL 1:2
+- IC FAST IPL 1:3
+- IC FAST IPL 1:4
 - TC 1:1
 - TC 1:2
 - TC 1:3
@@ -1256,3 +1259,23 @@ Multiboot's generated boot menu now displays **MZTools Multiboot**.
 Generated HFE sectors, including boot sectors, retain the DSK preset's bytes and
 identities; HFEv1/v2 use a common generated bitrate. Invalid physical geometries
 are rejected by the existing MFM encoder rather than silently truncated.
+
+## IC profile names — approved phase 1 (2026-10-28)
+
+NORMAL 1:1 is the direct ROM profile. NORMAL 1:2–1:4 keeps its existing identity and
+uses exact asymmetric IC NORMAL writer timing without inserting an IC loader.
+IC FAST IPL 1:1–1:4 names the existing IC loader profiles; TC remains a separate
+loader family. Physical comparison entries are named IC writer 1:1–1:4, shared
+where the modes use the same pulses. Stable enum values, TYPE=IC/NORMAL/TC sidecars,
+loader bytes and waveform output are unchanged. See the
+[mode/timing table and phase-1 validation](docs/IC_PROFILE_NAMING_PHASE1.md).
+The separately approved [phase 2](docs/IC_PROFILE_NAMING_PHASE2.md) removes the three
+obsolete IC comparison waveforms from the active catalog and manual reference lists.
+Exact IC writer/receiver references and TC/FAST3 are retained.
+
+Analysis reference pickers use short profile names: regional MZ ROMs, NORMAL/IC
+1:2–1:4, TC 1:2/1:3 and MZ-700 FAST3. Technical and service-nominal entries remain
+in the catalog browser. IC/NORMAL aliases share exact guide data and one physical
+classification test. Guide visibility redraws the reference strip and dotted lines
+without resetting measured pulses or zoom; ROM hover details distinguish multiple
+LOW contexts. [Reference picker and validation](docs/PULSE_REFERENCE_UI.md).

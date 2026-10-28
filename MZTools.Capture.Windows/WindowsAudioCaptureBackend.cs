@@ -16,8 +16,8 @@ public sealed record WindowsAudioCaptureOptions
     {
         if (!Enum.IsDefined(Mode) || BufferMilliseconds is < 10 or > 2000 ||
             SilenceBufferFrames is < 1 or > 1048576) throw new ArgumentOutOfRangeException(nameof(WindowsAudioCaptureOptions));
-        if (Mode != WindowsAudioCaptureMode.Shared)
-            throw new NotSupportedException("Exclusive input is unavailable with NAudio WasapiRecorder 3.3.0. Use shared input at the endpoint mix format; RAW can be requested separately. No fallback or recording was started.");
+        if(Mode==WindowsAudioCaptureMode.Exclusive&&AllowEngineFormatConversion)
+            throw new ArgumentException("Exclusive/native capture cannot permit shared-engine conversion.");
     }
 }
 
@@ -25,7 +25,7 @@ public sealed record WindowsAudioCaptureOptions
 public sealed class WindowsAudioCaptureBackend : IAudioCaptureBackend
 {
     public static IReadOnlyList<WindowsAudioCaptureMode> SupportedModes { get; } =
-        Array.AsReadOnly(new[] { WindowsAudioCaptureMode.Shared });
+        Array.AsReadOnly(new[] { WindowsAudioCaptureMode.Shared,WindowsAudioCaptureMode.Exclusive });
     private readonly IWindowsCapturePlatform platform;
     private readonly WindowsAudioCaptureOptions options;
     public WindowsAudioCaptureBackend(WindowsAudioCaptureOptions? options = null) : this(new WasapiCapturePlatform(),options) { }
@@ -93,6 +93,19 @@ public sealed class WindowsAudioCaptureBackend : IAudioCaptureBackend
         private void OnData(ReadOnlySpan<byte> data,AudioClientBufferFlags rawFlags,long deviceFrame,long timestamp)
         {
             if (Volatile.Read(ref disposed) != 0) return;
+            // A no-data callback contains no frames and its position/flags are not audio evidence.
+            // In particular, it must not establish the origin of the first real packet.
+            if (data.IsEmpty) return;
+            var format = Info.ActualFormat;
+            int align = format.BlockAlign;
+            if (data.Length % align != 0)
+            {
+                Stopped?.Invoke(new(CaptureEndReason.InvalidPacket,
+                    $"WASAPI returned an incomplete PCM frame: buffer {data.Length} bytes; " +
+                    $"block alignment {align} bytes; {format.SampleRate} Hz, {format.Channels} channel(s), " +
+                    $"{format.Representation}, {format.ValidBitsPerSample} valid bits; flags {rawFlags}; device frame {deviceFrame}."));
+                return;
+            }
             if (deviceFrame < 0 || timestamp < 0 && !rawFlags.HasFlag(AudioClientBufferFlags.TimestampError))
             { Stopped?.Invoke(new(CaptureEndReason.InvalidPacket,"WASAPI returned an invalid packet position.")); return; }
             bool first = !origin.HasValue;
@@ -115,9 +128,6 @@ public sealed class WindowsAudioCaptureBackend : IAudioCaptureBackend
             if (rawFlags.HasFlag(AudioClientBufferFlags.TimestampError)) flags |= AudioCapturePacketFlags.TimestampUnreliable;
             if (rawFlags.HasFlag(AudioClientBufferFlags.Silent)) flags |= AudioCapturePacketFlags.Silence;
             timestamp = Math.Max(0,timestamp);
-            int align = Info.ActualFormat.BlockAlign;
-            if (data.Length == 0 || data.Length % align != 0)
-            { Stopped?.Invoke(new(CaptureEndReason.InvalidPacket,"WASAPI returned an incomplete PCM frame.")); return; }
             if (rawFlags.HasFlag(AudioClientBufferFlags.Silent))
             {
                 // WASAPI silence has no valid payload; NAudio's zero buffer is not the unsigned PCM8 silence value.

@@ -110,9 +110,14 @@ public sealed class CaptureSession : IAsyncDisposable
 
         internal void RequestStop(CaptureEndReason reason)
         {
-            if (reason is not (CaptureEndReason.Stopped or CaptureEndReason.SourceCompleted or CaptureEndReason.Cancelled))
-                Interlocked.CompareExchange(ref failure, (int)reason, -1);
-            stop.TrySetResult(reason);
+            // Serialize the stop decision with publication of successful startup. The
+            // cancellation pump may run later than a synchronous native Start returns.
+            lock(owner.control)
+            {
+                if (reason is not (CaptureEndReason.Stopped or CaptureEndReason.SourceCompleted or CaptureEndReason.Cancelled))
+                    Interlocked.CompareExchange(ref failure, (int)reason, -1);
+                stop.TrySetResult(reason);
+            }
         }
 
         private void Error(CaptureEndReason reason, string code, Exception error)
@@ -169,10 +174,17 @@ public sealed class CaptureSession : IAsyncDisposable
                     Error(CaptureEndReason.FormatMismatch,"FORMAT_CHANGED",error); throw error;
                 }
                 info = device.Info; Volatile.Write(ref streamInfo,info);
-                streaming = true;
-                owner.SetState(stop.Task.IsCompleted ? CaptureSessionState.Stopping :
-                    sink == null ? CaptureSessionState.Monitoring : CaptureSessionState.Recording);
-                Started.TrySetResult();
+                lock(owner.control)
+                {
+                    // A finite source may finish inside Start. Explicit stop/cancel or
+                    // failure must instead finish cleanup before settling Started.
+                    if (stop.Task.IsCompleted && (Failed || stop.Task.Result != CaptureEndReason.SourceCompleted))
+                        throw new OperationCanceledException("Capture stopped before startup completed.");
+                    streaming = true;
+                    owner.SetState(stop.Task.IsCompleted ? CaptureSessionState.Stopping :
+                        sink == null ? CaptureSessionState.Monitoring : CaptureSessionState.Recording);
+                    Started.TrySetResult();
+                }
                 await stop.Task.ConfigureAwait(false);
             }
             catch (OperationCanceledException error) when (startup.IsCancellationRequested || callerToken.IsCancellationRequested || stop.Task.IsCompleted)

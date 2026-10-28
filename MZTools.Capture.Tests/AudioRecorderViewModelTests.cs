@@ -3,6 +3,114 @@ namespace MZTools.Capture.Tests;
 public class AudioRecorderViewModelTests
 {
     private static readonly AudioCaptureRequest Request=new("manual",CaptureSessionTests.Format);
+    [Theory]
+    [InlineData(4)]
+    [InlineData(20)]
+    public async Task ReplacementPreservesOriginalUntilStopAndPublishesWholeNewSegmentFamily(int newBytes)
+    {
+        using var folder=new RecordingTestFolder(); var backend=new ManualBackend(); await using var model=new AudioRecorderViewModel();
+        string path=folder.PathFor("replace.wav"); var options=new WaveRecordingOptions(path) { SegmentDataLimit=4 };
+        await model.StartAsync(backend,Request,options); backend.Last!.Emit(new byte[12],new(0,6,0)); var old=await model.StopAsync();
+        var originals=old!.Recording!.Segments.Select(s=>s.Path).Append(path+".json").ToDictionary(p=>p,File.ReadAllBytes);
+        await model.StartAsync(backend,Request,options,overwrite:true);
+        byte[] payload=Enumerable.Range(1,newBytes).Select(i=>(byte)i).ToArray(); backend.Last!.Emit(payload,new(0,newBytes/2,0));
+        foreach(var original in originals) Assert.Equal(original.Value,File.ReadAllBytes(original.Key));
+        var report=await model.StopAsync(); Assert.Equal(CaptureIntegrity.Complete,report!.Integrity);
+        Assert.Equal(payload,report.Recording!.Segments.SelectMany(s=>File.ReadAllBytes(s.Path)[44..]).ToArray());
+        Assert.Equal(path,report.Recording.Segments[0].Path); Assert.Equal(path+".json",report.Recording.SidecarPath);
+        using var json=System.Text.Json.JsonDocument.Parse(File.ReadAllBytes(path+".json"));
+        Assert.Equal(path,json.RootElement.GetProperty("recording").GetProperty("segments")[0].GetProperty("path").GetString());
+        Assert.Single(model.Recordings);
+        Assert.Equal(report.Recording.Segments.Count+1,Directory.GetFiles(Path.GetDirectoryName(path)!).Length);
+    }
+    [Theory]
+    [InlineData("cancel")]
+    [InlineData("open-error")]
+    [InlineData("device-loss")]
+    [InlineData("changed-original")]
+    [InlineData("new-collision")]
+    public async Task AbortedReplacementNeverOverwritesOriginal(string action)
+    {
+        using var folder=new RecordingTestFolder(); var backend=new ManualBackend(); await using var model=new AudioRecorderViewModel();
+        string path=folder.PathFor("replace.wav"); var options=new WaveRecordingOptions(path) { SegmentDataLimit=4 };
+        await model.StartAsync(backend,Request,options); backend.Last!.Emit([1,2,3,4],new(0,2,0)); await model.StopAsync();
+        byte[] original=File.ReadAllBytes(path),sidecar=File.ReadAllBytes(path+".json");
+        if(action=="open-error")
+        {
+            backend.OpenFailure=true; await Assert.ThrowsAsync<IOException>(()=>model.StartAsync(backend,Request,options,overwrite:true));
+        }
+        else
+        {
+            await model.StartAsync(backend,Request,options,overwrite:true); backend.Last!.Emit(new byte[8],new(0,4,0));
+            if(action=="cancel") await model.DiscardAsync();
+            else
+            {
+                if(action=="changed-original") { original=[0xA5]; File.WriteAllBytes(path,original); }
+                if(action=="new-collision") File.WriteAllBytes(folder.PathFor("replace_002.wav"),[0x5A]);
+                if(action=="device-loss") backend.Last!.Finish(CaptureEndReason.DeviceLost);
+                var failed=await model.StopAsync(); Assert.Equal(CaptureIntegrity.Incomplete,failed!.Integrity);
+                Assert.All(failed.Recording!.Segments,s=>Assert.True(File.Exists(s.Path)));
+                if(action=="new-collision") Assert.Equal(new byte[]{0x5A},File.ReadAllBytes(folder.PathFor("replace_002.wav")));
+            }
+        }
+        Assert.Equal(original,File.ReadAllBytes(path)); Assert.Equal(sidecar,File.ReadAllBytes(path+".json"));
+        if(action=="cancel") Assert.Equal(2,Directory.GetFiles(Path.GetDirectoryName(path)!).Length);
+    }
+    [Fact]
+    public async Task DiscardDeletesOnlyCurrentSegmentsAndSidecarAndKeepsEarlierRecording()
+    {
+        using var folder=new RecordingTestFolder(); var backend=new ManualBackend(); await using var model=new AudioRecorderViewModel();
+        string saved=folder.PathFor("saved.wav"),cancelled=folder.PathFor("cancelled.wav");
+        await model.StartAsync(backend,Request,new(saved)); backend.Last!.Emit([1,2,3,4],new(0,2,0));
+        await model.StopAsync(); byte[] original=File.ReadAllBytes(saved),sidecar=File.ReadAllBytes(saved+".json");
+        File.WriteAllText(folder.PathFor("cancelled-unrelated.wav"),"unrelated");
+        await model.StartAsync(backend,Request,new(cancelled) { SegmentDataLimit=8 });
+        backend.Last!.Emit(Enumerable.Range(0,20).Select(i=>(byte)i).ToArray(),new(0,10,0));
+        var directory=Path.GetDirectoryName(cancelled)!;
+        await model.DiscardAsync();
+        Assert.Equal(CaptureSessionState.Idle,model.State); Assert.False(model.CanDiscard); Assert.False(model.IsBusy);
+        Assert.Null(model.Live); Assert.Null(model.LatestReport); Assert.Null(model.Capture);
+        Assert.Single(model.Recordings); Assert.Equal(saved,model.Recordings[0].Recording!.Segments.Single().Path);
+        Assert.Equal(original,File.ReadAllBytes(saved)); Assert.Equal(sidecar,File.ReadAllBytes(saved+".json"));
+        Assert.Equal(new[]{"cancelled-unrelated.wav","saved.wav","saved.wav.json"},Directory.GetFiles(directory).Select(Path.GetFileName).Order());
+        await model.StartAsync(backend,Request); await model.StopAsync(); Assert.Single(model.Recordings);
+    }
+    [Fact]
+    public async Task MonitorDiscardCreatesNoFilesAndCannotDiscardAnAlreadySavedRun()
+    {
+        using var folder=new RecordingTestFolder(); var backend=new ManualBackend(); await using var model=new AudioRecorderViewModel();
+        await model.StartAsync(backend,Request); await model.DiscardAsync();
+        Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(folder.PathFor("unused.wav"))!));
+        Assert.Equal(1,backend.Last!.DisposeCalls); Assert.Null(model.LatestReport);
+        string saved=folder.PathFor("saved.wav"); await model.StartAsync(backend,Request,new(saved));
+        backend.Last!.Emit([1,2],new(0,1,0)); await model.StopAsync();
+        await Assert.ThrowsAsync<InvalidOperationException>(()=>model.DiscardAsync()); Assert.True(File.Exists(saved));
+    }
+    [Fact]
+    public async Task DiscardDoesNotEvictEarlierEntriesFromFullRecordingHistory()
+    {
+        using var folder=new RecordingTestFolder(); var backend=new ManualBackend(); await using var model=new AudioRecorderViewModel();
+        for(int i=0;i<16;i++)
+        {
+            await model.StartAsync(backend,Request,new(folder.PathFor($"saved-{i}.wav")));
+            backend.Last!.Emit([1,2],new(0,1,0)); await model.StopAsync();
+        }
+        var previous=model.Recordings.ToArray();
+        await model.StartAsync(backend,Request,new(folder.PathFor("discard.wav")));
+        backend.Last!.Emit([3,4],new(0,1,0)); await model.DiscardAsync();
+        Assert.Equal(previous,model.Recordings);
+        Assert.All(previous,r=>Assert.True(File.Exists(r.Recording!.Segments.Single().Path)));
+    }
+    [Fact]
+    public async Task DiscardPublicationCollisionDeletesOwnedPartialButKeepsForeignDestination()
+    {
+        using var folder=new RecordingTestFolder(); var backend=new ManualBackend(); await using var model=new AudioRecorderViewModel();
+        string target=folder.PathFor("collision.wav"); await model.StartAsync(backend,Request,new(target));
+        backend.Last!.Emit([1,2,3,4],new(0,2,0)); File.WriteAllBytes(target,[0xA5]);
+        await model.DiscardAsync();
+        Assert.Equal(new byte[]{0xA5},File.ReadAllBytes(target)); Assert.Empty(model.Recordings);
+        Assert.Single(Directory.GetFiles(Path.GetDirectoryName(target)!));
+    }
     [Fact]
     public async Task MonitorThenRecordThenMonitor_PreservesFinalizedRecordingAndExactPcm()
     {

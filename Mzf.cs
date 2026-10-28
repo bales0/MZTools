@@ -331,16 +331,16 @@ namespace MZTools
     {
         public static string ToDisplayName(TapeProfile profile) => profile switch
         {
-            TapeProfile.Normal1_1 => "NORMAL 1:1",
-            TapeProfile.Normal1_2 => "NORMAL 1:2",
-            TapeProfile.Normal1_3 => "NORMAL 1:3",
-            TapeProfile.Normal1_4 => "NORMAL 1:4",
+            TapeProfile.Normal1_1 => "NORMAL 1:1 (ROM)",
+            TapeProfile.Normal1_2 => "NORMAL 1:2 (IC NORMAL timing)",
+            TapeProfile.Normal1_3 => "NORMAL 1:3 (IC NORMAL timing)",
+            TapeProfile.Normal1_4 => "NORMAL 1:4 (IC NORMAL timing)",
             TapeProfile.Mz700_1_1 => "MZ700 1:1",
             TapeProfile.Mz700_1_3 => "MZ700 1:3",
-            TapeProfile.Ic1_1 => "IC 1:1",
-            TapeProfile.Ic1_2 => "IC 1:2",
-            TapeProfile.Ic1_3 => "IC 1:3",
-            TapeProfile.Ic1_4 => "IC 1:4",
+            TapeProfile.Ic1_1 => "IC FAST IPL 1:1",
+            TapeProfile.Ic1_2 => "IC FAST IPL 1:2",
+            TapeProfile.Ic1_3 => "IC FAST IPL 1:3",
+            TapeProfile.Ic1_4 => "IC FAST IPL 1:4",
             TapeProfile.Tc1_1 => "TC 1:1",
             TapeProfile.Tc1_2 => "TC 1:2",
             TapeProfile.Tc1_3 => "TC 1:3",
@@ -349,6 +349,26 @@ namespace MZTools
             TapeProfile.UltraMz700 => "UL_MZ700",
             _ => profile.ToString()
         };
+
+        // Presentation only. TapeProfileComponents and sidecars retain their stable NORMAL/IC/TC keys.
+        public static string LoaderDisplayName(string key) => key == "IC" ? "IC FAST IPL" : key;
+        public static string Description(TapeProfile profile) => profile switch
+        {
+            TapeProfile.Normal1_1 => "Direct ROM NORMAL recording: original header and payload, no added loader. The selected machine/region controls the existing ROM timing policy.",
+            TapeProfile.Normal1_2 or TapeProfile.Normal1_3 or TapeProfile.Normal1_4 => "Direct recording with exact IC NORMAL asymmetric HIGH/LOW writer timing for both header and payload; no IC loader is added. An appropriate receiver must already be running. This is not TC NORMAL; project framing is retained.",
+            TapeProfile.Ic1_1 or TapeProfile.Ic1_2 or TapeProfile.Ic1_3 or TapeProfile.Ic1_4 => "IC FAST IPL: ROM-timed modified header with the IC loader, followed by the payload using the exact asymmetric IC writer timing and the existing delay. IC 1:1 also uses this loader structure; it is not ROM NORMAL 1:1. Physical timing and loader/framing are separate.",
+            TapeProfile.Tc1_1 or TapeProfile.Tc1_2 or TapeProfile.Tc1_3 => "TurboCopy: ROM-timed header and separate TC loader block, then a payload with TC timer timing. This is a separate loader family, not IC NORMAL or IC FAST IPL.",
+            _ => ToDisplayName(profile)
+        };
+        internal const string RomHeaderReferenceName="NORMAL 1:1 (ROM) / IC FAST IPL header / TC header+loader";
+        internal static string DecoderReferenceName(TapeProfile profile,bool payloadOnly=false)=>ToDisplayName(profile)+(payloadOnly?" payload":"");
+        internal static string IcWriterName(TapeProfile profile)=>"IC writer "+TapeProfileComponents.Split(profile).Speed;
+        internal static string ComparisonName(TapeProfile profile)
+        {
+            if(profile==TapeProfile.Mz700_1_3) return "MZ-700 FAST3";
+            var parts=TapeProfileComponents.Split(profile); return parts.LoaderType+" "+parts.Speed;
+        }
+        internal const string IcWriterStage="IC NORMAL physical writer / IC FAST IPL payload; loader and framing are separate";
     }
 
     internal static class TapeProfileComponents

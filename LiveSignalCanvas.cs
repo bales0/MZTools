@@ -15,6 +15,8 @@ internal sealed class LiveSignalCanvas : FrameworkElement
     internal int Channel { get; set; } = 2;
     internal double Gain { get; set; } = 1;
     internal bool AutoScale { get; set; }
+    internal double EffectiveGain => AutoScale ? 1 : Gain;
+    internal string ChannelLegend => Snapshot?.Format.Channels==1 ? "Blue Mono" : "Blue Left • orange Right";
     internal event Action<double,double>? ZoomRequested;
     internal event Action<double>? PanRequested;
     private Point? drag;
@@ -62,7 +64,7 @@ internal sealed class LiveSignalCanvas : FrameworkElement
                     foreach(var b in data.Waveform)
                     {
                         double x=left+width*(b.FirstFrame+(b.EndFrame-b.FirstFrame)*.5-data.WaveStartFrame)/frames;
-                        double Y(double v) => top+height*(.5-.48*Math.Clamp(v*Gain/amplitude,-1,1));
+                        double Y(double v) => top+height*(.5-.48*Math.Clamp(v*EffectiveGain/amplitude,-1,1));
                         double y1=Y(ch==0?b.LeftMin:b.RightMin),y2=Y(ch==0?b.LeftMax:b.RightMax);
                         if(b.EndFrame-b.FirstFrame==1)
                         {
@@ -81,6 +83,6 @@ internal sealed class LiveSignalCanvas : FrameworkElement
             double value=Spectrum ? data.Format.SampleRate*.5*i/4 : (data.WaveStartFrame+(data.WaveEndFrame-data.WaveStartFrame)*i/4.0)/data.Format.SampleRate;
             Text(Spectrum?$"{value:N0} Hz":$"{value:F4} s",Math.Clamp(x-20,0,Math.Max(0,ActualWidth-75)),top+height+5);
         }
-        Text(Spectrum?$"Hann • N={data.FftSize} • Δf={data.FrequencyResolutionHz:F2} Hz • peak amplitude dBFS":$"{(stereo?"Blue L / orange R":"Blue Mono")} • {(AutoScale?"auto scale":"FS")} × {Gain:G3} • {(data.Triggered?"triggered":"free run")} • min/max or sample lines • display only",left,0);
+        Text(Spectrum?$"Hann • N={data.FftSize} • Δf={data.FrequencyResolutionHz:F2} Hz • peak amplitude dBFS":$"{ChannelLegend} • {(AutoScale?"auto scale":$"FS × {Gain:G3}")} • {(data.Triggered?"triggered":"free run")} • min/max or sample lines • display only",left,0);
     }
 }

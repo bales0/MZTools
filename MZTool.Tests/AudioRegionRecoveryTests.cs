@@ -1,4 +1,4 @@
-﻿using System.Security.Cryptography;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Buffers.Binary;
 using NAudio.SoundFile;
@@ -7,6 +7,19 @@ namespace MZTools.Tests;
 
 public class AudioRegionRecoveryTests
 {
+    [Fact]
+    public void IdenticalIcAndNormalReferenceAliases_RunOnlyOnePhysicalReferenceTest()
+    {
+        string path=AudioSignalAnalysisTests.MakeTape(TapeProfile.Ic1_3);
+        try
+        {
+            using var reader=AudioSignalAnalysisService.OpenReader(path);
+            var aliases=AudioPulseReferences.Choices.Where(r=>r.Name is "NORMAL 1:3" or "IC 1:3").ToArray(); Assert.Equal(2,aliases.Length);
+            var result=WavHeuristicAnalyzer.AnalyzeRange(path,0,reader.Format.FrameCount,options:new() { Adaptive=false,ZeroCrossing=true,Schmitt=false,AdaptiveZeroCrossing=false,Inverted=false,HalfSample=false,ReferenceTests=true,References=aliases });
+            Assert.Equal(2,result.Passes.Count); // one ROM-header discovery and one shared physical reference
+        }
+        finally { File.Delete(path); }
+    }
     [Fact]
     public void DeepMeasurements_KeepSelectedSilentChannelAndExcludeOtherDetectors()
     {
@@ -345,7 +358,7 @@ public class AudioRegionRecoveryTests
 
     [Theory]
     [InlineData((int)TapeProfile.Tc1_2, "TC 1:2 compatibility waveform")]
-    [InlineData((int)TapeProfile.Ic1_3, "Intercopy writer 2800 Bd (7:3)")]
+    [InlineData((int)TapeProfile.Ic1_3, "IC writer 1:3")]
     public void ReferenceOnly_FindsRomHeadersWithFastCopierPayloads(int profile, string referenceName)
     {
         string path = AudioSignalAnalysisTests.MakeTape((TapeProfile)profile);
@@ -588,7 +601,7 @@ public class AudioRegionRecoveryTests
         Assert.Equal(new[] { 258.819, 256, 252.617, 255.436 }, rom.Guides.Where(g => g.Group == "SHORT Low").Select(g => g.Microseconds));
         var pal = AudioPulseReferences.BuiltIn.Single(r => r.Name.Contains("013A PAL"));
         Assert.Contains(pal.Guides, g => g.Microseconds == 242.749);
-        var writer = AudioPulseReferences.BuiltIn.Single(r => r.Name.Contains("writer 3200"));
+        var writer = AudioPulseReferences.BuiltIn.Single(r => r.CatalogId=="ic3200");
         Assert.Equal("COPIER-WRITER-EXACT; project alias 1:4", writer.Evidence);
         Assert.Equal(new[] { 76.969, 117.286, 157.604, 179.595 }, writer.Guides.Select(g => g.Microseconds));
         var timer = AudioPulseReferences.BuiltIn.Single(r => r.Name == "TurboCopy 1.22 timer OUT0 1:2");

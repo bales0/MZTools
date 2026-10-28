@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Globalization;
 
 namespace MZTools;
 
@@ -26,4 +27,20 @@ internal sealed record AudioPulseReference(string Name, string Source, string Ev
 internal static class AudioPulseReferences
 {
     internal static IReadOnlyList<AudioPulseReference> BuiltIn => PulseReferenceCatalog.Comparisons;
+    internal static IReadOnlyList<AudioPulseReference> Choices { get; }=BuildChoices();
+    private static IReadOnlyList<AudioPulseReference> BuildChoices()
+    {
+        var choices=new List<AudioPulseReference>();
+        foreach(var (id,name) in new[]{("rom800","MZ-800 ROM"),("rom700pal","MZ-700 ROM (PAL)"),("rom700ntsc","MZ-700 ROM (NTSC)")})
+            choices.Add(PulseReferenceCatalog.Get(id).Comparison with { Name=name });
+        foreach(var profile in new[]{TapeProfile.Normal1_2,TapeProfile.Normal1_3,TapeProfile.Normal1_4,TapeProfile.Ic1_2,TapeProfile.Ic1_3,TapeProfile.Ic1_4,TapeProfile.Tc1_2,TapeProfile.Tc1_3,TapeProfile.Mz700_1_3})
+        {
+            var reference=PulseReferenceCatalog.Get(PulseReferenceCatalog.ProfileId(profile)).Comparison;
+            choices.Add(reference with { Name=TapeProfileNames.ComparisonName(profile),Stage=TapeProfileNames.Description(profile) });
+        }
+        return choices.AsReadOnly();
+    }
+    // Classification uses pulse values/groups, not aliases or explanatory contexts.
+    internal static string MeasurementKey(AudioPulseReference reference)=>string.Join(";",reference.Guides.Select(g=>g.Group+":"+g.Microseconds.ToString("R",CultureInfo.InvariantCulture)).Distinct().OrderBy(s=>s,StringComparer.Ordinal));
+    internal static IEnumerable<AudioPulseReference> UniqueMeasurements(IEnumerable<AudioPulseReference> references)=>references.DistinctBy(MeasurementKey);
 }

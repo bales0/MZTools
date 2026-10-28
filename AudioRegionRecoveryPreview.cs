@@ -59,7 +59,8 @@ internal sealed partial class AudioRegionRecoveryWindow
         var panel = new DockPanel();
         var header = new StackPanel(); DockPanel.SetDock(header, Dock.Top); panel.Children.Add(header);
         var nav = previewSettings; header.Children.Add(nav);
-        Button(nav, "Fit selected interval", waveform.Fit); Button(nav, "Zoom +", () => waveform.Zoom(.5)); Button(nav, "Zoom −", () => waveform.Zoom(2));
+        waveform.AddFitButton(nav,"Fit selected interval"); Button(nav, "Zoom +", () => waveform.Zoom(.5)); Button(nav, "Zoom −", () => waveform.Zoom(2));
+        waveform.AddScaleControls(nav);
         measurementChannel.Items.Add(source.ChannelCount == 1 ? "Mono" : "Left"); if (source.ChannelCount == 2) measurementChannel.Items.Add("Right"); measurementChannel.SelectedIndex = 0;
         measurementPolarity.Items.Add("Normal"); measurementPolarity.Items.Add("Inverted"); measurementPolarity.SelectedIndex = 0;
         Field(nav, "Histogram channel", measurementChannel); Field(nav, "Histogram polarity", measurementPolarity);
@@ -70,10 +71,11 @@ internal sealed partial class AudioRegionRecoveryWindow
         visualTabs.Items.Add(new TabItem { Header = "Histogram", Content = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Content = pulsePanel } });
         panel.Children.Add(visualTabs);
         var groups = new WrapPanel(); pulsePanel.Children.Add(groups);
-        Button(groups, "Fit histogram", histogram.FitHistogram); Button(groups, "Zoom +", () => histogram.ZoomHistogram(.5)); Button(groups, "Zoom −", () => histogram.ZoomHistogram(2));
+        histogram.AddFitButton(groups,"Fit histogram",true); Button(groups, "Zoom +", () => histogram.ZoomHistogram(.5)); Button(groups, "Zoom −", () => histogram.ZoomHistogram(2));
         foreach (var check in pulseGroups) { check.IsChecked = source.VisiblePulseGroups.Contains((string)check.Content); check.Foreground = AudioSignalChart.PulseBrush((string)check.Content); groups.Children.Add(check); check.Checked += (_, _) => RefreshHistogram(); check.Unchecked += (_, _) => RefreshHistogram(); }
         referenceControl.UseReference(source.ComparisonReference, source.ShowComparisonReference);
         pulsePanel.Children.Add(referenceControl); referenceControl.Changed += RefreshHistogram;
+        referenceControl.VisibilityChanged += ()=>{ histogram.ShowReferenceGuides=referenceControl.ShowGrid; histogram.InvalidateVisual(); };
         distributions.Height = 105; pulsePanel.Children.Add(new Expander { Header = "Pulse statistics", Content = distributions }); pulsePanel.Children.Add(histogram);
         tabs.Items.Insert(0, new TabItem { Header = "Visual analysis", Content = panel });
         tabs.Items.Add(new TabItem { Header = "Problems", Content = problems }); tabs.SelectedIndex = 0;
@@ -166,15 +168,15 @@ internal sealed partial class AudioRegionRecoveryWindow
                 WavPulseMode.ZeroCrossing, 1, false, null, cancellation.Token, waveformOnly: true), cancellation.Token);
             cancellation.Token.ThrowIfCancellationRequested(); if (closed || previewWork != cancellation) return;
             bool retainView = preview != null;
-            long viewStart = waveform.Start, viewEnd = waveform.End;
+            long viewStart = waveform.Start, viewEnd = waveform.End; bool wasFit=waveform.IsFit;
             long? selectionStart = waveform.SelectionStart, selectionEnd = waveform.SelectionEnd;
             preview = result; displayTransform = transform;
             waveform.Analysis = result.Analysis; waveform.Envelope = result.Analysis.Waveform;
             waveform.RightShiftSamples = 0; waveform.InvertRight = false;
-            waveform.SingleChannelLabel = transform.Mix ? "Mix (L + R) / 2" : "Mono";
+            waveform.SingleChannelLabel = transform.Mix ? "Mix (L + R) / 2" : source.ChannelCount==1 ? "Mono" : channel.SelectedIndex==2 ? "Right" : "Left";
             waveform.ChannelMode = transform.Mix ? 0 : channel.SelectedIndex == 1 ? 0 : channel.SelectedIndex == 2 ? 1 : 2;
             waveform.RangeStart = result.Start; waveform.RangeEnd = result.End;
-            if (retainView) waveform.ShowRange(viewStart, viewEnd); else waveform.Fit();
+            if (retainView && !wasFit) waveform.ShowRange(viewStart, viewEnd); else waveform.Fit();
             if (retainView)
             {
                 if (selectionStart.HasValue && selectionEnd.HasValue) waveform.SetSelection(Math.Clamp(selectionStart.Value, result.Start, result.End), Math.Clamp(selectionEnd.Value, result.Start, result.End));

@@ -4,6 +4,15 @@
 
 **Analysis date:** 2026-09-14
 
+> **Archive clarification — 2026-10-28:** the old IC compatibility tuples discussed
+> as “current SD2CMT2” in §8, the summary and later compatibility sections describe
+> a historical implementation. The user confirms current SD2CMT2 uses the precise
+> Intercopy writer timings. MZTools has removed those three old IC comparison rows
+> from its active catalog. They remain below solely as historical analysis; they
+> are not current profiles or alternatives to the exact writer. The exact writer
+> derivation, IC receiver decision windows, TC references and framing distinctions
+> remain applicable and are not removed by this clarification.
+
 This document is intended to be used together with:
 
 - `CMT_TIMING_REFERENCE.md`

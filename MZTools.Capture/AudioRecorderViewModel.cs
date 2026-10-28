@@ -7,6 +7,11 @@ public sealed class AudioRecorderViewModel : IAsyncDisposable
     private LiveSignalAnalyzer? analyzer;
     private LiveSignalSnapshot? live;
     private CaptureSessionReport? observed;
+    private CaptureSessionReport? pendingDiscard;
+    private bool discarding;
+    private ReplacementRecordingSink? replacement;
+    public bool HasPendingDiscard => Volatile.Read(ref pendingDiscard)!=null;
+    public bool CanDiscard => IsActive||HasPendingDiscard;
     private LivePulseOptions? pulseOptions,requestedPulseOptions;
     public void ConfigurePulses(LivePulseOptions? options)
     {
@@ -36,12 +41,13 @@ public sealed class AudioRecorderViewModel : IAsyncDisposable
     public IReadOnlyList<CaptureSessionReport> Recordings { get { lock(gate) return recordings.ToArray(); } }
     public string? Error { get; private set; }
 
-    public async Task StartAsync(IAudioCaptureBackend backend,AudioCaptureRequest request,WaveRecordingOptions? recording = null,CancellationToken token = default)
+    public async Task StartAsync(IAudioCaptureBackend backend,AudioCaptureRequest request,WaveRecordingOptions? recording = null,CancellationToken token = default,bool overwrite=false)
     {
         lock(gate)
         {
             ObjectDisposedException.ThrowIf(disposed,this);
             if (operation != 0) throw new InvalidOperationException("A recorder operation is still running.");
+            if (pendingDiscard != null) throw new InvalidOperationException("Finish discarding the cancelled recording before starting another capture.");
             operation = 1; starting = new(TaskCreationOptions.RunContinuationsAsynchronously);
         }
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(token,lifetime.Token);
@@ -58,8 +64,9 @@ public sealed class AudioRecorderViewModel : IAsyncDisposable
             token.ThrowIfCancellationRequested();
             analyzer = new(); Volatile.Write(ref live,null);
             lock(gate) analyzer.ConfigurePulses(pulseOptions);
+            replacement=recording!=null&&overwrite?await Task.Run(()=>new ReplacementRecordingSink(recording),token).ConfigureAwait(false):null;
             session = new(backend,request);
-            await session.StartAsync(recording == null ? null : new PcmWaveRecordingSink(recording),analyzer,token);
+            await session.StartAsync(recording == null ? null : replacement is {} staged ? staged : new PcmWaveRecordingSink(recording),analyzer,token);
         }
         catch (Exception error) { Error = error.Message; Observe(); throw; }
         finally { lock(gate) { Volatile.Write(ref operation,0); starting!.TrySetResult(); } }
@@ -70,6 +77,49 @@ public sealed class AudioRecorderViewModel : IAsyncDisposable
         if (current == null) return null;
         try { var report = await current.StopAsync(token); Observe(); return report; }
         catch(Exception error) { Error=error.Message; throw; }
+    }
+    /// <summary>Explicit user-approved discard of this run only. Stop and release all writers before deleting exact report paths.</summary>
+    public async Task DiscardAsync()
+    {
+        CaptureSession current;
+        lock(gate)
+        {
+            ObjectDisposedException.ThrowIf(disposed,this);
+            if(operation!=0) throw new InvalidOperationException("A recorder operation is still running.");
+            if(!CanDiscard || session==null) throw new InvalidOperationException("No current capture to discard.");
+            replacement?.SuppressReplacement();
+            current=session; operation=1; discarding=true; starting=new(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+        try
+        {
+            var report=pendingDiscard??await current.StopAsync().ConfigureAwait(false);
+            Observe();
+            Volatile.Write(ref pendingDiscard,report);
+            await current.DisposeAsync().ConfigureAwait(false);
+            if(report?.Recording is {} recording)
+            {
+                // No filename patterns, destination guesses, directory deletion, or earlier history.
+                var paths=recording.Segments.Select(s=>s.Path).Concat(recording.SidecarPath is {} sidecar?new[]{sidecar}:Array.Empty<string>())
+                    .Distinct(OperatingSystem.IsWindows()?StringComparer.OrdinalIgnoreCase:StringComparer.Ordinal).ToArray();
+                await Task.Run(()=>
+                {
+                    var errors=new List<string>();
+                    foreach(string path in paths)
+                        try { File.Delete(path); }
+                        catch(Exception error) when(error is IOException or UnauthorizedAccessException) { errors.Add(path+": "+error.Message); }
+                    if(errors.Count>0) throw new IOException("Could not discard all current recording files. Retry Cancel.\n"+string.Join("\n",errors));
+                }).ConfigureAwait(false);
+            }
+            lock(gate)
+            {
+                recordings.RemoveAll(r=>ReferenceEquals(r,report));
+                session=null; analyzer=null; observed=null; Volatile.Write(ref live,null);
+                replacement=null;
+                Volatile.Write(ref pendingDiscard,null); Error=null;
+            }
+        }
+        catch(Exception error) { Error=error.Message; throw; }
+        finally { lock(gate) { discarding=false; Volatile.Write(ref operation,0); starting!.TrySetResult(); } }
     }
     public async Task<LiveSignalSnapshot?> RefreshAsync(LiveSignalViewOptions view,CancellationToken token = default)
     {
@@ -93,8 +143,15 @@ public sealed class AudioRecorderViewModel : IAsyncDisposable
         {
         if (session?.Completion is not {IsCompletedSuccessfully:true} task || ReferenceEquals(observed,task.Result)) return;
         observed = task.Result;
-        if (observed.Recording is {Segments.Count:>0})
-        { recordings.Add(observed); if (recordings.Count>16) recordings.RemoveAt(0); }
+        if (!discarding && observed.Recording is {Segments.Count:>0})
+        {
+            if(replacement?.Committed==true)
+            {
+                var paths=observed.Recording.Segments.Select(s=>s.Path).ToHashSet(OperatingSystem.IsWindows()?StringComparer.OrdinalIgnoreCase:StringComparer.Ordinal);
+                recordings.RemoveAll(r=>r.Recording?.Segments.Any(s=>paths.Contains(s.Path))==true);
+            }
+            recordings.Add(observed); if (recordings.Count>16) recordings.RemoveAt(0);
+        }
         if (observed.Reason is not (CaptureEndReason.Stopped or CaptureEndReason.SourceCompleted or CaptureEndReason.Cancelled)) Error = observed.Diagnostics.LastOrDefault(d => d.Severity==CaptureDiagnosticSeverity.Error)?.Message ?? observed.Reason.ToString();
         }
     }

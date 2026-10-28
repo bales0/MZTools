@@ -2,6 +2,57 @@ namespace MZTools.Tests;
 
 public class PulseReferenceCatalogTests
 {
+    [Fact]
+    public void ReferenceChoices_UseSimpleProfilesAndSharedExactTimingWithoutTechnicalRows()
+    {
+        Assert.Equal(new[]{"MZ-800 ROM","MZ-700 ROM (PAL)","MZ-700 ROM (NTSC)","NORMAL 1:2","NORMAL 1:3","NORMAL 1:4","IC 1:2","IC 1:3","IC 1:4","TC 1:2","TC 1:3","MZ-700 FAST3"},AudioPulseReferences.Choices.Select(r=>r.Name));
+        Assert.Equal(15,AudioPulseReferences.BuiltIn.Count);
+        foreach(string id in new[]{"service800","service700","tccompat2","tccompat3","ic1200","tc1"})
+        { Assert.DoesNotContain(AudioPulseReferences.Choices,r=>r.CatalogId==id); Assert.NotNull(PulseReferenceCatalog.Get(id)); }
+        foreach(int speed in new[]{2,3,4})
+        {
+            var normal=AudioPulseReferences.Choices.Single(r=>r.Name=="NORMAL 1:"+speed);
+            var ic=AudioPulseReferences.Choices.Single(r=>r.Name=="IC 1:"+speed);
+            Assert.Equal(normal.CatalogId,ic.CatalogId); Assert.Same(normal.Guides,ic.Guides);
+            Assert.Equal(AudioPulseReferences.MeasurementKey(normal),AudioPulseReferences.MeasurementKey(ic));
+        }
+        Assert.Equal(9,AudioPulseReferences.UniqueMeasurements(AudioPulseReferences.Choices).Count());
+        var tc=AudioPulseReferences.Choices.Single(r=>r.Name=="TC 1:2");
+        Assert.Equal(new[]{141.818,140.909,282.727,282.727},tc.Guides.Select(g=>g.Microseconds));
+    }
+    [Fact]
+    public void ActiveCatalog_RemovesOnlyOldIcCompatibilityRows()
+    {
+        foreach(string id in new[]{"iccompat2","iccompat3","iccompat4"})
+        {
+            Assert.DoesNotContain(PulseReferenceCatalog.Entries,e=>e.Id==id);
+            Assert.DoesNotContain(PulseReferenceCatalog.Comparisons,r=>r.CatalogId==id);
+            Assert.Throws<ArgumentException>(()=>PulseReferenceCatalog.Get(id));
+        }
+        Assert.Equal(15,PulseReferenceCatalog.Comparisons.Count);
+        foreach(string id in new[]{"ic1200","ic2400","ic2800","ic3200"}) Assert.Equal(PulseReferenceKind.WriterExact,PulseReferenceCatalog.Get(id).Kind);
+        foreach(string id in new[]{"rxic2","rxic3","rxic4"})
+        {
+            var receiver=PulseReferenceCatalog.Get(id); Assert.Equal(PulseReferenceKind.ReceiverDecision,receiver.Kind);
+            Assert.True(receiver.ReceiverMaxUs>receiver.ReceiverMinUs); Assert.Empty(receiver.Guides);
+        }
+        foreach(string id in new[]{"tccompat2","tccompat3","fast3"}) Assert.Equal(PulseReferenceKind.ProjectCompatibility,PulseReferenceCatalog.Get(id).Kind);
+        foreach(string id in new[]{"tc1","tc2","tc3"}) Assert.Equal(PulseReferenceKind.TimerOutput,PulseReferenceCatalog.Get(id).Kind);
+    }
+    [Theory]
+    [InlineData((int)TapeProfile.Ic1_1,"ic1200","IC writer 1:1",234.573,263.894,469.145,494.802)]
+    [InlineData((int)TapeProfile.Ic1_2,"ic2400","IC writer 1:2",113.621,139.278,234.573,260.229)]
+    [InlineData((int)TapeProfile.Ic1_3,"ic2800","IC writer 1:3",87.965,124.617,175.930,223.577)]
+    [InlineData((int)TapeProfile.Ic1_4,"ic3200","IC writer 1:4",76.969,117.286,157.604,179.595)]
+    public void CanonicalIcNames_UseExactDatabaseRows(int profile,string id,string name,double sh,double sl,double lh,double ll)
+    {
+        Assert.Equal(id,PulseReferenceCatalog.ProfileId((TapeProfile)profile));
+        var entry=PulseReferenceCatalog.Get(id); Assert.StartsWith(name,entry.Software); Assert.Equal(PulseReferenceKind.WriterExact,entry.Kind);
+        Assert.Equal(new[]{sh,sl,lh,ll},entry.Guides.Select(g=>g.Microseconds));
+        var writer=PulseReferenceCatalog.GetWriterTiming(id);
+        Assert.Equal(new[]{sh,sl,lh,ll},new[]{writer.ShortHighMicroseconds,writer.ShortLowMicroseconds,writer.LongHighMicroseconds,writer.LongLowMicroseconds});
+        Assert.Contains("CMT_INTERCOPY_TURBOCOPY_TIMING_REFERENCE.md",entry.SourceFile);
+    }
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -269,7 +320,7 @@ public class PulseReferenceCatalogTests
     public void Catalog_ValidatesOriginsContextsAndSeparatesTimingKinds()
     {
         PulseReferenceCatalog.Validate(PulseReferenceCatalog.Entries);
-        Assert.Equal(18, AudioPulseReferences.BuiltIn.Count);
+        Assert.Equal(15, AudioPulseReferences.BuiltIn.Count);
         var rom = PulseReferenceCatalog.Get("rom800");
         Assert.Equal(PulseReferenceKind.WriterExact, rom.Kind);
         Assert.Equal(9, rom.Guides.Count);

@@ -1,6 +1,8 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using MZTools.Capture;
 using NAudio.SoundFile;
 
 namespace MZTools.Tests;
@@ -274,4 +276,103 @@ public class AudioSignalAnalysisTests
         Data = [1], ChecksumValid = true, RecordedChecksum = 1, CalculatedChecksum = 1, StartSample = 0, EndSample = 1_000_000,
         LeaderAverage = 250, LeaderStdDev = 0, PulseConfidence = 1
     };
+}
+
+public class SegmentedAudioTests
+{
+    [Fact]
+    public void SplitInsidePulseAndPayload_KeepsPcmPulsesDecodedBytesAndManualRecoveryIdentical()
+    {
+        Assert.Contains("*.wav.json",FeatureModePolicy.GetOpenFilter());
+        using var capture=new JoinedFixture();
+        using var single=AudioSignalAnalysisService.OpenReader(capture.Original);
+        using var joined=AudioSignalAnalysisService.OpenReader(capture.Manifest);
+        Assert.Equal(single.Format.FrameCount,joined.Format.FrameCount);
+        var singlePulses=new List<(int,WavPulseMode,bool,long,long)>(); var joinedPulses=new List<(int,WavPulseMode,bool,long,long)>();
+        WavHeuristicAnalyzer.VisitSignal(single,(_,_,_)=>{},(c,m,h,d,e)=>singlePulses.Add((c,m,h,d,e)));
+        WavHeuristicAnalyzer.VisitSignal(joined,(_,_,_)=>{},(c,m,h,d,e)=>joinedPulses.Add((c,m,h,d,e)));
+        Assert.Equal(singlePulses,joinedPulses);
+        Assert.Contains(singlePulses,p=>p.Item5-p.Item4<capture.Cut&&p.Item5>capture.Cut);
+        var before=new List<(long,int,int)>(); var after=new List<(long,int,int)>();
+        single.ReadFrames(capture.Cut-10,30,(i,l,r)=>before.Add((i,l,r))); joined.ReadFrames(capture.Cut-10,30,(i,l,r)=>after.Add((i,l,r)));
+        Assert.Equal(before,after);
+        var standard=WavHeuristicAnalyzer.AnalyzeFile(capture.Original); var recovered=WavHeuristicAnalyzer.AnalyzeFile(capture.Manifest);
+        Assert.Equal(Assert.Single(standard.Records).GetSerializedHeader(),Assert.Single(recovered.Records).GetSerializedHeader());
+        Assert.Equal(standard.Records[0].Body.MzfBody,recovered.Records[0].Body.MzfBody);
+        var visual=AudioSignalAnalysisService.Analyze(capture.Manifest);
+        Assert.Equal(single.Format.FrameCount,visual.FrameCount); Assert.Equal(2,visual.Blocks.Count); Assert.All(visual.Blocks,b=>Assert.True(b.ChecksumValid));
+        var manual=WavHeuristicAnalyzer.AnalyzeRange(capture.Manifest,0,joined.Format.FrameCount,options:new() { Adaptive=true,ZeroCrossing=true,Schmitt=false,AdaptiveZeroCrossing=false,Inverted=false,HalfSample=false });
+        Assert.Equal(standard.Records[0].Body.MzfBody,Assert.Single(manual.Records).Body.MzfBody);
+        string export=Path.Combine(capture.Directory,"selection.wav");
+        AudioSelectionWaveExporter.Export(visual,export,capture.Cut-10,capture.Cut+20,new(),0);
+        using var exported=AudioSignalAnalysisService.OpenReader(export); var exportedPcm=new List<(int,int)>();
+        exported.ReadFrames((_,l,r)=>exportedPcm.Add((l,r))); Assert.Equal(before.Select(p=>(p.Item2,p.Item3)),exportedPcm);
+        Assert.Throws<ArgumentException>(()=>AudioSelectionWaveExporter.Export(visual,capture.Parts[0],0,10,new(),0));
+    }
+
+    [Theory]
+    [InlineData("missing")]
+    [InlineData("changed")]
+    [InlineData("gap")]
+    [InlineData("overlap")]
+    [InlineData("incomplete")]
+    [InlineData("format")]
+    [InlineData("order")]
+    public void InvalidOrChangedSegmentFamiliesAreRejected(string damage)
+    {
+        using var capture=new JoinedFixture(); var document=JsonNode.Parse(File.ReadAllText(capture.Manifest))!;
+        var segments=document["recording"]!["segments"]!.AsArray();
+        if(damage=="missing") File.Delete(capture.Parts[1]);
+        if(damage=="changed") { var bytes=File.ReadAllBytes(capture.Parts[1]); bytes[44]^=0x5A; File.WriteAllBytes(capture.Parts[1],bytes); }
+        if(damage=="gap") segments[1]!["firstFrame"]=2;
+        if(damage=="overlap") segments[1]!["firstFrame"]=0;
+        if(damage=="incomplete") document["status"]="Incomplete";
+        if(damage=="format") document["recording"]!["conversion"]!["output"]!["sampleRate"]=22050;
+        if(damage=="order") segments[0]!["path"]=capture.Parts[1];
+        File.WriteAllText(capture.Manifest,document.ToJsonString());
+        if(damage=="missing") Assert.ThrowsAny<IOException>(()=>new SegmentedPcmStreamReader(capture.Manifest));
+        else Assert.Throws<InvalidDataException>(()=>new SegmentedPcmStreamReader(capture.Manifest));
+    }
+    [Fact]
+    public void RangeReadsAndSourceVerificationRejectChangesAfterOpening()
+    {
+        using var capture=new JoinedFixture(); var source=AudioSignalAnalysisService.Analyze(capture.Manifest);
+        using var reader=new SegmentedPcmStreamReader(capture.Manifest);
+        var bytes=File.ReadAllBytes(capture.Parts[1]); bytes[44]^=0x44; File.WriteAllBytes(capture.Parts[1],bytes);
+        File.SetLastWriteTimeUtc(capture.Parts[1],DateTime.UtcNow.AddSeconds(2));
+        Assert.ThrowsAny<IOException>(()=>reader.ReadFrames(capture.Cut-5,10,(_,_,_)=>{}));
+        Assert.Throws<InvalidDataException>(()=>AudioRangeInspection.VerifySource(source));
+    }
+    private sealed class JoinedFixture:IDisposable
+    {
+        internal readonly string Directory=TapeTestData.CreateTempDirectory();
+        internal readonly string Original,Manifest;
+        internal readonly string[] Parts;
+        internal readonly long Cut;
+        internal JoinedFixture()
+        {
+            Original=Path.Combine(Directory,"original.wav");
+            SharpTapeExporter.Export(Original,[TapeTestData.ReadRecord(TapeTestData.CreateMzf(Enumerable.Range(0,32).Select(i=>(byte)i).ToArray()))],SharpTapeOutputFormat.Wav,SharpTapeMachine.Mz800);
+            using var reader=new WavPcmStreamReader(Original); var format=reader.Format;
+            var pulses=new List<(long Start,long End)>();
+            var decoded=WavHeuristicAnalyzer.AnalyzeFile(Original,includeCandidates:true);
+            long dataStart=decoded.Candidates.First(c=>c.Kind==SharpBlockKind.Payload&&c.ChecksumValid).SignalTrace!.DataStart;
+            WavHeuristicAnalyzer.VisitSignal(reader,(_,_,_)=>{},(_,_,_,d,e)=>{ if(e-d>dataStart+1000&&d>4) pulses.Add((e-d,e)); });
+            var pulse=pulses[0]; Cut=(pulse.Start+pulse.End)/2;
+            long[] cuts=[0,1,Cut,format.FrameCount-1,format.FrameCount];
+            byte[] original=File.ReadAllBytes(Original); var items=new List<object>(); Parts=new string[4];
+            for(int i=0;i<4;i++)
+            {
+                string path=Parts[i]=Path.Combine(Directory,i==0?"joined.wav":$"joined_{i+1:D3}.wav");
+                long frames=cuts[i+1]-cuts[i]; int dataBytes=checked((int)(frames*format.BlockAlign));
+                var pcmFormat=new AudioCaptureFormat((int)format.SampleRate,format.Channels,format.BitsPerSample switch {8=>AudioSampleRepresentation.Unsigned8,16=>AudioSampleRepresentation.Signed16,_=>AudioSampleRepresentation.Signed24});
+                byte[] header=RiffWaveLayout.Header(pcmFormat,frames); byte[] file=new byte[44+dataBytes+(dataBytes&1)]; header.CopyTo(file,0);
+                original.AsSpan(checked((int)(format.DataOffset+cuts[i]*format.BlockAlign)),dataBytes).CopyTo(file.AsSpan(44)); File.WriteAllBytes(path,file);
+                items.Add(new { path,firstFrame=cuts[i],frames,dataBytes,fileBytes=file.Length,published=true,headerFinalized=true,pcmMatchesWrittenBytes=true,fileSha256=Convert.ToHexString(SHA256.HashData(file)) });
+            }
+            Manifest=Path.Combine(Directory,"joined.wav.json");
+            File.WriteAllText(Manifest,JsonSerializer.Serialize(new { schema="mztools-live-capture-v1",status="Complete",recording=new { savedFrames=format.FrameCount,conversion=new { output=new { channels=format.Channels,sampleRate=format.SampleRate,bitsPerSample=format.BitsPerSample } },segments=items } }));
+        }
+        public void Dispose() { foreach(string file in System.IO.Directory.GetFiles(Directory)) File.Delete(file); System.IO.Directory.Delete(Directory); }
+    }
 }

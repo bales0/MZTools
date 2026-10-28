@@ -55,20 +55,31 @@ public static class HeadAlignmentAnalyzer
         double slope=0; for(int i=1;i<x.Length;i++) slope+=Math.Abs(x[i]-x[i-1]);
         double lower=lo+range*.1,upper=lo+range*.9,rising=double.NaN,falling=double.NaN;
         var rises=new List<double>(); var falls=new List<double>();
+        double riseTravel=0,fallTravel=0; int roughTransitions=0,positiveSamples=0,plateauSamples=0;
+        foreach(double value in x) { if(value>=(lo+hi)*.5) positiveSamples++; if(value<=lower||value>=upper) plateauSamples++; }
         if(range>1e-9)
         for(int i=1;i<x.Length;i++)
         {
             double previous=x[i-1],current=x[i];
             double Crossing(double threshold)=>i-1+(threshold-previous)/(current-previous);
+            double travel=Math.Abs(Math.Clamp(current,lower,upper)-Math.Clamp(previous,lower,upper));
+            if(double.IsFinite(rising)) riseTravel+=travel;
+            if(double.IsFinite(falling)) fallTravel+=travel;
             if(current<=lower) rising=double.NaN;
             if(current>=upper) falling=double.NaN;
-            if(previous<=lower&&current>lower) rising=Crossing(lower);
-            if(previous<upper&&current>=upper&&double.IsFinite(rising)) { rises.Add((Crossing(upper)-rising)*1e6/f.SampleRate); rising=double.NaN; }
-            if(previous>=upper&&current<upper) falling=Crossing(upper);
-            if(previous>lower&&current<=lower&&double.IsFinite(falling)) { falls.Add((Crossing(lower)-falling)*1e6/f.SampleRate); falling=double.NaN; }
+            if(previous<=lower&&current>lower) { rising=Crossing(lower); riseTravel=travel; }
+            if(previous<upper&&current>=upper&&double.IsFinite(rising)) { rises.Add((Crossing(upper)-rising)*1e6/f.SampleRate); if(riseTravel>(upper-lower)*1.2) roughTransitions++; rising=double.NaN; }
+            if(previous>=upper&&current<upper) { falling=Crossing(upper); fallTravel=travel; }
+            if(previous>lower&&current<=lower&&double.IsFinite(falling)) { falls.Add((Crossing(lower)-falling)*1e6/f.SampleRate); if(fallTravel>(upper-lower)*1.2) roughTransitions++; falling=double.NaN; }
         }
         static double? Median(List<double> values) { if(values.Count==0) return null; values.Sort(); return (values[(values.Count-1)/2]+values[values.Count/2])*.5; }
-        return new(name,assessable,quality,rms,mean,hf,range>1e-9?slope/(x.Length-1)/range*f.SampleRate/1000:null,Median(rises),Median(falls),rises.Count,falls.Count,clipped);
+        double? rise=Median(rises),fall=Median(falls);
+        double Mad(List<double> values,double? median)=>median is >0?100*(Median(values.Select(v=>Math.Abs(v-median.Value)).ToList())??0)/median.Value:0;
+        double overshoot=range>1e-9?Math.Max(0,Math.Max(lo-sorted[(int)((sorted.Length-1)*.001)],sorted[(int)((sorted.Length-1)*.999)]-hi))/range:0;
+        var evidence=new HeadEdgeEvidence(Mad(rises,rise),Mad(falls,fall),
+            rises.Count+falls.Count>0?roughTransitions/(double)(rises.Count+falls.Count):0,overshoot,
+            positiveSamples/(double)x.Length,plateauSamples/(double)x.Length,(rises.Count+falls.Count)*f.SampleRate/(double)x.Length);
+        return new(name,assessable,quality,rms,mean,hf,range>1e-9?slope/(x.Length-1)/range*f.SampleRate/1000:null,rise,fall,rises.Count,falls.Count,clipped) { EdgeEvidence=evidence };
     }
     private static HeadAlignmentStereo EmptyStereo(string status)=>new(false,status,null,null,null,null,null,null,null,null,null,null,false,0);
     private static HeadAlignmentStereo Stereo(ReadOnlySpan<double> left,ReadOnlySpan<double> right,int rate,HeadAlignmentOptions options,List<HeadAlignmentChannel> channels)

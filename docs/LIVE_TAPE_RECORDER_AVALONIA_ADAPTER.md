@@ -74,7 +74,9 @@ Capture PCM is interleaved little-endian, mono/stereo, with the supported sample
 representation and valid-bit descriptor. A backend with planar, non-native-endian or
 other-channel input must explicitly negotiate/adapt it and document the transformation.
 It must never silently reorder/drop channels or present converted data as byte-exact
-native capture. Native float/PCM32 → WAV PCM24 remains a separate explicit conversion.
+native capture. PreserveNativeFormat archives the delivered PCM/float bytes and valid-bit
+descriptor with the appropriate WAV header. The compatibility float/PCM32 → PCM24
+path remains a separate explicit conversion; never substitute it for native archival.
 
 `FirstFrame` is relative to the session. Timestamps are monotonic 100 ns units with
 a declared backend origin, not UI wall-clock time. Map native silent/discontinuity/
@@ -129,8 +131,9 @@ No source device may start merely because a view was constructed or restored.
 For each proposed Linux/macOS transport, first assess the native library/API,
 packaging, license, callback ownership, stop/join behavior, raw/processing controls,
 timestamp/position semantics and supported device formats. Request approval before
-adding dependencies or native code. The current Windows exclusive incompatibility
-must not be hidden by assuming another platform API behaves identically.
+adding dependencies or native code. Windows now has its own exclusive packet transport
+alongside the shared NAudio recorder; this does not prove another platform API behaves
+identically. Driver-accepted format support is distinct from physical ADC certification.
 
 Before advertising a port, require:
 

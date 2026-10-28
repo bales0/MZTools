@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 
 namespace MZTools;
@@ -17,6 +18,8 @@ internal static class AudioSelectionWaveExporter
         if (string.Equals(target, Path.GetFullPath(source.Source), StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("Choose a different output file; the source recording cannot be overwritten.");
         using var reader = AudioSignalAnalysisService.OpenReader(source.Source);
+        if(reader is SegmentedPcmStreamReader joined && joined.SourceFiles.Any(p=>string.Equals(p,target,StringComparison.OrdinalIgnoreCase)))
+            throw new ArgumentException("Choose a different output file; source recording segments cannot be overwritten.");
         if (channelMode is < 0 or > 2) throw new ArgumentException("Select Left, Right, stereo or Average.");
         if (reader.Format.Channels == 1 && channelMode == 1) throw new ArgumentException("This recording has no right channel.");
         (start, end) = transform.Bounds(reader.Format, start, end);

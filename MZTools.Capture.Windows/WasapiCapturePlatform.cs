@@ -21,6 +21,13 @@ internal sealed class WasapiCapturePlatform : IWindowsCapturePlatform
                 token.ThrowIfCancellationRequested();
                 using var client = device.CreateAudioClient();
                 var formats = new List<AudioCaptureFormat>();
+                if(options.Mode==WindowsAudioCaptureMode.Exclusive)
+                {
+                    foreach(var format in NativeWasapiFormats.Candidates())
+                    { token.ThrowIfCancellationRequested(); if(NativeWasapiFormats.Supported(client,format)!=null) formats.Add(format); }
+                    result.Add(new(device.ID,device.FriendlyName,"WASAPI exclusive: driver-accepted candidates (custom probing available)",Array.AsReadOnly(formats.Distinct().ToArray())));
+                    continue;
+                }
                 try { formats.Add(WasapiWaveFormats.FromNative(client.MixFormat)); }
                 catch (NotSupportedException) { /* Multichannel/non-PCM mix is not advertised as mono/stereo PCM. */ }
                 if (options.AllowEngineFormatConversion)
@@ -47,6 +54,15 @@ internal sealed class WasapiCapturePlatform : IWindowsCapturePlatform
     {
         options.ValidateSupported();
         token.ThrowIfCancellationRequested();
+        if(options.Mode==WindowsAudioCaptureMode.Exclusive)
+        {
+            if(request.AllowFormatFallback) throw new ArgumentException("Native capture never falls back to a different format.");
+            using var probeEnumerator=new MMDeviceEnumerator(); using var probeDevice=probeEnumerator.GetDevice(request.DeviceId);
+            if(probeDevice.DataFlow!=DataFlow.Capture||probeDevice.State!=DeviceState.Active) throw new InvalidOperationException("Select an active capture endpoint.");
+            using var probeClient=probeDevice.CreateAudioClient();
+            if(NativeWasapiFormats.Supported(probeClient,request.Format)==null) throw new NotSupportedException("The input driver rejected this exact exclusive format. No fallback or recording was started.");
+            return new ExclusiveCaptureTransport(request,options,friendlyName:probeDevice.FriendlyName);
+        }
         using var enumerator = new MMDeviceEnumerator();
         MMDevice device = enumerator.GetDevice(request.DeviceId);
         WasapiRecorder? recorder = null;
@@ -88,6 +104,8 @@ internal sealed class WasapiCapturePlatform : IWindowsCapturePlatform
         AudioCaptureFormat? mix)
     {
         options.ValidateSupported();
+        if(options.Mode==WindowsAudioCaptureMode.Exclusive)
+        { if(request.AllowFormatFallback) throw new ArgumentException("Native capture cannot fall back."); return request.Format; }
         if (request.Format == mix || options.AllowEngineFormatConversion) return request.Format;
         if (request.AllowFormatFallback && mix != null) return mix;
         throw new NotSupportedException("The requested format differs from the endpoint mix format. Choose the actual mix format, explicitly allow format fallback, or explicitly permit shared-engine conversion.");

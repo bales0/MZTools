@@ -125,6 +125,7 @@ internal static class AudioRangeInspection
     {
         var file = new FileInfo(source.Source);
         if (file.Length != source.SourceLength || file.LastWriteTimeUtc != source.SourceModifiedUtc) throw new IOException("The source changed since analysis. Analyze it again.");
+        if(SegmentedPcmStreamReader.IsManifest(source.Source)) { using var verified=new SegmentedPcmStreamReader(source.Source); }
     }
 }
 

@@ -33,6 +33,7 @@ internal static class Program
                 foreach (var format in new[] { "json", "csv", "txt" }) File.WriteAllText(Path.Combine(folder, "analysis." + format), AudioAnalysisReport.Export(model, format));
                 await Dispatcher.Yield(DispatcherPriority.ApplicationIdle); Save(window, folder, "records");
                 var exportChart = (AudioSignalChart)Field(window, "waveform")!;
+                VerifyWaveScale(window,exportChart,"Fit");
                 exportChart.SetSelection(1, Math.Min(model.FrameCount, 1000));
                 var savedView = (exportChart.Start, exportChart.End);
                 var exportPath = Path.Combine(folder, "visual-selection.wav");
@@ -152,6 +153,7 @@ internal static class Program
                     var candidateHexMenu = (MenuItem)Field(recovery, "candidateHexMenu")!;
                     if (candidateHexButton.IsEnabled || candidateHexMenu.IsEnabled) throw new Exception("Candidate hex is enabled without a result.");
                     await recovery.RefreshPreview();
+                    VerifyWaveScale(recovery,(AudioSignalChart)Field(recovery,"waveform")!,"Fit selected interval");
                     var beforeScanHistogram = (AudioSignalChart)Field(recovery, "histogram")!;
                     if (beforeScanHistogram.HistogramSeries?.Sum(d => d.Count) is > 0) throw new Exception("Waveform preview generated histogram pulses before Deep analysis.");
                     await recovery.Scan();
@@ -183,7 +185,18 @@ internal static class Program
                     candidateTable.SelectedIndex = 0;
                     var manualHistogram = (AudioSignalChart)Field(recovery, "histogram")!;
                     var manualReference = (AudioPulseReferenceControl)Field(recovery, "referenceControl")!;
+                    var referenceProfiles=(ListBox)Field(recovery,"referenceSelection")!;
+                    var activeProfiles=referenceProfiles.Items.Cast<AudioPulseReference>().ToArray();
+                    if(activeProfiles.Any(r=>r.CatalogId?.StartsWith("iccompat")==true)||activeProfiles.Count(r=>r.Name is "IC 1:2" or "IC 1:3" or "IC 1:4")!=3||activeProfiles.Length!=manualReference.References.Count)
+                        throw new Exception("Manual All/Selected profiles must share the active catalog, without obsolete IC references.");
                     if (manualHistogram.HistogramSeries?.Count != 4 || manualHistogram.HistogramSeries.Sum(d => d.Count) == 0 || manualHistogram.ReferenceOverlay?.Name != "UI custom reference") throw new Exception("Manual histogram or inherited user reference missing.");
+                    var guideVisibility=(CheckBox)Field(manualReference,"visible")!;
+                    var completedResult=recovery.Result; var measuredSeries=manualHistogram.HistogramSeries; var measuredRange=manualHistogram.HistogramRange;
+                    guideVisibility.IsChecked=false;
+                    if(manualHistogram.ShowReferenceGuides||!ReferenceEquals(completedResult,recovery.Result)||!ReferenceEquals(measuredSeries,manualHistogram.HistogramSeries)||manualHistogram.HistogramRange!=measuredRange)
+                        throw new Exception($"Reference visibility must only redraw: visible={manualHistogram.ShowReferenceGuides}, sameResult={ReferenceEquals(completedResult,recovery.Result)}, sameSeries={ReferenceEquals(measuredSeries,manualHistogram.HistogramSeries)}, sameRange={manualHistogram.HistogramRange==measuredRange}.");
+                    guideVisibility.IsChecked=true;
+                    if(!manualHistogram.ShowReferenceGuides||!ReferenceEquals(measuredSeries,manualHistogram.HistogramSeries)) throw new Exception("Manual reference guides did not restore without remeasurement.");
                     manualReference.AddUser("Manual custom", ["240", "260", "480", "500"]);
                     manualHistogram.ShowHistogramRange(100, 600);
                     var manualVisualTabs = (TabControl)Field(recovery, "visualTabs")!; manualVisualTabs.SelectedIndex = 1;
@@ -519,6 +532,39 @@ internal static class Program
         if (Field(window, "pulseWork") != null) throw new Exception("Selection pulse measurement timed out.");
     }
     private static object? Field(object obj, string name) => obj.GetType().GetField(name, BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(obj);
+    private static IEnumerable<T> Descendants<T>(DependencyObject root) where T:DependencyObject
+    {
+        for(int i=0;i<VisualTreeHelper.GetChildrenCount(root);i++)
+        { var child=VisualTreeHelper.GetChild(root,i); if(child is T value) yield return value; foreach(var nested in Descendants<T>(child)) yield return nested; }
+    }
+    private static byte[] Pixels(FrameworkElement element)
+    {
+        element.InvalidateVisual(); element.UpdateLayout(); int w=Math.Max(1,(int)element.ActualWidth),h=Math.Max(1,(int)element.ActualHeight);
+        var bitmap=new RenderTargetBitmap(w,h,96,96,PixelFormats.Pbgra32); bitmap.Render(element);
+        var bytes=new byte[w*h*4]; bitmap.CopyPixels(bytes,w*4,0); return bytes;
+    }
+    private static void VerifyWaveScale(Window window,AudioSignalChart chart,string fitLabel)
+    {
+        window.UpdateLayout();
+        var auto=Descendants<CheckBox>(window).Single(c=>Equals(c.Content,"Auto scale"));
+        var gain=((Panel)auto.Parent).Children.OfType<ComboBox>().Single(c=>c.Items.Contains("8"));
+        var fit=Descendants<Button>(window).Single(b=>Equals(b.Content,fitLabel));
+        long start=chart.Start,end=chart.End; bool wasFit=chart.IsFit;
+        gain.SelectedItem="8"; auto.IsChecked=true;
+        if(gain.IsEnabled||!chart.AutoScale) throw new Exception("Offline Auto scale does not disable manual Gain.");
+        chart.Gain=2; var expected=Pixels(chart); chart.Gain=8;
+        if(!expected.SequenceEqual(Pixels(chart))) throw new Exception("Offline Auto scale still uses manual Gain.");
+        auto.IsChecked=false;
+        if(!gain.IsEnabled||chart.AutoScale||chart.Gain!=8) throw new Exception("Offline manual Gain did not restore.");
+        gain.SelectedItem="1";
+        fit.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        if(!chart.IsFit||fit.FontWeight!=FontWeights.Bold) throw new Exception("Offline waveform Fit is not highlighted.");
+        chart.Zoom(.5);
+        if(chart.IsFit||fit.FontWeight==FontWeights.Bold) throw new Exception("Manual zoom did not clear offline Fit highlight.");
+        if(wasFit) chart.Fit(); else chart.ShowRange(start,end);
+        if(!chart.ChannelLegend.Contains(chart.Analysis!.ChannelCount==1?chart.SingleChannelLabel:"Left • orange Right")) throw new Exception("Offline waveform channel-color legend is missing.");
+        Console.WriteLine("PASS waveform Auto scale/Gain rendering, retained manual scale, Fit state and channel legend: "+window.Title);
+    }
     private static void Save(Window window, string folder, string name)
     {
         var image = new RenderTargetBitmap((int)window.ActualWidth, (int)window.ActualHeight, 96, 96, PixelFormats.Pbgra32); image.Render(window);

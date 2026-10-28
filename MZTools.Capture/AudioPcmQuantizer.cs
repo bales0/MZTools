@@ -9,8 +9,9 @@ public readonly record struct AudioPcmConversionCounts(long Samples, long Satura
 /// <summary>No resampling, filtering, normalization, dither or channel mixing.</summary>
 public static class AudioPcmQuantizer
 {
-    public static AudioPcmConversion Plan(AudioCaptureFormat source, bool allowPcm24Conversion)
+    public static AudioPcmConversion Plan(AudioCaptureFormat source, bool allowPcm24Conversion,bool preserveNativeFormat=false)
     {
+        if(preserveNativeFormat) return new(source,source,false,false,"Byte-exact delivered native stream; no format conversion or resampling. Driver format does not certify physical ADC resolution.");
         if (source.Representation is not (AudioSampleRepresentation.Float32 or AudioSampleRepresentation.Signed32))
             return new(source, source, false, false, "Byte-exact delivered integer PCM; no conversion");
         if (!allowPcm24Conversion)

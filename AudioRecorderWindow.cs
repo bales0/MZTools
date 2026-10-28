@@ -19,11 +19,19 @@ namespace MZTools;
 internal sealed class AudioRecorderWindow : Window
 {
     internal readonly AudioRecorderViewModel Model = new();
-    internal readonly ComboBox Source = Choice("Windows input (WASAPI shared)","Synthetic demo — no hardware"), Device = Choice(), Format = Choice();
+    internal readonly ComboBox Source = Choice("Windows input (WASAPI)","Synthetic demo — no hardware"), Device = Choice(), Format = Choice();
+    internal readonly ComboBox AccessMode = Choice("Shared — Windows mix", "Exclusive — driver-accepted format");
+    private readonly TextBox nativeRate=new() { Text="192000",Width=80 },nativeBits=new() { Text="24",Width=45 };
+    private readonly ComboBox nativeEncoding=Choice("PCM8","PCM16","PCM24","PCM32","Float32"),nativeChannels=Choice("Mono","Stereo");
+    private readonly Button probeNative=Button("Check exact format");
+    private bool NativeInput=>Source.SelectedIndex==0&&AccessMode.SelectedIndex==1;
     internal readonly Button Monitor = Button("Monitor only"), Record = Button("Record"), Stop = Button("Stop / finalize");
+    internal readonly Button Cancel = Button("Cancel");
+    private readonly Button fitHistory=Button("Fit history");
+    private bool fitHistoryActive;
     internal readonly TextBox Destination = new() { MinWidth=280,Text=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"Tape_"+DateTime.Now.ToString("yyyyMMdd_HHmmss")+".wav") };
-    private readonly CheckBox raw=Check("Request RAW",true),engine=Check("Allow Windows format conversion"),pcm24=Check("Allow float32 / PCM32 → PCM24"),follow=Check("Follow live",true),auto=Check("Auto scale"),trigger=Check("Trigger");
-    private readonly ComboBox channel=Choice("Left / Mono","Right","Overlay L/R"),gain=Choice("0.5","1","2","4","8"),fft=Choice("1024","4096","16384","32768"),slope=Choice("Rising","Falling");
+    private readonly CheckBox raw=Check("Request RAW (shared only)",true),engine=Check("Allow Windows format conversion"),pcm24=Check("Allow float32 / PCM32 → PCM24 (shared only)"),follow=Check("Follow live",true),auto=Check("Auto scale"),trigger=Check("Trigger");
+    private readonly ComboBox channel=Choice("Left","Right","Overlay L/R"),gain=Choice("0.5","1","2","4","8"),fft=Choice("1024","4096","16384","32768"),slope=Choice("Rising","Falling");
     private readonly TextBox triggerLevel=new() { Text="0",Width=55 },clipLevel=new() { Text="100",Width=50 },note=new() { MinWidth=200 },side=new() { Width=65 };
     private readonly TextBlock state=Text("Idle — choose an input; Monitor or Record starts capture."),actual=Text("Input not started."),scope=Text(""),spectrumInfo=Text(""),output=Text(""),failure=Text("");
     private readonly Expander settings=new() { Header="Input / recording settings",IsExpanded=true };
@@ -38,6 +46,10 @@ internal sealed class AudioRecorderWindow : Window
     private readonly Func<WindowsAudioCaptureOptions,IAudioCaptureBackend> windowsFactory;
     private readonly IRecorderNavigation navigation;
     private readonly Func<bool> confirmClose;
+    private readonly Func<bool> confirmDiscard;
+    private readonly Func<string,bool> confirmOverwrite;
+    private bool endingCapture;
+    private readonly TextBlock completionNotice=Text("");
     private readonly CancellationTokenSource lifetime=new();
     private readonly List<FrameworkElement> inputControls=[];
     private readonly List<FrameworkElement> recordingControls=[];
@@ -47,6 +59,8 @@ internal sealed class AudioRecorderWindow : Window
     private CaptureSessionReport? shownReport;
     private CancellationTokenSource? enumeration;
     private bool ready,ticking,closing,allowClose,starting,viewDirty=true;
+    private Task<bool>? closeAttempt;
+    private bool recordingRun,startingRecording;
     private double seconds=.1;
     private long? end;
     private long lastFrame=-1;
@@ -54,13 +68,15 @@ internal sealed class AudioRecorderWindow : Window
     private sealed record FormatRow(AudioCaptureFormat Format) { public override string ToString()=>Describe(Format); }
     internal sealed record SegmentRow(string Path,long Frames,long Bytes,bool HeaderFinalized,bool Published,bool? PcmVerified,string Integrity,string? Error,bool AnalyzerCompatible);
 
-    internal AudioRecorderWindow(IRecorderNavigation? navigation=null,Func<WindowsAudioCaptureOptions,IAudioCaptureBackend>? windowsFactory=null,bool demo=false,Func<bool>? confirmClose=null)
+    internal AudioRecorderWindow(IRecorderNavigation? navigation=null,Func<WindowsAudioCaptureOptions,IAudioCaptureBackend>? windowsFactory=null,bool demo=false,Func<bool>? confirmClose=null,Func<bool>? confirmDiscard=null,Func<string,bool>? confirmOverwrite=null)
     {
         Title="Record Audio / Live Tape Analysis"; Width=1220; Height=900; MinWidth=920; MinHeight=640;
         WindowStartupLocation=WindowStartupLocation.CenterScreen;
         this.navigation=navigation??new AudioRecorderNavigation(this);
         this.windowsFactory=windowsFactory??(options=>new WindowsAudioCaptureBackend(options));
-        this.confirmClose=confirmClose??(()=>MessageBox.Show(this,"Stop and finalize the capture before closing? Acquired samples will be kept.","Audio capture",MessageBoxButton.YesNo,MessageBoxImage.Question)==MessageBoxResult.Yes);
+        this.confirmClose=confirmClose??(()=>MessageBox.Show(this,"Stop recording and finalize the WAV before closing? Recorded audio will be retained.","Audio capture",MessageBoxButton.YesNo,MessageBoxImage.Question)==MessageBoxResult.Yes);
+        this.confirmDiscard=confirmDiscard??(()=>MessageBox.Show(this,"Discard the current recording? All WAV segments and its report from this run will be deleted. Earlier saved recordings will be kept.","Cancel recording",MessageBoxButton.YesNo,MessageBoxImage.Warning,MessageBoxResult.No)==MessageBoxResult.Yes);
+        this.confirmOverwrite=confirmOverwrite??(path=>MessageBox.Show(this,"Replace the existing recording after successful Stop / finalize?\n"+path+"\nIts JSON report and segments identified by that report are included. Cancel or a capture error keeps the original.","Replace recording",MessageBoxButton.YesNo,MessageBoxImage.Question,MessageBoxResult.No)==MessageBoxResult.Yes);
         var root=new DockPanel { Margin=new(10) }; Content=root;
         var header=new StackPanel(); DockPanel.SetDock(header,Dock.Top); root.Children.Add(header);
         var config=new StackPanel();
@@ -68,20 +84,25 @@ internal sealed class AudioRecorderWindow : Window
         Device.MinWidth=230; Device.MaxWidth=400; Format.MinWidth=250;
         var refresh=Button("Refresh inputs"); input.Children.Add(refresh); config.Children.Add(input);
         var options=Row(); options.Children.Add(raw); options.Children.Add(engine); options.Children.Add(pcm24); config.Children.Add(options);
+        Add(options,"Access",AccessMode);
+        var custom=Row(); Add(custom,"Custom native Hz",nativeRate); Add(custom,"Container",nativeEncoding); Add(custom,"Valid bits",nativeBits); Add(custom,"Channels",nativeChannels); custom.Children.Add(probeNative);
+        config.Children.Add(new Expander { Header="Probe an exact exclusive format (does not start recording)",Content=custom });
+        nativeEncoding.SelectedIndex=2; nativeChannels.SelectedIndex=1;
         var file=Row(); Add(file,"WAV destination",Destination); var browse=Button("Browse…"); file.Children.Add(browse); config.Children.Add(file);
         recordingControls.AddRange([Destination,browse,pcm24,note,side]);
         var metadata=Row(); Add(metadata,"Tape note",note); Add(metadata,"Side",side); config.Children.Add(metadata); config.Children.Add(output);
         settings.Content=new ScrollViewer { Content=config,MaxHeight=230,VerticalScrollBarVisibility=ScrollBarVisibility.Auto }; header.Children.Add(settings);
-        inputControls.AddRange([Source,Device,Format,raw,engine,refresh]);
-        var actions=Row(); actions.Children.Add(Monitor); actions.Children.Add(Record); actions.Children.Add(Stop); header.Children.Add(actions);
+        inputControls.AddRange([Source,Device,Format,raw,engine,refresh,AccessMode,nativeRate,nativeBits,nativeEncoding,nativeChannels,probeNative]);
+        var actions=Row(); actions.Children.Add(Monitor); actions.Children.Add(Record); actions.Children.Add(Stop); actions.Children.Add(Cancel); header.Children.Add(actions);
         header.Children.Add(state); failure.Foreground=Brushes.Firebrick; header.Children.Add(failure);
+        completionNotice.Foreground=Brushes.DarkGreen; completionNotice.MaxHeight=60; completionNotice.TextTrimming=TextTrimming.CharacterEllipsis; completionNotice.Visibility=Visibility.Collapsed; header.Children.Add(completionNotice);
         header.Children.Add(new Expander { Header="Actual input / processing",Content=actual });
         root.Children.Add(tabs);
         var live=new DockPanel(); tabs.Items.Add(new TabItem { Header="Live signal",Content=live });
         var controls=new StackPanel(); DockPanel.SetDock(controls,Dock.Top); live.Children.Add(controls);
         levels.Height=83; ConfigureLevels(); controls.Children.Add(levels);
         var view=Row(); Add(view,"View",channel); Add(view,"Gain",gain); view.Children.Add(auto); view.Children.Add(follow);
-        var fit=Button("Fit history"); var zoomIn=Button("Zoom +"); var zoomOut=Button("Zoom −"); view.Children.Add(fit); view.Children.Add(zoomIn); view.Children.Add(zoomOut); controls.Children.Add(view);
+        var fit=fitHistory; var zoomIn=Button("Zoom +"); var zoomOut=Button("Zoom −"); view.Children.Add(fit); view.Children.Add(zoomIn); view.Children.Add(zoomOut); controls.Children.Add(view);
         var measurement=Row(); measurement.Children.Add(trigger); Add(measurement,"Level (FS)",triggerLevel); measurement.Children.Add(slope); Add(measurement,"FFT",fft); Add(measurement,"Clip ≥ % FS",clipLevel); var reset=Button("Apply / reset clip hold"); measurement.Children.Add(reset); controls.Children.Add(measurement);
         controls.Children.Add(scope);
         var plots=new Grid(); plots.RowDefinitions.Add(new() { Height=new(3,GridUnitType.Star) }); plots.RowDefinitions.Add(new() { Height=new(5) }); plots.RowDefinitions.Add(new() { Height=new(2,GridUnitType.Star) });
@@ -100,15 +121,18 @@ internal sealed class AudioRecorderWindow : Window
         alignment.Changed+=Dirty; tabs.SelectionChanged+=(_,e)=>{ if(ReferenceEquals(e.OriginalSource,tabs)) Dirty(); };
         channel.SelectedIndex=2; gain.SelectedIndex=1; fft.SelectedIndex=1; Source.SelectedIndex=demo?1:0;
         Source.SelectionChanged+=async(_,_)=>{ if(ready) await Enumerate(); };
+        AccessMode.SelectionChanged+=async(_,_)=>{ if(ready) await Enumerate(); };
+        probeNative.Click+=async(_,_)=>await ProbeNative();
         Device.SelectionChanged+=(_,_)=> { Format.ItemsSource=(Device.SelectedItem as DeviceRow)?.Device.AdvertisedFormats.Select(f=>new FormatRow(f)); Format.SelectedIndex=0; UpdateOutput(); };
         Format.SelectionChanged+=(_,_)=>UpdateOutput(); pcm24.Click+=(_,_)=>UpdateOutput();
         refresh.Click+=async(_,_)=>await Enumerate(); raw.Click+=async(_,_)=>await Enumerate(); engine.Click+=async(_,_)=>await Enumerate();
         browse.Click+=(_,_)=>{ var dialog=new SaveFileDialog { Filter="PCM WAV (*.wav)|*.wav",FileName=Path.GetFileName(Destination.Text),OverwritePrompt=true }; if(dialog.ShowDialog(this)==true) { Destination.Text=dialog.FileName; UpdateOutput(); } };
         Monitor.Click+=async(_,_)=>await Start(false); Record.Click+=async(_,_)=>await Start(true); Stop.Click+=async(_,_)=>await StopCapture();
-        fit.Click+=(_,_)=>{ seconds=2; end=null; follow.IsChecked=true; Dirty(); }; zoomIn.Click+=(_,_)=>Zoom(.5,.5); zoomOut.Click+=(_,_)=>Zoom(2,.5);
-        waveform.ZoomRequested+=Zoom; waveform.PanRequested+=fraction=>{ var snap=Model.Live; if(snap==null||snap.HistoryEndFrame<=snap.HistoryStartFrame) return; end=(long)Math.Clamp((end??snap.HistoryEndFrame)+fraction*seconds*snap.Format.SampleRate,snap.HistoryStartFrame+1,snap.HistoryEndFrame); follow.IsChecked=false; Dirty(); };
+        Cancel.Click+=async(_,_)=>await CancelCapture();
+        fit.Click+=(_,_)=>{ fitHistoryActive=true; end=null; follow.IsChecked=true; Dirty(); }; zoomIn.Click+=(_,_)=>Zoom(.5,.5); zoomOut.Click+=(_,_)=>Zoom(2,.5);
+        waveform.ZoomRequested+=Zoom; waveform.PanRequested+=fraction=>{ var snap=Model.Live; if(snap==null||snap.HistoryEndFrame<=snap.HistoryStartFrame) return; fitHistoryActive=false; end=(long)Math.Clamp((end??snap.HistoryEndFrame)+fraction*seconds*snap.Format.SampleRate,snap.HistoryStartFrame+1,snap.HistoryEndFrame); follow.IsChecked=false; Dirty(); };
         foreach(var choice in new[]{channel,gain,fft,slope}) choice.SelectionChanged+=(_,_)=>Dirty();
-        foreach(var check in new[]{auto,follow,trigger}) check.Click+=(_,_)=>{ end=follow.IsChecked==true?null:end??Model.Live?.HistoryEndFrame; Dirty(); };
+        foreach(var check in new[]{auto,follow,trigger}) check.Click+=(_,_)=>{ if(check==follow && follow.IsChecked!=true) fitHistoryActive=false; gain.IsEnabled=auto.IsChecked!=true; end=follow.IsChecked==true?null:end??Model.Live?.HistoryEndFrame; Dirty(); };
         triggerLevel.TextChanged+=(_,_)=>Dirty(); reset.Click+=(_,_)=>Guard(()=>{ if(!double.TryParse(clipLevel.Text,out double threshold)) throw new ArgumentException("Enter a clipping threshold between 1 and 100 percent FS."); Model.ResetClippingHold(threshold/100); Dirty(); });
         timer.Tick+=async(_,_)=>await Tick();
         Loaded+=async(_,_)=>{ ready=true; await Enumerate(); if(!closing) timer.Start(); };
@@ -120,14 +144,18 @@ internal sealed class AudioRecorderWindow : Window
     private async Task Enumerate()
     {
         if(Model.IsActive||starting||closing) return;
+        string? previousDevice=(Device.SelectedItem as DeviceRow)?.Device.Id;
+        var previousFormat=(Format.SelectedItem as FormatRow)?.Format;
         enumeration?.Cancel(); var work=CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token); enumeration=work;
         backend=null; devices=[]; Device.ItemsSource=null; Format.ItemsSource=null; Monitor.IsEnabled=Record.IsEnabled=false;
         try
         {
-            var candidate=Source.SelectedIndex==1 ? new SyntheticCaptureBackend(new() { FrameCount=long.MaxValue,ChunkFramePattern=[480],ChunkInterval=TimeSpan.FromMilliseconds(10) }) : windowsFactory(new() { RequestRaw=raw.IsChecked==true,AllowEngineFormatConversion=engine.IsChecked==true });
+            var candidate=Source.SelectedIndex==1 ? new SyntheticCaptureBackend(new() { FrameCount=long.MaxValue,ChunkFramePattern=[480],ChunkInterval=TimeSpan.FromMilliseconds(10) }) : windowsFactory(new() { Mode=NativeInput?WindowsAudioCaptureMode.Exclusive:WindowsAudioCaptureMode.Shared,RequestRaw=!NativeInput&&raw.IsChecked==true,AllowEngineFormatConversion=!NativeInput&&engine.IsChecked==true });
             var found=await candidate.EnumerateDevicesAsync(work.Token);
             if(work.IsCancellationRequested||closing) return;
             backend=candidate; devices=found; Device.ItemsSource=found.Select(d=>new DeviceRow(d)).ToArray(); Device.SelectedIndex=found.Count>0?0:-1;
+            if(previousDevice!=null) Device.SelectedItem=Device.Items.Cast<DeviceRow>().FirstOrDefault(row=>row.Device.Id==previousDevice)??Device.SelectedItem;
+            if(previousFormat!=null&&Format.Items.Cast<FormatRow>().FirstOrDefault(row=>row.Format==previousFormat) is {} retained) Format.SelectedItem=retained;
             state.Text=found.Count==0?"No supported input. Connect a mono/stereo input and refresh, or select Synthetic demo.":"Ready — input starts only with Monitor or Record."; failure.Text="";
         }
         catch(OperationCanceledException) { }
@@ -137,39 +165,74 @@ internal sealed class AudioRecorderWindow : Window
     internal async Task Start(bool recording)
     {
         if(starting||backend==null||Device.SelectedItem is not DeviceRow device||Format.SelectedItem is not FormatRow format) return;
-        starting=true; failure.Text=""; UpdateButtons();
+        bool previousRecordingRun=recordingRun,attemptedStart=false;
+        starting=true; startingRecording=recording; recordingRun=recording; failure.Text=""; completionNotice.Visibility=Visibility.Collapsed; UpdateButtons();
         try
         {
-            WaveRecordingOptions? options=null;
+            WaveRecordingOptions? options=null; bool overwrite=false;
             if(recording)
             {
                 string path=Path.GetFullPath(Destination.Text);
                 if(!string.Equals(Path.GetExtension(path),".wav",StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("Choose a .wav destination.");
-                AudioPcmQuantizer.Plan(format.Format,pcm24.IsChecked==true);
-                options=new(path) { AllowPcm24Conversion=pcm24.IsChecked==true,ApplicationVersion=typeof(App).Assembly.GetName().Version?.ToString()??"unknown",TapeNote=note.Text,TapeSide=side.Text };
+                AudioPcmQuantizer.Plan(format.Format,pcm24.IsChecked==true,NativeInput);
+                if(File.Exists(path)||File.Exists(path+".json")) { if(!confirmOverwrite(path)) return; overwrite=true; }
+                options=new(path) { PreserveNativeFormat=NativeInput,RequireAnalyzerCompatibleRate=!NativeInput,AllowPcm24Conversion=!NativeInput&&pcm24.IsChecked==true,ApplicationVersion=typeof(App).Assembly.GetName().Version?.ToString()??"unknown",TapeNote=note.Text,TapeSide=side.Text };
             }
             end=null; follow.IsChecked=true; lastFrame=-1; shownReport=null;
             alignment.Update(null,null);
             pulses.Clear();
-            await Model.StartAsync(backend,new(device.Device.Id,format.Format),options,lifetime.Token); settings.IsExpanded=false; Dirty();
+            attemptedStart=true; await Model.StartAsync(backend,new(device.Device.Id,format.Format),options,lifetime.Token,overwrite); settings.IsExpanded=false; Dirty();
         }
         catch(OperationCanceledException) { }
         catch(Exception error) { failure.Text=error.Message; }
-        finally { starting=false; UpdateButtons(); await Tick(); }
+        finally { if(!attemptedStart) recordingRun=previousRecordingRun; starting=false; startingRecording=false; UpdateButtons(); await Tick(); }
     }
     internal async Task StopCapture()
     {
-        try { var stop=Model.StopAsync(); UpdateButtons(); await stop; }
+        if(starting||endingCapture||Model.IsBusy||closing) return;
+        endingCapture=true;
+        try
+        {
+            var stop=Model.StopAsync(); UpdateButtons(); var report=await stop;
+            if(report?.Recording is {} recording)
+            {
+                if(!recording.SidecarFinalized||recording.Segments.Any(s=>!s.HeaderFinalized||!s.Published))
+                { failure.Text="Could not finalize the recording. Review retained files and diagnostics."; return; }
+                completionNotice.Text=$"Saved {recording.Segments.Count} WAV file(s): "+recording.Segments.FirstOrDefault()?.Path;
+                completionNotice.ToolTip=string.Join("\n",recording.Segments.Select(s=>s.Path));
+            }
+            else { completionNotice.Text="Monitor stopped. No recording file was created."; completionNotice.ToolTip=null; }
+            completionNotice.Visibility=Visibility.Visible; settings.IsExpanded=true; settings.BringIntoView();
+        }
         catch(Exception error) { failure.Text=error.Message; }
+        finally { endingCapture=false; Dirty(); await Tick(); UpdateButtons(); }
+    }
+    internal async Task CancelCapture()
+    {
+        if(starting||endingCapture||Model.IsBusy||closing||!Model.CanDiscard) return;
+        if((recordingRun||Model.HasPendingDiscard)&&!confirmDiscard()) return;
+        try
+        {
+            var discard=Model.DiscardAsync(); UpdateButtons(); await discard;
+            shownReport=null; rows=Model.Recordings.Reverse().SelectMany(r=>r.Recording!.Segments.Select(segment=>new SegmentRow(segment.Path,segment.Frames,segment.DataBytes,segment.HeaderFinalized,segment.Published,segment.PcmMatchesWrittenBytes,r.Integrity.ToString(),segment.Error,r.Recording.AnalyzerCompatible))).ToArray(); segments.ItemsSource=rows;
+            waveform.Snapshot=spectrum.Snapshot=null; waveform.InvalidateVisual(); spectrum.InvalidateVisual();
+            pulses.Clear(); alignment.Update(null,null); failure.Text="";
+            state.Text="Idle — choose an input; Monitor or Record starts capture."; scope.Text=""; levels.ItemsSource=null; diagnostics.ItemsSource=null;
+            completionNotice.Text=recordingRun?"Recording discarded.":"Monitor cancelled. No recording file was created.";
+            completionNotice.ToolTip=null;
+            completionNotice.Visibility=Visibility.Visible; recordingRun=false;
+            settings.IsExpanded=true; settings.BringIntoView(); Device.Focus();
+        }
+        catch(Exception error) { failure.Text="Could not discard recording: "+error.Message; }
         finally { Dirty(); await Tick(); UpdateButtons(); }
     }
     private void Zoom(double factor,double anchor)
     {
-        double old=seconds; seconds=Math.Clamp(seconds*factor,.00002,2);
+        fitHistoryActive=false; double old=seconds; seconds=Math.Clamp(seconds*factor,.00002,2);
         if(end.HasValue && Model.Live is {} snap && snap.HistoryEndFrame>snap.HistoryStartFrame) end=(long)Math.Clamp(end.Value+(seconds-old)*(1-anchor)*snap.Format.SampleRate,snap.HistoryStartFrame+1,snap.HistoryEndFrame);
         Dirty();
     }
-    private void Dirty() => viewDirty=true;
+    private void Dirty() { viewDirty=true; AudioSignalChart.MarkFit(fitHistory,fitHistoryActive); }
     private async Task Tick()
     {
         if(ticking||allowClose) return; ticking=true;
@@ -178,6 +241,7 @@ internal sealed class AudioRecorderWindow : Window
             var capture=Model.Capture;
             if(viewDirty || capture?.Statistics.AnalyzedFrames!=lastFrame)
             {
+                if(fitHistoryActive) seconds=2;
                 if(!double.TryParse(triggerLevel.Text,out double triggerValue)||!double.IsFinite(triggerValue)) triggerValue=0;
                 var view=new LiveSignalViewOptions { WaveSeconds=seconds,WaveEndFrame=follow.IsChecked==true?null:end,WaveBuckets=Math.Clamp((int)Math.Max(1,waveform.ActualWidth-78),1,4096),FftSize=int.Parse((string)(tabs.SelectedItem==alignmentTab?alignment.WindowSize.SelectedItem:fft.SelectedItem)),TriggerEnabled=trigger.IsChecked==true,TriggerChannel=channel.SelectedIndex==1?1:0,TriggerLevel=triggerValue,RisingTrigger=slope.SelectedIndex==0,
                     Alignment=tabs.SelectedItem==alignmentTab?alignment.Options(capture?.Stream?.ActualFormat.SampleRate??48000):null,
@@ -185,10 +249,11 @@ internal sealed class AudioRecorderWindow : Window
                 viewDirty=false; lastFrame=capture?.Statistics.AnalyzedFrames??-1;
                 var live=await Model.RefreshAsync(view,lifetime.Token);
                 if(allowClose) return;
-                alignment.Update(live?.Alignment,Model.Capture?.Stream);
+                alignment.Update(live?.Alignment,Model.Capture?.Stream,live?.PreviewDiscontinuities??0,Model.IsActive);
                 if(tabs.SelectedItem==pulsesTab) pulses.Update(live?.Pulses);
                 if(live!=null)
                 {
+                    UpdateChannelLabels(live.Format.Channels);
                     levels.ItemsSource=live.Levels;
                     waveform.Snapshot=spectrum.Snapshot=live; waveform.Channel=spectrum.Channel=channel.SelectedIndex;
                     waveform.Gain=double.Parse((string)gain.SelectedItem,System.Globalization.CultureInfo.InvariantCulture); waveform.AutoScale=auto.IsChecked==true;
@@ -213,6 +278,7 @@ internal sealed class AudioRecorderWindow : Window
                 }
                 if(report?.Recording is {} saved) state.Text+=$" • {report.Integrity} • {saved.SavedDurationSeconds:F2} s • sidecar {(saved.SidecarFinalized?"saved":"not finalized")}";
             }
+            alignment.SetCaptureActive(Model.IsActive);
             UpdateButtons();
         }
         catch(OperationCanceledException) { }
@@ -221,19 +287,52 @@ internal sealed class AudioRecorderWindow : Window
     }
     private void UpdateButtons()
     {
-        bool busy=starting||Model.IsBusy,active=Model.IsActive;
+        bool busy=starting||endingCapture||Model.IsBusy,active=Model.IsActive;
+        Cancel.IsEnabled=Model.CanDiscard&&!busy&&!starting&&!closing;
+        gain.IsEnabled=auto.IsChecked!=true;
+        AudioSignalChart.MarkFit(fitHistory,fitHistoryActive);
         foreach(var control in inputControls) control.IsEnabled=!active&&!busy;
         bool available=backend!=null&&Device.SelectedItem!=null&&Format.SelectedItem!=null&&enumeration==null;
-        Monitor.IsEnabled=available&&!active&&!busy;
-        Record.IsEnabled=available&&!busy&&(!active||Model.State==CaptureSessionState.Monitoring);
-        Stop.IsEnabled=active&&Model.State!=CaptureSessionState.Stopping;
+        Monitor.IsEnabled=available&&!active&&!busy&&!Model.HasPendingDiscard;
+        Record.IsEnabled=available&&!busy&&!Model.HasPendingDiscard&&(!active||Model.State==CaptureSessionState.Monitoring);
+        Stop.IsEnabled=active&&!starting&&!busy&&Model.State!=CaptureSessionState.Stopping;
         foreach(var control in recordingControls) control.IsEnabled=!busy&&Model.State!=CaptureSessionState.Recording&&Model.State!=CaptureSessionState.Stopping;
+        raw.IsEnabled=engine.IsEnabled=!NativeInput&&!active&&!busy;
+        pcm24.IsEnabled=pcm24.IsEnabled&&!NativeInput;
+        probeNative.IsEnabled=NativeInput&&!active&&!busy&&backend!=null&&enumeration==null&&Device.SelectedItem!=null;
     }
     private void UpdateOutput()
     {
         if(Format.SelectedItem is not FormatRow format) { output.Text="No input format."; return; }
-        try { var conversion=AudioPcmQuantizer.Plan(format.Format,pcm24.IsChecked==true); output.Text=$"WAV: {Describe(conversion.Output)} • {(conversion.ChangesContainer?"explicit PCM24 conversion":"byte-exact PCM")} • automatic RIFF segment splitting / SHA-256 sidecar"; }
+        UpdateChannelLabels(format.Format.Channels);
+        try { var conversion=AudioPcmQuantizer.Plan(format.Format,pcm24.IsChecked==true,NativeInput); output.Text=$"WAV: {Describe(conversion.Output)} • {(conversion.ChangesContainer?"explicit PCM24 conversion":"byte-exact delivered samples")} • automatic RIFF splitting / SHA-256"+(NativeInput?" • driver-accepted, no resampling; physical ADC resolution unknown":"")+(RiffWaveLayout.AnalyzerSupports(conversion.Output,NativeInput)?"":" • archive supported; current offline analyzers cannot read this format"); }
         catch(Exception error) { output.Text=error.Message; }
+    }
+    private void UpdateChannelLabels(int count)
+    {
+        string first=count==1?"Mono":"Left";
+        if(channel.Items.Count>0&&Equals(channel.Items[0],first)) return;
+        int selected=channel.SelectedIndex;
+        channel.ItemsSource=count==1?new[]{"Mono"}:new[]{"Left","Right","Overlay L/R"};
+        channel.SelectedIndex=count==1?0:Math.Clamp(selected,0,2);
+    }
+    private async Task ProbeNative()
+    {
+        if(!NativeInput||backend==null||Device.SelectedItem is not DeviceRow device||Model.IsActive||starting) return;
+        starting=true; UpdateButtons();
+        try
+        {
+            if(!int.TryParse(nativeRate.Text,out int rate)||!int.TryParse(nativeBits.Text,out int valid)) throw new ArgumentException("Enter integer Hz and valid bits.");
+            var representations=new[]{AudioSampleRepresentation.Unsigned8,AudioSampleRepresentation.Signed16,AudioSampleRepresentation.Signed24,AudioSampleRepresentation.Signed32,AudioSampleRepresentation.Float32};
+            var format=new AudioCaptureFormat(rate,nativeChannels.SelectedIndex+1,representations[nativeEncoding.SelectedIndex],valid);
+            await using var session=await backend.OpenAsync(new(device.Device.Id,format),lifetime.Token);
+            if(session.Info.ActualFormat!=format) throw new InvalidOperationException("Exact format was not accepted.");
+            var formats=Format.Items.Cast<FormatRow>().ToList(); if(!formats.Any(row=>row.Format==format)) formats.Add(new(format));
+            Format.ItemsSource=formats; Format.SelectedItem=formats.First(row=>row.Format==format);
+            failure.Text=""; state.Text="Exact format accepted by driver. Input has not been started; availability is checked again at Start.";
+        }
+        catch(Exception error) { failure.Text="Native format: "+error.Message; }
+        finally { starting=false; UpdateButtons(); UpdateOutput(); }
     }
     internal async Task OpenSelected(RecordedAudioAction action)
     {
@@ -241,18 +340,45 @@ internal sealed class AudioRecorderWindow : Window
         {
             if(segments.SelectedItem is not SegmentRow selected) return;
             if(!selected.HeaderFinalized||selected.Frames==0||!selected.AnalyzerCompatible) throw new InvalidOperationException("Select a finalized, non-empty segment in an analyzer-compatible format.");
-            await navigation.OpenAudioAsync(selected.Path,action,lifetime.Token);
+            var recording=Model.Recordings.Select(r=>r.Recording).FirstOrDefault(r=>r?.Segments.Any(s=>s.Path==selected.Path)==true);
+            string path=selected.Path;
+            if(recording is { Segments.Count:>1 })
+            {
+                if(!recording.SidecarFinalized||!recording.AnalyzerCompatible) throw new InvalidOperationException("A complete compatible recording report is required to join segments.");
+                path=recording.SidecarPath!;
+            }
+            await navigation.OpenAudioAsync(path,action,lifetime.Token);
         }
         catch(Exception error) { failure.Text=error.Message; }
     }
     private async void OnClosing(object? sender,CancelEventArgs e)
     {
         if(allowClose) return;
-        e.Cancel=true; if(closing) return;
-        if((Model.IsActive||starting)&&!confirmClose()) return;
-        closing=true; timer.Stop(); enumeration?.Cancel(); lifetime.Cancel();
-        try { await Model.DisposeAsync(); allowClose=true; _ = Dispatcher.BeginInvoke(new Action(Close)); }
-        catch(Exception error) { failure.Text="Cannot finish closing: "+error.Message; closing=false; timer.Start(); }
+        e.Cancel=true;
+        if(await PrepareToCloseAsync()) _ = Dispatcher.BeginInvoke(new Action(()=>{ if(IsVisible) Close(); }));
+    }
+    internal Task<bool> PrepareToCloseAsync()
+    {
+        if(allowClose) return Task.FromResult(true);
+        if(closeAttempt is { IsCompletedSuccessfully:true }&&!closeAttempt.Result) closeAttempt=null;
+        return closeAttempt??=PrepareCloseCoreAsync();
+    }
+    private async Task<bool> PrepareCloseCoreAsync()
+    {
+        bool archiveActive=startingRecording||Model.State==CaptureSessionState.Recording||recordingRun&&(Model.State is CaptureSessionState.Starting or CaptureSessionState.Stopping);
+        if(archiveActive&&!confirmClose()) return false;
+        closing=true; timer.Stop(); enumeration?.Cancel();
+        try
+        {
+            var previousReport=Model.LatestReport;
+            if(!starting&&!Model.IsBusy&&Model.State==CaptureSessionState.Recording) await Model.StopAsync();
+            lifetime.Cancel();
+            await Model.DisposeAsync();
+            if(!ReferenceEquals(previousReport,Model.LatestReport)&&Model.LatestReport?.Integrity==CaptureIntegrity.Incomplete)
+            { failure.Text="Capture ended with incomplete data. Review the retained recording and diagnostics before closing again."; closing=false; timer.Start(); return false; }
+            allowClose=true; return true;
+        }
+        catch(Exception error) { failure.Text="Cannot finish closing: "+error.Message; closing=false; timer.Start(); return false; }
     }
     private void Guard(Action action) { try { action(); } catch(Exception error) { failure.Text=error.Message; } }
     private void ConfigureLevels()

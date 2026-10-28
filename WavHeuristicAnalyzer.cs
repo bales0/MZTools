@@ -45,21 +45,21 @@ namespace MZTools
     internal static class SharpZ80TimingTable
     {
         internal static readonly SharpZ80TimingReference Rom800Normal =
-            PulseReferenceCatalog.Decoder("NRL1:1 / IC header / TC header+loader", TapeProfile.Normal1_1, "ROM800", PulseReferenceCatalog.HeaderLeader, PulseReferenceCatalog.DataLeader);
+            PulseReferenceCatalog.Decoder(TapeProfileNames.RomHeaderReferenceName, TapeProfile.Normal1_1, "ROM800", PulseReferenceCatalog.HeaderLeader, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference Ic1_1 =
-            PulseReferenceCatalog.Decoder("IC1:1 data", TapeProfile.Ic1_1, "IC1200", 0, PulseReferenceCatalog.DataLeader);
+            PulseReferenceCatalog.Decoder(TapeProfileNames.DecoderReferenceName(TapeProfile.Ic1_1,true), TapeProfile.Ic1_1, "IC1200", 0, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference Normal1_2 =
-            PulseReferenceCatalog.Decoder("NRL1:2", TapeProfile.Normal1_2, "IC2400", PulseReferenceCatalog.HeaderLeader, PulseReferenceCatalog.DataLeader);
+            PulseReferenceCatalog.Decoder(TapeProfileNames.DecoderReferenceName(TapeProfile.Normal1_2), TapeProfile.Normal1_2, "IC2400", PulseReferenceCatalog.HeaderLeader, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference Ic1_2 =
-            PulseReferenceCatalog.Decoder("IC1:2 data", TapeProfile.Ic1_2, "IC2400", 0, PulseReferenceCatalog.DataLeader);
+            PulseReferenceCatalog.Decoder(TapeProfileNames.DecoderReferenceName(TapeProfile.Ic1_2,true), TapeProfile.Ic1_2, "IC2400", 0, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference Normal1_3 =
-            PulseReferenceCatalog.Decoder("NRL1:3", TapeProfile.Normal1_3, "IC2800", PulseReferenceCatalog.HeaderLeader, PulseReferenceCatalog.DataLeader);
+            PulseReferenceCatalog.Decoder(TapeProfileNames.DecoderReferenceName(TapeProfile.Normal1_3), TapeProfile.Normal1_3, "IC2800", PulseReferenceCatalog.HeaderLeader, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference Ic1_3 =
-            PulseReferenceCatalog.Decoder("IC1:3 data", TapeProfile.Ic1_3, "IC2800", 0, PulseReferenceCatalog.DataLeader);
+            PulseReferenceCatalog.Decoder(TapeProfileNames.DecoderReferenceName(TapeProfile.Ic1_3,true), TapeProfile.Ic1_3, "IC2800", 0, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference Normal1_4 =
-            PulseReferenceCatalog.Decoder("NRL1:4", TapeProfile.Normal1_4, "IC3200", PulseReferenceCatalog.HeaderLeader, PulseReferenceCatalog.DataLeader);
+            PulseReferenceCatalog.Decoder(TapeProfileNames.DecoderReferenceName(TapeProfile.Normal1_4), TapeProfile.Normal1_4, "IC3200", PulseReferenceCatalog.HeaderLeader, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference Ic1_4 =
-            PulseReferenceCatalog.Decoder("IC1:4 data", TapeProfile.Ic1_4, "IC3200", 0, PulseReferenceCatalog.DataLeader);
+            PulseReferenceCatalog.Decoder(TapeProfileNames.DecoderReferenceName(TapeProfile.Ic1_4,true), TapeProfile.Ic1_4, "IC3200", 0, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference Mz700Normal =
             PulseReferenceCatalog.Decoder("MZ700 NRL1:1 / MZ7-3 header", TapeProfile.Mz700_1_1, "ROM700", PulseReferenceCatalog.HeaderLeader, PulseReferenceCatalog.DataLeader);
         internal static readonly IReadOnlyList<SharpZ80TimingReference> NativeMz700References = new[] {
@@ -70,11 +70,11 @@ namespace MZTools
         internal static readonly SharpZ80TimingReference Mz700Fast3 =
             PulseReferenceCatalog.Decoder("MZ700 FAST3 data", TapeProfile.Mz700_1_3, "ROM700", 0, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference Tc1_1 =
-            PulseReferenceCatalog.Decoder("TC1:1 data", TapeProfile.Tc1_1, "TurboCopy", 0, PulseReferenceCatalog.DataLeader);
+            PulseReferenceCatalog.Decoder(TapeProfileNames.DecoderReferenceName(TapeProfile.Tc1_1,true), TapeProfile.Tc1_1, "TurboCopy", 0, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference Tc1_2 =
-            PulseReferenceCatalog.Decoder("TC1:2 data", TapeProfile.Tc1_2, "TurboCopy", 0, PulseReferenceCatalog.DataLeader);
+            PulseReferenceCatalog.Decoder(TapeProfileNames.DecoderReferenceName(TapeProfile.Tc1_2,true), TapeProfile.Tc1_2, "TurboCopy", 0, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference Tc1_3 =
-            PulseReferenceCatalog.Decoder("TC1:3 data", TapeProfile.Tc1_3, "TurboCopy", 0, PulseReferenceCatalog.DataLeader);
+            PulseReferenceCatalog.Decoder(TapeProfileNames.DecoderReferenceName(TapeProfile.Tc1_3,true), TapeProfile.Tc1_3, "TurboCopy", 0, PulseReferenceCatalog.DataLeader);
         internal static readonly SharpZ80TimingReference UltraPreTransferRom800 =
             PulseReferenceCatalog.Decoder("UL pre-transfer data/marks", TapeProfile.Ultra, "ROM800", 0, 0);
         internal static readonly SharpZ80TimingReference Ultra800Leader =
@@ -242,14 +242,7 @@ namespace MZTools
             bool includeCandidates = false, bool enableDiagnostics = false)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-            using IPcmAudioStreamReader reader = Path.GetExtension(filePath).ToLowerInvariant() switch
-            {
-                ".wav" => new WavPcmStreamReader(filePath),
-                ".flac" => new FlacPcmStreamReader(filePath),
-                _ => throw new ArgumentException(
-                    $"Unsupported heuristic audio extension: {Path.GetExtension(filePath)}",
-                    nameof(filePath))
-            };
+            using IPcmAudioStreamReader reader = AudioSignalAnalysisService.OpenReader(filePath);
             var candidates = new List<SharpBlockCandidate>();
             var headerDiagnostics = new AudioHeaderDiagnostics();
             var diagnostics = enableDiagnostics ? new AudioRecoveryDiagnostics() : null;
@@ -407,7 +400,7 @@ namespace MZTools
             if (options.ReferenceTests)
             {
                 tests.Add(("Reference header discovery", null, null, null, true));
-                foreach (var reference in options.References.Distinct()) tests.Add(("Reference: " + reference.Name, null, null, reference, false));
+                foreach (var reference in AudioPulseReferences.UniqueMeasurements(options.References)) tests.Add(("Reference: " + reference.Name, null, null, reference, false));
             }
             var plans = tests.SelectMany(t => ((options.Schmitt || options.AdaptiveZeroCrossing) ? options.ThresholdScales.Distinct() : new[] { 1.0 })
                 .Select(threshold => (t.Name, t.Scale, t.Fuzzy, t.Reference, t.HeadersOnly, Threshold: threshold))).ToArray();

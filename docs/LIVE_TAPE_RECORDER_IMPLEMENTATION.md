@@ -7,15 +7,16 @@ Current status: B–F are implemented and approved stage G is documented/validat
 See the [user guide and hardware procedure](LIVE_TAPE_RECORDER_GUIDE.md) and
 [future Avalonia adapter design](LIVE_TAPE_RECORDER_AVALONIA_ADAPTER.md).
 The portable recorder and Windows WASAPI
-adapter use shared/RAW input and have automated synthetic/fault tests. Exclusive
-capture is explicitly unavailable with this adapter. **NOT TESTED ON HARDWARE.** There is
+adapter offer shared/RAW and a separately approved exclusive packet transport with
+driver-accepted formats and native PCM/float WAV archival. **NOT TESTED ON HARDWARE.** There is
 now a Tools → Record Audio / Live Tape Analysis window with bounded live measurements
 and FFT, Head alignment with qualified relative stereo measurements and explicit A/B
 comparison, and opt-in Live pulses with independent detector/channel streams. The
 sections below retain stage baselines and describe each approved addition. After the
-separately approved legacy-test alignment, the full unit-test run reports **1335 passed,
-0 failed, 3 fixture skips**, and all 40 recorder UI checks pass. The original two G
-failures remain documented as history; see the approved follow-up at the end. Physical
+approved graphical-recorder / profile-reference-picker follow-up, the full unit-test run reports **1400 passed,
+0 failed, 3 fixture skips**, and all 79 recorder UI checks pass. Earlier exclusive
+limitations, stage counts and the original two G failures remain documented as history;
+see the approved follow-ups at the end. Physical
 hardware acceptance and optional unconfigured branches remain outstanding.
 
 ## Stage B — original scope and approval
@@ -1360,3 +1361,484 @@ The reference golden file and 39 export fingerprints remain unchanged. Physical
 capture, actual head adjustment, sustained hardware recording, real per-monitor DPI
 and Linux/macOS/Avalonia execution remain unverified. No release, commit or push has
 been performed or authorized by this test-update approval.
+
+## Approved follow-up — native input and tape matching (2026-10-28)
+
+Baseline for this follow-up: `f8bfff8c62bda60570d9ca39f3e717ee6c69c58e`.
+The user approved interactive head matching, clarified that the task is matching a
+foreign tape copy rather than ideal/studio azimuth, and requested one combined-edge
+needle for each L/R channel. The user separately approved native format discovery,
+the new exclusive transport, original-format WAV, tests and documentation. Earlier
+stage-C restrictions below are historical; they applied to WasapiRecorder, which
+continues to serve shared input. No package/version change was needed.
+
+### Matching this particular tape copy
+
+`HeadEdgeAdjustmentModel` is portable and channel-local. Each displayed needle uses
+the equally weighted mean of the existing robust rising/falling 10–90% times;
+relative speed is `100 * (zero_time / current_time - 1)`. The raw times and percentage
+are separate from presentation-only exponential damping. A manual zero saves the
+latest qualified window and its frame bounds, and immediately centers that needle.
+Left and right qualify independently; mono hides the right dial. No mechanical angle,
+automatic best setting, calibrated bandwidth or studio reference is inferred.
+
+Evidence now includes within-window edge MAD, backtracking/overshoot, duty/plateau
+fractions and transition density. Existing edge-time medians and decoding remain
+unchanged. The bounded history uses at most 24 distinct, non-overlapping windows,
+at least three windows spanning 0.3 s before zeroing. Too few edges, clipping,
+large dispersion, excursions or less than two samples across an edge suppress the
+comparison. Strong content/shape changes hold it while permitting an explicit new
+zero on a stable section; the old zero is never silently adapted. Content, speed,
+noise, EQ and adjustment are not automatically separable. The default amber working
+comparison is provisional; a user-declared repeated passage is a separate mode.
+
+Format, device, processing signature, window/options, continuity, recording label
+or comparison-mode changes invalidate zero. Pause/stale data retain a gray last
+position but no current comparative percentage. Strongly differing rise/fall changes
+produce a warning; their numeric times remain visible. The WPF `HeadEdgeAdjustmentControl`
+uses a shallow VU arc to retain readability at 920×640 and simulated 150% layout scale.
+Settings/input changes do not reset the live waveform's display zoom.
+
+### Exact driver format and native WAV
+
+`WindowsAudioCaptureBackend` now exposes Shared and Exclusive separately. Exclusive
+enumeration probes common mono/stereo rates from 8–384 kHz and PCM8/16/24/32/float32
+(including 24 valid bits in PCM32), retaining only exact driver acceptance. This is a
+candidate list, not a claim of exhaustive hardware discovery. UI custom Hz/container/
+valid bits/channels probing opens/disposes a session without starting input. The
+format is checked again at Start. Equivalent extensible/classic full-width descriptors
+may be tried, but never a numerically different rate, channel count or bit format.
+Shared conversion and RAW controls are disabled for exclusive capture. Device and
+format selection are retained when still available during refresh/mode changes.
+
+`ExclusiveCaptureTransport` uses one dedicated MTA thread for device/client creation,
+Initialize/Start/GetBuffer/ReleaseBuffer/Stop/disposal, an event wait plus stop event,
+MMCSS Pro Audio registration and a fixed managed packet buffer. Callback spans are
+borrowed only synchronously; archive/preview ownership and queues remain unchanged.
+Every acquired packet is released in finally on that same thread, including consumer
+failure. Packet frames/positions/QPC/flags are preserved, SILENT is canonicalized,
+and Stop joins/drains before freeing handles. Start cancellation waits for native
+initialization rather than freeing resources underneath it. Repeated disposal shares
+one completion task. Driver/initialization/disconnection/packet failures are explicit;
+no fallback, invented frames or live resampling is performed.
+
+The source uses equal, nonzero exclusive event buffer duration/period; a reported
+buffer-alignment error causes one fresh-client retry with the aligned frame count.
+GetNextPacketSize is never used. These choices follow Microsoft's
+[Initialize](https://learn.microsoft.com/en-us/windows/win32/api/audioclient/nf-audioclient-iaudioclient-initialize)
+and [GetBuffer/ReleaseBuffer rules](https://learn.microsoft.com/en-us/windows/win32/api/audioclient/nf-audioclient-iaudiocaptureclient-getbuffer).
+The existing 3.3.0 lower-level [AudioClient](https://github.com/naudio/NAudio/blob/v3.3.0/src/NAudio.Wasapi/CoreAudioApi/AudioClient.cs)
+and [AudioCaptureClient](https://github.com/naudio/NAudio/blob/v3.3.0/src/NAudio.Wasapi/CoreAudioApi/AudioCaptureClient.cs)
+wrappers were inspected. This bypasses the higher-level recorder's shared-only
+packet loop without adding an audio dependency.
+
+`PreserveNativeFormat` keeps original sample rate, channels, container bits, valid
+bits and PCM/float payload bytes. It bypasses optional PCM24 quantization; shared
+compatibility recording keeps its earlier explicit conversion behavior. Native full-width
+PCM8/16/24 uses classic WAV; PCM32 or reduced valid bits uses WAVEFORMATEXTENSIBLE;
+float32 also includes fact. Data offsets are respectively 44/68/80 bytes, and RIFF
+capacity, splitting, repair, PCM verification and hashes use the actual header layout.
+Native archival accepts rates outside the offline-reader set without resampling.
+PCM32/float32/extensible WAV and unsupported rates are clearly flagged as currently
+incompatible with offline analyzers, and navigation refuses them. No hidden converted
+copy is produced. The guide describes selecting compatible integer PCM for recovery.
+
+Driver acceptance does not certify physical ADC precision or processing in firmware.
+Shared engine mix format is distinct from exact exclusive driver support, as described
+by [GetMixFormat](https://learn.microsoft.com/en-us/windows/win32/api/audioclient/nf-audioclient-iaudioclient-getmixformat)
+and [IsFormatSupported](https://learn.microsoft.com/en-us/windows/win32/api/audioclient/nf-audioclient-iaudioclient-isformatsupported).
+Packet delivery timing does not retime saved samples. Software tests cannot establish
+physical ADC clock jitter or guarantee every driver's event/buffer behavior.
+
+### Validation
+
+| Check | Passed | Failed | Skipped |
+| --- | ---: | ---: | ---: |
+| Release solution build | 0 warnings / 0 errors | 0 | — |
+| Portable capture/analyzer | 185 | 0 | 0 |
+| Windows adapter/integration | 44 | 0 | 0 |
+| Complete existing test assembly | 1142 | 0 | 3 |
+| **Unit-test total** | **1371** | **0** | **3** |
+| Recorder STA WPF checks (separate executable) | 50 | 0 | 0 |
+
+New coverage comprises 21 edge-adjustment cases, seven native-WAV cases and eight
+exclusive transport cases. It includes actual synthetic ramped edges with varying
+pulse dwell/content, noise, opposing edge changes, independent L/R baselines,
+resolution limits, stale/overlap/condition changes; byte identity for PCM32 valid24/full32,
+float32 including NaN payload bits, reduced-valid-bit PCM24, split headers/fact/hashes,
+partial-write repair at 68/80-byte offsets; serialized worker ownership, Stop tail,
+silence, acquired-buffer release on callback/oversize error, initialization cancellation,
+failed initialization and repeated/unstarted disposal. UI adds custom probe without
+Start, native 192 kHz float archival without PCM24, compatibility refusal, manual L/R
+zero, settings invalidation, small-window and simulated scaling checks.
+
+Reports are in ignored `TestResults/RecorderNativeHead/{capture,windows,legacy}.trx`.
+Commands use the G test-host workaround and clear the legacy output-writing environment
+variables as above. The final recorder UI run's artifact folder is
+`MZTools.Capture.Windows.Tests/UiSmoke/bin/Release/net10.0-windows/smoke-artifacts/102cb16800b64c95b02af9bd7f89f3f9`.
+Two actual STA screenshots are copied into docs/images/live-recorder: head-tape-matching
+and native-test-input. The latter explicitly labels its synthetic test endpoint; it is
+not hardware evidence. The final run observed 111.9 ms to its demo pulse threshold,
+zero preview drops at that point; this is not hardware latency. The eight previously
+documented optional legacy early returns and three missing-fixture skips remain.
+All 39 export fingerprints pass, with golden SHA-256 unchanged:
+`7B142B0D300DFDAD731032E9DD8A55F900082F84A9789C41C05310EC0E94EB49`.
+
+Physical exclusive capture, busy/disabled-exclusive behavior, aligned-buffer retries,
+long sustained recording, real head adjustment and actual per-monitor DPI are still
+hardware acceptance tasks. The user guide adds their acceptance procedure; tests never
+opened a physical microphone. Version 0.9.9 is preserved. No source recordings,
+fixtures or golden files were rewritten. No commit, push or release was performed.
+
+## Approved follow-up — stable layout, manual zero and owner shutdown (2026-10-28)
+
+The user approved a fixed status area, manual zero independent of strict stability,
+format-dependent Left/Right/Mono labels, tests and documentation. A separately approved
+addition ties recorder closure to its main window, conditional on consistency with the
+application's other windows. Existing inspectors use Owner; the recorder now does too.
+
+The head status has a fixed 40-DIP area with two 18-DIP lines, trimming and a full-text
+tooltip. Its height cannot push the dials down/up when a message wraps. The waveform
+view uses Left/Right/Overlay for stereo and Mono only for a single channel; label
+changes retain the display time span. Expanded edge details use Left/Right as well.
+
+Manual zero requires current full-window edge medians with at least eight finite,
+positive rising and falling transitions, assessable energy and no clipping. It no
+longer requires three settled windows, low edge dispersion or resolved two-sample
+transitions. Those stricter criteria still govern comparison quality: unstable,
+warming-up or resolution-limited manual zero is explicitly marked uncertain and
+holds the comparison until quality permits it. Even after later stabilization, the
+uncertain baseline remains labeled and amber until the user explicitly replaces it.
+There is no silent re-zeroing or promotion of that baseline to a qualified reference.
+Missing/invalid/clipped/low-energy/too-few-edge data block zero immediately; repeated
+old noisy windows expire rather than refreshing their timestamp. Distinct-window
+history remains bounded and overlapping polls do not certify stability.
+
+Tools opens the recorder with Owner set to the invoking MainWindow, as for other
+inspectors. MainWindow first runs its existing document close guards, then cancels
+its initial Closing event while awaiting only its owned recorders. It disables its
+editing controls during this wait. Each recorder shares the same asynchronous close
+attempt between its own X button and owner shutdown, asks before active capture stops,
+drains/finalizes/verifies and only then permits closure. A dispatcher yield prevents
+synchronous nested Closing for idle recorders; repeated attempts share work. Declining
+keeps the main window open and capture running. A new incomplete finalization report
+or disposal exception keeps both windows open for review; after review, another explicit
+close can release the already stopped recorder. Owner auto-close cannot interrupt
+live WAV finalization. No global application shutdown or unrelated-window close was
+introduced.
+
+Six new portable cases cover varying current edge times without flickering zero,
+hard exclusions even after earlier good data, and stale repeated noisy windows.
+Existing noisy/resolution cases now assert that manual zero is possible but marked
+uncertain, centered and without a falsely qualified current improvement. Existing
+stable-reference and source/format/continuity invalidation tests remain intact.
+Eleven additional STA checks cover mono/stereo labels, exact dial top/height invariance
+for short and long messages, declined owner shutdown, multiple active/idle owned
+recorders, verified WAV on owner close, idle synchronous completion, injected publish
+failure, retained partial WAV and explicit closure after failure review. No physical
+input is used; the publication race is created only in the smoke's isolated directory.
+
+Release solution build: 0 warnings / 0 errors. Portable suite: 191 passed. Windows
+adapter/integration: 44 passed. Existing full suite: 1142 passed / 3 missing-fixture
+skips. Total: 1377 passed / 0 failed / 3 skipped; STA recorder UI: 61 checks passed.
+The same eight optional legacy early returns remain as documented in G. Commands
+are unchanged from the preceding audit, with reports in ignored
+`TestResults/RecorderUsability/{capture,windows,legacy}.trx`. The final UI artifact
+folder is `MZTools.Capture.Windows.Tests/UiSmoke/bin/Release/net10.0-windows/smoke-artifacts/8781027ae83d4cb8b8f821d37afeaf56`.
+The guide's head-matching image is updated from that actual STA run; its synthetic
+signal is not evidence of hardware performance. The golden fingerprint file remains
+unchanged. Physical recording, actual tape-head adjustment and real per-monitor DPI
+remain hardware acceptance tasks. No commit/push/release or version change.
+
+## Approved follow-up — graphic status, stereo display and Monitor close (2026-10-28)
+
+The user approved graphic status in place of volatile text, a clarified same-section
+declaration, graphical L/R correlation/delay/known-tone phase, test/docs updates and,
+separately, closing Monitor without the archive confirmation. The IC naming portion
+was refined by the later approved variant-A phase 1; see IC_PROFILE_NAMING_PHASE1.md.
+
+HeadEdgeAdjustmentControl uses fixed 36-DIP per-channel Signal/Stable/Zero lamps with
+constant labels and shape symbols as well as color. Messages live in offset tooltips,
+accessibility names and the expandable detail. Same tape section replayed explains
+that it is a user declaration with no automatic content matching or altered edge
+calculation. HeadAlignmentPanel moves the rapidly changing sample scope behind an
+expander and adds a separate Stereo L/R tab. HeadStereoIndicator presents the existing
+zero-lag correlation, qualified broadband delay in µs and qualified known-tone R−L
+phase modulo a cycle. Unqualified, mono, non-finite and paused values do not place
+markers. It never turns a period-ambiguous tone into absolute delay or ordinary
+broadband data into a single invented phase angle. No PCM/detector/FFT algorithm changed.
+
+Recorder closure distinguishes monitoring from an archive, including pending starts.
+Only recording/recording-start/recording-stop states ask to finalize retained WAV data.
+Monitor joins/stops/releases normally without claiming samples will be saved. The same
+path serves X and main-owner close. Failed finalization review behavior remains.
+
+The final phase-1 solution build has 0 warnings/errors. Current portable tests: 191;
+Windows integration: 44; complete legacy suite including phase-1 cases: 1162 passed,
+3 missing-fixture skips. Total 1397 passed / 0 failed / 3 skipped. Recorder STA smoke
+passes 74 checks, including qualified phase/no-tone delay suppression, mono/paused/
+unqualified graph cases, no fabricated broadband phase, graphic layout, exact IC
+reference visibility, Monitor close during/after Start and through its owner, plus
+all earlier native/archive and head-matching cases. The original audio-analysis STA
+program also passes combined histogram, manual references, navigation/selection,
+recovery preview/cancellation, reports, zoom and waveform performance checks.
+Its synthetic observation was 12 pans in 64 ms, 501 visible buckets from 65,536;
+this is not hardware recording performance.
+
+Current unit reports: TestResults/IcNamingPhase1/{capture,windows,legacy}.trx (ignored).
+Recorder screenshots: MZTools.Capture.Windows.Tests/UiSmoke/bin/Release/net10.0-windows/
+smoke-artifacts/e6af87d05fa74ebdbb439a09a06389bb. The guide's head-matching image and
+stereo-indicators image are copied from this actual STA run. The old audio UI program
+reported artifacts in the local temp directory mztools-audio-ui-dc3bdf81c82746d9a93d96bf50b443f4.
+The 39 waveform fingerprints still match; physical hardware/per-monitor-DPI acceptance
+and eight optional legacy early returns remain as previously documented. No release,
+commit, push, package, waveform/loader byte or version change was performed.
+
+## Approved follow-up — IC legacy removal phase 2 (2026-10-28)
+
+The user explicitly approved removing only iccompat2/3/4 and their UI/helper paths,
+with current exact writers, receivers, TC/FAST3, loader bytes, metadata and waveform
+outputs retained. See IC_PROFILE_NAMING_PHASE2.md for the exact scope/provenance.
+The comparison collection now has 15 built-ins. Manual All/Selected profiles and the
+live/offline controls receive that collection directly; the legacy toggle is removed.
+A production-C# search finds no removed-ID/helper/toggle references. The old source
+document has an archive clarification; its historical derivation is not rewritten.
+
+Release solution build: zero warnings/errors. Focused catalog/fingerprint cases:
+33 passed. Full legacy: 1163 passed / 0 failed / 3 missing-fixture skips. Portable:
+191 passed. Windows integration: 44 passed. Total **1398 passed / 0 failed / 3 skipped**.
+Recorder STA smoke: all 74 checks passed, including active-collection and missing-toggle
+checks. The existing audio STA smoke also passed a new inspection of the actual manual
+All/Selected list and all earlier custom-reference, histogram, navigation, recovery,
+report and zoom checks. Its synthetic 12-pan observation was 66 ms; not hardware
+capture or decoder performance evidence. No physical input was opened.
+
+Reports: ignored TestResults/IcNamingPhase2/{capture,windows,legacy}.trx. Recorder
+artifacts: MZTools.Capture.Windows.Tests/UiSmoke/bin/Release/net10.0-windows/smoke-artifacts/
+2e29c28392114531b5f18e0ba407416c. Audio STA local temp artifacts:
+mztools-audio-ui-099b6dc4591f4c31a7734a2d1a2363f4. The same eight optional early-return
+branches remain as documented in G. All 39 WAV/LEP/L16 fingerprints still match;
+golden SHA-256 remains 7B142B0D300DFDAD731032E9DD8A55F900082F84A9789C41C05310EC0E94EB49.
+No fixture/golden/source media, retained timing, loader, enum, sidecar format, package
+or application version was changed. No commit, push or release was performed.
+
+## Approved follow-up — profile reference picker and working guide visibility (2026-10-28)
+
+The user approved a simple profile-oriented reference menu (TC 1:2/1:3, IC and NORMAL
+1:2–1:4, MZ-700 FAST3 and regional ROMs), technical/service choices in the catalog,
+shared physical timing without repeated tests, guide visibility without restarting
+measurement, aligned expanders, contextual ROM hover details and tests/documentation.
+See PULSE_REFERENCE_UI.md for the current menu, data ownership and detailed checks.
+
+The twelve profile aliases project the retained fifteen-entry physical comparison
+catalog; nine unique group/duration sets are tested. The live panel reuses canonical
+reference projections for equivalent IC/NORMAL aliases. The display-only event redraws
+guides independently of measurement; manual result and histogram-series identities
+are retained. The manual UI test exposed that hiding guides changed the full automatic
+range, so the viewport's comparison domain was decoupled from guide visibility.
+ROM LOW contexts remain exact, separately identifiable and visible in offset hover
+text; no averaging of their lengths was introduced. Both live and offline charts
+show a reference strip plus light vertical dotted guides. The shared expander aligns
+with its neighbors; source details are collapsed by default.
+
+Final Release solution build: zero warnings/errors. Final legacy suite: 1165 passed,
+0 failed, 3 missing-fixture skips. Portable: 191 passed. Windows integration: 44 passed.
+Combined: **1400 passed / 0 failed / 3 skipped**. Recorder STA smoke: **79 checks passed**;
+original visual/manual STA smoke passed including a new manual visibility/zoom/no-
+remeasurement check. Existing optional early returns remain as documented in G.
+The screenshot is the actual synthetic reference-guides image from recorder artifacts
+MZTools.Capture.Windows.Tests/UiSmoke/bin/Release/net10.0-windows/smoke-artifacts/
+af8e545bd5c9425ba3db93638965f669. It is copied to docs/images/live-recorder/reference-guides.png.
+The final original audio STA program reported local-temp artifacts
+mztools-audio-ui-a24490cca08245078b3141731963d134 and 12 synthetic pans in 53 ms for
+501 visible buckets out of 65,536. These are not hardware measurements.
+
+Final legacy report: ignored TestResults/PulseReferenceUiFinal/legacy.trx. Portable/
+Windows reports: ignored TestResults/PulseReferenceUi/{capture,windows}.trx. All 39
+WAV/LEP/L16 fingerprints still match; golden hash is unchanged. No waveform constants,
+loader bytes, enum/sidecar encoding, source media, fixtures, package or application
+version was changed. No physical input, commit, push or release was performed.
+
+### WASAPI no-data callback handling (2026-10-28)
+
+An empty callback previously raised the same "incomplete PCM frame" error as a
+nonempty buffer whose length was not divisible by the negotiated block alignment.
+The backend now ignores empty callbacks before inspecting their position or setting
+the first-packet origin. It does not fabricate silence or move the audio timeline;
+the next real packet still undergoes normal gap/discontinuity checks. Nonempty
+partial frames still fail without forwarding any bytes. Their diagnostic now includes
+buffer length, block alignment, sample rate, channels, representation, valid bits,
+native flags and device position.
+
+Six added regression cases cover empty callbacks before, between and after real
+packets (including undefined negative positions), byte-identical PCM16/PCM24/float32
+continuation after 480 frames, a genuine gap after an empty callback, and rejection
+of a seven-byte stereo PCM24 buffer with and without the SILENT flag. Windows tests:
+50 passed; portable capture tests: 191 passed. Release solution build: zero warnings
+and errors. These tests inject transport callbacks; the reported hardware failure
+has not been reproduced on the user's input device. The previous error did not
+record buffer length, so it cannot establish whether that failure was an empty
+callback or a genuinely misaligned buffer. Any remaining failure now has a more
+specific diagnostic. No package, input format or PCM conversion was changed.
+
+### Recorder settings, active Fit and waveform scale controls (2026-10-28)
+
+Input / file settings is now a visible recorder action. Monitor is stopped without
+creating an archive; Record is stopped and its WAV/sidecar finalized before the
+input/settings panel opens. Finalization/publication failures remain visible and
+partial files are retained. The action is disabled during startup or another model
+operation. Manually expanding the existing settings expander does not stop capture.
+
+Active Fit history, live pulse Fit all/Fit references, and offline waveform/histogram
+Fit buttons use a blue background/border and bold text. Manual navigation ends the
+corresponding mode. Reference Fit follows explicit reference-scale changes; equivalent
+IC/NORMAL aliases retain their shared classifier. Offline Manual waveform Fit remains
+active when a refreshed preview replaces its data; a manually chosen range stays manual.
+
+Auto scale ignores stored Gain during rendering and disables its control. Turning it
+off restores the stored choice. The same controls now appear in both Visual and Manual
+WAV/FLAC waveforms. Automatic amplitude uses each displayed channel's visible peak;
+manual mode uses full scale times Gain. Offline labels distinguish relative automatic
+amplitude from FS, and manual FS labels account for Gain. Legends identify channel
+colors, including the actual single-channel Mono/Left/Right/Mix preview. These are
+display settings and do not change archive PCM, recovery input or exports.
+
+Recorder STA checks: 96 passed (synthetic input), including pixel-identical waveform
+rendering at different manual gains under Auto scale, restored manual selection,
+active Fit styles, reference-scale following and settings return from Monitor/Record.
+The finalized recording still verifies against written PCM and its sidecar. Original
+Visual/Manual audio STA smoke passed with the corresponding new waveform checks.
+Recorder artifacts: MZTools.Capture.Windows.Tests/UiSmoke/bin/Release/net10.0-windows/
+smoke-artifacts/b17cf9192b94465eb556c001e89e3117. Offline artifacts:
+local-temp mztools-audio-ui-4e820962ec8742fa9325749bea85f517.
+
+Broad regression: legacy 1165 passed, 3 missing-fixture skips; portable capture 191
+passed. Windows integration: 49 passed, 1 failed, reproduced on a second run:
+StopDuringNativeStart_WaitsForNativeCallAndThenCleansUp. The existing cancellation
+pump can observe Stop after native Start has returned, so the test sometimes sees
+successful Start followed by safe shutdown instead of OperationCanceledException.
+CaptureSession and native startup were not changed in this UI block. A separate
+approval request was submitted for that lifecycle correction; the test was not
+weakened or excluded. Shared WASAPI format rejection remains unresolved as well.
+No physical input, dependency/version change, commit, push or release was performed.
+
+### Start/Stop publication race correction (2026-10-28)
+
+Approved separately after the UI regression exposed the race above. RequestStop and
+publication of successful startup now share the session control lock. After native
+Start returns, a previously accepted stop/cancellation/failure prevents Started from
+being completed successfully, even when the asynchronous cancellation pump has not
+yet run or the native Start ignores managed cancellation. No native operation or
+cancellation callback runs under the lock. Cleanup still joins/releases the input,
+drains accepted PCM, finalizes the sink and writes the report before settling a
+cancelled Start. A finite source completing naturally inside Start remains successful;
+a device-loss callback inside Start remains a reported failure.
+
+Eight new portable regression cases cover explicit Stop, caller cancellation and
+Dispose inside Start, each in Monitor and actual WAV recording mode, plus finite
+completion and device loss inside Start. They verify PCM bytes, published/finalized
+WAV headers and sidecar, released buffers, unsubscription, and exactly-once input
+Stop/Dispose. Portable capture suite: 199 passed. Windows suite: 50 passed, including
+the formerly failing StopDuringNativeStart regression. Recorder STA smoke: 96 checks
+passed with synthetic input, including pending-start close and owner/recorder WAV
+finalization. Artifacts: MZTools.Capture.Windows.Tests/UiSmoke/bin/Release/
+net10.0-windows/smoke-artifacts/9d58404ea39348a08ce3bb9ee0136625.
+This fixes the regression above; it does not resolve the separately reported shared
+WASAPI unsupported-format initialization. No physical input was tested.
+The formerly failing Windows test also passed ten consecutive standalone runs.
+Final Release solution build: zero warnings and errors.
+
+### Stop/save/back and explicit Cancel/discard (2026-10-28)
+
+Supersedes the separate Input / file settings action above. Stop / finalize now
+completes and verifies the recording, expands input settings, and displays a compact
+saved-file notice (first WAV path, count, all paths in tooltip and Recordings). It
+does not discard. On finalization/publication failure the retained files and error
+remain available. Monitor Stop returns to settings with a no-file message.
+
+Cancel uses an explicit warning with No as default for recording. Declining leaves
+capture running. Confirming stops/releases the current session, then deletes only
+the exact WAV segment and sidecar paths in that run's result, including owned partial
+paths after a failed publish. No destination guesses, globs, recursive directory
+deletion, or previous recording paths are used. A filename collision at publication
+therefore leaves the foreign destination intact. Monitor Cancel requires no discard
+prompt. Success clears the current preview/report and returns settings; saved history
+is retained, including all sixteen previous entries when the history was full.
+
+Deletion failure retains a pending discard, reports affected paths, blocks a new
+capture and permits Cancel retry. Missing already-deleted paths are harmless on retry.
+The operation participates in the model's startup/disposal coordination. Cancel is
+available only for an active run or pending discard, never for a previously saved run.
+
+Portable capture tests: 203 passed, including multi-segment deletion, saved-file
+preservation, full-history preservation, monitor reset, and foreign filename collision.
+Windows tests: 51 passed, including an actual locked segment and successful discard
+retry after releasing its handle. Recorder STA: 103 checks passed, including confirmation
+decline/accept, previous recording preservation, Monitor cancel without prompt, saved
+path notice, settings return and removal of the redundant button. Synthetic artifacts:
+MZTools.Capture.Windows.Tests/UiSmoke/bin/Release/net10.0-windows/smoke-artifacts/
+05b40e91bbf54ae09459ff2be2ac67c8. Physical input was not tested. The separately reported
+shared WASAPI unsupported-format problem remains unresolved. No commit/push/release.
+
+### Confirmed replacement and continuous segmented analysis (2026-10-28)
+
+Both blocks were explicitly approved. Record now asks before reusing an existing
+WAV/JSON name. Declining does not start capture or change the old recording. The
+replacement sink writes to a unique sibling name and records hashes of the original
+WAV, JSON, and numbered segments proven by the old MZTools report. Only a complete,
+verified new recording is published after successful Stop/finalize (also before an
+approved close finalizes an active recording). Cancel suppresses publication before
+stopping, then discards only the new files. Start/device failures leave old files intact.
+
+Publication checks original hashes and new WAV hashes, refuses unapproved destination
+collisions, rewrites JSON paths to final names, moves old files to unique backups,
+then installs the new WAV family and JSON. Exceptions trigger rollback and preserve
+new PCM separately. Old extra numbered segments from a longer prior recording are
+retired with their report, without globbing unrelated similarly named files. Existing
+history entries for replaced paths are removed to avoid presenting stale versions.
+Backups that cannot be deleted after successful publication remain retained.
+
+Portable replacement tests cover both shorter and longer new families, cancellation,
+start failure, device loss, an edited original and an unrelated new segment collision.
+A Windows locked-sidecar test forces failure after the original WAV was backed up
+and verifies restoration of the original WAV/JSON and retention of new PCM. Default
+unconfirmed sink behavior still rejects existing destinations. No PCM encoding changed.
+
+SegmentedPcmStreamReader consumes a complete recorder .wav.json and exposes one
+64-bit global PCM frame timeline through IPcmAudioStreamReader. It validates ordered
+local names, contiguous first-frame/count intervals, compatible WAV formats, physical
+file/data lengths, completion flags and SHA-256 hashes. Verification caches at most
+128 path/size/mtime/expected-hash tuples, so zoom/replay does not repeatedly hash
+unchanged multi-gigabyte parts. Each range read rechecks metadata while holding its
+current segment reader; normal file changes invalidate the cached result. Global
+callback indices continue across files, and detector state is created once per pass.
+No joined WAV, inserted silence, resampling or per-segment decoder reset is used.
+
+The shared reader factory serves Visual analysis, heuristic import, Manual recovery,
+range inspection, waveform zoom and selection WAV export. Export rejects every source
+segment as a destination. A recording report is accepted by Visual's source picker and
+the main Open filter; main import uses heuristic mode. Recorder analysis actions resolve
+a multi-segment selection to that run's JSON, including selecting an interior segment.
+Single-WAV opening stays single-file. Moving all parts and their report together works
+through expected local filenames. Incomplete/gapped/changed/unsupported families are
+rejected rather than silently joined.
+
+Nine new legacy tests compare a split inside a measured pulse and payload against the
+original WAV: identical pulse sequences, global range-read samples, recovered header/
+payload bytes, Visual block checksums, Manual recovery and exported boundary-crossing
+selection PCM. Other cases reject missing/changed/reordered/gapped/overlapping/incomplete
+families, output format mismatch and edits after opening. Recorder STA also reads an
+actual three-part PCM24/stereo capture report and confirms all three navigation actions
+target the whole recording. The original Visual/Manual STA smoke passed as well.
+
+Verification: legacy 1174 passed / 0 failed / 3 missing-fixture skips; portable capture
+210 passed; Windows integration 52 passed. Combined: 1436 passed / 0 failed / 3 skipped.
+Focused segmented/Open-filter follow-up: 10 passed. Final recorder STA: 114 checks passed;
+artifacts MZTools.Capture.Windows.Tests/UiSmoke/bin/Release/net10.0-windows/smoke-artifacts/
+619481b3cb684ff982e39f0e557b3c6b. Additional checks cover declining overwrite while
+Monitor continues and successful replacement on approved recording close. New segmented
+unit cases are kept in the already tracked AudioSignalAnalysisTests.cs because the
+repository ignores unlisted new test source files. Final focused rerun: all nine passed.
+Release solution build: zero warnings/errors. Offline STA artifacts: local-temp
+mztools-audio-ui-68145aa30fdf4bd1997d6c750f43e247. All input was synthetic/file-based;
+the separately reported shared-mode hardware format rejection remains unresolved.

@@ -6,7 +6,68 @@ namespace MZTools.Capture.Tests;
 
 public class WaveRecordingTests
 {
+    [Theory]
+    [InlineData(AudioSampleRepresentation.Signed32,24,192000,68)]
+    [InlineData(AudioSampleRepresentation.Signed32,32,384000,68)]
+    [InlineData(AudioSampleRepresentation.Float32,32,192000,80)]
+    [InlineData(AudioSampleRepresentation.Signed24,20,96000,68)]
+    [InlineData(AudioSampleRepresentation.Signed24,24,48000,44)]
+    public async Task NativeArchive_PreservesDeliveredBitsAndExtendedHeaderAcrossSegments(AudioSampleRepresentation representation,int valid,int rate,int offset)
+    {
+        using var folder=new RecordingTestFolder(); var format=new AudioCaptureFormat(rate,2,representation,valid);
+        byte[] payload=Enumerable.Range(0,17*format.BlockAlign).Select(i=>(byte)(i*53)).ToArray();
+        // Includes non-finite float bit patterns: even these must not be quantized or rewritten in the archive.
+        if(representation==AudioSampleRepresentation.Float32) BinaryPrimitives.WriteUInt32LittleEndian(payload,0x7fc01234);
+        var report=await Record(format,payload,new(folder.PathFor("native.wav")) { PreserveNativeFormat=true,RequireAnalyzerCompatibleRate=false,SegmentDataLimit=5*format.BlockAlign });
+        Assert.Equal(CaptureIntegrity.Complete,report.Integrity); var recording=report.Recording!;
+        Assert.Equal(format,recording.Conversion.Output); Assert.False(recording.Conversion.ChangesContainer);
+        Assert.Equal(17,recording.SavedFrames); Assert.True(recording.SourceHashCoversSavedFramesExactly);
+        Assert.Equal(Hash(payload),recording.SourcePcmSha256); Assert.Equal(offset==44,recording.AnalyzerCompatible);
+        var recovered=new List<byte>();
+        foreach(var segment in recording.Segments)
+        {
+            byte[] file=File.ReadAllBytes(segment.Path);
+            Assert.True(segment.PcmMatchesWrittenBytes); Assert.True(segment.HeaderFinalized); Assert.True(segment.Published);
+            Assert.Equal(file.Length-8,(long)BinaryPrimitives.ReadUInt32LittleEndian(file.AsSpan(4)));
+            Assert.Equal(rate,(long)BinaryPrimitives.ReadUInt32LittleEndian(file.AsSpan(24)));
+            Assert.Equal(format.BitsPerSample,BinaryPrimitives.ReadUInt16LittleEndian(file.AsSpan(34)));
+            Assert.Equal(segment.DataBytes,(long)BinaryPrimitives.ReadUInt32LittleEndian(file.AsSpan(offset-4)));
+            var pcm=file.AsSpan(offset,(int)segment.DataBytes).ToArray(); recovered.AddRange(pcm);
+            Assert.Equal(Hash(pcm),segment.PcmSha256); Assert.Equal(Hash(file),segment.FileSha256);
+            if(offset!=44)
+            {
+                Assert.Equal(0xfffe,BinaryPrimitives.ReadUInt16LittleEndian(file.AsSpan(20)));
+                Assert.Equal(valid,BinaryPrimitives.ReadUInt16LittleEndian(file.AsSpan(38)));
+                Assert.Equal(3u,BinaryPrimitives.ReadUInt32LittleEndian(file.AsSpan(40)));
+                Assert.Equal(representation==AudioSampleRepresentation.Float32?3:1,BinaryPrimitives.ReadInt32LittleEndian(file.AsSpan(44)));
+            }
+            if(offset==80) { Assert.Equal("fact"u8.ToArray(),file.AsSpan(60,4).ToArray()); Assert.Equal(segment.Frames,(long)BinaryPrimitives.ReadUInt32LittleEndian(file.AsSpan(68))); }
+            long capacity=RiffWaveLayout.FrameCapacity(format,preserveNativeFormat:true);
+            var maximum=RiffWaveLayout.Header(format,capacity,true);
+            Assert.True((long)BinaryPrimitives.ReadUInt32LittleEndian(maximum.AsSpan(4))<=uint.MaxValue);
+            Assert.Throws<ArgumentOutOfRangeException>(()=>RiffWaveLayout.Header(format,capacity+1,true));
+        }
+        Assert.Equal(payload,recovered.ToArray()); Assert.Equal(4,recording.Segments.Count);
+    }
+
     private static TimeSpan Timeout => TimeSpan.FromSeconds(15);
+
+    [Theory]
+    [InlineData(AudioSampleRepresentation.Float32,80)]
+    [InlineData(AudioSampleRepresentation.Signed32,68)]
+    public async Task PartialNativeWrite_RepairsExtendedHeaderAndPreservesIncompleteFrame(AudioSampleRepresentation representation,int offset)
+    {
+        using var folder=new RecordingTestFolder(); var storage=new FaultStorage { FailAfterPcmBytes=9,DataOffset=offset };
+        var format=new AudioCaptureFormat(192000,1,representation); byte[] payload=Enumerable.Range(1,16).Select(i=>(byte)i).ToArray();
+        var report=await Record(format,payload,new(folder.PathFor("native-partial.wav")) { PreserveNativeFormat=true,RequireAnalyzerCompatibleRate=false },storage);
+        Assert.Equal(CaptureIntegrity.Incomplete,report.Integrity); Assert.Equal(CaptureEndReason.SinkError,report.Reason);
+        var segment=Assert.Single(report.Recording!.Segments); Assert.True(segment.HeaderFinalized); Assert.False(segment.Published);
+        Assert.Equal(2,segment.Frames); Assert.Equal("09",segment.TrailingPartialFrameHex);
+        byte[] file=File.ReadAllBytes(segment.Path); Assert.Equal(payload[..9],file[offset..]);
+        Assert.Equal(8u,BinaryPrimitives.ReadUInt32LittleEndian(file.AsSpan(offset-4)));
+        if(offset==80) Assert.Equal(2u,BinaryPrimitives.ReadUInt32LittleEndian(file.AsSpan(68)));
+        Assert.Equal(Hash(payload[..8]),segment.PcmSha256); Assert.True(report.Recording.SidecarFinalized);
+    }
 
     [Theory]
     [InlineData(0)]
@@ -371,6 +432,7 @@ internal sealed class FaultStorage : IAudioRecordingStorage
 {
     private readonly FileAudioRecordingStorage files = new();
     internal int? FailAfterPcmBytes;
+    internal int DataOffset=44;
     internal long ReadBytes;
     internal bool FailRepairWrites,FailSidecarRename,DenyCreate,CreateCollisionOnRename;
     public bool Exists(string path) => files.Exists(path);
@@ -378,7 +440,7 @@ internal sealed class FaultStorage : IAudioRecordingStorage
     {
         if (DenyCreate) throw new UnauthorizedAccessException("Injected permission denial.");
         var stream = files.CreateNew(path);
-        return path.EndsWith(".partial.wav",StringComparison.Ordinal) && FailAfterPcmBytes.HasValue ? new FaultStream(stream,FailAfterPcmBytes,false) : stream;
+        return path.EndsWith(".partial.wav",StringComparison.Ordinal) && FailAfterPcmBytes.HasValue ? new FaultStream(stream,FailAfterPcmBytes,false,dataOffset:DataOffset) : stream;
     }
     public Stream OpenExisting(string path)
     {
@@ -396,7 +458,7 @@ internal sealed class FaultStorage : IAudioRecordingStorage
         files.MoveNew(source,destination);
     }
 
-    private sealed class FaultStream(Stream inner,int? pcmLimit,bool rejectWrites,Action<int>? onRead = null) : Stream
+    private sealed class FaultStream(Stream inner,int? pcmLimit,bool rejectWrites,Action<int>? onRead = null,int dataOffset=44) : Stream
     {
         private bool failed;
         public override bool CanRead => inner.CanRead; public override bool CanSeek => inner.CanSeek; public override bool CanWrite => inner.CanWrite;
@@ -412,9 +474,9 @@ internal sealed class FaultStorage : IAudioRecordingStorage
         public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer,CancellationToken token = default)
         {
             if (rejectWrites) throw new IOException("Injected persistent finalize failure.");
-            if (pcmLimit.HasValue && Position >= 44 && !failed)
+            if (pcmLimit.HasValue && Position >= dataOffset && !failed)
             {
-                int writable = (int)Math.Clamp(44+pcmLimit.Value-Position,0,buffer.Length);
+                int writable = (int)Math.Clamp(dataOffset+pcmLimit.Value-Position,0,buffer.Length);
                 if (writable > 0) await inner.WriteAsync(buffer[..writable],token);
                 if (writable < buffer.Length) { failed = true; throw new IOException("Injected disk full after partial write."); }
                 return;

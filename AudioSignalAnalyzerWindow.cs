@@ -18,7 +18,7 @@ internal sealed partial class AudioSignalAnalyzerWindow : Window
     private readonly TextBlock status = new() { TextWrapping = TextWrapping.Wrap, Margin = new(5) };
     private readonly TextBlock blockSummary = new() { TextWrapping = TextWrapping.Wrap, Margin = new(5) };
     private readonly ProgressBar progress = new() { Height = 6, Minimum = 0, Maximum = 1 };
-    private readonly Button open = new() { Content = "Open WAV / FLAC…", Margin = new(4), Padding = new(10, 4, 10, 4) };
+    private readonly Button open = new() { Content = "Open audio / recording…", ToolTip="WAV, FLAC, or a complete segmented recording via its .wav.json report", Margin = new(4), Padding = new(10, 4, 10, 4) };
     private readonly Button cancel = new() { Content = "Cancel analysis", Margin = new(4), IsEnabled = false };
     private readonly Button report = new() { Content = "Export report…", Margin = new(4), IsEnabled = false };
     private readonly AudioSignalChart waveform = new() { Kind = "Waveform", Height = 190 };
@@ -51,7 +51,8 @@ internal sealed partial class AudioSignalAnalyzerWindow : Window
         top.Children.Add(actions); top.Children.Add(heading); top.Children.Add(progress); top.Children.Add(status);
         top.Children.Add(waveform);
         var navigation = new WrapPanel(); top.Children.Add(navigation);
-        AddButton(navigation, "Fit", waveform.Fit); AddButton(navigation, "Zoom +", () => waveform.Zoom(.5)); AddButton(navigation, "Zoom −", () => waveform.Zoom(2));
+        waveform.AddFitButton(navigation,"Fit"); AddButton(navigation, "Zoom +", () => waveform.Zoom(.5)); AddButton(navigation, "Zoom −", () => waveform.Zoom(2));
+        waveform.AddScaleControls(navigation);
         AddButton(navigation, "Selected block", () => { if (records.SelectedItems.Count > 1) ShowSelectedRows(records); else if (records.SelectedItem is AudioBlockAnalysis b) waveform.ShowRange(b.StartSample, b.EndSample); });
         AddButton(navigation, "Selected record", () => { if (analysis != null && records.SelectedItem is AudioBlockAnalysis b) { var selectedRecords = records.SelectedItems.Cast<AudioBlockAnalysis>().Select(p => p.Record).ToHashSet(); var parts = analysis.Blocks.Where(p => selectedRecords.Contains(p.Record)).ToArray(); waveform.ShowRange(parts.Min(p => p.StartSample), parts.Max(p => p.EndSample)); } });
         navigation.Children.Add(deepAnalysis);
@@ -76,8 +77,9 @@ internal sealed partial class AudioSignalAnalyzerWindow : Window
         var pulsePanel = new DockPanel(); var pulseHeader = new StackPanel(); DockPanel.SetDock(pulseHeader, Dock.Top); pulsePanel.Children.Add(pulseHeader);
         pulseHeader.Children.Add(blockSummary);
         var pulseChoices = new WrapPanel(); pulseHeader.Children.Add(pulseChoices);
+        histogram.AddFitButton(pulseChoices,"Fit histogram",true);
         foreach (var check in pulseGroups) { pulseChoices.Children.Add(check); check.Checked += (_, _) => SelectDistribution(); check.Unchecked += (_, _) => SelectDistribution(); }
-        pulseHeader.Children.Add(referenceControl); referenceControl.Changed += SelectDistribution;
+        pulseHeader.Children.Add(referenceControl); referenceControl.Changed += SelectDistribution; referenceControl.VisibilityChanged += SelectDistribution;
         distributions.Height = 110; pulseHeader.Children.Add(distributions);
         var charts = new TabControl(); charts.Items.Add(new TabItem { Header = "Histogram", Content = histogram }); charts.Items.Add(new TabItem { Header = "High / Low scatter", Content = scatter }); charts.Items.Add(new TabItem { Header = "Drift", Content = drift }); pulsePanel.Children.Add(charts);
         AddTab("Pulse statistics", new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Content = pulsePanel }); AddTab("Channels / levels", channels); AddTab("Detector agreement", agreement); AddTab("Issues", issues); AddTab("Regions", regions);
@@ -144,7 +146,7 @@ internal sealed partial class AudioSignalAnalyzerWindow : Window
     { var button = new Button { Content = title, Margin = new(4), Padding = new(8, 3, 8, 3) }; button.Click += (_, _) => action(); panel.Children.Add(button); }
     private void ChooseSource()
     {
-        var dialog = new OpenFileDialog { Filter = "Audio captures (*.wav;*.flac)|*.wav;*.flac", CheckFileExists = true };
+        var dialog = new OpenFileDialog { Filter = "Audio captures / complete recordings (*.wav;*.flac;*.wav.json)|*.wav;*.flac;*.wav.json", CheckFileExists = true };
         if (dialog.ShowDialog(this) == true) _ = Analyze(dialog.FileName);
     }
     internal async Task Analyze(string path)
