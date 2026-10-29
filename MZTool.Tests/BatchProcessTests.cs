@@ -88,15 +88,6 @@ public sealed class BatchProcessTests : IDisposable
     }
 
     [Fact]
-    public void ApplyPatchUsesSameSourceFingerprintAndValidation()
-    {
-        var source = DskDocumentFactory.CreateFsmz(); var target = source.Clone(); target.Image.Tracks[4]!.Sectors[0].Data[0] ^= 1; target.MarkModified();
-        string input = Disk("patch.dsk", source); string patchPath = Path.Combine(root, "patch.json"); File.WriteAllText(patchPath, JsonSerializer.Serialize(DskPatchService.Export(source.Serialize(), target.Serialize())));
-        var preview = BatchProcessService.Preview([input], Options(BatchOperation.ApplyPatch) with { AuxiliaryPath = patchPath });
-        Assert.Equal("Will modify", preview.Rows.Single().Result); BatchProcessService.Execute(preview); Assert.Equal(target.Serialize(), File.ReadAllBytes(preview.Rows.Single().Output));
-    }
-
-    [Fact]
     public void BootInstallRejectsUnregisteredAndIncompatibleSource()
     {
         string input = Disk("target.dsk", DskDocumentFactory.CreateCpm(false)); string system = Disk("system.dsk", DskDocumentFactory.CreateCpm(true));

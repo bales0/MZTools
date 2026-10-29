@@ -9,7 +9,8 @@ using System.Threading;
 
 namespace MZTools;
 
-internal enum BatchOperation { Analyze, ConvertFormat, InstallBootSystem, ApplyPatch, ExtractAll, Defragment, SafeRepair, AnalyzeMzfCompatibility, TestIntegrity, CompressPrograms, DecompressPrograms }
+// Keep the remaining operation identifiers stable; 3 was the removed batch patch operation.
+internal enum BatchOperation { Analyze, ConvertFormat, InstallBootSystem, ExtractAll = 4, Defragment, SafeRepair, AnalyzeMzfCompatibility, TestIntegrity, CompressPrograms, DecompressPrograms }
 internal sealed record BatchOptions(BatchOperation Operation, string OutputDirectory, string TargetFormat = "HFEv3",
     string NamingTemplate = "{name}_processed{ext}", string? AuxiliaryPath = null, bool StrictPreflight = false,
     bool ReplaceOriginals = false, bool BackupOriginals = true, string? InputRoot = null,
@@ -98,11 +99,11 @@ internal static class BatchProcessService
         string[] paths = inputs.Select(Path.GetFullPath).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         var rows = new List<BatchRow>();
         byte[]? auxiliary = null; Exception? auxiliaryError = null;
-        if (options.Operation is BatchOperation.InstallBootSystem or BatchOperation.ApplyPatch)
+        if (options.Operation == BatchOperation.InstallBootSystem)
             try
             {
-                auxiliary = File.ReadAllBytes(options.AuxiliaryPath ?? throw new ArgumentException("Select a boot/system source or patch."));
-                if (options.Operation == BatchOperation.InstallBootSystem && Path.GetExtension(options.AuxiliaryPath).Equals(".json", StringComparison.OrdinalIgnoreCase))
+                auxiliary = File.ReadAllBytes(options.AuxiliaryPath ?? throw new ArgumentException("Select a boot/system source or boot profile."));
+                if (Path.GetExtension(options.AuxiliaryPath).Equals(".json", StringComparison.OrdinalIgnoreCase))
                 {
                     var profile = JsonSerializer.Deserialize<BootSystemUserProfile>(auxiliary) ?? throw new InvalidDataException("Invalid boot profile.");
                     auxiliary = UserProfileService.ResolveBootSource(profile).Serialize();
@@ -219,11 +220,6 @@ internal static class BatchProcessService
                         row.OldBootSystemFingerprint = BootSystemFingerprint(document);
                         row.NewBootSystemFingerprint = BootSystemFingerprint(document.Reopen(build.ImageBytes));
                         row.NewBootProfile = bootProfile.DisplayName;
-                        break;
-                    case BatchOperation.ApplyPatch:
-                        if (document == null) throw new InvalidDataException("Sector patch requires a DSK image.");
-                        var patch = DskPatchService.FromJson(Encoding.UTF8.GetString(auxiliary!));
-                        var patchPreview = DskPatchService.Preview(document, patch); row.ImageBytes = patchPreview.ResultBytes; row.DetailedReport = patchPreview.Report;
                         break;
                     case BatchOperation.ExtractAll:
                         if(physical!=null) {

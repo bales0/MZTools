@@ -27,10 +27,28 @@ namespace MZTools
             var keep = System.Linq.Enumerable.FirstOrDefault(System.Linq.Enumerable.OfType<ComboBoxItem>(algorithmComboBox.Items), item => Equals(item.Tag, "KeepSource"));
             if (target == CompressionTarget.NativeCom && keep == null)
             {
-                algorithmComboBox.Items.Insert(0, new ComboBoxItem { Content = "Keep source (no added compression)", Tag = "KeepSource" });
+                algorithmComboBox.Items.Insert(0, new ComboBoxItem { Content = "Keep source encoding (no recompression)", Tag = "KeepSource" });
                 algorithmComboBox.SelectedIndex = 0;
             }
             else if (target != CompressionTarget.NativeCom && keep != null) algorithmComboBox.Items.Remove(keep);
+            compressionGroupBox.Header = target == CompressionTarget.NativeCom ? "Output compression" : "Compression";
+            foreach (ComboBoxItem item in algorithmComboBox.Items)
+            {
+                string? tag = item.Tag?.ToString();
+                if (tag == "None")
+                {
+                    item.Content = target == CompressionTarget.NativeCom ? "Uncompressed (decode recognized ZX0/ZX7)" : "None";
+                    item.ToolTip = target == CompressionTarget.NativeCom
+                        ? "Decode recognized ZX0/ZX7 input and add no compression. Other or custom compression is not decoded." : null;
+                }
+                else if (tag == "Auto")
+                {
+                    item.Content = target == CompressionTarget.NativeCom ? "Auto (smallest valid COM)" : "Auto (smallest safe)";
+                    item.ToolTip = target == CompressionTarget.NativeCom
+                        ? "Choose the smallest successfully verified COM candidate, including the original source encoding." : null;
+                }
+            }
+            SetSourceCompression(null);
             bool isIpl = target == CompressionTarget.IplDsk;
             embeddedCheckBox.IsChecked = false;
             embeddedCheckBox.IsEnabled = !isIpl;
@@ -40,11 +58,25 @@ namespace MZTools
             targetHintTextBlock.Text = isIpl
                 ? "Direct IPL does not load the MZF header. ZX7 embedded loader and partial/skip compression are therefore unavailable."
                 : target == CompressionTarget.NativeCom
-                    ? "None unpacks recognized ZX0/ZX7 input. COM requires the complete program, so partial/skip compression is unavailable. Embedded ZX7 is checked against any executable header."
+                    ? "Keep preserves the source payload and loader. Uncompressed decodes recognized ZX0/ZX7 only. COM requires the complete program, so partial/skip compression is unavailable. Embedded ZX7 is checked against any executable header."
                     : target == CompressionTarget.QuickDisk ? "QuickDisk stores programs without the full MZF header. Embedded ZX7 and partial/skip compression are unavailable. Changes apply in memory; use Save to write the image." : string.Empty;
             targetHintTextBlock.Visibility = isIpl || target is CompressionTarget.NativeCom or CompressionTarget.QuickDisk ? Visibility.Visible : Visibility.Collapsed;
             updating = false;
             UpdateAvailability();
+        }
+
+        // Label changes deliberately preserve selection and do not raise OptionsChanged.
+        internal void SetSourceCompression(MzfCompressionInfo? info)
+        {
+            if (target != CompressionTarget.NativeCom) return;
+            foreach (ComboBoxItem item in algorithmComboBox.Items)
+                if (Equals(item.Tag, "KeepSource"))
+                {
+                    item.Content = info == null ? "Keep source encoding (no recompression)" : "Keep original compression";
+                    item.ToolTip = info == null
+                        ? "Preserve the loaded payload and loader without decoding or recompressing. Other or custom compression may be present."
+                        : "Preserve the recognized source compression, payload and loader without decoding or recompressing.";
+                }
         }
 
         internal void SetOptions(MzfCompressionOptions options)

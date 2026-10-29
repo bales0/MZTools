@@ -1,6 +1,6 @@
 # Batch media workflows
 
-Updated: 2026-10-10.
+Updated: 2026-10-28.
 
 The Batch Process dialog uses the existing individual disk, tape, audio,
 compression and QuickDisk services. A source is either a manually selected file
@@ -16,8 +16,12 @@ blocks the batch if any row fails.
 | Compress programs | Tape/audio/QD family | Full ZX0/ZX7 settings, verified restoration of the source program |
 | Decompress programs | Tape/audio/QD family | Recognized MZTools ZX0/ZX7 loaders; unknown/custom packed input is explained and skipped |
 | Extract all | DSK and all tape/audio/QD inputs | Per-input directory in the selected extraction format |
-| Install boot system, patch, defragment, safe repair | DSK | Existing disk services |
+| Install boot system, defragment, safe repair | DSK | Existing disk services |
 | MZF/M12 → COM compatibility analysis | MZF, M12, MZ0, MZ7 | Existing read-only compatibility report |
+
+DSK sector patches require an exact source SHA-256 and belong to the individual
+disk editor, not batch processing. The auxiliary input selects a boot DSK or boot
+profile JSON for Install boot system only.
 
 ## Conversion and compression
 

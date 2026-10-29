@@ -652,20 +652,6 @@ namespace MZTools
                 selectedAudioReportMode:AudioReportMode.Summary);
         }
 
-        private void RepairDskFile_Click(object sender, RoutedEventArgs e)
-        {
-            var picker = new OpenFileDialog { Filter = "Extended CPC DSK|*.dsk", Title = "Inspect / Repair DSK Container" };
-            if (picker.ShowDialog(this) != true) return;
-            try
-            {
-                var repair = new DskRepairDialog(this, File.ReadAllBytes(picker.FileName)); repair.ShowDialog();
-                if (repair.Result == null) return;
-                var candidate = DskDocument.Open(repair.Result, picker.FileName); candidate.ReplaceContents(repair.Result);
-                ShowDskDocument(candidate);
-            }
-            catch (Exception exception) { MessageBox.Show(this, exception.Message, "DSK Container Repair", MessageBoxButton.OK, MessageBoxImage.Error); }
-        }
-
         private void TapeViews_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (ReferenceEquals(e.Source, tapeViews) && quickDiskMapTab?.IsSelected == true)
@@ -812,7 +798,7 @@ namespace MZTools
             // DSK/HFE tools belong to the disk editor or the empty workspace.
             // QD containers (including MZQ/QDF) share the QuickDisk workspace.
             bool emptyWorkspace = document.Format == TapeDocumentFormat.None && dskEditorControl.Visibility != Visibility.Visible;
-            batchProcessMenu.Visibility = repairDskFileMenu.Visibility = emptyWorkspace ? Visibility.Visible : Visibility.Collapsed;
+            batchProcessMenu.Visibility = emptyWorkspace ? Visibility.Visible : Visibility.Collapsed;
             toolsButton.Visibility = Visibility.Visible;
             qdVisualAnalysisMenu.Visibility=document.IsQuickDisk?Visibility.Visible:Visibility.Collapsed;
             analyzeAudioMenu.Visibility=document.IsQuickDisk?Visibility.Collapsed:Visibility.Visible;
@@ -1317,16 +1303,15 @@ namespace MZTools
 
         private void button_Click_Open(object sender, RoutedEventArgs e)
         {
-            if (!TryLeaveDskMode())
-            {
-                return;
-            }
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Filter = GetOpenFilter();
 
             if (openFileDialog.ShowDialog() == true)
             {
                 string filePath = openFileDialog.FileName;
+                // DSK replacement is confirmed only after inspection/repair succeeds.
+                // Cancel must leave the active disk and its unsaved changes visible.
+                if (!System.IO.Path.GetExtension(filePath).Equals(".dsk", StringComparison.OrdinalIgnoreCase) && !TryLeaveDskMode()) return;
                 AudioFileImportResult? audioResult = null;
                 if (!AddFile(
                     filePath,
@@ -2419,8 +2404,9 @@ namespace MZTools
                 }
                 else if (fileExtension == ".dsk")
                 {
-                    DskDocument dskDocument = DskDocument.Open(filePath);
-                    if (dskDocument.FileSystem.Type != DskFileSystemType.BootOnly)
+                    DskDocument? dskDocument = OpenDskWithRepair(filePath);
+                    if (dskDocument == null) return false;
+                    if (dskDocument.RequiresRepairSaveAs || dskDocument.FileSystem.Type != DskFileSystemType.BootOnly)
                     {
                         ShowDskDocument(dskDocument);
                         return false;
@@ -2428,6 +2414,7 @@ namespace MZTools
                     try
                     {
                         Mz800IplDskReadResult result = Mz800IplDskReader.ReadFile(filePath);
+                        if (!TryLeaveDskMode()) return false;
                         format = TapeDocumentFormat.Mzf;
                         loadedIplDskInfo = result.DiskInfo;
                         recordsToAdd.Add(result.Record);
@@ -2934,6 +2921,21 @@ namespace MZTools
                 "New DSK",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning) == MessageBoxResult.Yes;
+        }
+
+        private DskDocument? OpenDskWithRepair(string path)
+        {
+            var inspection = DskOpenCoordinator.Inspect(File.ReadAllBytes(path), path);
+            if (!inspection.NeedsRepairPrompt)
+                return inspection.Original ?? throw new InvalidDataException(inspection.Diagnostic);
+            DskDocument? repaired = null;
+            var dialog = new DskRepairDialog(this, inspection.SourceBytes, inspection.Plans, plan =>
+            {
+                repaired = inspection.Apply(plan, File.ReadAllBytes(path));
+                return repaired.Serialize();
+            }, canOpenOriginal: inspection.Original != null, diagnostic: inspection.Diagnostic);
+            dialog.ShowDialog();
+            return dialog.Result != null ? repaired : dialog.OpenOriginalRequested ? inspection.Original : null;
         }
 
         private void ShowDskDocument(DskDocument dsk, bool tapeReplacementConfirmed = false)

@@ -25,7 +25,6 @@
                         <MenuItem x:Name="qdVisualAnalysisMenu" Header="Visual analysis…" Click="QuickDiskVisual_Click" Visibility="Collapsed"/>
                         <MenuItem x:Name="analyzeAudioMenu" Header="Analyze Audio (WAV / FLAC)..." Click="AnalyzeAudio_Click"/>
                         <MenuItem Header="Record Audio / Live Tape Analysis..." Click="RecordAudio_Click"/>
-                        <MenuItem x:Name="repairDskFileMenu" Header="Inspect / Repair DSK Container..." Click="RepairDskFile_Click"/>
                         <MenuItem x:Name="mzfCpmMenu" Header="MZF/M12 → COM..." Click="NativeCom_Click"/>
                     </ContextMenu></Button.ContextMenu>
                 </Button>

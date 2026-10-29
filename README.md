@@ -365,18 +365,23 @@ and must be reattached after closing/reopening. No implicit formatting occurs.
 
 **Tools → Visual analysis…** displays physical track/sector metadata in the unified read-only inspector.
 
-**Repair DSK Container...** classifies deterministic, ambiguous and unavailable
-repairs. Conservative tsize/track-count recovery requires complete canonical
-aligned track boundaries, no sparse tracks and a known final-track boundary.
-Trailing bytes can only be truncated through an explicit destructive confirmation;
-they are never absorbed into track padding as a repair. With no open document,
-choose an unparseable DSK for repair preview; Apply opens the candidate unsaved.
-The main **Tools → Inspect / Repair DSK Container...** command also opens a
-repair preview directly from a file, including containers that cannot be opened normally.
-C/H, unknown IDs, FDC errors, missing sectors and ownership conflicts are never
-automatically repaired. Ambiguous cases offer no safe repair.
+**Open...** offers a container repair only when a deterministic header repair is
+available. Healthy DSK images and trailing bytes open unchanged without a repair
+prompt. Conservative tsize/track-count recovery requires complete canonical
+aligned track boundaries, no sparse tracks and a known final-track boundary;
+missing tracks and ambiguous physical metadata prevent a safe Open repair.
+Preview and explicit Apply open an unsaved repaired copy. Save As to a different
+path is required, and the original source remains protected against overwriting,
+including file-link aliases. If its identity cannot be verified, saving is blocked.
 
-**Repair Filesystem...** uses explicit repair actions with post-validation:
+**Disk → Repair Container…** inspects only the current DSK document and is enabled
+only when an applicable proposal exists. It is unavailable for HFE images and IPL
+editing. Optional trailing-data removal is available here, with a separate
+destructive confirmation; trailing bytes are never silently absorbed or discarded.
+C/H, unknown IDs, FDC errors, missing sectors and filesystem ownership conflicts
+are never automatically repaired.
+
+**Filesystem → Guided Repair...** uses separate explicit repair actions with post-validation:
 FSMZ adds missing directory-owned bitmap bits and rebuilds used count while
 retaining orphan allocations; native MRS reconciles block counts only with
 unambiguous FAT ownership; P-CP/M80 can relocate the existing unique PCPM.SYS
@@ -463,11 +468,13 @@ leave a partially written tape/sidecar pair. See
 [batch media workflow details](specification/BATCH_MEDIA_WORKFLOWS.md).
 
 Operations reuse individual services: Analyze/catalog, Convert Format (including
-HFE), Install/Replace Boot/System, Apply Patch, Extract All, Defragment and Safe
+HFE), Install/Replace Boot/System, Extract All, Defragment and Safe
 Repair. Boot installation requires a registered verified source and exact layout
 compatibility; native P-CP/M80 uses its file-based IPL + PCPM.SYS installer.
 There is no generic physical-track copy for native P-CP/M80. Safe batch repair
 only uses deterministic container or filesystem actions, never trailing truncate.
+DSK sector patches are applied to an individual image in the disk editor; they
+are not offered as a batch operation because they require an exact source hash.
 
 Default execution uses per-file transactions and separate outputs. Strict preflight
 blocks all execution when any input fails. Source fingerprints are checked again

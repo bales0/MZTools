@@ -17,7 +17,7 @@ internal static class BatchMediaPolicy
         BatchOperation.CompressPrograms or BatchOperation.DecompressPrograms => TapeExtensions,
         BatchOperation.AnalyzeMzfCompatibility => ".mzf,.m12,.mz0,.mz7",
         BatchOperation.ExtractAll => ".dsk,.hfe," + TapeExtensions,
-        BatchOperation.InstallBootSystem or BatchOperation.ApplyPatch or BatchOperation.Defragment or BatchOperation.SafeRepair => ".dsk",
+        BatchOperation.InstallBootSystem or BatchOperation.Defragment or BatchOperation.SafeRepair => ".dsk",
         _ => ""
     };
     internal static bool Supports(BatchOperation operation, string path, string? target = null) => Extensions(operation, target).Split(',').Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase);
@@ -32,7 +32,6 @@ internal static class BatchMediaPolicy
         BatchOperation.DecompressPrograms => "Decompress programs (recognized ZX0 / ZX7)",
         BatchOperation.AnalyzeMzfCompatibility => "Analyze MZF/M12 → COM compatibility",
         BatchOperation.InstallBootSystem => "Install boot system (DSK)",
-        BatchOperation.ApplyPatch => "Apply patch (DSK)",
         BatchOperation.ExtractAll => "Extract all files / programs",
         BatchOperation.Defragment => "Defragment (DSK)",
         BatchOperation.SafeRepair => "Safe repair (DSK)",

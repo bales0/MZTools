@@ -48,7 +48,7 @@ internal sealed class DskConversionDialog : Window
             if (MessageBox.Show(this, "Accept the generated timing and metadata losses listed in the preview?", "Confirm DSK → HFE conversion", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
             var save = new SaveFileDialog { Title="Export converted image", Filter = "HFE|*.hfe", FileName = "converted.hfe" };
             if (save.ShowDialog(this) != true) return;
-            try { MediaConversionService.WriteVerified(save.FileName, physicalResult.Output, bytes => HfeImage.Parse(bytes), source.FilePath); Close(); }
+            try { using var protection = source.ProtectRepairDestination(save.FileName); MediaConversionService.WriteVerified(save.FileName, physicalResult.Output, bytes => HfeImage.Parse(bytes), source.FilePath); Close(); }
             catch (Exception exception) { MessageBox.Show(this, exception.Message, Title, MessageBoxButton.OK, MessageBoxImage.Error); }
         };
         profiles.SelectedIndex = 0;

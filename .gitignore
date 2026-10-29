@@ -33,6 +33,11 @@ MZTool.Tests/*
 !MZTool.Tests/PhaseEWorkflowTests.cs
 !MZTool.Tests/WorkspaceDragTransferTests.cs
 !MZTool.Tests/NativeComTests.cs
+!MZTool.Tests/NativeComCompressionData.cs
+!MZTool.Tests/NativeComCompressionUiTests.cs
+!MZTool.Tests/ReferenceGolden/
+MZTool.Tests/ReferenceGolden/*
+!MZTool.Tests/ReferenceGolden/native-com-compression.json
 !MZTool.Tests/CompressionWorkflowTests.cs
 !MZTool.Tests/AudioSignalAnalysisTests.cs
 !MZTool.Tests/AudioRegionRecoveryTests.cs

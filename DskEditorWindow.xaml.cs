@@ -269,6 +269,7 @@ namespace MZTools
 
         private void RefreshView()
         {
+            UpdateContainerRepairCommand();
             dskMoveButtons.Visibility = multiIplEditorMode ? Visibility.Visible : Visibility.Collapsed;
             UpdateFilePropertiesCommand();
             UpdateFileToolbar();
@@ -285,6 +286,7 @@ namespace MZTools
             cpmLayoutMenu.IsEnabled = document != null && !IplEditorMode && document.FileSystem.Type is DskFileSystemType.Raw or DskFileSystemType.Cpm or DskFileSystemType.BootOnly;
             defragmentMenu.IsEnabled = document != null && !IplEditorMode && !document.IsReadOnly && document.FileSystem is FsmzFileSystem or CpmFileSystem or MrsFileSystem;
             filesystemRepairMenu.IsEnabled = document?.FileSystem is FsmzFileSystem or MrsFileSystem or CpmFileSystem && !IplEditorMode;
+            filesystemRepairMenu.ToolTip = "Repair supported FSMZ, MRS or CP/M filesystem metadata. DSK container headers are handled separately by Disk → Repair Container.";
             bootstrapMenu.IsEnabled = document != null && !IplEditorMode && document.Image.Tracks.Count > 1;
             compareDiskMenu.IsEnabled = document != null && (!IplEditorMode || multiIplLayoutValid);
             structureInspectorMenu.IsEnabled = DskCapabilityService.CanInspectStructure(document) && !IplEditorMode;
@@ -319,6 +321,8 @@ namespace MZTools
             infoText.Text += "\n" + DskBootInfo.Inspect(document).Summary;
             if (document.LastSavedSha256 is { } savedHash) infoText.Text += "\nLast saved output SHA-256: " + savedHash;
             warningText.Text = document.FileSystem.Warnings.Count == 0 ? string.Empty : string.Join("  ", document.FileSystem.Warnings);
+            if (document.RequiresRepairSaveAs)
+                warningText.Text += "\nContainer repair applied in memory. Original .dsk unchanged. Save As to a different path is required.";
             bool writable = !document.IsReadOnly;
             bool rawMode = document.FileSystem is RawDskFileSystem;
             MultiGameIplFileSystem? multiIpl = document.FileSystem as MultiGameIplFileSystem;
@@ -328,6 +332,7 @@ namespace MZTools
             dskMoveButtons.IsEnabled = false;
             dskSaveButton.IsEnabled = document.IsModified && document.FilePath != null;
             dskSaveButton.ToolTip = document.FilePath == null ? "Use Save As to choose the active file." : "Save current document: " + document.FilePath;
+            if (document.RequiresRepairSaveAs) dskSaveButton.ToolTip = "Save As is required. The original repair source cannot be overwritten.";
             dskSaveAsButton.IsEnabled = true;
             multiIplProgressBar.Visibility = Visibility.Collapsed;
             DocumentStateChanged?.Invoke(this, EventArgs.Empty);
@@ -804,6 +809,7 @@ namespace MZTools
 
         private void DiskMenu_Click(object sender, RoutedEventArgs e)
         {
+            if (ReferenceEquals(sender, diskMenuButton)) UpdateContainerRepairCommand();
             if (sender is Button button && button.ContextMenu != null)
             {
                 button.ContextMenu.PlacementTarget = button;
@@ -859,32 +865,43 @@ namespace MZTools
 
         private void BatchProcess_Click(object sender, RoutedEventArgs e) => new BatchProcessDialog(OwnerWindow).ShowDialog();
 
-        private void RepairContainer_Click(object sender, RoutedEventArgs e)
+        private void UpdateContainerRepairCommand()
         {
-            if (IplEditorMode) { ShowError("Close the IPL editor before repairing a container."); return; }
+            containerRepairMenu.IsEnabled = false;
+            if (document == null) { containerRepairMenu.ToolTip = "Open a DSK image to inspect available container repairs."; return; }
+            if (document.SourceHfe != null) { containerRepairMenu.ToolTip = "DSK container repair does not apply to HFE physical images."; return; }
+            if (IplEditorMode) { containerRepairMenu.ToolTip = "Finish the IPL editor before inspecting DSK container repairs."; return; }
             try
             {
-                byte[] source;
-                string? path = document?.FilePath;
-                if (document != null) source = document.Serialize();
-                else
+                var inspection = DskOpenCoordinator.Inspect(document.Serialize());
+                containerRepairMenu.IsEnabled = inspection.ManualPlans.Count > 0;
+                containerRepairMenu.ToolTip = inspection.ManualPlans.Count == 0 ? inspection.Diagnostic
+                    : inspection.ManualPlans.All(p => p.RequiresTruncateConfirmation)
+                        ? "Optional removal of trailing data. Preview and separate destructive confirmation are required; save to a new path."
+                        : "Preview applicable DSK header repairs for this document. Apply changes memory only; Save As to a different path is required.";
+            }
+            catch (Exception e) when (e is InvalidDataException or ArgumentException or OverflowException)
+            { containerRepairMenu.ToolTip = "Container repairs are unavailable: " + e.Message; }
+        }
+
+        private void RepairContainer_Click(object sender, RoutedEventArgs e)
+        {
+            if (document == null || document.SourceHfe != null || IplEditorMode) return;
+            try
+            {
+                var current = document;
+                byte[] source = current.Serialize();
+                var inspection = DskOpenCoordinator.Inspect(source);
+                if (inspection.ManualPlans.Count == 0) { UpdateContainerRepairCommand(); return; }
+                var dialog = new DskRepairDialog(OwnerWindow, source, inspection.ManualPlans, applyRepair: plan =>
                 {
-                    var picker = new OpenFileDialog { Filter = "Extended CPC DSK|*.dsk", Title = "Select a DSK to inspect for repair" };
-                    if (picker.ShowDialog(OwnerWindow) != true) return;
-                    path = picker.FileName; source = File.ReadAllBytes(path);
-                }
-                var dialog = new DskRepairDialog(OwnerWindow, source); dialog.ShowDialog();
+                    if (!ReferenceEquals(document, current) || !current.Serialize().AsSpan().SequenceEqual(source))
+                        throw new InvalidOperationException("The document changed since preview. Preview again.");
+                    current.ApplyContainerRepair(plan, truncateConfirmed: plan.RequiresTruncateConfirmation);
+                    return current.Serialize();
+                }, diagnostic: inspection.Diagnostic); dialog.ShowDialog();
                 if (dialog.Result == null) return;
-                if (document != null)
-                {
-                    if (!document.Serialize().AsSpan().SequenceEqual(source)) throw new InvalidOperationException("The document changed since preview.");
-                    document.ReplaceContents(dialog.Result); LoadDocument(document);
-                }
-                else
-                {
-                    var repaired = DskDocument.Open(dialog.Result, path);
-                    repaired.ReplaceContents(dialog.Result); LoadDocument(repaired);
-                }
+                LoadDocument(current);
             }
             catch (Exception exception) { ShowError(exception.Message); }
         }
@@ -938,6 +955,7 @@ namespace MZTools
             { ShowError("Conversion must be saved under a different path; the source image cannot be overwritten."); return; }
             try
             {
+                using var protection = document.ProtectRepairDestination(save.FileName);
                 DskFileTransferService.SaveConvertedImage(result, save.FileName, document.FilePath);
                 MessageBox.Show(OwnerWindow, $"Converted image saved to:\n{save.FileName}\n\nThe original document remains open and unchanged.", "Convert Format", MessageBoxButton.OK, MessageBoxImage.Information);
             }
@@ -1802,7 +1820,7 @@ namespace MZTools
         {
             if (IplEditorMode && !multiIplLayoutValid) { ShowError("Wait for a valid IPL layout before saving."); return; }
             if (document == null) { ShowError("Add at least one program before saving the image."); return; }
-            if (document.FilePath == null) { SaveAs_Click(sender, e); return; }
+            if (document.FilePath == null || document.RequiresRepairSaveAs) { SaveAs_Click(sender, e); return; }
             try { CanonicalizeMultiIplForSave(); document.Save(); multiIplDraftModified = false; RefreshView(); } catch (Exception exception) { ShowError(exception.Message); }
         }
 
@@ -1811,6 +1829,8 @@ namespace MZTools
             if (IplEditorMode && !multiIplLayoutValid) { ShowError("Wait for a valid IPL layout before saving."); return; }
             if (document == null) { ShowError("Add at least one program before saving the image."); return; }
             var dialog = new SaveFileDialog { Title="Save As — switch active disk image", Filter = document.SourceHfe==null?"Extended CPC DSK|*.dsk":"HFE physical image|*.hfe", FileName = Path.GetFileName(document.FilePath) ?? (document.SourceHfe==null?"disk.dsk":"disk.hfe"), InitialDirectory=document.FilePath==null?"":Path.GetDirectoryName(Path.GetFullPath(document.FilePath)) };
+            if (document.RequiresRepairSaveAs)
+                dialog.FileName = Path.GetFileNameWithoutExtension(document.FilePath ?? "disk.dsk") + "_repaired.dsk";
             if (dialog.ShowDialog(OwnerWindow) != true) return;
             try { CanonicalizeMultiIplForSave(); document.Save(dialog.FileName); multiIplDraftModified = false; RefreshView(); } catch (Exception exception) { ShowError(exception.Message); }
         }

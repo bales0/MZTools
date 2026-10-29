@@ -36,6 +36,10 @@ internal sealed class DskOperationPreview
     }
     internal string Report { get; }
     internal byte[] Result => (byte[])result.Clone();
+    internal void VerifySource(byte[] bytes)
+    {
+        if (!bytes.AsSpan().SequenceEqual(original)) throw new InvalidOperationException("The source changed after preview. Preview again.");
+    }
     internal void Apply(DskDocument document)
     {
         if (!document.Serialize().AsSpan().SequenceEqual(original)) throw new InvalidOperationException("The document changed after preview. Preview again.");

@@ -32,6 +32,8 @@ internal sealed class NativeComDialog : Window
         options.Children.Add(open); open.HorizontalAlignment = HorizontalAlignment.Left;
         var sourceInfo = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(4) };
         options.Children.Add(sourceInfo);
+        var sourceCompression = new TextBlock { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(4) };
+        options.Children.Add(sourceCompression);
         var row = new WrapPanel();
         row.Children.Add(new TextBlock { Text = "CP/M:", VerticalAlignment = VerticalAlignment.Center }); row.Children.Add(profiles);
         row.Children.Add(new TextBlock { Text = "Native state:", VerticalAlignment = VerticalAlignment.Center }); row.Children.Add(modes);
@@ -96,6 +98,9 @@ internal sealed class NativeComDialog : Window
             try
             {
                 sourceInfo.Text = image == null ? "No program selected." : $"{image.Name} · file type {image.Type:X2} ({(image.Type == 0x4D ? "custom header loader" : SharpMzEncoding.ConvertFtypeToDescription(image.Type).Trim())})";
+                sourceCompression.Text = NativeComSourceCompression.Text(image);
+                sourceCompression.ToolTip = NativeComSourceCompression.ToolTip(image);
+                compression.SetSourceCompression(image?.Compression);
                 if (image == null) { report.Text = inputError ?? "No input."; Unavailable(inputError == null ? "Open an MZF/M12 file or select a program in the tape list." : "This file could not be read as an MZF/M12 program. Check the file format. See Technical details for the read error."); return; }
                 string? sourceReason = NativeComFeedback.SourceProblem(image, knownMultipart);
                 if (sourceReason != null) { report.Text = sourceReason; Unavailable(sourceReason); return; }

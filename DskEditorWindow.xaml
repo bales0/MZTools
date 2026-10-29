@@ -20,7 +20,7 @@
                     <MenuItem x:Name="normalizeContainerMenu" Header="Normalize Container..." Click="NormalizeContainer_Click"/>
                     <MenuItem x:Name="compareDiskMenu" Header="Compare with..." IsEnabled="False" Click="CompareDisk_Click"/>
                     <MenuItem Header="Batch Process..." Click="BatchProcess_Click"/>
-                    <MenuItem Header="Inspect / Repair DSK Container..." Click="RepairContainer_Click"/>
+                    <MenuItem x:Name="containerRepairMenu" Header="Repair Container…" IsEnabled="False" ToolTip="Open a DSK image to inspect available container repairs." ToolTipService.ShowOnDisabled="True" Click="RepairContainer_Click"/>
                 </ContextMenu></Button.ContextMenu>
             </Button>
             <Button Content="Filesystem &#x25BE;" Style="{StaticResource TopToolbarButton}" Click="DiskMenu_Click">
@@ -30,7 +30,7 @@
                     <MenuItem x:Name="structureInspectorMenu" Header="Structure Inspector..." IsEnabled="False" Click="StructureInspector_Click"/>
                     <MenuItem x:Name="cpmLayoutMenu" Header="Attach / Edit CP/M Layout..." IsEnabled="False" Click="CpmLayout_Click"/>
                     <MenuItem x:Name="defragmentMenu" Header="Defragment..." IsEnabled="False" Click="Defragment_Click"/>
-                    <MenuItem x:Name="filesystemRepairMenu" Header="Guided Repair..." IsEnabled="False" Click="RepairFilesystem_Click"/>
+                    <MenuItem x:Name="filesystemRepairMenu" Header="Guided Repair..." IsEnabled="False" ToolTip="Repair filesystem metadata separately from the DSK container." ToolTipService.ShowOnDisabled="True" Click="RepairFilesystem_Click"/>
                 </ContextMenu></Button.ContextMenu>
             </Button>
             <Button Content="Boot / System &#x25BE;" Style="{StaticResource TopToolbarButton}" Click="DiskMenu_Click">

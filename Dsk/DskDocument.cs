@@ -59,6 +59,9 @@ namespace MZTools
         private DskImage? hfeBaseline;
         private byte[]? preparedHfe;
         private string? preparedProjectionHash;
+        private DskRepairSaveProtection? repairProtection;
+        internal bool RequiresRepairSaveAs { get; private set; }
+        internal string? RepairOriginalPath => repairProtection?.OriginalPath;
         internal HfeImage? SourceHfe {get;private set;}
         internal string ContainerName=>SourceHfe?.Variant??"DSK";
         internal CpmDpb? AttachedDpb => attachedDpb;
@@ -122,6 +125,8 @@ namespace MZTools
         {
             var copy = Open(bytes, FilePath);
             copy.SourceHfe=SourceHfe;copy.hfeBaseline=hfeBaseline;
+            copy.repairProtection = repairProtection; copy.RequiresRepairSaveAs = RequiresRepairSaveAs;
+            if (RequiresRepairSaveAs) copy.IsModified = true;
             if(SourceHfe!=null && !bytes.AsSpan().SequenceEqual(originalBytes)) copy.IsModified=true;
             if (attachedDpb != null) copy.AttachCpmLayout(attachedDpb);
             return copy;
@@ -162,9 +167,31 @@ namespace MZTools
             IsModified = true;
         }
 
+        internal void RequireRepairSaveAs(DskRepairSaveProtection protection)
+        {
+            repairProtection = protection; RequiresRepairSaveAs = true; IsModified = true;
+        }
+
+        internal void ApplyContainerRepair(DskRepairPlan plan, bool truncateConfirmed = false)
+        {
+            if (SourceHfe != null) throw new InvalidOperationException("DSK container repair is not available for HFE images.");
+            if (plan.RequiresTruncateConfirmation && !truncateConfirmed)
+                throw new InvalidOperationException("Trailing data removal requires separate destructive truncate confirmation.");
+            if (plan.Preview == null) throw new InvalidOperationException("This plan has no applicable repair.");
+            plan.Preview.VerifySource(Serialize());
+            var protection = DskRepairSaveProtection.Capture(FilePath, previous: repairProtection);
+            ReplaceContents(plan.Preview.Result);
+            RequireRepairSaveAs(protection);
+        }
+
+        internal IDisposable? ProtectRepairDestination(string path) => repairProtection?.Acquire(path);
+
         internal void Save(string? path = null)
         {
+            if (RequiresRepairSaveAs && path == null)
+                throw new InvalidOperationException("Container repair is applied in memory. Save As to a different path is required; the original image is protected.");
             string destination = Path.GetFullPath(path ?? FilePath ?? throw new InvalidOperationException("The DSK document has no output path."));
+            using var protection = ProtectRepairDestination(destination);
             if(SourceHfe!=null && !Path.GetExtension(destination).Equals(".hfe",StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("Save this physical document as .hfe. Use Convert Format for DSK output.");
             byte[] savedBytes = SerializeContainer();
             MediaConversionService.WriteVerified(destination, savedBytes, stored =>
@@ -178,6 +205,7 @@ namespace MZTools
             FilePath = destination;
             LastSavedSha256 = ImageVerificationService.Hash(savedBytes);
             IsModified = false;
+            RequiresRepairSaveAs = false;
         }
         // Explicit formatting replaces every track; it does not pretend to preserve a capture.
         internal DskDocument Reformatted(DskDocument replacement)
@@ -187,6 +215,7 @@ namespace MZTools
                 replacement.SourceHfe=HfeImage.Parse(physical.Serialize(SourceHfe.Version));
                 replacement.hfeBaseline=DskImage.Parse(replacement.Serialize());
             }
+            replacement.repairProtection = repairProtection; replacement.RequiresRepairSaveAs = RequiresRepairSaveAs;
             replacement.FilePath=FilePath;replacement.IsModified=true;return replacement;
         }
     }

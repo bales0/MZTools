@@ -95,7 +95,7 @@ internal sealed class BatchProcessDialog : Window
         var sampleRate = new ComboBox { Name = "AudioSampleRate", ItemsSource = new[] { 44100, 22050 }, SelectedIndex = 0 }; Row("WAV / FLAC rate (Hz)", sampleRate);
         var heuristic = new CheckBox { Name = "UseHeuristicAnalysis", Content = "Use heuristic analysis (WAV / FLAC)", ToolTip = "Unchecked: standard decoder. Checked: heuristic timing/channel analysis and checksum-based recovery. Applies to audio inputs only." }; controls.Children.Add(heuristic);
         var chooseAuxiliary = new Button { Content = "Browse..." };
-        var auxiliary = Field("Boot source / patch", "", chooseAuxiliary);
+        var auxiliary = Field("Boot source / profile", "", chooseAuxiliary);
         var chooseOutput = new Button { Content = "Browse..." };
         var output = Field("Output folder", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "MZTools Batch"), chooseOutput);
         var naming = Field("Naming template", "{name}_processed{ext}");
@@ -161,7 +161,7 @@ internal sealed class BatchProcessDialog : Window
             compressionHint.Visibility = CurrentOperation() is BatchOperation.CompressPrograms or BatchOperation.DecompressPrograms ? Visibility.Visible : Visibility.Collapsed;
             sampleRate.IsEnabled = target.IsEnabled && target.SelectedItem is "WAV" or "FLAC" || extractFormat.IsEnabled && extractFormat.SelectedItem is "WAV" or "FLAC";
             heuristic.IsEnabled = CurrentExtensions().Contains(".wav", StringComparison.Ordinal);
-            bool usesAuxiliary = CurrentOperation() is BatchOperation.InstallBootSystem or BatchOperation.ApplyPatch;
+            bool usesAuxiliary = CurrentOperation() == BatchOperation.InstallBootSystem;
             auxiliary.IsEnabled = usesAuxiliary; chooseAuxiliary.IsEnabled = usesAuxiliary;
             backup.IsEnabled = replace.IsChecked == true;
             bool analysisOnly = BatchMediaPolicy.ReadOnly(CurrentOperation());
@@ -202,7 +202,7 @@ internal sealed class BatchProcessDialog : Window
         clearFiles.Click += (_, _) => { if (running != null) return; selected.Clear(); folder.Clear(); filesMode.IsChecked = true; Invalidate(); };
         chooseFolder.Click += (_, _) => { var picker = new OpenFolderDialog(); if (picker.ShowDialog(this) == true) folder.Text = picker.FolderName; };
         chooseOutput.Click += (_, _) => { var picker = new OpenFolderDialog(); if (picker.ShowDialog(this) == true) output.Text = picker.FolderName; };
-        chooseAuxiliary.Click += (_, _) => { var picker = new OpenFileDialog { Filter = "Boot DSK / boot profile / JSON patch|*.dsk;*.json" }; if (picker.ShowDialog(this) == true) auxiliary.Text = picker.FileName; };
+        chooseAuxiliary.Click += (_, _) => { var picker = new OpenFileDialog { Filter = "Boot DSK / boot profile|*.dsk;*.json" }; if (picker.ShowDialog(this) == true) auxiliary.Text = picker.FileName; };
         async Task Work(Func<CancellationToken, Task> work)
         {
             if (running != null) return;
