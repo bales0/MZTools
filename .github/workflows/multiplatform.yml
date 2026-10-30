@@ -1,0 +1,78 @@
+name: Multiplatform desktop validation
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2025
+            rid: win-x64
+          - os: windows-11-arm
+            rid: win-arm64
+          - os: ubuntu-24.04
+            rid: linux-x64
+          - os: ubuntu-24.04-arm
+            rid: linux-arm64
+          - os: macos-15-intel
+            rid: osx-x64
+          - os: macos-15
+            rid: osx-arm64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    env:
+      MZTOOLS_COMPLETION_OUTPUT: ${{ github.workspace }}/TestResults/ci/ui
+      MZTOOLS_F6_OUTPUT: ${{ github.workspace }}/TestResults/ci/audio
+      MZTOOLS_NATIVE_NO_PICKER: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.303'
+      - name: Linux native runtime and test toolchain
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libportaudio2 libsndfile1 libx11-6 libice6 libsm6 libfontconfig1 libfreetype6 libgl1 libegl1 libxrandr2 libxi6 libxcursor1 libxinerama1 build-essential xvfb
+      - name: macOS native runtime
+        if: runner.os == 'macOS'
+        run: brew install portaudio libsndfile
+      - name: Portable Core
+        run: dotnet test tests/MZTools.Core.Tests/MZTools.Core.Tests.csproj --logger "trx;LogFileName=core.trx" --results-directory TestResults/ci
+      - name: Capture
+        run: dotnet test MZTools.Capture.Tests/MZTools.Capture.Tests.csproj --logger "trx;LogFileName=capture.trx" --results-directory TestResults/ci
+      - name: Desktop unit and real Skia headless rendering
+        run: dotnet test tests/MZTools.Desktop.Tests/MZTools.Desktop.Tests.csproj --logger "trx;LogFileName=desktop.trx" --results-directory TestResults/ci
+      - name: Windows adapters and retained WPF regression
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          dotnet test MZTools.Capture.Windows.Tests/MZTools.Capture.Windows.Tests.csproj --logger "trx;LogFileName=capture-windows.trx" --results-directory TestResults/ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ("${{ matrix.rid }}" -eq "win-x64") {
+            dotnet test MZTool.Tests/MZTools.Tests.csproj --logger "trx;LogFileName=legacy.trx" --results-directory TestResults/ci
+          }
+      - name: Native window workflows on Linux
+        if: runner.os == 'Linux'
+        run: xvfb-run -a dotnet run --project tests/MZTools.Desktop.Smoke/MZTools.Desktop.Smoke.csproj -- TestResults/ci/native
+      - name: Native window workflows on Windows/macOS
+        if: runner.os != 'Linux'
+        run: dotnet run --project tests/MZTools.Desktop.Smoke/MZTools.Desktop.Smoke.csproj -- TestResults/ci/native
+      - name: Token consistency
+        run: python docs/ui-design-system/tools/build_avalonia_tokens.py --check
+      - name: Restore RID assets and build self-contained archive
+        run: python tools/package_desktop.py --rid ${{ matrix.rid }} --output artifacts
+      - name: Archive measured evidence and developer distribution
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mztools-${{ matrix.rid }}
+          path: |
+            TestResults/ci
+            artifacts/*.zip
+            artifacts/*.tar.gz
+            artifacts/*.json
+          if-no-files-found: error

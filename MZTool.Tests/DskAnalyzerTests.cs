@@ -242,6 +242,8 @@ public class DskAnalyzerTests
                 var assembly = typeof(DskEditorControl).Assembly;
                 var appType = assembly.GetType("MZTools.App")!;
                 object app = Activator.CreateInstance(appType)!;
+                // Other STA smoke tests may close their last window while this shared Application exists.
+                ((System.Windows.Application)app).ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown;
                 appType.GetMethod("InitializeComponent")!.Invoke(app, null);
                 var control = Activator.CreateInstance(typeof(DskEditorControl))!;
                 var type = control.GetType();

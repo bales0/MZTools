@@ -1,0 +1,69 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style Selector="Window">
+    <Setter Property="Background" Value="{DynamicResource F2.canvas}" />
+    <Setter Property="Foreground" Value="{DynamicResource F2.text}" />
+    <Setter Property="FontSize" Value="{DynamicResource F2.typography.body}" />
+  </Style>
+  <Style Selector="TextBlock.muted"><Setter Property="Foreground" Value="{DynamicResource F2.muted}" /></Style>
+  <Style Selector="TextBlock.heading">
+    <Setter Property="FontSize" Value="{DynamicResource F2.typography.heading}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.section">
+    <Setter Property="FontSize" Value="{DynamicResource F2.typography.section}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Button">
+    <Setter Property="MinHeight" Value="{DynamicResource F2.components.controlHeight}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource F2.controlRadius}" />
+    <Setter Property="Background" Value="{DynamicResource F2.surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource F2.control-border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="{DynamicResource F2.controlPadding}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.primary">
+    <Setter Property="Background" Value="{DynamicResource F2.accent}" />
+    <Setter Property="Foreground" Value="{DynamicResource F2.on-accent}" />
+  </Style>
+  <Style Selector="Button:focus-visible /template/ ContentPresenter">
+    <Setter Property="BorderBrush" Value="{DynamicResource F2.focus}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="Border.panel">
+    <Setter Property="Background" Value="{DynamicResource F2.surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource F2.border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource F2.panelRadius}" />
+    <Setter Property="Padding" Value="{DynamicResource F2.panelPadding}" />
+  </Style>
+  <Style Selector="ListBoxItem:selected">
+    <Setter Property="Background" Value="{DynamicResource F2.selected}" />
+    <Setter Property="Foreground" Value="{DynamicResource F2.accent}" />
+  </Style>
+  <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource F2.selected}" />
+    <Setter Property="Foreground" Value="{DynamicResource F2.accent}" />
+  </Style>
+  <Style Selector="TableView"><Setter Property="Background" Value="{DynamicResource F2.surface}" /></Style>
+  <Style Selector="TableViewRow"><Setter Property="MinHeight" Value="{DynamicResource F2.components.rowHeight}" /><Setter Property="Padding" Value="{DynamicResource F2.rowPadding}" /><Setter Property="Background" Value="{DynamicResource F2.surface}" /></Style>
+  <Style Selector="TableViewRow:selected"><Setter Property="Background" Value="{DynamicResource F2.selected}" /><Setter Property="Foreground" Value="{DynamicResource F2.accent}" /></Style>
+  <Style Selector="TableViewRow:selected /template/ Border#Border">
+    <Setter Property="Background" Value="{DynamicResource F2.selected}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource F2.accent}" />
+  </Style>
+  <Style Selector="TableViewColumnHeader">
+    <Setter Property="Background" Value="{DynamicResource F2.subtle}" />
+    <Setter Property="Foreground" Value="{DynamicResource F2.muted}" />
+    <Setter Property="FontSize" Value="{DynamicResource F2.typography.secondary}" />
+    <Setter Property="MinHeight" Value="32" />
+  </Style>
+  <Style Selector="TabItem"><Setter Property="FontSize" Value="{DynamicResource F2.typography.body}" /></Style>
+  <Style Selector="TabItem:selected /template/ Border#PART_SelectedPipe"><Setter Property="Background" Value="{DynamicResource F2.accent}" /></Style>
+  <Style Selector="TextBox">
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="BorderBrush" Value="{DynamicResource F2.control-border}" />
+    <Setter Property="Background" Value="{DynamicResource F2.surface}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource F2.controlRadius}" />
+  </Style>
+</Styles>

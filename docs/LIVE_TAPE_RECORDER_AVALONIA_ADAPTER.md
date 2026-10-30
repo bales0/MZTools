@@ -48,11 +48,14 @@ Current WPF classes are adapters to replace, not cross-platform models to inheri
 | `AudioRecorderNavigation`: existing windows + Explorer | Platform implementation of `IRecorderNavigation`; explicit file/folder actions. |
 | Windows backend selection in the view | Injected backend factory, never automatic microphone startup. |
 
-The current application/catalog/offline analyzers still reside in the Windows WPF
-project. Porting their navigation and catalog provider is **additional work**: an
-Avalonia shell cannot reference that WinExe and thereby become cross-platform. Extract
-a platform-neutral catalog/offline assembly or provide the already projected reference
-DTOs through an approved boundary. Do not copy historical numbers into a second table.
+Since the approved F1 extraction on 2026-10-29, the catalog and offline algorithms
+reside in portable `MZTools.Core`, which references the unchanged Capture detectors.
+The WPF views, navigation, native FLAC codec and Windows repair-source protection
+remain host adapters. `LivePulseCatalog` remains a host projection into the existing
+Capture DTOs. Porting navigation and this projection is still **additional work**:
+an Avalonia shell must reference Core/Capture rather than the Windows WinExe. Do not
+copy historical numbers into a second table. See the
+[F1 boundary and regression report](F1_CORE_EXTRACTION_2026-10-29.md).
 
 ## Existing core API to preserve
 

@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MZTools · F2 UI review</title>
+  <link rel="stylesheet" href="design.css">
+  <script src="prototype.js" defer></script>
+  <script src="review-checks.js" defer></script>
+</head>
+<body>
+  <div id="app"></div>
+  <dialog id="review-dialog" aria-labelledby="dialog-title"><form method="dialog"><div class="dialog-head"><span class="eyebrow">DESIGN REVIEW · MODEL DATA</span><button class="icon-button" aria-label="Close dialog" title="Close dialog" value="cancel">×</button></div><h2 id="dialog-title"></h2><div id="dialog-body"></div><footer id="dialog-actions"></footer></form></dialog>
+  <div id="announcer" class="sr-only" aria-live="polite"></div>
+  <pre id="review-checks" hidden></pre>
+</body>
+</html>

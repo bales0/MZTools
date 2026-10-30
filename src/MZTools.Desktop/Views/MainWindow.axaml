@@ -1,0 +1,275 @@
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+
+        xmlns:vm="using:MZTools.Desktop.ViewModels" xmlns:d="using:MZTools.Desktop.Documents"
+
+        xmlns:c="using:MZTools.Desktop.Controls" x:Class="MZTools.Desktop.Views.MainWindow"
+
+        xmlns:v="using:MZTools.Desktop.Views"
+
+        x:DataType="vm:ShellViewModel" Title="MZTools · Avalonia" Width="1440" Height="960"
+
+        MinWidth="640" MinHeight="480">
+
+  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+
+    <Border Background="{DynamicResource F2.surface}" BorderBrush="{DynamicResource F2.border}" BorderThickness="0,0,0,1" Padding="20,8">
+
+      <DockPanel>
+
+        <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,24,0" VerticalAlignment="Center">
+
+          <Border Background="{DynamicResource F2.accent}" CornerRadius="{DynamicResource F2.controlRadius}" Padding="5,3">
+
+            <TextBlock Text="MZ" FontWeight="Bold" Foreground="{DynamicResource F2.on-accent}" />
+
+          </Border>
+
+          <TextBlock Text="MZTools" FontWeight="Bold" FontSize="16" VerticalAlignment="Center" />
+
+        </StackPanel>
+
+        <TextBlock Text="Tape / QuickDisk / Disks / Audio" DockPanel.Dock="Right" Classes="muted" VerticalAlignment="Center" />
+
+        <Menu x:Name="MainMenu" HorizontalAlignment="Left">
+
+          <MenuItem Header="_File">
+
+            <MenuItem Header="New _Tape" Command="{Binding NewTapeCommand}" />
+
+            <MenuItem Header="New _QuickDisk" Command="{Binding NewQuickDiskCommand}" />
+
+            <MenuItem Header="_Open…" Command="{Binding OpenCommand}" />
+
+            <MenuItem Header="_Save" Command="{Binding SaveCommand}" />
+
+            <MenuItem Header="Save _As…" Command="{Binding SaveAsCommand}" />
+
+            <Separator />
+
+            <MenuItem Header="_Close document" Command="{Binding CloseCommand}" />
+
+          </MenuItem>
+
+          <MenuItem Header="_View"><MenuItem Header="_Inspector" Command="{Binding InspectorCommand}" /></MenuItem>
+
+          <MenuItem Header="_Report"><MenuItem Header="_Copy readiness report" Command="{Binding CopyReportCommand}" /></MenuItem>
+
+        </Menu>
+
+      </DockPanel>
+
+    </Border>
+
+    <Border Grid.Row="1" Background="{DynamicResource F2.surface}" BorderBrush="{DynamicResource F2.border}" BorderThickness="0,0,0,1" Padding="16,6">
+
+      <WrapPanel x:Name="CommandBar" Orientation="Horizontal">
+
+        <Button Content="New Tape" Command="{Binding NewTapeCommand}" Margin="0,0,6,0" />
+
+        <Button Content="New QuickDisk" Command="{Binding NewQuickDiskCommand}" Margin="0,0,6,0" />
+
+        <Button Content="New disk…" Command="{Binding NewDiskCommand}" Margin="0,0,6,0" />
+
+        <Button x:Name="OpenButton" Content="Open…" Command="{Binding OpenCommand}" Margin="0,0,6,0" ToolTip.Tip="Open a media file (Ctrl/Command+O)" />
+
+        <Button Content="Save" Command="{Binding SaveCommand}" Margin="0,0,6,0" ToolTip.Tip="{Binding DocumentReason}" />
+
+        <Button Content="Save As…" Command="{Binding SaveAsCommand}" Margin="0,0,6,0" ToolTip.Tip="Create a bound copy in a supported document format" />
+
+        <Button Content="Close" Command="{Binding CloseCommand}" Margin="0,0,6,0" />
+
+        <Button Content="Inspector" Command="{Binding InspectorCommand}" Margin="0,0,6,0" />
+
+        <Button Content="Batch…" Command="{Binding BatchPreviewCommand}" Margin="0,0,6,0" />
+        <Button Content="Recorder…" Command="{Binding RecorderCommand}" Margin="0,0,6,0" />
+        <Button Content="Copy report" Command="{Binding CopyReportCommand}" />
+
+      </WrapPanel>
+
+    </Border>
+
+    <Border Grid.Row="2" BorderBrush="{DynamicResource F2.border}" BorderThickness="0,0,0,1" MinHeight="36">
+
+      <Grid>
+
+        <TextBlock Text="No open documents" Classes="muted" Margin="20,8" IsVisible="{Binding !HasDocument}" />
+
+        <ListBox x:Name="DocumentTabs" ItemsSource="{Binding Documents.Documents}" SelectedItem="{Binding Documents.Active, Mode=TwoWay}" SelectionMode="AlwaysSelected"
+
+                 IsVisible="{Binding HasDocument}" Background="{DynamicResource F2.surface}">
+
+          <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ListBox.ItemsPanel>
+
+          <ListBox.ItemTemplate><DataTemplate x:DataType="d:DocumentSession"><TextBlock Text="{Binding Title}" ToolTip.Tip="{Binding Path}" /></DataTemplate></ListBox.ItemTemplate>
+
+        </ListBox>
+
+      </Grid>
+
+    </Border>
+
+    <Grid Grid.Row="3" ColumnDefinitions="184,*" x:Name="BodyGrid">
+
+      <Border Background="{DynamicResource F2.surface}" Padding="12,16" BorderBrush="{DynamicResource F2.border}" BorderThickness="0,0,1,0">
+
+        <DockPanel>
+
+          <TextBlock Text="WORKSPACES" DockPanel.Dock="Top" Classes="muted" Margin="8,4,0,12" />
+
+          <TextBlock x:Name="NavigationContext" DockPanel.Dock="Bottom" Text="Files, maps and details share one document context." TextWrapping="Wrap" Classes="muted" Margin="8,16" />
+
+          <ListBox x:Name="Navigation" ItemsSource="{Binding Modules}" SelectedItem="{Binding SelectedModule, Mode=TwoWay}" Background="Transparent">
+
+            <ListBox.ItemTemplate><DataTemplate x:DataType="vm:ModuleStatus"><TextBlock Text="{Binding Name}" Margin="0,6" /></DataTemplate></ListBox.ItemTemplate>
+
+          </ListBox>
+
+        </DockPanel>
+
+      </Border>
+
+      <Grid Grid.Column="1" Margin="24" RowDefinitions="Auto,Auto,*" RowSpacing="16">
+
+        <StackPanel Spacing="6">
+
+          <TextBlock Text="{Binding Heading}" Classes="heading" />
+
+          <TextBlock Text="{Binding Description}" Classes="muted" TextWrapping="Wrap" />
+
+          <TextBlock Text="{Binding DocumentReason}" Classes="muted" TextWrapping="Wrap" />
+
+        </StackPanel>
+
+        <Border Grid.Row="1" x:Name="ErrorBanner" IsVisible="{Binding Documents.HasError}" Background="{DynamicResource F2.error-bg}"
+
+                BorderBrush="{DynamicResource F2.error}" BorderThickness="1" Padding="12" CornerRadius="6">
+
+          <TextBlock Text="{Binding Documents.Error}" TextWrapping="Wrap" Foreground="{DynamicResource F2.error}" />
+
+        </Border>
+
+        <Grid Grid.Row="2" x:Name="WorkspaceGrid" ColumnDefinitions="*,16,272" IsVisible="{Binding ShowReadiness}">
+
+          <TabControl x:Name="WorkspaceTabs">
+
+            <TabItem Header="Overview">
+
+              <ScrollViewer x:Name="OverviewScroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+
+              <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12" Margin="0,12,0,0">
+
+                <TextBox x:Name="ModuleFilter" Text="{Binding Filter, Mode=TwoWay}" PlaceholderText="Filter modules…" AutomationProperties.Name="Filter modules" />
+
+                <Border Grid.Row="1" x:Name="ReadinessPanel" Classes="panel" Padding="0" Height="340">
+
+                  <Grid RowDefinitions="Auto,*">
+
+                    <TextBlock Text="Module availability" FontWeight="SemiBold" Margin="16" />
+
+                    <TextBlock Grid.Row="1" Text="No modules match this filter." IsVisible="{Binding IsFilterEmpty}" Margin="16" Classes="muted" />
+
+                    <TableView Grid.Row="1" x:Name="ReadinessTable" ItemsSource="{Binding VisibleModules}" SelectedItem="{Binding SelectedModule, Mode=TwoWay}" IsVisible="{Binding !IsFilterEmpty}"
+
+                               SelectionMode="Multiple" AutomationProperties.Name="Module availability">
+
+                      <TableView.Columns>
+
+                        <TableViewColumn Header="Module" Binding="{ReflectionBinding Name}" Width="2*" />
+
+                        <TableViewColumn Header="Phase" Binding="{ReflectionBinding Phase}" Width="80" />
+
+                        <TableViewColumn Header="State" Binding="{ReflectionBinding State}" Width="2*" />
+
+                      </TableView.Columns>
+
+                    </TableView>
+
+                  </Grid>
+
+                </Border>
+
+                <Border Grid.Row="2" Background="{DynamicResource F2.accent-soft}" Padding="12" CornerRadius="6">
+
+                  <TextBlock Text="The shell is ready for module adapters. Opening a file never changes its source. Capture starts only through an explicit recording command in a later phase."
+
+                             TextWrapping="Wrap" />
+
+                </Border>
+
+              </Grid>
+
+              </ScrollViewer>
+
+            </TabItem>
+
+            <TabItem Header="Report"><Border Classes="panel" Margin="0,12,0,0"><c:ReportViewer Text="{Binding Report}" /></Border></TabItem>
+
+          </TabControl>
+
+          <Border Grid.Column="2" x:Name="InspectorPanel" Classes="panel" IsVisible="{Binding InspectorVisible}" Margin="0,44,0,0">
+
+            <ScrollViewer>
+
+              <StackPanel Spacing="12">
+
+                <TextBlock Text="Workspace inspector" Classes="section" TextWrapping="Wrap" />
+
+                <TextBlock Text="Module readiness" Classes="muted" />
+
+                <c:PropertyForm x:Name="InspectorForm" />
+
+                <Border Height="1" Background="{DynamicResource F2.border}" />
+
+                <TextBlock Text="Document state" FontWeight="SemiBold" />
+
+                <TextBlock Text="{Binding Documents.Active.Path}" TextWrapping="Wrap" />
+
+                <TextBlock Text="{Binding DocumentReason}" TextWrapping="Wrap" Classes="muted" />
+
+                <TextBlock Text="Save binds this document. Export creates a separate artifact." TextWrapping="Wrap" Classes="muted" />
+
+              </StackPanel>
+
+            </ScrollViewer>
+
+          </Border>
+
+        </Grid>
+
+        <ScrollViewer Grid.Row="2" IsVisible="{Binding ShowBatch}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"><v:BatchWorkspace x:Name="BatchEditor" /></ScrollViewer>
+        <ScrollViewer Grid.Row="2" IsVisible="{Binding ShowAudio}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"><v:AudioWorkspace x:Name="AudioEditor" /></ScrollViewer>
+
+        <ScrollViewer Grid.Row="2" IsVisible="{Binding ShowDisk}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+
+          <v:DiskWorkspace x:Name="DiskEditor" />
+
+        </ScrollViewer>
+
+        <ScrollViewer Grid.Row="2" IsVisible="{Binding ShowMedia}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+
+          <v:RecordWorkspace x:Name="RecordEditor" />
+
+        </ScrollViewer>
+
+      </Grid>
+
+    </Grid>
+
+    <Border Grid.Row="4" Background="{DynamicResource F2.surface}" BorderBrush="{DynamicResource F2.border}" BorderThickness="0,1,0,0" Padding="16,6">
+
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+
+        <TextBlock x:Name="StatusText" Text="{Binding Documents.Status}" Classes="muted" TextWrapping="Wrap" VerticalAlignment="Center" />
+
+        <ProgressBar Grid.Column="1" IsIndeterminate="{Binding !Documents.HasProgress}" Minimum="0" Maximum="1" Value="{Binding Documents.ProgressFraction}" IsVisible="{Binding Documents.IsBusy}" Width="100" Height="6" VerticalAlignment="Center" />
+
+        <Button Grid.Column="2" x:Name="CancelOperation" Content="Cancel operation" Command="{Binding CancelCommand}" IsVisible="{Binding Documents.IsBusy}" />
+
+      </Grid>
+
+    </Border>
+
+  </Grid>
+
+</Window>
+

@@ -1,0 +1,454 @@
+﻿Module,Source,Line,ControlOrProperty,Name,CurrentCaption,CurrentHandler,CurrentShortcutHint,CurrentTooltip,ProposedComponent,MappingNote
+Audio / Recorder,AudioPulseReferenceControl.cs,15,Content,,Show reference markers / guides,,,,PulseReferencePicker,Literal evidence; dynamic expressions require runtime parity checks
+Audio / Recorder,AudioPulseReferenceControl.cs,16,Content,,Follow selected block,,,,PulseReferencePicker,Literal evidence; dynamic expressions require runtime parity checks
+Audio / Recorder,AudioPulseReferenceControl.cs,31,Header,,Pulse references / user values (µs),,,,PulseReferencePicker,Literal evidence; dynamic expressions require runtime parity checks
+Audio / Recorder,AudioPulseReferenceControl.cs,36,Content,,Browse catalog / receiver constraints…,,,,PulseReferencePicker,Literal evidence; dynamic expressions require runtime parity checks
+Audio / Recorder,AudioPulseReferenceControl.cs,43,Header,,Reference details / source,,,,PulseReferencePicker,Literal evidence; dynamic expressions require runtime parity checks
+Audio / Recorder,AudioPulseReferenceControl.cs,44,Header,,Pulse,,,,PulseReferencePicker,Literal evidence; dynamic expressions require runtime parity checks
+Audio / Recorder,AudioPulseReferenceControl.cs,45,Header,,µs,,,,PulseReferencePicker,Literal evidence; dynamic expressions require runtime parity checks
+Audio / Recorder,AudioPulseReferenceControl.cs,46,Header,,Context,,,,PulseReferencePicker,Literal evidence; dynamic expressions require runtime parity checks
+Audio / Recorder,AudioPulseReferenceControl.cs,55,Content,,Add user reference,,,,PulseReferencePicker,Literal evidence; dynamic expressions require runtime parity checks
+Audio / Recorder,AudioPulseReferenceControl.cs,61,Header,,Pulse references / user values (µs) — ,,,,PulseReferencePicker,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,22,Choice,,Windows input (WASAPI),,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,23,Choice,,Shared — Windows mix,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,25,Choice,,PCM8,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,25,Choice,,Mono,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,26,Button,,Check exact format,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,28,Button,,Monitor only,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,28,Button,,Record,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,28,Button,,Stop / finalize,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,29,Button,,Cancel,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,30,Button,,Fit history,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,33,Check,,Request RAW (shared only),,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,33,Check,,Allow Windows format conversion,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,33,Check,,Allow float32 / PCM32 → PCM24 (shared only),,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,33,Check,,Follow live,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,33,Check,,Auto scale,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,33,Check,,Trigger,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,34,Choice,,Left,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,34,Choice,,0.5,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,34,Choice,,1024,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,34,Choice,,Rising,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,37,Header,,Input / recording settings,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,43,Header,,Head alignment,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,44,Header,,Live pulses,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,85,Button,,Refresh inputs,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,89,Header,,Probe an exact exclusive format (does not start recording),,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,91,Button,,Browse…,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,99,Header,,Actual input / processing,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,101,Header,,Live signal,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,105,Button,,Zoom +,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,105,Button,,Zoom −,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,106,Button,,Apply / reset clip hold,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,111,Header,,Recordings,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,115,Button,,Show in folder,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,AudioRecorderWindow.cs,116,Header,,Diagnostics,,,,RecorderView,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryComparison.cs,20,Content,,Compare retained passes,,,,RecoveryComparison,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryComparison.cs,21,Content,,Export comparison JSON…,,,,RecoveryComparison,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryComparison.cs,23,Header,,Pass comparison,,,,RecoveryComparison,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryExport.cs,13,Content,,Export selection to WAV…,,,,RecoveredArtifactExport,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryExport.cs,14,ToolTip,,"Select audio with Shift+drag. Export uses the current shift, right polarity and Left/Right/Average signal, at the original sample rate and bit depth. All channels exports stereo.",,,"Select audio with Shift+drag. Export uses the current shift, right polarity and Left/Right/Average signal, at the original sample rate and bit depth. All channels exports stereo.",RecoveredArtifactExport,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryExport.cs,39,Content,,Cancel WAV export,,,,RecoveredArtifactExport,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryExport.cs,58,Content,,Cancel analysis,,,,RecoveredArtifactExport,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryHeaderless.cs,13,Choice,,Unknown length / framing boundaries,,,,HeaderlessRecovery,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryHeaderless.cs,13,Choice,,Recovery diagnostics (bounded),,,,HeaderlessRecovery,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryHeaderless.cs,14,Content,,Create MZF with supplied metadata…,,,,HeaderlessRecovery,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryHeaderless.cs,30,Header,,Candidates / Recovery,,,,HeaderlessRecovery,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryHeaderless.cs,60,Choice,,Use my metadata to create a synthetic header,,,,HeaderlessRecovery,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryHeaderless.cs,62,Content,,Create MZF…,,,,HeaderlessRecovery,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryPreview.cs,23,Choice,,Invert right polarity,,,,CandidatePreview,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryPreview.cs,69,Header,,Waveform,,,,CandidatePreview,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryPreview.cs,71,Header,,Histogram,,,,CandidatePreview,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryPreview.cs,79,Header,,Pulse statistics,,,,CandidatePreview,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryPreview.cs,80,Header,,Visual analysis,,,,CandidatePreview,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryPreview.cs,81,Header,,Problems,,,,CandidatePreview,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryWindow.cs,17,Content,,Run deeper analysis,,,,RecoveryView,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryWindow.cs,18,Content,,Cancel analysis,,,,RecoveryView,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryWindow.cs,19,Content,,Save selected program as MZF…,,,,RecoveryView,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryWindow.cs,20,Content,,Save selected candidate as raw bytes…,,,,RecoveryView,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryWindow.cs,21,Content,,Hex view…,,,,RecoveryView,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryWindow.cs,22,Header,,Hex view…,,,,RecoveryView,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryWindow.cs,29,Choice,,Adaptive,,,,RecoveryView,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryWindow.cs,29,Choice,,Fixed time scale,,,,RecoveryView,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryWindow.cs,29,Choice,,Fuzzy pulse length,,,,RecoveryView,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryWindow.cs,30,Choice,,Zero crossing,,,,RecoveryView,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryWindow.cs,30,Choice,,Hysteresis (Schmitt),,,,RecoveryView,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryWindow.cs,30,Choice,,Adaptive zero crossing (peak midpoint),,,,RecoveryView,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryWindow.cs,31,Choice,,Normal polarity,,,,RecoveryView,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryWindow.cs,31,Choice,,Inverted polarity,,,,RecoveryView,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryWindow.cs,32,Choice,,Reference profile tests,,,,RecoveryView,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryWindow.cs,32,Choice,,Test each pulse at ±0.5 sample,,,,RecoveryView,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryWindow.cs,37,ToolTip,,"Minimum gate around zero after DC filtering, ±% of full-scale PCM. 0 disables the additional gate. Does not move samples.",,,"Minimum gate around zero after DC filtering, ±% of full-scale PCM. 0 disables the additional gate. Does not move samples.",RecoveryView,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryWindow.cs,67,Header,,Reference test settings / profile selection,,,,RecoveryView,Literal evidence; dynamic expressions require runtime parity checks
+Audio recovery,AudioRegionRecoveryWindow.cs,87,Content,,Close,,,,RecoveryView,Literal evidence; dynamic expressions require runtime parity checks
+Audio,AudioSignalAnalyzerExport.cs,12,Content,,Export selection to WAV…,,,,ExportPreview,Literal evidence; dynamic expressions require runtime parity checks
+Audio,AudioSignalAnalyzerExport.cs,13,ToolTip,,Export the continuous highlighted waveform interval at the source sample rate and bit depth. Left/Right exports mono; Overlay L/R preserves stereo. Select audio with Shift+drag.,,,Export the continuous highlighted waveform interval at the source sample rate and bit depth. Left/Right exports mono; Overlay L/R preserves stereo. Select audio with Shift+drag.,ExportPreview,Literal evidence; dynamic expressions require runtime parity checks
+Audio,AudioSignalAnalyzerExport.cs,36,Content,,Cancel WAV export,,,,ExportPreview,Literal evidence; dynamic expressions require runtime parity checks
+Audio,AudioSignalAnalyzerExport.cs,53,Content,,Cancel analysis,,,,ExportPreview,Literal evidence; dynamic expressions require runtime parity checks
+Audio,AudioSignalAnalyzerWindow.cs,21,Content,,Open audio / recording…,,,,AudioAnalysisView,Literal evidence; dynamic expressions require runtime parity checks
+Audio,AudioSignalAnalyzerWindow.cs,21,ToolTip,,"WAV, FLAC, or a complete segmented recording via its .wav.json report",,,"WAV, FLAC, or a complete segmented recording via its .wav.json report",AudioAnalysisView,Literal evidence; dynamic expressions require runtime parity checks
+Audio,AudioSignalAnalyzerWindow.cs,22,Content,,Cancel analysis,,,,AudioAnalysisView,Literal evidence; dynamic expressions require runtime parity checks
+Audio,AudioSignalAnalyzerWindow.cs,23,Content,,Export report…,,,,AudioAnalysisView,Literal evidence; dynamic expressions require runtime parity checks
+Audio,AudioSignalAnalyzerWindow.cs,31,Content,,Analyze selected audio…,,,,AudioAnalysisView,Literal evidence; dynamic expressions require runtime parity checks
+Audio,AudioSignalAnalyzerWindow.cs,70,AddTab,,Records / blocks,,,,AudioAnalysisView,Literal evidence; dynamic expressions require runtime parity checks
+Audio,AudioSignalAnalyzerWindow.cs,84,Header,,Histogram,,,,AudioAnalysisView,Literal evidence; dynamic expressions require runtime parity checks
+Audio,AudioSignalAnalyzerWindow.cs,84,Header,,High / Low scatter,,,,AudioAnalysisView,Literal evidence; dynamic expressions require runtime parity checks
+Audio,AudioSignalAnalyzerWindow.cs,84,Header,,Drift,,,,AudioAnalysisView,Literal evidence; dynamic expressions require runtime parity checks
+Audio,AudioSignalAnalyzerWindow.cs,85,AddTab,,Pulse statistics,,,,AudioAnalysisView,Literal evidence; dynamic expressions require runtime parity checks
+Audio,AudioSignalAnalyzerWindow.cs,85,AddTab,,Channels / levels,,,,AudioAnalysisView,Literal evidence; dynamic expressions require runtime parity checks
+Audio,AudioSignalAnalyzerWindow.cs,85,AddTab,,Detector agreement,,,,AudioAnalysisView,Literal evidence; dynamic expressions require runtime parity checks
+Audio,AudioSignalAnalyzerWindow.cs,85,AddTab,,Issues,,,,AudioAnalysisView,Literal evidence; dynamic expressions require runtime parity checks
+Audio,AudioSignalAnalyzerWindow.cs,85,AddTab,,Regions,,,,AudioAnalysisView,Literal evidence; dynamic expressions require runtime parity checks
+Audio,AudioSignalAnalyzerWindow.cs,86,AddTab,,Definitions,,,,AudioAnalysisView,Literal evidence; dynamic expressions require runtime parity checks
+Audio,AudioSignalCharts.cs,59,Content,,Auto scale,,,,SignalPlot / HistogramPlot / DriftPlot,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchFileDetailsDialog.cs,46,Header,,Contents,,,,ReportDrawer,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchFileDetailsDialog.cs,68,Header,,Properties,,,,ReportDrawer,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchFileDetailsDialog.cs,81,Header,,Technical details,,,,ReportDrawer,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchFileDetailsDialog.cs,93,Content,,Close,,,,ReportDrawer,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchProcessDialog.cs,46,Content,,Stop,,,,BatchWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchProcessDialog.cs,75,Content,,Selected files,,,,BatchWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchProcessDialog.cs,76,Content,,Input folder,,,,BatchWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchProcessDialog.cs,78,Content,,Add files...,,,,BatchWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchProcessDialog.cs,78,Content,,Browse...,,,,BatchWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchProcessDialog.cs,78,Content,,Clear file list,,,,BatchWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchProcessDialog.cs,83,Content,,Recursive folder scan,,,,BatchWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchProcessDialog.cs,96,Content,,Use heuristic analysis (WAV / FLAC),,,,BatchWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchProcessDialog.cs,96,ToolTip,,Unchecked: standard decoder. Checked: heuristic timing/channel analysis and checksum-based recovery. Applies to audio inputs only.,,,Unchecked: standard decoder. Checked: heuristic timing/channel analysis and checksum-based recovery. Applies to audio inputs only.,BatchWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchProcessDialog.cs,97,Content,,Browse...,,,,BatchWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchProcessDialog.cs,99,Content,,Browse...,,,,BatchWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchProcessDialog.cs,102,Content,,Strict all-or-nothing preflight (any invalid/incompatible input blocks execution),,,,BatchWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchProcessDialog.cs,103,Content,,Replace originals (requires explicit confirmation),,,,BatchWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchProcessDialog.cs,104,Content,,Keep .bak when replacing originals,,,,BatchWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchProcessDialog.cs,111,Content,,Preview / dry-run,,,,BatchWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchProcessDialog.cs,111,Content,,Execute preview,,,,BatchWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchProcessDialog.cs,111,Content,,Export TXT / CSV / JSON report...,,,,BatchWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchProcessDialog.cs,111,Content,,Selected details...,,,,BatchWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Batch,BatchProcessDialog.cs,140,ToolTip,,Folder scan filter. This operation/target accepts: ,,,Folder scan filter. This operation/target accepts: ,BatchWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Disk boot,BootstrapDialog.cs,36,Button,,Preview metadata...,,,,BootstrapEditor,Literal evidence; dynamic expressions require runtime parity checks
+Disk boot,BootstrapDialog.cs,37,Button,,Export bootstrap...,,,,BootstrapEditor,Literal evidence; dynamic expressions require runtime parity checks
+Disk boot,BootstrapDialog.cs,38,Button,,Replace bootstrap...,,,,BootstrapEditor,Literal evidence; dynamic expressions require runtime parity checks
+Disk boot,BootstrapDialog.cs,39,Button,,Clear bootstrap...,,,,BootstrapEditor,Literal evidence; dynamic expressions require runtime parity checks
+Disk boot,BootstrapDialog.cs,40,Button,,Cancel,,,,BootstrapEditor,Literal evidence; dynamic expressions require runtime parity checks
+Shared conversion,CompressionOptionsControl.xaml.cs,30,Content,,Keep source encoding (no recompression),,,,CompressionOptions,Literal evidence; dynamic expressions require runtime parity checks
+Shared conversion,CompressionSettingsDialog.cs,23,Content,,Apply to selected,,,,CompressionDialog,Literal evidence; dynamic expressions require runtime parity checks
+Shared conversion,CompressionSettingsDialog.cs,24,Content,,Cancel,,,,CompressionDialog,Literal evidence; dynamic expressions require runtime parity checks
+Disk filesystem,CpmLayoutDialog.cs,13,Content,,Inverted,,,,CpmLayoutEditor,Literal evidence; dynamic expressions require runtime parity checks
+Disk filesystem,CpmLayoutDialog.cs,23,Content,,Validate / Preview...,,,,CpmLayoutEditor,Literal evidence; dynamic expressions require runtime parity checks
+Disk filesystem,CpmLayoutDialog.cs,24,Content,,Cancel,,,,CpmLayoutEditor,Literal evidence; dynamic expressions require runtime parity checks
+Disk filesystem,CpmLayoutDialog.cs,59,Content,,Profiles...,,,,CpmLayoutEditor,Literal evidence; dynamic expressions require runtime parity checks
+Disk boot,CpmSystemBuilderDialog.cs,20,Content,,Install into current disk,,,,BootInstallPreview,Literal evidence; dynamic expressions require runtime parity checks
+Disk boot,CpmSystemBuilderDialog.cs,21,Content,,Copy report,,,,BootInstallPreview,Literal evidence; dynamic expressions require runtime parity checks
+Disk boot,CpmSystemBuilderDialog.cs,22,Content,,Save report...,,,,BootInstallPreview,Literal evidence; dynamic expressions require runtime parity checks
+Disk boot,CpmSystemBuilderDialog.cs,50,Content,,Browse...,,,,BootInstallPreview,Literal evidence; dynamic expressions require runtime parity checks
+Disk boot,CpmSystemBuilderDialog.cs,71,Content,,Close,,,,BootInstallPreview,Literal evidence; dynamic expressions require runtime parity checks
+Disk transfer,CrossDiskTransferDialog.cs,21,Content,,Open source disks...,,,,TransferPreview,Literal evidence; dynamic expressions require runtime parity checks
+Disk transfer,CrossDiskTransferDialog.cs,24,Content,,Preview copy...,,,,TransferPreview,Literal evidence; dynamic expressions require runtime parity checks
+Disk transfer,CrossDiskTransferDialog.cs,24,ToolTip,,Open a source disk and select files to copy.,,,Open a source disk and select files to copy.,TransferPreview,Literal evidence; dynamic expressions require runtime parity checks
+Disk compare,DskCompareWindow.cs,18,Content,,Show unchanged,,,,CompareView / HexDiff,Literal evidence; dynamic expressions require runtime parity checks
+Disk compare,DskCompareWindow.cs,25,Content,,Hex diff...,,,,CompareView / HexDiff,Literal evidence; dynamic expressions require runtime parity checks
+Disk compare,DskCompareWindow.cs,52,Header,,Status,,,,CompareView / HexDiff,Literal evidence; dynamic expressions require runtime parity checks
+Disk compare,DskCompareWindow.cs,53,Header,,Item,,,,CompareView / HexDiff,Literal evidence; dynamic expressions require runtime parity checks
+Disk compare,DskCompareWindow.cs,54,Header,,Difference,,,,CompareView / HexDiff,Literal evidence; dynamic expressions require runtime parity checks
+Disk compare,DskCompareWindow.cs,55,Header,,Left,,,,CompareView / HexDiff,Literal evidence; dynamic expressions require runtime parity checks
+Disk compare,DskCompareWindow.cs,56,Header,,Right,,,,CompareView / HexDiff,Literal evidence; dynamic expressions require runtime parity checks
+Disk compare,DskCompareWindow.cs,90,Content,,Preview patch,,,,CompareView / HexDiff,Literal evidence; dynamic expressions require runtime parity checks
+Disk compare,DskCompareWindow.cs,91,Content,,Export patch...,,,,CompareView / HexDiff,Literal evidence; dynamic expressions require runtime parity checks
+Disk compare,DskCompareWindow.cs,95,Content,,Close,,,,CompareView / HexDiff,Literal evidence; dynamic expressions require runtime parity checks
+Disk compare,DskCompareWindow.cs,187,Content,,Close,,,,CompareView / HexDiff,Literal evidence; dynamic expressions require runtime parity checks
+Disk conversion,DskConversionDialog.cs,13,Content,,Export converted image...,,,,ConversionExportPreview,Literal evidence; dynamic expressions require runtime parity checks
+Disk conversion,DskConversionDialog.cs,23,Content,,Cancel,,,,ConversionExportPreview,Literal evidence; dynamic expressions require runtime parity checks
+Disk / HFE,DskEditorSectorSelection.cs,30,Header,,Selected sectors,,,,SelectionCoordinator,Literal evidence; dynamic expressions require runtime parity checks
+Disk / HFE,DskEditorVisualAnalysis.cs,17,Header,,Visual analysis…,,,,InspectorCoordinator,Literal evidence; dynamic expressions require runtime parity checks
+Disk / HFE,DskEditorVisualAnalysis.cs,20,Header,,Export / Import Selected Sectors…,,,,InspectorCoordinator,Literal evidence; dynamic expressions require runtime parity checks
+Disk / HFE,DskEditorWindow.xaml.cs,284,ToolTip,,Requires a compatible document and valid layout; finish pending IPL layout changes first.,,,Requires a compatible document and valid layout; finish pending IPL layout changes first.,DiskWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Disk / HFE,DskEditorWindow.xaml.cs,289,ToolTip,,"Repair supported FSMZ, MRS or CP/M filesystem metadata. DSK container headers are handled separately by Disk → Repair Container.",,,"Repair supported FSMZ, MRS or CP/M filesystem metadata. DSK container headers are handled separately by Disk → Repair Container.",DiskWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Disk / HFE,DskEditorWindow.xaml.cs,335,ToolTip,,Save As is required. The original repair source cannot be overwritten.,,,Save As is required. The original repair source cannot be overwritten.,DiskWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Disk / HFE,DskEditorWindow.xaml.cs,531,ToolTip,,Select one file. Properties belong to the current filesystem; attributes lost during cross-format copying cannot be restored here.,,,Select one file. Properties belong to the current filesystem; attributes lost during cross-format copying cannot be restored here.,DiskWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Disk / HFE,DskEditorWindow.xaml.cs,871,ToolTip,,Open a DSK image to inspect available container repairs.,,,Open a DSK image to inspect available container repairs.,DiskWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Disk / HFE,DskEditorWindow.xaml.cs,872,ToolTip,,DSK container repair does not apply to HFE physical images.,,,DSK container repair does not apply to HFE physical images.,DiskWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Disk / HFE,DskEditorWindow.xaml.cs,873,ToolTip,,Finish the IPL editor before inspecting DSK container repairs.,,,Finish the IPL editor before inspecting DSK container repairs.,DiskWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Disk / HFE,DskEditorWindow.xaml.cs,884,ToolTip,,Container repairs are unavailable: ,,,Container repairs are unavailable: ,DiskWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Disk / HFE,DskEditorWindow.xaml.cs,1882,ToolTip,,Copy files from a disk in MZTools first.,,,Copy files from a disk in MZTools first.,DiskWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Disk / HFE,DskEditorWindow.xaml.cs,2134,Content,,OK,,,,DiskWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Disk / HFE,DskEditorWindow.xaml.cs,2146,Content,,Create,,,,DiskWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Disk properties,DskFilePropertiesControl.cs,15,Content,,Read-only (RO),,,,PropertyEditor,Literal evidence; dynamic expressions require runtime parity checks
+Disk properties,DskFilePropertiesControl.cs,16,Content,,System (SYS),,,,PropertyEditor,Literal evidence; dynamic expressions require runtime parity checks
+Disk properties,DskFilePropertiesControl.cs,17,Content,,Archived (ARC),,,,PropertyEditor,Literal evidence; dynamic expressions require runtime parity checks
+Disk properties,DskFilePropertiesControl.cs,19,Content,,Locked,,,,PropertyEditor,Literal evidence; dynamic expressions require runtime parity checks
+Disk properties,DskFilePropertiesDialog.cs,11,Content,,Read-only (RO),,,,PropertiesDialog,Literal evidence; dynamic expressions require runtime parity checks
+Disk properties,DskFilePropertiesDialog.cs,12,Content,,System (SYS),,,,PropertiesDialog,Literal evidence; dynamic expressions require runtime parity checks
+Disk properties,DskFilePropertiesDialog.cs,13,Content,,Archived (ARC),,,,PropertiesDialog,Literal evidence; dynamic expressions require runtime parity checks
+Disk properties,DskFilePropertiesDialog.cs,17,Content,,Locked,,,,PropertiesDialog,Literal evidence; dynamic expressions require runtime parity checks
+Disk properties,DskFilePropertiesDialog.cs,57,Content,,Apply,,,,PropertiesDialog,Literal evidence; dynamic expressions require runtime parity checks
+Disk properties,DskFilePropertiesDialog.cs,58,Content,,Cancel,,,,PropertiesDialog,Literal evidence; dynamic expressions require runtime parity checks
+Disk hex,DskHexEditorWindow.cs,41,Content,,Preview changes,,,,HexEditor,Literal evidence; dynamic expressions require runtime parity checks
+Disk hex,DskHexEditorWindow.cs,42,Content,,Apply,,,,HexEditor,Literal evidence; dynamic expressions require runtime parity checks
+Disk hex,DskHexEditorWindow.cs,71,Content,,Unlock editing,,,,HexEditor,Literal evidence; dynamic expressions require runtime parity checks
+Disk hex,DskHexEditorWindow.cs,72,Content,,Revert,,,,HexEditor,Literal evidence; dynamic expressions require runtime parity checks
+Disk hex,DskHexEditorWindow.cs,73,Content,,Cancel,,,,HexEditor,Literal evidence; dynamic expressions require runtime parity checks
+Disk creation,DskNewDialog.cs,89,Content,,Create,,,,NewDiskDialog,Literal evidence; dynamic expressions require runtime parity checks
+Disk creation,DskNewDialog.cs,90,Content,,Cancel,,,,NewDiskDialog,Literal evidence; dynamic expressions require runtime parity checks
+Disk creation,DskNewDialog.cs,125,Content,,Preview format…,,,,NewDiskDialog,Literal evidence; dynamic expressions require runtime parity checks
+Disk changes,DskPatchPreviewWindow.cs,26,Content,,Close,,,,ChangePreview,Literal evidence; dynamic expressions require runtime parity checks
+Disk properties,DskPhysicalPropertiesDialog.cs,27,Content,,Preview...,,,,PhysicalPropertyEditor,Literal evidence; dynamic expressions require runtime parity checks
+Disk properties,DskPhysicalPropertiesDialog.cs,28,Content,,Close,,,,PhysicalPropertyEditor,Literal evidence; dynamic expressions require runtime parity checks
+Disk transfer,DskRawRangeDialog.cs,20,Content,,Export selected sectors…,,,,RawRangeTransfer,Literal evidence; dynamic expressions require runtime parity checks
+Disk transfer,DskRawRangeDialog.cs,21,Content,,Import selected sectors…,,,,RawRangeTransfer,Literal evidence; dynamic expressions require runtime parity checks
+Disk transfer,DskRawRangeDialog.cs,33,Content,,Physical descriptor order,,,,RawRangeTransfer,Literal evidence; dynamic expressions require runtime parity checks
+Disk transfer,DskRawRangeDialog.cs,33,Content,,Sector ID order (within track),,,,RawRangeTransfer,Literal evidence; dynamic expressions require runtime parity checks
+Disk transfer,DskRawRangeDialog.cs,34,Content,,Clear selection,,,,RawRangeTransfer,Literal evidence; dynamic expressions require runtime parity checks
+Disk transfer,DskRawRangeDialog.cs,37,Content,,Close,,,,RawRangeTransfer,Literal evidence; dynamic expressions require runtime parity checks
+Disk transfer,DskRawRangeDialog.cs,39,Header,,Physical sector map · orange metadata · green data · blue selection,,,,RawRangeTransfer,Literal evidence; dynamic expressions require runtime parity checks
+Disk repair,DskRepairDialog.cs,53,Content,,Open without repair,,,,ContainerRepairPreview,Literal evidence; dynamic expressions require runtime parity checks
+Disk filesystem,DskStructureWindow.cs,16,Content,,Hex view metadata...,,,,StructureView,Literal evidence; dynamic expressions require runtime parity checks
+Disk filesystem,DskStructureWindow.cs,17,ToolTip,,Read-only hex view of the selected native metadata. Filesystem-decoded bytes; storage inversion is removed where required.,,,Read-only hex view of the selected native metadata. Filesystem-decoded bytes; storage inversion is removed where required.,StructureView,Literal evidence; dynamic expressions require runtime parity checks
+Disk filesystem,DskStructureWindow.cs,18,Content,,Clear selection,,,,StructureView,Literal evidence; dynamic expressions require runtime parity checks
+Disk filesystem,DskStructureWindow.cs,38,Header,,Structure / location,,,,StructureView,Literal evidence; dynamic expressions require runtime parity checks
+Disk filesystem,DskStructureWindow.cs,39,Header,,Value / state / file,,,,StructureView,Literal evidence; dynamic expressions require runtime parity checks
+Disk filesystem,DskStructureWindow.cs,64,Content,,Close,,,,StructureView,Literal evidence; dynamic expressions require runtime parity checks
+Disk inspection,DskVisualInspectorDetails.cs,14,Content,,Unrolled MFM detail,,,,InspectorDetails,Literal evidence; dynamic expressions require runtime parity checks
+Disk inspection,DskVisualInspectorDetails.cs,15,Content,,Floating selection details,,,,InspectorDetails,Literal evidence; dynamic expressions require runtime parity checks
+Disk inspection,DskVisualInspectorDetails.cs,34,Button,,Fit track,,,,InspectorDetails,Literal evidence; dynamic expressions require runtime parity checks
+Disk inspection,DskVisualInspectorDetails.cs,34,Button,,Selected sector,,,,InspectorDetails,Literal evidence; dynamic expressions require runtime parity checks
+Disk inspection,DskVisualInspectorDetails.cs,35,Button,,Zoom +,,,,InspectorDetails,Literal evidence; dynamic expressions require runtime parity checks
+Disk inspection,DskVisualInspectorDetails.cs,35,Button,,Zoom −,,,,InspectorDetails,Literal evidence; dynamic expressions require runtime parity checks
+Disk inspection,DskVisualInspectorDetails.cs,64,Content,,Open Hex…,,,,InspectorDetails,Literal evidence; dynamic expressions require runtime parity checks
+Disk inspection,DskVisualInspectorDetails.cs,65,Content,,Select owner file,,,,InspectorDetails,Literal evidence; dynamic expressions require runtime parity checks
+Disk inspection,DskVisualInspectorWindow.cs,34,Content,,Cancel operation,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+Disk inspection,DskVisualInspectorWindow.cs,47,Content,,Disk / Tools ▾,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+Disk inspection,DskVisualInspectorWindow.cs,61,Header,,Export file…,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+Disk inspection,DskVisualInspectorWindow.cs,95,Choice,,Track,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+Disk inspection,DskVisualInspectorWindow.cs,95,Choice,,Side,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+Disk inspection,DskVisualInspectorWindow.cs,95,Choice,,Widths,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+Disk inspection,DskVisualInspectorWindow.cs,95,Choice,,Layer,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+Disk inspection,DskVisualInspectorWindow.cs,108,Content,,Jump to issue,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+Disk inspection,DskVisualInspectorWindow.cs,109,Content,,Finding details…,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+Disk inspection,DskVisualInspectorWindow.cs,163,ToolTip,,Drag to resize graph and table,,,Drag to resize graph and table,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+Disk inspection,DskVisualInspectorWindow.cs,231,ToolTip,,Show analyzer findings and their explanations,,,Show analyzer findings and their explanations,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+Disk inspection,DskVisualInspectorWindow.cs,334,ToolTip,,Ctrl: toggle; Shift: range; Esc: clear. Drag: pan; wheel: zoom; Home: Fit; double-click sector: Hex. Use Floating details for properties; tables: Ctrl+C copies headers.,,,Ctrl: toggle; Shift: range; Esc: clear. Drag: pan; wheel: zoom; Home: Fit; double-click sector: Hex. Use Floating details for properties; tables: Ctrl+C copies headers.,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,HeadAlignmentPanel.cs,16,Content,,Same passage replayed; unchanged gain / EQ / input chain,,,,HeadAlignmentView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,HeadAlignmentPanel.cs,16,Content,,Known stereo tone (Hz),,,,HeadAlignmentView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,HeadAlignmentPanel.cs,17,Button,,Save A,,,,HeadAlignmentView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,HeadAlignmentPanel.cs,17,Button,,Save B,,,,HeadAlignmentView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,HeadAlignmentPanel.cs,33,Header,,Measurement interval / method,,,,HeadAlignmentView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,HeadAlignmentPanel.cs,36,Header,,Match this tape,,,,HeadAlignmentView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,HeadAlignmentPanel.cs,41,Header,,Indicators,,,,HeadAlignmentView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,HeadAlignmentPanel.cs,44,Button,,Clear A/B,,,,HeadAlignmentView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,HeadAlignmentPanel.cs,46,Header,,Compare A/B,,,,HeadAlignmentView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,HeadAlignmentPanel.cs,47,Header,,Stereo L/R,,,,HeadAlignmentView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,HeadEdgeAdjustmentControl.cs,16,Content,,Zero here,,,,RelativeEdgeDial,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,HeadEdgeAdjustmentControl.cs,17,Content,,Same tape section replayed,,,,RelativeEdgeDial,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,HeadEdgeAdjustmentControl.cs,17,ToolTip,,Your declaration that you replay the same tape section with unchanged gain/EQ. No automatic content matching; the edge calculation is unchanged. Changing this declaration clears the manual zero.,,,Your declaration that you replay the same tape section with unchanged gain/EQ. No automatic content matching; the edge calculation is unchanged. Changing this declaration clears the manual zero.,RelativeEdgeDial,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,HeadEdgeAdjustmentControl.cs,31,Content,,Clear zero,,,,RelativeEdgeDial,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,HeadEdgeAdjustmentControl.cs,34,Header,,Tape label / stability details,,,,RelativeEdgeDial,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,HeadEdgeAdjustmentControl.cs,38,ToolTip,,Vynulovat zde: set zero for currently usable channels. Each channel is qualified independently.,,,Vynulovat zde: set zero for currently usable channels. Each channel is qualified independently.,RelativeEdgeDial,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,LivePulsePanel.cs,16,Check,,Enable live pulse measurements,,,,LivePulseView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,LivePulsePanel.cs,16,Check,,Zero crossing,,,,LivePulseView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,LivePulsePanel.cs,16,Check,,Hysteresis,,,,LivePulseView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,LivePulsePanel.cs,16,Check,,Adaptive peak,,,,LivePulseView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,LivePulsePanel.cs,17,Choice,,Zero crossing,,,,LivePulseView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,LivePulsePanel.cs,17,Choice,,Left / Mono,,,,LivePulseView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,LivePulsePanel.cs,20,Check,,Logical HIGH = negative (Sharp READ inversion),,,,LivePulseView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,LivePulsePanel.cs,28,Button,,Fit all,,,,LivePulseView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,LivePulsePanel.cs,28,Button,,Fit references,,,,LivePulseView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,LivePulsePanel.cs,39,Header,,Thresholds / polarity / time window,,,,LivePulseView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,LivePulsePanel.cs,41,Header,,Signal preprocessing / interpretation,,,,LivePulseView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,LivePulsePanel.cs,43,Button,,Zoom +,,,,LivePulseView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,LivePulsePanel.cs,43,Button,,Zoom −,,,,LivePulseView,Literal evidence; dynamic expressions require runtime parity checks
+Recorder,LivePulsePanel.cs,46,Header,,Histogram,,,,LivePulseView,Literal evidence; dynamic expressions require runtime parity checks
+Tape / QuickDisk,MainWindow.xaml.cs,576,Content,,Read-only physical QuickDisk inspection. This is not an identified native SHARP MZ-800 format; MZF editing and SHARP rebuilding are disabled.,,,,DocumentWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Tape / QuickDisk,MainWindow.xaml.cs,1008,Content,,Next,,,,DocumentWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Tape / QuickDisk,MainWindow.xaml.cs,2960,Content,,OK,,,,DocumentWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Tape / QuickDisk,MainWindow.xaml.cs,2961,Content,,Cancel,,,,DocumentWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+QuickDisk,MainWindowQuickDiskVisual.cs,17,Header,,Visual analysis…,,,,QuickDiskWorkspace,Literal evidence; dynamic expressions require runtime parity checks
+Native COM,NativeComDialog.cs,28,Content,,Open MZF / M12...,,,,NativeComDialog,Literal evidence; dynamic expressions require runtime parity checks
+Native COM,NativeComDialog.cs,31,ToolTip,,"Exclusive COM load ceiling, hex. The live BDOS vector is also checked by Stage 0 before takeover.",,,"Exclusive COM load ceiling, hex. The live BDOS vector is also checked by Stage 0 before takeover.",NativeComDialog,Literal evidence; dynamic expressions require runtime parity checks
+Native COM,NativeComDialog.cs,43,Header,,Advanced settings,,,,NativeComDialog,Literal evidence; dynamic expressions require runtime parity checks
+Native COM,NativeComDialog.cs,44,ToolTip,,"Decoded MZF header name, sanitized and shortened to CP/M 8.3. Editable for import and export.",,,"Decoded MZF header name, sanitized and shortened to CP/M 8.3. Editable for import and export.",NativeComDialog,Literal evidence; dynamic expressions require runtime parity checks
+Native COM,NativeComDialog.cs,53,Content,,Export / Save...,,,,NativeComDialog,Literal evidence; dynamic expressions require runtime parity checks
+Native COM,NativeComDialog.cs,54,Content,,Import to current disk,,,,NativeComDialog,Literal evidence; dynamic expressions require runtime parity checks
+Native COM,NativeComDialog.cs,56,Content,,Save report...,,,,NativeComDialog,Literal evidence; dynamic expressions require runtime parity checks
+Native COM,NativeComDialog.cs,57,Content,,Close,,,,NativeComDialog,Literal evidence; dynamic expressions require runtime parity checks
+Native COM,NativeComDialog.cs,61,Header,,Technical details,,,,NativeComDialog,Literal evidence; dynamic expressions require runtime parity checks
+Native COM,NativeComDialog.cs,131,ToolTip,,Save the converted COM as a separate file.,,,Save the converted COM as a separate file.,NativeComDialog,Literal evidence; dynamic expressions require runtime parity checks
+Native COM,NativeComDialog.cs,196,Content,,Overwrite,,,,NativeComDialog,Literal evidence; dynamic expressions require runtime parity checks
+Native COM,NativeComDialog.cs,198,Content,,Rename,,,,NativeComDialog,Literal evidence; dynamic expressions require runtime parity checks
+Native COM,NativeComDialog.cs,200,Content,,Cancel,,,,NativeComDialog,Literal evidence; dynamic expressions require runtime parity checks
+Physical media,PhysicalTrackViewerWindow.cs,34,Header,,Save As…,,,,PhysicalTrackView,Literal evidence; dynamic expressions require runtime parity checks
+Physical media,PhysicalTrackViewerWindow.cs,42,Header,,Format disk…,,,,PhysicalTrackView,Literal evidence; dynamic expressions require runtime parity checks
+Physical media,PhysicalTrackViewerWindow.cs,44,Header,,Compare with…,,,,PhysicalTrackView,Literal evidence; dynamic expressions require runtime parity checks
+QuickDisk hosts,QuickDiskInspectorControl.cs,30,Button,,Hex view selected unit,,,,HostInspector,Literal evidence; dynamic expressions require runtime parity checks
+QuickDisk hosts,QuickDiskInspectorControl.cs,36,Button,,Export decoded block/sector...,,,,HostInspector,Literal evidence; dynamic expressions require runtime parity checks
+QuickDisk hosts,QuickDiskInspectorControl.cs,47,Button,,Export MO5 logical raw image (51200 B)...,,,,HostInspector,Literal evidence; dynamic expressions require runtime parity checks
+QuickDisk inspection,QuickDiskVisualInspectorWindow.cs,21,Content,,Unrolled MFM detail,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+QuickDisk inspection,QuickDiskVisualInspectorWindow.cs,25,Content,,Floating selection details,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+QuickDisk inspection,QuickDiskVisualInspectorWindow.cs,27,Content,,Cancel export,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+QuickDisk inspection,QuickDiskVisualInspectorWindow.cs,45,Button,,Fit,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+QuickDisk inspection,QuickDiskVisualInspectorWindow.cs,45,Button,,Selected regions,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+QuickDisk inspection,QuickDiskVisualInspectorWindow.cs,45,Button,,Zoom +,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+QuickDisk inspection,QuickDiskVisualInspectorWindow.cs,45,Button,,Zoom −,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+QuickDisk inspection,QuickDiskVisualInspectorWindow.cs,46,Button,,Hex selected region…,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+QuickDisk inspection,QuickDiskVisualInspectorWindow.cs,46,Button,,Export report…,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+QuickDisk inspection,QuickDiskVisualInspectorWindow.cs,46,Button,,Copy summary,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+QuickDisk inspection,QuickDiskVisualInspectorWindow.cs,71,Header,,Hex selected region…,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+QuickDisk inspection,QuickDiskVisualInspectorWindow.cs,72,Header,,Export selected region…,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+QuickDisk inspection,QuickDiskVisualInspectorWindow.cs,75,ToolTip,,"Decoded bytes or logical container bytes; undecoded physical areas use packed stored cells (LSB-first, final byte zero-padded).",,,"Decoded bytes or logical container bytes; undecoded physical areas use packed stored cells (LSB-first, final byte zero-padded).",InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+QuickDisk inspection,QuickDiskVisualInspectorWindow.cs,93,Button,,Fit track,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+QuickDisk inspection,QuickDiskVisualInspectorWindow.cs,93,Button,,Selected region,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+QuickDisk inspection,QuickDiskVisualInspectorWindow.cs,93,Button,,Zoom +,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+QuickDisk inspection,QuickDiskVisualInspectorWindow.cs,93,Button,,Zoom −,,,,InspectorHost,Literal evidence; dynamic expressions require runtime parity checks
+Shared reports,ReportView.cs,36,Content,,Export report…,,,,ReportViewer,Literal evidence; dynamic expressions require runtime parity checks
+Tape / QuickDisk,SaveOptionsDialog.xaml.cs,74,Content,,Apply,,,,SaveExportOptions,Literal evidence; dynamic expressions require runtime parity checks
+Shared export,SeparateExportDialog.cs,59,Content,,Browse…,,,,MultiExportPreview,Literal evidence; dynamic expressions require runtime parity checks
+Shared export,SeparateExportDialog.cs,69,Content,,Export,,,,MultiExportPreview,Literal evidence; dynamic expressions require runtime parity checks
+Shared export,SeparateExportDialog.cs,70,Content,,Cancel,,,,MultiExportPreview,Literal evidence; dynamic expressions require runtime parity checks
+Shared export,SeparateExportDialog.cs,72,Header,,#,,,,MultiExportPreview,Literal evidence; dynamic expressions require runtime parity checks
+Shared export,SeparateExportDialog.cs,73,Header,,Program,,,,MultiExportPreview,Literal evidence; dynamic expressions require runtime parity checks
+Shared export,SeparateExportDialog.cs,74,Header,,Output filename,,,,MultiExportPreview,Literal evidence; dynamic expressions require runtime parity checks
+Profiles,UserProfilesDialog.cs,82,ToolTip,,Select a profile first.,,,Select a profile first.,ProfilesView,Literal evidence; dynamic expressions require runtime parity checks
+Profiles,UserProfilesDialog.cs,84,ToolTip,,Select a user profile; built-in Sharp profiles are read-only.,,,Select a user profile; built-in Sharp profiles are read-only.,ProfilesView,Literal evidence; dynamic expressions require runtime parity checks
+Shared conversion,CompressionOptionsControl.xaml,1,UserControl,MZTools.CompressionOptionsControl,,,,,CompressionOptions,Mapped family; detailed workflow in PARITY.md
+Shared conversion,CompressionOptionsControl.xaml,12,ComboBox,algorithmComboBox,,Option_Changed,,,CompressionOptions,Mapped family; detailed workflow in PARITY.md
+Shared conversion,CompressionOptionsControl.xaml,38,CheckBox,quickCheckBox,ZX0 quick (non-optimal),,,,CompressionOptions,Mapped family; detailed workflow in PARITY.md
+Shared conversion,CompressionOptionsControl.xaml,43,CheckBox,embeddedCheckBox,ZX7 embedded loader in MZF header,,,,CompressionOptions,Mapped family; detailed workflow in PARITY.md
+Shared conversion,CompressionOptionsControl.xaml,49,Expander,expertExpander,Expert / partial,,,,CompressionOptions,Mapped family; detailed workflow in PARITY.md
+Shared conversion,CompressionOptionsControl.xaml,53,TextBox,skipTextBox,,,,,CompressionOptions,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,1,UserControl,MZTools.DskEditorControl,,,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,16,Button,diskMenuButton,Disk ▾,DiskMenu_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,18,MenuItem,convertFormatMenu,Convert Format...,ConvertFormat_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,19,MenuItem,formatDiskMenu,Format disk…,FormatDisk_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,20,MenuItem,normalizeContainerMenu,Normalize Container...,NormalizeContainer_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,21,MenuItem,compareDiskMenu,Compare with...,CompareDisk_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,1,MenuItem,,Batch Process...,BatchProcess_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,23,MenuItem,containerRepairMenu,Repair Container…,RepairContainer_Click,,Open a DSK image to inspect available container repairs.,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,1,Button,,Filesystem ▾,DiskMenu_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,28,MenuItem,crossDiskCopyMenu,Copy from another disk...,CrossDiskCopy_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,29,MenuItem,filePropertiesMenu,File Properties...,FileProperties_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,30,MenuItem,structureInspectorMenu,Structure Inspector...,StructureInspector_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,31,MenuItem,cpmLayoutMenu,Attach / Edit CP/M Layout...,CpmLayout_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,32,MenuItem,defragmentMenu,Defragment...,Defragment_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,33,MenuItem,filesystemRepairMenu,Guided Repair...,RepairFilesystem_Click,,Repair filesystem metadata separately from the DSK container.,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,1,Button,,Boot / System ▾,DiskMenu_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,38,MenuItem,bootstrapMenu,Bootstrap / IPLPRO...,Bootstrap_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,39,MenuItem,installBootSystemMenu,Make Bootable / Install CP/M System...,InstallBootSystem_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,40,MenuItem,bootProfilesMenu,Boot / System profiles...,BootProfiles_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,1,Button,,Tools ▾,DiskMenu_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,1,MenuItem,,Visual analysis…,VisualAnalysis_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,1,MenuItem,,MZF/M12 → COM...,NativeCom_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,1,Button,,Open...,Open_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,50,Button,dskAddButton,Add...,Add_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,51,Button,dskExportButton,Export...,Export_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,52,Button,dskDeleteButton,Delete,Delete_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,53,Button,dskSaveButton,Save,Save_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,54,Button,dskSaveAsButton,Save As...,SaveAs_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,1,Button,,Close,Close_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,1,Button,,↑,MoveUp_Click,,Move selected programs up,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,1,Button,,↓,MoveDown_Click,,Move selected programs down,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,65,CheckBox,dskShowSectorsCheckBox,Show raw sectors,,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,70,TabItem,filesTab,Files,,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,71,DataGrid,directoryGrid,,Files_SelectionChanged,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,81,MenuItem,copyFilesMenu,Copy,CopyFiles_Click,Ctrl+C,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,82,MenuItem,pasteFilesMenu,Paste...,PasteFiles_Click,Ctrl+V,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,84,MenuItem,contextAddMenu,Add...,Add_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,85,MenuItem,contextExportMenu,Export...,ContextExport_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,86,MenuItem,contextExportSelectedMenu,Export selected...,Export_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,87,MenuItem,contextRenameMenu,Rename,RenameSelected_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,88,MenuItem,contextDeleteMenu,Delete,Delete_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,90,MenuItem,contextPropertiesMenu,File Properties...,FileProperties_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,94,DataGrid,multiIplGrid,,MultiIplGrid_SelectionChanged,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,1,MenuItem,,Add...,Add_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,104,MenuItem,iplContextExportMenu,Export...,ContextExport_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,105,MenuItem,iplContextExportSelectedMenu,Export selected...,Export_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,106,MenuItem,iplContextRenameMenu,Rename,RenameSelected_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,107,MenuItem,iplContextCompressionMenu,Compression settings...,IplContextCompression_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,108,MenuItem,iplContextDeleteMenu,Delete,Delete_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,1,Button,,{Binding CompressionSummary},MultiIplCompressionSettings_Click,,{Binding CompressionHint},DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,133,TabItem,mapTab,Disk Map,,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,143,ComboBox,mapOrderBox,,MapOrder_Changed,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,146,Button,dskClearSelectionButton,Clear selection,ClearMapSelection_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,1,Button,,Copy report,CopyAnalysis_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,1,Button,,Save report...,SaveAnalysis_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,157,Button,analysisAllButton,All,AnalysisCount_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,158,Button,analysisErrorsButton,Errors,AnalysisCount_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,159,Button,analysisUnsafeButton,Unsafe,AnalysisCount_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,160,Button,analysisWarningsButton,Warn.,AnalysisCount_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,161,Button,analysisInfoButton,Info,AnalysisCount_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,1,TabItem,,Blocks,,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,165,DataGrid,mapBlocksGrid,,MapBlocks_SelectionChanged,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,1,TabItem,,Issues,,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,180,ComboBox,analysisFilterBox,,AnalysisFilter_Changed,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,187,DataGrid,issuesGrid,,Issue_SelectionChanged,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,1,Expander,,Selection / sector details,,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,209,Button,applyPatchButton,Apply DSK patch...,ApplyPatch_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,210,Button,hexWindowButton,Hex editor...,HexWindow_Click,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Disk / HFE,DskEditorWindow.xaml,212,ComboBox,editBlockBox,,HexBuffer_SelectionChanged,,,DiskWorkspace,Mapped family; detailed workflow in PARITY.md
+Shared hex,HexBrowser.xaml,1,Window,MZTools.HexBrowser,Hex Browser,,,,ReadOnlyHexView,Mapped family; detailed workflow in PARITY.md
+Single IPL,IplDskOptionsDialog.xaml,1,Window,MZTools.IplDskOptionsDialog,MZ-800 IPL DSK export,,,,SingleIplOptions,Mapped family; detailed workflow in PARITY.md
+Single IPL,IplDskOptionsDialog.xaml,22,TextBox,bootNameTextBox,,,,,SingleIplOptions,Mapped family; detailed workflow in PARITY.md
+Single IPL,IplDskOptionsDialog.xaml,45,Button,saveButton,Save,SaveButton_Click,,,SingleIplOptions,Mapped family; detailed workflow in PARITY.md
+Single IPL,IplDskOptionsDialog.xaml,1,Button,,Cancel,,,,SingleIplOptions,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,1,Window,MZTools.MainWindow,MZTools,,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,22,Button,toolsButton,Tools ▾,ToolsMenu_Click,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,24,MenuItem,batchProcessMenu,Batch Process...,BatchProcess_Click,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,25,MenuItem,qdVisualAnalysisMenu,Visual analysis…,QuickDiskVisual_Click,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,26,MenuItem,analyzeAudioMenu,Analyze Audio (WAV / FLAC)...,AnalyzeAudio_Click,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,1,MenuItem,,Record Audio / Live Tape Analysis...,RecordAudio_Click,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,28,MenuItem,mzfCpmMenu,MZF/M12 → COM...,NativeCom_Click,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,31,Button,openButton,Open...,button_Click_Open,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,32,Button,addButton,Add...,button_Click_Add,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,33,Button,exportButton,Export...,button_Click_Export,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,34,Button,viewButton,View,button_Click_View,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,35,Button,deleteButton,Delete,button_Click_Delete,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,36,Button,qdCompressionButton,Compression...,QuickDiskCompression_Click,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,37,Button,saveButton,Save,button_Click_Save,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,38,Button,saveAsButton,Save As...,button_Click_SaveAs,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,39,Button,closeButton,Close,button_Click_Close,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,46,Button,moveUpButton,↑,button_Click_Up,,Move selected rows up,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,47,Button,moveDownButton,↓,button_Click_Down,,Move selected rows down,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,50,Button,newQuickDiskButton,New QD...,button_Click_NewQuickDisk,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,51,Button,newDskButton,New disk...,button_Click_NewDsk,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,52,Button,formatQuickDiskButton,Format...,button_Click_FormatQuickDisk,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,1,TabItem,,Files,,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,59,DataGrid,MzfDataGrid,,MzfDataGrid_SelectionChanged,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,81,MenuItem,tapeContextAdd,Add...,button_Click_Add,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,82,MenuItem,tapeContextExport,Export...,TapeContextExport_Click,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,83,MenuItem,tapeContextExportSelected,Export selected...,button_Click_Export,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,84,MenuItem,tapeContextRename,Rename,TapeRename_Click,F2,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,85,MenuItem,tapeContextDelete,Delete,button_Click_Delete,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,86,MenuItem,tapeContextCompression,Compression...,QuickDiskCompression_Click,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,88,MenuItem,tapeContextView,Hex view...,button_Click_View,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,1,ComboBox,,,LoaderComboBox_SelectionChanged,,{Binding ProfileDescription},DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,1,ComboBox,,,SpeedComboBox_SelectionChanged,,{Binding ProfileDescription},DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,154,TabItem,quickDiskMapTab,Disk Map,,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,164,Button,quickDiskHexButton,Hex view block,QuickDiskHex_Click,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,165,Button,quickDiskClearSelectionButton,Clear selection,ClearQuickDiskSelection_Click,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,1,Button,,Copy report,QuickDiskCopyReport_Click,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,1,Button,,Save report...,QuickDiskSaveReport_Click,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,MainWindow.xaml,179,DataGrid,quickDiskBlocks,,QuickDiskBlocks_SelectionChanged,,,DocumentWorkspace,Mapped family; detailed workflow in PARITY.md
+Multi IPL,MultiGameIplDskOptionsDialog.xaml,1,Window,MZTools.MultiGameIplDskOptionsDialog,MZ-800 multi-program IPL DSK configuration,,,,MultiIplEditor,Mapped family; detailed workflow in PARITY.md
+Multi IPL,MultiGameIplDskOptionsDialog.xaml,28,DataGrid,entriesGrid,,,,,MultiIplEditor,Mapped family; detailed workflow in PARITY.md
+Multi IPL,MultiGameIplDskOptionsDialog.xaml,1,Button,,{Binding CompressionSummary},CompressionSettings_Click,,{Binding CompressionHint},MultiIplEditor,Mapped family; detailed workflow in PARITY.md
+Multi IPL,MultiGameIplDskOptionsDialog.xaml,1,Button,,Add...,AddButton_Click,,,MultiIplEditor,Mapped family; detailed workflow in PARITY.md
+Multi IPL,MultiGameIplDskOptionsDialog.xaml,1,Button,,Delete,DeleteButton_Click,,,MultiIplEditor,Mapped family; detailed workflow in PARITY.md
+Multi IPL,MultiGameIplDskOptionsDialog.xaml,1,Button,,↑,UpButton_Click,,Move selected rows up,MultiIplEditor,Mapped family; detailed workflow in PARITY.md
+Multi IPL,MultiGameIplDskOptionsDialog.xaml,1,Button,,↓,DownButton_Click,,Move selected rows down,MultiIplEditor,Mapped family; detailed workflow in PARITY.md
+Multi IPL,MultiGameIplDskOptionsDialog.xaml,90,Button,saveButton,Save,SaveButton_Click,,,MultiIplEditor,Mapped family; detailed workflow in PARITY.md
+Multi IPL,MultiGameIplDskOptionsDialog.xaml,1,Button,,Cancel,,,,MultiIplEditor,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,SaveOptionsDialog.xaml,1,Window,MZTools.SaveOptionsDialog,Save options,,,,SaveExportOptions,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,SaveOptionsDialog.xaml,16,CheckBox,preserveTrailingCheckBox,,,,,SaveExportOptions,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,SaveOptionsDialog.xaml,17,CheckBox,generateSidecarCheckBox,,,,,SaveExportOptions,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,SaveOptionsDialog.xaml,32,ComboBox,machineComboBox,,,,,SaveExportOptions,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,SaveOptionsDialog.xaml,52,ComboBox,sampleRateComboBox,,,,,SaveExportOptions,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,SaveOptionsDialog.xaml,96,CheckBox,decompressKnownCheckBox,Decompress ZX0/ZX7 records for export,,,,SaveExportOptions,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,SaveOptionsDialog.xaml,130,Button,saveButton,Save,SaveButton_Click,,,SaveExportOptions,Mapped family; detailed workflow in PARITY.md
+Tape / QuickDisk,SaveOptionsDialog.xaml,1,Button,,Cancel,,,,SaveExportOptions,Mapped family; detailed workflow in PARITY.md
+Audio progress,WavAnalysisProgressWindow.xaml,1,Window,MZTools.WavAnalysisProgressWindow,Heuristic audio analysis,,,,BackgroundTaskProgress,Mapped family; detailed workflow in PARITY.md
+Audio progress,WavAnalysisProgressWindow.xaml,32,Button,cancelButton,Cancel,Cancel_Click,,,BackgroundTaskProgress,Mapped family; detailed workflow in PARITY.md
+Audio statistics,WavAnalysisStatisticsWindow.xaml,1,Window,MZTools.WavAnalysisStatisticsWindow,Audio analysis statistics,,,,AudioStatistics,Mapped family; detailed workflow in PARITY.md
+Audio statistics,WavAnalysisStatisticsWindow.xaml,26,Button,visualAnalysisButton,Visual analysis…,VisualAnalysis_Click,,,AudioStatistics,Mapped family; detailed workflow in PARITY.md
+Audio statistics,WavAnalysisStatisticsWindow.xaml,1,Button,,OK,Ok_Click,,,AudioStatistics,Mapped family; detailed workflow in PARITY.md
+Audio import,WavImportOptionsWindow.xaml,1,Window,MZTools.WavImportOptionsWindow,Audio import options,,,,AudioImportOptions,Mapped family; detailed workflow in PARITY.md
+Audio import,WavImportOptionsWindow.xaml,17,CheckBox,heuristicImportCheckBox,Use heuristic analysis / recovery,,,,AudioImportOptions,Mapped family; detailed workflow in PARITY.md
+Audio import,WavImportOptionsWindow.xaml,30,ComboBox,reportModeComboBox,,,,,AudioImportOptions,Mapped family; detailed workflow in PARITY.md
+Audio import,WavImportOptionsWindow.xaml,1,Button,,OK,Ok_Click,,,AudioImportOptions,Mapped family; detailed workflow in PARITY.md
+Audio import,WavImportOptionsWindow.xaml,1,Button,,Cancel,,,,AudioImportOptions,Mapped family; detailed workflow in PARITY.md

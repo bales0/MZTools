@@ -106,7 +106,7 @@ public class PulseReferenceCatalogTests
     [Fact]
     public void StandardImport_Barbarian700RecoversAllFiveRecordsLikeHeuristics()
     {
-        string path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,"..","..","..","WAV","Barbarian2_700.wav"));
+        string path = TestMediaPaths.Resolve("WAV", "Barbarian2_700.wav");
         if (!File.Exists(path)) return; // Optional local capture, not distributed with source.
         var standard = SharpTapeImporter.ReadFile(path);
         var heuristic = WavHeuristicAnalyzer.AnalyzeFile(path);

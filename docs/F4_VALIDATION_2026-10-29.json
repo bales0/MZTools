@@ -1,0 +1,818 @@
+{
+  "phase": "F4",
+  "date": "2026-10-29",
+  "suites": {
+    "Windows/mztools.capture.tests.dll": {
+      "source": "TestResults/F4/windows/regression/f4-regression_net10.0_20261029213247.trx",
+      "sha256": "a46ddb974fa5d6adf381c31040f38bfcac1da1e2beafa8360727beacb561461c",
+      "total": 210,
+      "passed": 210,
+      "failed": 0,
+      "skipped": []
+    },
+    "Windows/mztools.capture.windows.tests.dll": {
+      "source": "TestResults/F4/windows/regression/f4-regression_net10.0_20261029213255.trx",
+      "sha256": "cb8538146ff1873078fb37d938825341dfce568c0e32487c7638fb42a7213ec7",
+      "total": 52,
+      "passed": 52,
+      "failed": 0,
+      "skipped": []
+    },
+    "Windows/mztools.core.tests.dll": {
+      "source": "TestResults/F4/windows/regression/f4-regression_net10.0_20261029214606.trx",
+      "sha256": "1b8f8a205d9e66fa8d3c0570a1d15aaa85d7e639498a764b9f99eb6b7c5084fe",
+      "total": 412,
+      "passed": 411,
+      "failed": 0,
+      "skipped": [
+        {
+          "test": "MZTools.Tests.QuickDiskHostDetectionTests.RealReferenceHxCAndEquivalentFlashFloppyIdentifySameHost",
+          "reason": "Place the three documented full QD reference images in specification and rebuild to run local integration tests."
+        }
+      ]
+    },
+    "Windows/Legacy": {
+      "source": "TestResults/F4/windows/legacy-final.trx",
+      "sha256": "9abdbb540f9d4f4bdc1556e4fa182929c50728d9b43d2b5cab8fe65f9b0c9e66",
+      "total": 1205,
+      "passed": 1202,
+      "failed": 0,
+      "skipped": [
+        {
+          "test": "MZTools.Tests.CpmSystemBuilderTests.RealRegisteredSystemsRemainIdentifiedWithDifferentComAndGameFiles",
+          "reason": "Place the five documented CP/M references in the sibling _SFD800 directory to run local full-image regressions."
+        },
+        {
+          "test": "MZTools.Tests.QuickDiskHostDetectionTests.RealReferenceHxCAndEquivalentFlashFloppyIdentifySameHost",
+          "reason": "Place the three documented full QD reference images in specification and rebuild to run local integration tests."
+        },
+        {
+          "test": "MZTools.Tests.CpmSystemBuilderTests.DescriptorChangesNeverRemainRegisteredOrInstallIntoCanonicalTarget",
+          "reason": "Place the five documented CP/M references in the sibling _SFD800 directory to run local full-image regressions."
+        }
+      ]
+    },
+    "Windows/Desktop": {
+      "source": "TestResults/F4/windows/desktop-final.trx",
+      "sha256": "d4b82b57f026da4165326b5e4d0d8de19ef1eb07fbf5ed8372d5f0854f0bd753",
+      "total": 110,
+      "passed": 110,
+      "failed": 0,
+      "skipped": []
+    },
+    "Linux/Desktop": {
+      "source": "TestResults/F4/linux/desktop-final-linux.trx",
+      "sha256": "aaac72acba6ed5c37e2c9f3aafa112a4375a611138bb58d9c0882fb3668d64ee",
+      "total": 110,
+      "passed": 110,
+      "failed": 0,
+      "skipped": []
+    },
+    "Linux/Core": {
+      "source": "TestResults/F4/linux/core-linux.trx",
+      "sha256": "db380830c3eb6fdebc0ca386a3dc9a67654b42f3d5e335113fe9633d36709891",
+      "total": 412,
+      "passed": 411,
+      "failed": 0,
+      "skipped": [
+        {
+          "test": "MZTools.Tests.QuickDiskHostDetectionTests.RealReferenceHxCAndEquivalentFlashFloppyIdentifySameHost",
+          "reason": "Place the three documented full QD reference images in specification and rebuild to run local integration tests."
+        }
+      ]
+    },
+    "Linux/Capture": {
+      "source": "TestResults/F4/linux/capture-linux.trx",
+      "sha256": "4bc1ddae1bc4f9a714de02fbaa436933c743bcfd494286cf693e4a7caeb799cb",
+      "total": 210,
+      "passed": 210,
+      "failed": 0,
+      "skipped": []
+    }
+  },
+  "targetedFollowup": {
+    "Windows/Legacy IO": {
+      "source": "TestResults/F4/windows/legacy-io-final.trx",
+      "sha256": "be321b6fef9fe58251e311d5c92d09683e54169db7115b44a413e728d550e574",
+      "total": 75,
+      "passed": 75,
+      "failed": 0,
+      "skipped": []
+    },
+    "Linux/Core IO": {
+      "source": "TestResults/F4/linux/core-io-final-linux.trx",
+      "sha256": "bb49c7ccfddb59c621bf0980a26ee7b1fd8547fd3bb9630387cb635466fb7380",
+      "total": 83,
+      "passed": 83,
+      "failed": 0,
+      "skipped": []
+    }
+  },
+  "passedCaseExecutions": 2716,
+  "fixtureSkips": 5,
+  "failed": 0,
+  "binaryParity": {
+    "windows": {
+      "Com": {
+        "kind": "Com",
+        "length": 4864,
+        "sha256": "35C5A4B40522BEF043A3A8A85F925D6E7ADCB6725BF5C68D9E1943782B66D47A"
+      },
+      "L16": {
+        "kind": "L16",
+        "length": 44848,
+        "sha256": "990DED75FAE3E23A99BB328A60ABDF240EFD914DD31D06FB6980CC804BEA7B24"
+      },
+      "Lep": {
+        "kind": "Lep",
+        "length": 44848,
+        "sha256": "13FCCBDFCA8B48A67CC8B4A0F57250D3448DE0528A647B68C0C9965187657C10"
+      },
+      "M12-edited": {
+        "kind": "M12-edited",
+        "length": 640,
+        "sha256": "FCF29390EB626E9C0B3D0554DF5F8C156E251C274738D7C435F54978CD1851A1"
+      },
+      "M12": {
+        "kind": "M12",
+        "length": 640,
+        "sha256": "C7B570C09D0CEF45CF4D38F0EC29494AD38A05B9A22B4518B773F4788B23D684"
+      },
+      "Mzf-edited": {
+        "kind": "Mzf-edited",
+        "length": 640,
+        "sha256": "FCF29390EB626E9C0B3D0554DF5F8C156E251C274738D7C435F54978CD1851A1"
+      },
+      "Mzf": {
+        "kind": "Mzf",
+        "length": 640,
+        "sha256": "C7B570C09D0CEF45CF4D38F0EC29494AD38A05B9A22B4518B773F4788B23D684"
+      },
+      "Mzq-edited": {
+        "kind": "Mzq-edited",
+        "length": 604,
+        "sha256": "E807E7722D8FCCCA48CDF21CFF43DB7AF45A794D9BC8C33404F13A4F4CFD25A1"
+      },
+      "Mzq": {
+        "kind": "Mzq",
+        "length": 604,
+        "sha256": "5697A886422183F776DD85AB7D355424A18ADC279B9C74C83A61FE227F1860D3"
+      },
+      "Mzt-edited": {
+        "kind": "Mzt-edited",
+        "length": 640,
+        "sha256": "FCF29390EB626E9C0B3D0554DF5F8C156E251C274738D7C435F54978CD1851A1"
+      },
+      "Mzt": {
+        "kind": "Mzt",
+        "length": 640,
+        "sha256": "C7B570C09D0CEF45CF4D38F0EC29494AD38A05B9A22B4518B773F4788B23D684"
+      },
+      "Qdf-edited": {
+        "kind": "Qdf-edited",
+        "length": 81936,
+        "sha256": "738EBDA68463B9FB3175C8A3A3E35EE628E71EACB765917B8EA96C20D48D5C1C"
+      },
+      "Qdf": {
+        "kind": "Qdf",
+        "length": 81936,
+        "sha256": "BDF2EE056A3CE0A9EAD572051129856FC768E175546A0661BB1D8669FE6F4FCC"
+      },
+      "QdFlashFloppy-edited": {
+        "kind": "QdFlashFloppy-edited",
+        "length": 204800,
+        "sha256": "C88BABD2C85FA399494B14590FC6E7462C62CD76D455C91A97A49B138CC87D66"
+      },
+      "QdFlashFloppy": {
+        "kind": "QdFlashFloppy",
+        "length": 204800,
+        "sha256": "DCEB61CABB2AE5C3EE71DC70030CE8897D411DED501135DABD5441673B8CB568"
+      },
+      "QdHxc-edited": {
+        "kind": "QdHxc-edited",
+        "length": 204800,
+        "sha256": "D0E949108DC485D50C48FC345C40F9391CC833508D237A69129839CD36E9CB0C"
+      },
+      "QdHxc": {
+        "kind": "QdHxc",
+        "length": 204800,
+        "sha256": "31B3749B04B5CD96EEC22CE4ED1B13092A323F651AF7B1D281639F126142505A"
+      },
+      "QdSharpLegacy-edited": {
+        "kind": "QdSharpLegacy-edited",
+        "length": 61455,
+        "sha256": "2242FF16E9261CB0078E5A5CC5B7389009E40FD30C624A41AE272ECD659C3D79"
+      },
+      "QdSharpLegacy": {
+        "kind": "QdSharpLegacy",
+        "length": 61455,
+        "sha256": "70B1027E9E9E298172BBBDE8486708FDE80EA40225593DC18E317DFC51AB863B"
+      },
+      "Wav": {
+        "kind": "Wav",
+        "length": 526932,
+        "sha256": "4B5EA7EE7B5F04BE3A13388BD4B1D5B54CD7F7C0AF6104A442244741B04E1897"
+      }
+    },
+    "linux": {
+      "Com": {
+        "kind": "Com",
+        "length": 4864,
+        "sha256": "35C5A4B40522BEF043A3A8A85F925D6E7ADCB6725BF5C68D9E1943782B66D47A"
+      },
+      "L16": {
+        "kind": "L16",
+        "length": 44848,
+        "sha256": "990DED75FAE3E23A99BB328A60ABDF240EFD914DD31D06FB6980CC804BEA7B24"
+      },
+      "Lep": {
+        "kind": "Lep",
+        "length": 44848,
+        "sha256": "13FCCBDFCA8B48A67CC8B4A0F57250D3448DE0528A647B68C0C9965187657C10"
+      },
+      "M12-edited": {
+        "kind": "M12-edited",
+        "length": 640,
+        "sha256": "FCF29390EB626E9C0B3D0554DF5F8C156E251C274738D7C435F54978CD1851A1"
+      },
+      "M12": {
+        "kind": "M12",
+        "length": 640,
+        "sha256": "C7B570C09D0CEF45CF4D38F0EC29494AD38A05B9A22B4518B773F4788B23D684"
+      },
+      "Mzf-edited": {
+        "kind": "Mzf-edited",
+        "length": 640,
+        "sha256": "FCF29390EB626E9C0B3D0554DF5F8C156E251C274738D7C435F54978CD1851A1"
+      },
+      "Mzf": {
+        "kind": "Mzf",
+        "length": 640,
+        "sha256": "C7B570C09D0CEF45CF4D38F0EC29494AD38A05B9A22B4518B773F4788B23D684"
+      },
+      "Mzq-edited": {
+        "kind": "Mzq-edited",
+        "length": 604,
+        "sha256": "E807E7722D8FCCCA48CDF21CFF43DB7AF45A794D9BC8C33404F13A4F4CFD25A1"
+      },
+      "Mzq": {
+        "kind": "Mzq",
+        "length": 604,
+        "sha256": "5697A886422183F776DD85AB7D355424A18ADC279B9C74C83A61FE227F1860D3"
+      },
+      "Mzt-edited": {
+        "kind": "Mzt-edited",
+        "length": 640,
+        "sha256": "FCF29390EB626E9C0B3D0554DF5F8C156E251C274738D7C435F54978CD1851A1"
+      },
+      "Mzt": {
+        "kind": "Mzt",
+        "length": 640,
+        "sha256": "C7B570C09D0CEF45CF4D38F0EC29494AD38A05B9A22B4518B773F4788B23D684"
+      },
+      "Qdf-edited": {
+        "kind": "Qdf-edited",
+        "length": 81936,
+        "sha256": "738EBDA68463B9FB3175C8A3A3E35EE628E71EACB765917B8EA96C20D48D5C1C"
+      },
+      "Qdf": {
+        "kind": "Qdf",
+        "length": 81936,
+        "sha256": "BDF2EE056A3CE0A9EAD572051129856FC768E175546A0661BB1D8669FE6F4FCC"
+      },
+      "QdFlashFloppy-edited": {
+        "kind": "QdFlashFloppy-edited",
+        "length": 204800,
+        "sha256": "C88BABD2C85FA399494B14590FC6E7462C62CD76D455C91A97A49B138CC87D66"
+      },
+      "QdFlashFloppy": {
+        "kind": "QdFlashFloppy",
+        "length": 204800,
+        "sha256": "DCEB61CABB2AE5C3EE71DC70030CE8897D411DED501135DABD5441673B8CB568"
+      },
+      "QdHxc-edited": {
+        "kind": "QdHxc-edited",
+        "length": 204800,
+        "sha256": "D0E949108DC485D50C48FC345C40F9391CC833508D237A69129839CD36E9CB0C"
+      },
+      "QdHxc": {
+        "kind": "QdHxc",
+        "length": 204800,
+        "sha256": "31B3749B04B5CD96EEC22CE4ED1B13092A323F651AF7B1D281639F126142505A"
+      },
+      "QdSharpLegacy-edited": {
+        "kind": "QdSharpLegacy-edited",
+        "length": 61455,
+        "sha256": "2242FF16E9261CB0078E5A5CC5B7389009E40FD30C624A41AE272ECD659C3D79"
+      },
+      "QdSharpLegacy": {
+        "kind": "QdSharpLegacy",
+        "length": 61455,
+        "sha256": "70B1027E9E9E298172BBBDE8486708FDE80EA40225593DC18E317DFC51AB863B"
+      },
+      "Wav": {
+        "kind": "Wav",
+        "length": 526932,
+        "sha256": "4B5EA7EE7B5F04BE3A13388BD4B1D5B54CD7F7C0AF6104A442244741B04E1897"
+      }
+    }
+  },
+  "native": {
+    "windows": {
+      "native-smoke": {
+        "os": "Microsoft Windows 10.0.26300",
+        "framework": ".NET 10.0.11",
+        "storageProvider": "Avalonia.Win32.Win32StorageProvider",
+        "backend": "Avalonia.Win32.WindowImpl",
+        "checks": [
+          {
+            "name": "Native window is visible",
+            "pass": true
+          },
+          {
+            "name": "Startup does not open files or devices",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 1440x960",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 1366x768",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 920x640",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 640x480",
+            "pass": true
+          },
+          {
+            "name": "Native input binding filters table",
+            "pass": true
+          },
+          {
+            "name": "Navigation and selection share context",
+            "pass": true
+          },
+          {
+            "name": "F6 changes focus region",
+            "pass": true
+          },
+          {
+            "name": "Native clipboard report roundtrip",
+            "pass": true
+          },
+          {
+            "name": "Explicit Open displayed a real platform picker window",
+            "pass": true
+          },
+          {
+            "name": "Cancel picker preserves empty document state without errors",
+            "pass": true
+          },
+          {
+            "name": "Explicit Save As picker can be cancelled without creating a file",
+            "pass": true
+          },
+          {
+            "name": "Save remains unavailable without document adapter",
+            "pass": true
+          },
+          {
+            "name": "Native close coordinator succeeds",
+            "pass": true
+          }
+        ],
+        "frames": [
+          {
+            "file": "native-layout-1440x960.png",
+            "logicalWidth": 1440,
+            "logicalHeight": 940,
+            "renderScaling": 1.5,
+            "pixels": "2160, 1410",
+            "origin": "Skia visual render of a real native window; not desktop screen capture"
+          },
+          {
+            "file": "native-layout-1366x768.png",
+            "logicalWidth": 1366,
+            "logicalHeight": 768,
+            "renderScaling": 1.5,
+            "pixels": "2049, 1152",
+            "origin": "Skia visual render of a real native window; not desktop screen capture"
+          },
+          {
+            "file": "native-layout-920x640.png",
+            "logicalWidth": 920,
+            "logicalHeight": 640,
+            "renderScaling": 1.5,
+            "pixels": "1380, 960",
+            "origin": "Skia visual render of a real native window; not desktop screen capture"
+          },
+          {
+            "file": "native-layout-640x480.png",
+            "logicalWidth": 640,
+            "logicalHeight": 480,
+            "renderScaling": 1.5,
+            "pixels": "960, 720",
+            "origin": "Skia visual render of a real native window; not desktop screen capture"
+          }
+        ],
+        "hardwareTested": false,
+        "allNativeDpiScalesTested": false,
+        "clipboardRoundtripTested": true,
+        "exit": 0
+      },
+      "native-media": {
+        "os": "Microsoft Windows 10.0.26300",
+        "frames": [
+          {
+            "file": "native-tape.png",
+            "logicalWidth": 1440,
+            "logicalHeight": 940,
+            "renderScaling": 1.5,
+            "pixelWidth": 2160,
+            "pixelHeight": 1410,
+            "origin": "Skia visual render of a real native window; not desktop screen capture"
+          },
+          {
+            "file": "native-quickdisk.png",
+            "logicalWidth": 1440,
+            "logicalHeight": 940,
+            "renderScaling": 1.5,
+            "pixelWidth": 2160,
+            "pixelHeight": 1410,
+            "origin": "Skia visual render of a real native window; not desktop screen capture"
+          },
+          {
+            "file": "native-quickdisk-map.png",
+            "logicalWidth": 1440,
+            "logicalHeight": 940,
+            "renderScaling": 1.5,
+            "pixelWidth": 2160,
+            "pixelHeight": 1410,
+            "origin": "Skia visual render of a real native window; not desktop screen capture"
+          },
+          {
+            "file": "native-media-compact.png",
+            "logicalWidth": 640,
+            "logicalHeight": 480,
+            "renderScaling": 1.5,
+            "pixelWidth": 960,
+            "pixelHeight": 720,
+            "origin": "Skia visual render of a real native window; not desktop screen capture"
+          }
+        ],
+        "pickerMode": "Controlled test paths; real platform picker cancellation is covered by native-smoke.json",
+        "checks": [
+          {
+            "name": "Native New Tape creates a real document",
+            "pass": true
+          },
+          {
+            "name": "Native import applies two actual MZF files",
+            "pass": true
+          },
+          {
+            "name": "Native metadata Apply updates the selected record",
+            "pass": true
+          },
+          {
+            "name": "Native Save As writes media and sidecar",
+            "pass": true
+          },
+          {
+            "name": "Native Save As rebinds clean document",
+            "pass": true
+          },
+          {
+            "name": "Native edits keep the imported source unchanged",
+            "pass": true
+          },
+          {
+            "name": "Native reopen reads the persisted edit",
+            "pass": true
+          },
+          {
+            "name": "Native codec transfer copies into a separate QuickDisk document",
+            "pass": true
+          },
+          {
+            "name": "Native transfer retains the selected record identity",
+            "pass": true
+          },
+          {
+            "name": "Native QuickDisk Save As writes a real QDF",
+            "pass": true
+          },
+          {
+            "name": "Native export uses the real LEP writer",
+            "pass": true
+          },
+          {
+            "name": "Native Export preserves document binding",
+            "pass": true
+          },
+          {
+            "name": "Native compact window keeps document commands reachable",
+            "pass": true
+          },
+          {
+            "name": "Native media window closes through the document coordinator",
+            "pass": true
+          }
+        ]
+      }
+    },
+    "linux": {
+      "native-smoke": {
+        "os": "Debian GNU/Linux 13 (trixie)",
+        "framework": ".NET 10.0.11",
+        "storageProvider": "Avalonia.Platform.Storage.FallbackStorageProvider",
+        "backend": "Avalonia.X11.X11Window",
+        "checks": [
+          {
+            "name": "Native window is visible",
+            "pass": true
+          },
+          {
+            "name": "Startup does not open files or devices",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 1440x960",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 1366x768",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 920x640",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 640x480",
+            "pass": true
+          },
+          {
+            "name": "Native input binding filters table",
+            "pass": true
+          },
+          {
+            "name": "Navigation and selection share context",
+            "pass": true
+          },
+          {
+            "name": "F6 changes focus region",
+            "pass": true
+          },
+          {
+            "name": "Non-text/rich clipboard preserved; native text roundtrip UNTESTED for this run",
+            "pass": true
+          },
+          {
+            "name": "Explicit Open displayed a real platform picker window",
+            "pass": true
+          },
+          {
+            "name": "Cancel picker preserves empty document state without errors",
+            "pass": true
+          },
+          {
+            "name": "Explicit Save As picker can be cancelled without creating a file",
+            "pass": true
+          },
+          {
+            "name": "Save remains unavailable without document adapter",
+            "pass": true
+          },
+          {
+            "name": "Native close coordinator succeeds",
+            "pass": true
+          }
+        ],
+        "frames": [
+          {
+            "file": "native-layout-1440x960.png",
+            "logicalWidth": 1440,
+            "logicalHeight": 960,
+            "renderScaling": 1,
+            "pixels": "1440, 960",
+            "origin": "Skia visual render of a real native window; not desktop screen capture"
+          },
+          {
+            "file": "native-layout-1366x768.png",
+            "logicalWidth": 1366,
+            "logicalHeight": 768,
+            "renderScaling": 1,
+            "pixels": "1366, 768",
+            "origin": "Skia visual render of a real native window; not desktop screen capture"
+          },
+          {
+            "file": "native-layout-920x640.png",
+            "logicalWidth": 920,
+            "logicalHeight": 640,
+            "renderScaling": 1,
+            "pixels": "920, 640",
+            "origin": "Skia visual render of a real native window; not desktop screen capture"
+          },
+          {
+            "file": "native-layout-640x480.png",
+            "logicalWidth": 640,
+            "logicalHeight": 480,
+            "renderScaling": 1,
+            "pixels": "640, 480",
+            "origin": "Skia visual render of a real native window; not desktop screen capture"
+          }
+        ],
+        "hardwareTested": false,
+        "allNativeDpiScalesTested": false,
+        "clipboardRoundtripTested": false,
+        "exit": 0
+      },
+      "native-media": {
+        "os": "Debian GNU/Linux 13 (trixie)",
+        "frames": [
+          {
+            "file": "native-tape.png",
+            "logicalWidth": 1440,
+            "logicalHeight": 960,
+            "renderScaling": 1,
+            "pixelWidth": 1440,
+            "pixelHeight": 960,
+            "origin": "Skia visual render of a real native window; not desktop screen capture"
+          },
+          {
+            "file": "native-quickdisk.png",
+            "logicalWidth": 1440,
+            "logicalHeight": 960,
+            "renderScaling": 1,
+            "pixelWidth": 1440,
+            "pixelHeight": 960,
+            "origin": "Skia visual render of a real native window; not desktop screen capture"
+          },
+          {
+            "file": "native-quickdisk-map.png",
+            "logicalWidth": 1440,
+            "logicalHeight": 960,
+            "renderScaling": 1,
+            "pixelWidth": 1440,
+            "pixelHeight": 960,
+            "origin": "Skia visual render of a real native window; not desktop screen capture"
+          },
+          {
+            "file": "native-media-compact.png",
+            "logicalWidth": 640,
+            "logicalHeight": 480,
+            "renderScaling": 1,
+            "pixelWidth": 640,
+            "pixelHeight": 480,
+            "origin": "Skia visual render of a real native window; not desktop screen capture"
+          }
+        ],
+        "pickerMode": "Controlled test paths; real platform picker cancellation is covered by native-smoke.json",
+        "checks": [
+          {
+            "name": "Native New Tape creates a real document",
+            "pass": true
+          },
+          {
+            "name": "Native import applies two actual MZF files",
+            "pass": true
+          },
+          {
+            "name": "Native metadata Apply updates the selected record",
+            "pass": true
+          },
+          {
+            "name": "Native Save As writes media and sidecar",
+            "pass": true
+          },
+          {
+            "name": "Native Save As rebinds clean document",
+            "pass": true
+          },
+          {
+            "name": "Native edits keep the imported source unchanged",
+            "pass": true
+          },
+          {
+            "name": "Native reopen reads the persisted edit",
+            "pass": true
+          },
+          {
+            "name": "Native codec transfer copies into a separate QuickDisk document",
+            "pass": true
+          },
+          {
+            "name": "Native transfer retains the selected record identity",
+            "pass": true
+          },
+          {
+            "name": "Native QuickDisk Save As writes a real QDF",
+            "pass": true
+          },
+          {
+            "name": "Native export uses the real LEP writer",
+            "pass": true
+          },
+          {
+            "name": "Native Export preserves document binding",
+            "pass": true
+          },
+          {
+            "name": "Native compact window keeps document commands reachable",
+            "pass": true
+          },
+          {
+            "name": "Native media window closes through the document coordinator",
+            "pass": true
+          }
+        ]
+      }
+    }
+  },
+  "resolvedPriorLegacyFailure": {
+    "source": "TestResults/F4/windows/regression/f4-regression_net10.0_20261029214618.trx",
+    "sha256": "59aef5e5e5736c0d169ca18b3596e2ab37bbd44c200478f7853b4e3780750dbb",
+    "total": 1205,
+    "passed": 1201,
+    "failed": 1,
+    "skipped": [
+      {
+        "test": "MZTools.Tests.CpmSystemBuilderTests.RealRegisteredSystemsRemainIdentifiedWithDifferentComAndGameFiles",
+        "reason": "Place the five documented CP/M references in the sibling _SFD800 directory to run local full-image regressions."
+      },
+      {
+        "test": "MZTools.Tests.QuickDiskHostDetectionTests.RealReferenceHxCAndEquivalentFlashFloppyIdentifySameHost",
+        "reason": "Place the three documented full QD reference images in specification and rebuild to run local integration tests."
+      },
+      {
+        "test": "MZTools.Tests.CpmSystemBuilderTests.DescriptorChangesNeverRemainRegisteredOrInstallIntoCanonicalTarget",
+        "reason": "Place the five documented CP/M references in the sibling _SFD800 directory to run local full-image regressions."
+      }
+    ]
+  },
+  "unverified": [
+    "macOS",
+    "real OS drag/drop pointer bridge; computer-use native pipe unavailable",
+    "all physical monitor DPI combinations",
+    "screen reader",
+    "audio hardware"
+  ],
+  "sourceHashes": {
+    "MainWindow.xaml.cs": "07ef7ef9732b9b2f8b534664823992da71526c0071c0c591ad7e58498d6b22e2",
+    "MZTool.Tests/DskAnalyzerTests.cs": "4dc0753cb87088d48848eada9069ba79fd7219d2b050a9981c20fa58ab5d01b4",
+    "src/MZTools.Core/AtomicFileTransaction.cs": "9ab8b40667b4a37ea910eebf979591cd8d71f868cc37a9bf65dcbad6e9c5cf3e",
+    "src/MZTools.Core/Mzf.cs": "e6b18c74922582923d4797812041df51257ca3a8937380c945a98609e31d9412",
+    "src/MZTools.Core/MZTools.Core.csproj": "2f2c7f0b7ab1bb696de14472ab94cf690d422a6c84d9b7584a749c05136f1d2e",
+    "src/MZTools.Core/QuickDisk.cs": "33eb78b4b964e273c387534da8206d4170e2b9c4b8235cc131bfd4dfa2ef3f74",
+    "src/MZTools.Core/TapeDocumentIO.cs": "235301236deba82c03d88548c158f04a1cb94272ed0b3d11bf852255a3f4d53f",
+    "src/MZTools.Core/TapeSavePolicy.cs": "278e18b595b7dd22680b4dd085a5cf64a084d823a23c71b04e61a88c4b2c8fd7",
+    "src/MZTools.Desktop/App.axaml": "8e97eece17de046db13fe842fc2d61e57a502b18a73e35e069e38ab099bd546c",
+    "src/MZTools.Desktop/App.axaml.cs": "68c3a8ba49093d2042a6d9acf14b09b64e361d68a12663091dc0514efc6839d9",
+    "src/MZTools.Desktop/Controls/PropertyForm.axaml": "02a877ed075bc07e23e33d6746a36c036b9ff5ad80baf1f9ecc425775465b6f5",
+    "src/MZTools.Desktop/Controls/PropertyForm.axaml.cs": "239b65ee8837e05266a1be92e2085c09c1167fe9142e100c9babb8364205332c",
+    "src/MZTools.Desktop/Controls/RecordInspector.axaml": "239edd0f5c71f25f33d3c4e6ec4b40cdddc1c35d8e7dc549a75124a5fc771382",
+    "src/MZTools.Desktop/Controls/RecordInspector.axaml.cs": "59d69624d44ec8ea3b49c86f685d8bd99bc9b82c830021b76e8483cc5c3f04b6",
+    "src/MZTools.Desktop/Controls/RegionMap.cs": "3ecf30ef81e0e148b2ddab0b9c9d859081e1484032e6c4fde2ff090d814e4648",
+    "src/MZTools.Desktop/Controls/ReportViewer.axaml": "8cfbc05238154e0a3d57264d86abe2e2f441191c19a62d29f6bc439eea50586b",
+    "src/MZTools.Desktop/Controls/ReportViewer.axaml.cs": "116a634c801792b526084859c661ee50391923921c38a27a6fb3c34b6cac5d23",
+    "src/MZTools.Desktop/Documents/AtomicDocumentStore.cs": "bece816669f4a172559e050e6cd404f9edebe2c02e5286ff63cb6fab9483d0fc",
+    "src/MZTools.Desktop/Documents/DocumentCoordinator.cs": "205661788177df361c31eb6342c2fdd5c3603c7344dce0727473fa3168156ae3",
+    "src/MZTools.Desktop/Documents/DocumentSavePlan.cs": "7ad12bf43a02c0c21b684c3873958535368a47233b5aa020aa85655484eccc4f",
+    "src/MZTools.Desktop/Documents/DocumentSession.cs": "cedc85af470091f5dd6700d31ca1b1b9f89c013394049ef184dd97f1ab82392e",
+    "src/MZTools.Desktop/Documents/MediaOperations.cs": "ba95e7e16e46f619e2f0e8b63ae8c61c0abbb8e83796c1cb911664d4f2f17a17",
+    "src/MZTools.Desktop/Documents/TapeSession.cs": "c66bd88015a6984ea4a9e2944794f2412d3321c5eec9d1eb9a97a44979406776",
+    "src/MZTools.Desktop/MZTools.Desktop.csproj": "e0f5fcd00038ec76f8bc4998c30081ce99f2ae4790b3a5c5bd44feae58c78f4c",
+    "src/MZTools.Desktop/packages.lock.json": "37689847d4987345946e51f83748c1503aa30b1c5647bdb9ecfb88abda28d151",
+    "src/MZTools.Desktop/Platform/DesktopDialogs.cs": "3e73417c7c1ab94ea4e440555d61565059dd8703e3f311b829a8b80e7c31fce5",
+    "src/MZTools.Desktop/Platform/DesktopMediaDialogs.cs": "68100df5344d4d92e0c7820727fbd0becb59f2aee1d0ace90b842e9e6188404f",
+    "src/MZTools.Desktop/Program.cs": "3dc8bff8a608a50d6b8f5391ce0fb17c7db34eba6b040c93596bc076a0656326",
+    "src/MZTools.Desktop/Theme/SharedStyles.axaml": "6c6c7535ee2a5d9e42790fb335016970f23e5117922eb04fe01bb9ca0a992470",
+    "src/MZTools.Desktop/Theme/Tokens.axaml": "f4dd45adee9191710f39e81fe3608b4d806b564a9968f75d5f94cabce24683fb",
+    "src/MZTools.Desktop/ViewModels/ShellMediaCommands.cs": "d1269fb5cc81243a9eb32d6de0c0af433cd5d0c0cb7280caf1b7e4819f3743bc",
+    "src/MZTools.Desktop/ViewModels/ShellViewModel.cs": "901093a38721e7f851e60403303ecfdf72aef2134dc51075336982924bf99224",
+    "src/MZTools.Desktop/Views/MainWindow.axaml": "2d664d2915d2de853c0c4a561033a7cb81bf01dc25a736cddc8cd37dcc641007",
+    "src/MZTools.Desktop/Views/MainWindow.axaml.cs": "0d5a18df4836c92be785b522e0586dbefd0c8601f2f44e6ffebb99774be92450",
+    "src/MZTools.Desktop/Views/RecordWorkspace.axaml": "c70db867eeb3435dc75907e42f388a243bfc747aececfa42f874392b403d6dd6",
+    "src/MZTools.Desktop/Views/RecordWorkspace.axaml.cs": "6567004ca4681b2a35542935785639ee328f435e9a863d6809b907c351fcbfb7",
+    "tests/MZTools.Desktop.Smoke/collect_notices.py": "b26a85a48a0d6b5a052624352cf33a8ca1c27ac107bd50c7e6a8ba57a38e72da",
+    "tests/MZTools.Desktop.Smoke/MediaScenario.cs": "348c027d5dbc71963172c03ea586342dcea3021cba6f268568aea1a3633f3b72",
+    "tests/MZTools.Desktop.Smoke/MZTools.Desktop.Smoke.csproj": "b9514661919c2e9469d03e6112a5bc08a23b8cd90041ab8b9e438cde0bbe2119",
+    "tests/MZTools.Desktop.Smoke/Program.cs": "3794ad1b897436e1e80aca525d4f28c109d68e808a3a07508512f7142d2df8a5",
+    "tests/MZTools.Desktop.Smoke/summarize_f4.py": "79d39dc0a406bb5cfad145ca619c63666c72c7f002650ea000f7e2235f9a677d",
+    "tests/MZTools.Desktop.Smoke/summarize_results.py": "3ad70ba669195486521f9b980bc3b34086f5db0b11ce017a10d5841ed00fb759",
+    "tests/MZTools.Desktop.Smoke/validate_f4.py": "618288668c129b3f18c47e633a4034804610ef062e4268914ad74ea428c502be",
+    "tests/MZTools.Desktop.Tests/DocumentLifecycleTests.cs": "062fd0c173ae2882d1244cd873a5ee45cbadf522a16b29285a787e99645b272f",
+    "tests/MZTools.Desktop.Tests/HeadlessSetup.cs": "1b0030e90db1b9c7ae192b2a9e79d2928593228a96c3990fdf578d235844ac14",
+    "tests/MZTools.Desktop.Tests/MediaDocumentTests.cs": "6bdd48cfa7bcfc809dbb0c27d43ef159188dc80cb4781f5fa418f600441b29b4",
+    "tests/MZTools.Desktop.Tests/MediaUiTests.cs": "cc1fdd7325419226fa4c9dc3f4d7d46ee3fe8e15ff341556df0150f17bb8b493",
+    "tests/MZTools.Desktop.Tests/MZTools.Desktop.Tests.csproj": "82a6875f5da916a32c5c39ff6e332723ad878faba17ac2cd6a17963fdfc53ada",
+    "tests/MZTools.Desktop.Tests/packages.lock.json": "4d799deb4298376ff4c70648ae39c7003cc05b68ad21b56ffab8ed933ecd75f1",
+    "tests/MZTools.Desktop.Tests/ShellTests.cs": "183b912f19251a75dddfcbabfa76034aafa52ec0daaa20c4609793b7512ff952"
+  }
+}

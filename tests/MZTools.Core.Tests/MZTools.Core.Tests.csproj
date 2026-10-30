@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <ProjectReference Include="../../src/MZTools.Core/MZTools.Core.csproj" />
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="../../MZTool.Tests/AudioReferenceBaselineTests.cs" Link="Regression/AudioReferenceBaselineTests.cs" />
+    <Compile Include="../../MZTool.Tests/BootstrapRawRangeTests.cs" Link="Regression/BootstrapRawRangeTests.cs" />
+    <Compile Include="../../MZTool.Tests/BundledBootSystemTests.cs" Link="Regression/BundledBootSystemTests.cs" />
+    <Compile Include="../../MZTool.Tests/DskCapabilityTests.cs" Link="Regression/DskCapabilityTests.cs" />
+    <Compile Include="../../MZTool.Tests/DskDefragmentTests.cs" Link="Regression/DskDefragmentTests.cs" />
+    <Compile Include="../../MZTool.Tests/DskExtendedLengthTests.cs" Link="Regression/DskExtendedLengthTests.cs" />
+    <Compile Include="../../MZTool.Tests/DskImageTests.cs" Link="Regression/DskImageTests.cs" />
+    <Compile Include="../../MZTool.Tests/DskIssueHelpTests.cs" Link="Regression/DskIssueHelpTests.cs" />
+    <Compile Include="../../MZTool.Tests/DskPatchTests.cs" Link="Regression/DskPatchTests.cs" />
+    <Compile Include="../../MZTool.Tests/DskSectorSelectionTests.cs" Link="Regression/DskSectorSelectionTests.cs" />
+    <Compile Include="../../MZTool.Tests/DskVisualAnalysisTests.cs" Link="Regression/DskVisualAnalysisTests.cs" />
+    <Compile Include="../../MZTool.Tests/HfeTests.cs" Link="Regression/HfeTests.cs" />
+    <Compile Include="../../MZTool.Tests/HfeEditingTests.cs" Link="Regression/HfeEditingTests.cs" />
+    <Compile Include="../../MZTool.Tests/ListReorderTests.cs" Link="Regression/ListReorderTests.cs" />
+    <Compile Include="../../MZTool.Tests/Mz800IplDskWriterTests.cs" Link="Regression/Mz800IplDskWriterTests.cs" />
+    <Compile Include="../../MZTool.Tests/NativeComCompressionUiTests.cs" Link="Regression/NativeComCompressionUiTests.cs" />
+    <Compile Include="../../MZTool.Tests/PulseReferenceCatalogTests.cs" Link="Regression/PulseReferenceCatalogTests.cs" />
+    <Compile Include="../../MZTool.Tests/QdmgCompatibilityTests.cs" Link="Regression/QdmgCompatibilityTests.cs" />
+    <Compile Include="../../MZTool.Tests/QuickDiskHostDetectionTests.cs" Link="Regression/QuickDiskHostDetectionTests.cs" />
+    <Compile Include="../../MZTool.Tests/QuickDiskVisualTests.cs" Link="Regression/QuickDiskVisualTests.cs" />
+    <Compile Include="../../MZTool.Tests/ReportPresentationTests.cs" Link="Regression/ReportPresentationTests.cs" />
+    <Compile Include="../../MZTool.Tests/SharpMzPulseDecoderTests.cs" Link="Regression/SharpMzPulseDecoderTests.cs" />
+    <Compile Include="../../MZTool.Tests/SharpTapeExporterTests.cs" Link="Regression/SharpTapeExporterTests.cs" />
+    <Compile Include="../../MZTool.Tests/SidecarServiceTests.cs" Link="Regression/SidecarServiceTests.cs" />
+    <Compile Include="../../MZTool.Tests/WorkspaceDragTransferTests.cs" Link="Regression/WorkspaceDragTransferTests.cs" />
+    <Compile Include="../../MZTool.Tests/TestMediaPaths.cs" Link="Regression/TestMediaPaths.cs" />
+    <Compile Include="../../MZTool.Tests/TapeTestData.cs" Link="Regression/TapeTestData.cs" />
+    <Compile Include="../../MZTool.Tests/CompressionTestData.cs" Link="Regression/CompressionTestData.cs" />
+    <Compile Include="../../MZTool.Tests/NativeComCompressionData.cs" Link="Regression/NativeComCompressionData.cs" />
+    <None Include="../../MZTool.Tests/DSK/**/*" Link="DSK/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../MZTool.Tests/WAV/Barbarian2_700.wav" Condition="Exists('../../MZTool.Tests/WAV/Barbarian2_700.wav')" Link="WAV/Barbarian2_700.wav" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../MZTool.Tests/ReferenceGolden/*.json" Link="ReferenceGolden/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../MZTool.Tests/QD/**/*" Link="QD/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../MZTool.Tests/MZF/**/*" Link="MZF/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../MZTool.Tests/ROM/**/*" Link="ROM/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../MZTool.Tests/LEP/**/*" Link="LEP/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../specification/DSKA0001_Roland.QD" Condition="Exists('../../specification/DSKA0001_Roland.QD')" Link="QDReference/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../specification/DSKA0002_MO5_CQ90-028_formatted.QD" Condition="Exists('../../specification/DSKA0002_MO5_CQ90-028_formatted.QD')" Link="QDReference/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../specification/DSKA0003_Akai_formatted.QD" Condition="Exists('../../specification/DSKA0003_Akai_formatted.QD')" Link="QDReference/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
+
+
+
+
+

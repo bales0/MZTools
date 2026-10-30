@@ -139,7 +139,7 @@ public class QdmgCompatibilityTests
         Assert.Equal(name, e.Name); Assert.Equal(start, e.StartBlock); Assert.Equal(size, e.Size);
         Assert.Equal(load, e.LoadAddress); Assert.Equal(exec, e.ExecuteAddress); Assert.Equal(notes, e.Notes);
     }
-    private static string Fixture(string name) => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "DSK", name));
+    private static string Fixture(string name) => TestMediaPaths.Resolve("DSK", name);
     private static byte[] ReadBytes(DskImage image, int start, int size)
     {
         var result = new byte[size];

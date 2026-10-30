@@ -99,44 +99,6 @@ namespace MZTools
         public object Convert(object value,Type targetType,object parameter,System.Globalization.CultureInfo culture)=>value is string key?TapeProfileNames.LoaderDisplayName(key):value;
         public object ConvertBack(object value,Type targetType,object parameter,System.Globalization.CultureInfo culture)=>Binding.DoNothing;
     }
-    internal static class ListReorder
-    {
-        internal static bool MoveItems<T>(IList<T> items, IEnumerable<int> sourceIndices, int insertionIndex)
-        {
-            int[] indices = sourceIndices
-                .Where(index => index >= 0 && index < items.Count)
-                .Distinct()
-                .OrderBy(index => index)
-                .ToArray();
-            if (indices.Length == 0)
-            {
-                return false;
-            }
-
-            insertionIndex = Math.Clamp(insertionIndex, 0, items.Count);
-            List<T> movedItems = indices.Select(index => items[index]).ToList();
-            List<T> reordered = items.ToList();
-            for (int index = indices.Length - 1; index >= 0; index--)
-            {
-                reordered.RemoveAt(indices[index]);
-            }
-
-            int adjustedInsertionIndex = insertionIndex - indices.Count(index => index < insertionIndex);
-            reordered.InsertRange(adjustedInsertionIndex, movedItems);
-            if (items.SequenceEqual(reordered))
-            {
-                return false;
-            }
-
-            items.Clear();
-            foreach (T item in reordered)
-            {
-                items.Add(item);
-            }
-            return true;
-        }
-    }
-
     internal static class FeatureModePolicy
     {
         public static string GetOpenFilter() =>
@@ -155,14 +117,6 @@ namespace MZTools
         public static string GetIplExportFilter() =>
             "Raw prepared program (*.bin)|*.bin|Reconstructed MZF from prepared IPL record (*.mzf)|*.mzf|" +
             "LEP pulse file (*.lep)|*.lep|L16 pulse file (*.l16)|*.l16|Wave audio (*.wav)|*.wav|Reconstructed M12 from prepared IPL record (*.m12)|*.m12";
-    }
-
-    internal static class AudioImportPolicy
-    {
-        public static bool ShouldTryStandardDecoder(WavHeuristicAnalysisResult analysis) =>
-            ShouldTryStandardDecoder(analysis.Failures.Count);
-
-        internal static bool ShouldTryStandardDecoder(int failureCount) => failureCount > 0;
     }
 
     internal sealed class AudioFileImportResult
@@ -324,68 +278,13 @@ namespace MZTools
             return true;
         }
 
-        private bool TryValidateOutputFormat(TapeDocumentFormat outputFormat, string extension, out string error)
-        {
-            if (document.IsReadOnlyQuickDisk)
-            {
-                error = "Non-SHARP/unknown QuickDisk is read-only. Use the inspector's decoded-data export.";
-                return false;
-            }
-            if (mzfBlocks.Count == 0 && !SupportsEmptyDocument(outputFormat))
-            {
-                error = $"The {extension.ToUpperInvariant()} format requires one file.";
-                return false;
-            }
-
-            bool quickDiskOutput = outputFormat is TapeDocumentFormat.Mzq or TapeDocumentFormat.Qdf or
-                TapeDocumentFormat.QdSharpLegacy or TapeDocumentFormat.QdHxc or TapeDocumentFormat.QdFlashFloppy;
-            bool allowImportedNonStandard = CanPreserveImportedNonStandard(outputFormat);
-            if (quickDiskOutput &&
-                !QuickDiskLimits.TryValidateForSave(mzfBlocks.Count, allowImportedNonStandard, out error))
-            {
-                return false;
-            }
-
-            if (outputFormat == TapeDocumentFormat.Qdf)
-            {
-                long requiredSize = QDFFileReader.HeaderSize + mzfBlocks.Sum(block => QDFFileReader.FileOverhead + block.Body.DataSize);
-                if (requiredSize > QDFFileReader.ImageSize)
-                {
-                    error = $"The selected files need {requiredSize} bytes, but a QDF image can contain only {QDFFileReader.ImageSize} bytes.";
-                    return false;
-                }
-            }
-
-            if (outputFormat == TapeDocumentFormat.QdSharpLegacy &&
-                !SharpLegacyQdCodec.TryValidateCapacity(mzfBlocks, out error))
-            {
-                return false;
-            }
-
-            if (outputFormat is TapeDocumentFormat.QdHxc or TapeDocumentFormat.QdFlashFloppy)
-            {
-                QdImageFormat physicalFormat = outputFormat == TapeDocumentFormat.QdHxc
-                    ? QdImageFormat.HxcPhysical
-                    : QdImageFormat.FlashFloppyPhysical;
-                QuickDiskPhysicalProfile? profile = outputFormat == document.Format
-                    ? document.QuickDiskProfile
-                    : null;
-                if (!QuickDiskPhysicalWriter.TryValidateCapacity(mzfBlocks, physicalFormat, out error, profile))
-                {
-                    return false;
-                }
-            }
-
-            error = string.Empty;
-            return true;
-        }
+        private bool TryValidateOutputFormat(TapeDocumentFormat outputFormat, string extension, out string error) =>
+            TapeSavePolicy.Validate(document, outputFormat, extension, out error);
 
         private bool CanPreserveImportedNonStandard(TapeDocumentFormat outputFormat) =>
-            document.IsQuickDisk && !document.IsModified && outputFormat == document.Format;
+            TapeSavePolicy.CanPreserveImported(document, outputFormat);
 
-        internal static bool SupportsEmptyDocument(TapeDocumentFormat format) => format is
-            TapeDocumentFormat.Qdf or TapeDocumentFormat.Mzq or TapeDocumentFormat.Mzt or
-            TapeDocumentFormat.QdSharpLegacy or TapeDocumentFormat.QdHxc or TapeDocumentFormat.QdFlashFloppy;
+        internal static bool SupportsEmptyDocument(TapeDocumentFormat format) => TapeSavePolicy.SupportsEmpty(format);
 
         internal static int GetSaveFilterIndex(TapeDocumentFormat format) => format switch
         {
@@ -1774,25 +1673,7 @@ namespace MZTools
             }
         }
 
-        internal static byte[] EncodeMzfFileName(string value)
-        {
-            string name = value.Trim();
-            if (name.Length is < 1 or > 16)
-            {
-                throw new InvalidOperationException("The MZF file name must contain 1 to 16 characters.");
-            }
-            byte[] encoded = ConvertASCIIStringToSHASCIIBytes(name);
-            for (int index = 0; index < name.Length; index++)
-            {
-                if (name[index] > 0x7F || FromSHASCII(encoded[index]) != (byte)name[index])
-                {
-                    throw new InvalidOperationException($"The character '{name[index]}' cannot be represented in a Sharp MZ file name.");
-                }
-            }
-            var result = Enumerable.Repeat((byte)0x0D, 16).ToArray();
-            encoded.CopyTo(result, 0);
-            return result;
-        }
+        internal static byte[] EncodeMzfFileName(string value) => TapeFileNameEncoding.Encode(value);
 
         private void MzfDataGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {

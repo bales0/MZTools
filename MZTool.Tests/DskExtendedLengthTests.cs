@@ -52,7 +52,7 @@ public sealed class DskExtendedLengthTests
     [InlineData("CPM80.dsk")]
     public void RealFailingFixturesRepairOnlyZeroDescriptorLengthFields(string name)
     {
-        string path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../MZTool.Tests/DSK", name));
+        string path = TestMediaPaths.Resolve("DSK", name);
         if (!File.Exists(path)) return; // Optional local hardware regression fixtures.
         byte[] original = File.ReadAllBytes(path), before = (byte[])original.Clone();
         var image = DskImage.Parse(original);

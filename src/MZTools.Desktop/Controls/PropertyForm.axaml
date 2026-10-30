@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="using:MZTools.Desktop.Controls" x:Class="MZTools.Desktop.Controls.PropertyForm">
+  <ItemsControl ItemsSource="{Binding Fields, RelativeSource={RelativeSource AncestorType=c:PropertyForm}}">
+    <ItemsControl.ItemTemplate><DataTemplate x:DataType="c:PropertyField">
+      <StackPanel Spacing="4" Margin="0,0,0,12">
+        <TextBlock Text="{Binding Label}" Classes="muted" />
+        <TextBox Text="{Binding Text, Mode=TwoWay}" IsReadOnly="{Binding IsReadOnly}"
+                 AutomationProperties.Name="{Binding Label}" />
+        <TextBlock Text="{Binding Error}" IsVisible="{Binding HasError}" TextWrapping="Wrap"
+                   Foreground="{DynamicResource F2.error}" />
+      </StackPanel>
+    </DataTemplate></ItemsControl.ItemTemplate>
+  </ItemsControl>
+</UserControl>

@@ -1,0 +1,17 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:MZTools.Desktop.ViewModels" x:Class="MZTools.Desktop.Controls.DiskInspector" x:DataType="vm:ShellViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled"><StackPanel Spacing="8" Margin="0,0,8,0" IsEnabled="{Binding CanUseDisk}">
+    <TextBlock Text="Disk inspector" Classes="section" />
+    <TextBlock Text="{Binding ActiveDisk.Capacity}" TextWrapping="Wrap" Classes="muted" />
+    <TextBlock Text="{Binding ActiveDisk.Detail}" TextWrapping="Wrap" />
+    <Separator />
+    <TextBlock Text="Filename" Classes="muted" /><TextBox Text="{Binding ActiveDisk.FileName, Mode=TwoWay}" IsEnabled="{Binding ActiveDisk.CanEditFileName}" AutomationProperties.Name="Disk filename" />
+    <TextBlock Text="CP/M user (decimal)" Classes="muted" /><TextBox Text="{Binding ActiveDisk.User, Mode=TwoWay}" IsEnabled="{Binding ActiveDisk.CanEditCpmProperties}" AutomationProperties.Name="CP/M user" />
+    <WrapPanel IsEnabled="{Binding ActiveDisk.CanEditCpmProperties}"><CheckBox Content="Read-only" IsChecked="{Binding ActiveDisk.FileReadOnly, Mode=TwoWay}" /><CheckBox Content="System" IsChecked="{Binding ActiveDisk.System, Mode=TwoWay}" /><CheckBox Content="Archived" IsChecked="{Binding ActiveDisk.Archived, Mode=TwoWay}" /></WrapPanel>
+    <TextBlock Text="Type · hex" Classes="muted" /><TextBox Text="{Binding ActiveDisk.FileType, Mode=TwoWay}" IsEnabled="{Binding ActiveDisk.CanEditFsmzProperties}" AutomationProperties.Name="Disk file type" />
+    <CheckBox Content="Locked" IsChecked="{Binding ActiveDisk.Locked, Mode=TwoWay}" IsEnabled="{Binding ActiveDisk.CanEditFsmzProperties}" />
+    <TextBlock Text="Load address · hex" Classes="muted" /><TextBox Text="{Binding ActiveDisk.LoadAddress, Mode=TwoWay}" IsEnabled="{Binding ActiveDisk.CanEditAddresses}" AutomationProperties.Name="Disk load address" />
+    <TextBlock Text="Execute address · hex" Classes="muted" /><TextBox Text="{Binding ActiveDisk.ExecuteAddress, Mode=TwoWay}" IsEnabled="{Binding ActiveDisk.CanEditAddresses}" AutomationProperties.Name="Disk execute address" />
+    <WrapPanel><Button Content="Apply properties…" Command="{Binding DiskApplyPropertiesCommand}" Margin="0,0,6,6" /><Button Content="Cancel edits" Command="{Binding DiskCancelDraftCommand}" /></WrapPanel>
+    <TextBlock Text="{Binding ActiveDisk.Validation}" Foreground="{DynamicResource F2.error}" TextWrapping="Wrap" />
+  </StackPanel></ScrollViewer>
+</UserControl>

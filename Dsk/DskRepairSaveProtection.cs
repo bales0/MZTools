@@ -10,12 +10,14 @@ namespace MZTools;
 
 // Windows file identity handles hardlinks, symlinks and directory aliases. The
 // read leases deny write/delete sharing until the verified destination is committed.
-internal sealed class DskRepairSaveProtection
+internal sealed class DskRepairSaveProtection : IDskRepairSaveProtection
 {
     private sealed record Source(string Path, FileIdentity Identity);
     private readonly Source[] sources;
     private DskRepairSaveProtection(Source[] sources) => this.sources = sources;
     internal string? OriginalPath => sources.LastOrDefault()?.Path;
+    string? IDskRepairSaveProtection.OriginalPath => OriginalPath;
+    IDisposable IDskRepairSaveProtection.Acquire(string destination) => Acquire(destination);
 
     internal static DskRepairSaveProtection Capture(string? path, byte[]? expected = null,
         DskRepairSaveProtection? previous = null)

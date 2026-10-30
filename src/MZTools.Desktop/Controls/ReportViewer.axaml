@@ -1,0 +1,7 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="using:MZTools.Desktop.Controls" x:Class="MZTools.Desktop.Controls.ReportViewer">
+  <TextBox Text="{Binding Text, RelativeSource={RelativeSource AncestorType=c:ReportViewer}, Mode=OneWay}"
+           IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+           AutomationProperties.Name="Report text" BorderThickness="0" Background="Transparent"
+           ScrollViewer.VerticalScrollBarVisibility="Auto" />
+</UserControl>

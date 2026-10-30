@@ -1,0 +1,1212 @@
+[
+  {
+    "package": "Avalonia/12.1.4",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "Vlz+ebY0PBVsTFXAPIpM+7ySgezMtyJ3GMMGmccHwxXXjgLF2x5+NMwO4AqrdM/lrUPZremnYNO6MSg1r1vuxw==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/AvaloniaUI/Avalonia/",
+      "branch": "refs/heads/release/12.1.4",
+      "commit": "2d79ba55fae1b1e71c69f93a668080c9029e6a31"
+    },
+    "copyright": "Copyright 2013-2026 © The AvaloniaUI Project",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/2d79ba55fae1b1e71c69f93a668080c9029e6a31/licence.md",
+        "file": "licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+        "sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b"
+      }
+    ]
+  },
+  {
+    "package": "Avalonia.Angle.Windows.Natives/2.1.27548.20260419",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "l17nI3XVDN3oMnpjf2pnmJg0YTwK4m6NLsn/itAjDMdObTFxN77D5F1M9sRMSfViSY3KKcse1ROczwgoWLJsnA==",
+    "license": "LICENSE",
+    "licenseType": "file",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/AvaloniaUI/angle/",
+      "commit": "1c89805903c1482166356d3b950d474973180e61"
+    },
+    "copyright": "Copyright 2013-2026 © The AvaloniaUI Project",
+    "texts": [
+      {
+        "origin": "NuGet:Avalonia.Angle.Windows.Natives/2.1.27548.20260419/LICENSE",
+        "file": "licenses/54aff7276217df9f6b5181613999d208c9e40d2b1d51bf55217837e6871a4a63.txt",
+        "sha256": "54aff7276217df9f6b5181613999d208c9e40d2b1d51bf55217837e6871a4a63"
+      }
+    ]
+  },
+  {
+    "package": "Avalonia.BuildServices/11.3.2",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "qHDToxto1e3hci5YqbG9n0Ty8mlp3zBUN5wT66wKqaDVzXyQ0do3EnRILd4Ke9jpvsktaPpgE0YjEk7hornryQ==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/AvaloniaUI/Avalonia.BuildServices",
+      "commit": "777f975b0a0cecf0311273711d56697212c558c0"
+    },
+    "copyright": "Copyright 2023-2025 © The AvaloniaUI Project",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia.BuildServices/777f975b0a0cecf0311273711d56697212c558c0/LICENSE",
+        "file": "licenses/94162c40c663bd96ec1b870e6aba6ef0a43f44c9eb500807e7965e7078f6dc47.txt",
+        "sha256": "94162c40c663bd96ec1b870e6aba6ef0a43f44c9eb500807e7965e7078f6dc47"
+      }
+    ]
+  },
+  {
+    "package": "Avalonia.Desktop/12.1.4",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "2vrr0Ao77r3BoZSZ5BTg6rEb8N0987hw5H6lxtZkR8tpagiOTaL9a31Pi02jJha8es7Y+jJR8Qwis7PMQRjytg==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/AvaloniaUI/Avalonia/",
+      "branch": "refs/heads/release/12.1.4",
+      "commit": "2d79ba55fae1b1e71c69f93a668080c9029e6a31"
+    },
+    "copyright": "Copyright 2013-2026 © The AvaloniaUI Project",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/2d79ba55fae1b1e71c69f93a668080c9029e6a31/licence.md",
+        "file": "licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+        "sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b"
+      }
+    ]
+  },
+  {
+    "package": "Avalonia.FreeDesktop/12.1.4",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "EDM2mqO+eU7/0gLrIyObkt/q6DiBRbGSbzZ72J87K2JHTYEXtOT/quOpWv6bOKsDQGBPBkjI+s0OwFUxPmCP2A==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/AvaloniaUI/Avalonia/",
+      "branch": "refs/heads/release/12.1.4",
+      "commit": "2d79ba55fae1b1e71c69f93a668080c9029e6a31"
+    },
+    "copyright": "Copyright 2013-2026 © The AvaloniaUI Project",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/2d79ba55fae1b1e71c69f93a668080c9029e6a31/licence.md",
+        "file": "licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+        "sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b"
+      }
+    ]
+  },
+  {
+    "package": "Avalonia.FreeDesktop.AtSpi/12.1.4",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "ulmTyv+D8euk4n4qFXTP9vyScNbRz+/SuMrdDeoGFLQW00Me1MGA1vBbaiDcdp8VgyfoeRDlq7tQGtwWOf8ZJg==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/AvaloniaUI/Avalonia/",
+      "branch": "refs/heads/release/12.1.4",
+      "commit": "2d79ba55fae1b1e71c69f93a668080c9029e6a31"
+    },
+    "copyright": "Copyright 2013-2026 © The AvaloniaUI Project",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/2d79ba55fae1b1e71c69f93a668080c9029e6a31/licence.md",
+        "file": "licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+        "sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b"
+      }
+    ]
+  },
+  {
+    "package": "Avalonia.HarfBuzz/12.1.4",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "PxaJL9P/Zn6w89kLokuLcWDnj+w4erpfp57SiDN4JhX4NI2qPLJEmxgogTwyXjCUE8vq7Jg7kjH/z5D2jeGAhA==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/AvaloniaUI/Avalonia/",
+      "branch": "refs/heads/release/12.1.4",
+      "commit": "2d79ba55fae1b1e71c69f93a668080c9029e6a31"
+    },
+    "copyright": "Copyright 2013-2026 © The AvaloniaUI Project",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/2d79ba55fae1b1e71c69f93a668080c9029e6a31/licence.md",
+        "file": "licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+        "sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b"
+      }
+    ]
+  },
+  {
+    "package": "Avalonia.Native/12.1.4",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "to73yCbFWzRNs3gyuBG2QkRsrpjnGrEVwkhtAsJLbPAKFjP/M0YDeb4MPMN3wGlpwCFdz9L8R8iAivyNet5+5g==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/AvaloniaUI/Avalonia/",
+      "branch": "refs/heads/release/12.1.4",
+      "commit": "2d79ba55fae1b1e71c69f93a668080c9029e6a31"
+    },
+    "copyright": "Copyright 2013-2026 © The AvaloniaUI Project",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/2d79ba55fae1b1e71c69f93a668080c9029e6a31/licence.md",
+        "file": "licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+        "sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b"
+      }
+    ]
+  },
+  {
+    "package": "Avalonia.Remote.Protocol/12.1.4",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "9ajC+Ff+U9S21JJKGbJgnwp9fY+zwJG+bSEC//o/vJU2M6IEMRGp+D1+AUoqTR79FAA/iDYgf4f4EF4PZKhZsg==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/AvaloniaUI/Avalonia/",
+      "branch": "refs/heads/release/12.1.4",
+      "commit": "2d79ba55fae1b1e71c69f93a668080c9029e6a31"
+    },
+    "copyright": "Copyright 2013-2026 © The AvaloniaUI Project",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/2d79ba55fae1b1e71c69f93a668080c9029e6a31/licence.md",
+        "file": "licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+        "sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b"
+      }
+    ]
+  },
+  {
+    "package": "Avalonia.Skia/12.1.4",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "BA6B1Up9AcX4JmnskD6FyxF+ZEowXDhGvzw1lG+Xx6sQO0VyOE2yDoAmD/S2EsYZUukPfRUJmIyjeM//WdZAxA==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/AvaloniaUI/Avalonia/",
+      "branch": "refs/heads/release/12.1.4",
+      "commit": "2d79ba55fae1b1e71c69f93a668080c9029e6a31"
+    },
+    "copyright": "Copyright 2013-2026 © The AvaloniaUI Project",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/2d79ba55fae1b1e71c69f93a668080c9029e6a31/licence.md",
+        "file": "licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+        "sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b"
+      }
+    ]
+  },
+  {
+    "package": "Avalonia.Themes.Fluent/12.1.4",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "vx7P4as07WLQqA2mhMy4iBsqhkWEGwZI7g9Rd2DlJgz3uKS2tSvY6nZqHq3sWMFDBYBT65jkTsetPrgV8oprsQ==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/AvaloniaUI/Avalonia/",
+      "branch": "refs/heads/release/12.1.4",
+      "commit": "2d79ba55fae1b1e71c69f93a668080c9029e6a31"
+    },
+    "copyright": "Copyright 2013-2026 © The AvaloniaUI Project",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/2d79ba55fae1b1e71c69f93a668080c9029e6a31/licence.md",
+        "file": "licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+        "sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b"
+      }
+    ]
+  },
+  {
+    "package": "Avalonia.Win32/12.1.4",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "N/Ra73KLQBoQOcnpROWdCA49vCFij8MSyU7MFv8JWMxcQvkG98K19/hmdcyiqB/B1sBahyZuHgIsoO8ryajC0g==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/AvaloniaUI/Avalonia/",
+      "branch": "refs/heads/release/12.1.4",
+      "commit": "2d79ba55fae1b1e71c69f93a668080c9029e6a31"
+    },
+    "copyright": "Copyright 2013-2026 © The AvaloniaUI Project",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/2d79ba55fae1b1e71c69f93a668080c9029e6a31/licence.md",
+        "file": "licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+        "sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b"
+      }
+    ]
+  },
+  {
+    "package": "Avalonia.X11/12.1.4",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "LMlL3GGN7l7VfdowNf4hz/zyZQeMvYe/HFphoobbq4o1C1thZRSC3dxfRlQxe2M259f18dXveEWduyZLycXCJg==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/AvaloniaUI/Avalonia/",
+      "branch": "refs/heads/release/12.1.4",
+      "commit": "2d79ba55fae1b1e71c69f93a668080c9029e6a31"
+    },
+    "copyright": "Copyright 2013-2026 © The AvaloniaUI Project",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/2d79ba55fae1b1e71c69f93a668080c9029e6a31/licence.md",
+        "file": "licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+        "sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b"
+      }
+    ]
+  },
+  {
+    "package": "HarfBuzzSharp/8.3.1.3",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "NGZ2+ZVNPM+NdHB/asW0/ykWngyHWwcqjrbN2nDeH1B/aptPGlCUl8wkQ2cSJxw5fdWgdmIPmNuTPWpLwNVXWg==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://go.microsoft.com/fwlink/?linkid=868515",
+      "branch": "release/3.119.2",
+      "commit": "2888c737ad016d584c74525e2d35db5097ea8576"
+    },
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "texts": [
+      {
+        "origin": "NuGet:HarfBuzzSharp/8.3.1.3/LICENSE.txt",
+        "file": "licenses/89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938.txt",
+        "sha256": "89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938"
+      }
+    ]
+  },
+  {
+    "package": "HarfBuzzSharp.NativeAssets.Linux/8.3.1.3",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "RI6A1LgmooU30+4QIyFt5rmBCzP0VzTR+587IJSGvYIsHHWlahFufihYxtraLfsIhW7I8dn6+xX+DZGygOPKWQ==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://go.microsoft.com/fwlink/?linkid=868515",
+      "branch": "release/3.119.2",
+      "commit": "2888c737ad016d584c74525e2d35db5097ea8576"
+    },
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "texts": [
+      {
+        "origin": "NuGet:HarfBuzzSharp.NativeAssets.Linux/8.3.1.3/LICENSE.txt",
+        "file": "licenses/89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938.txt",
+        "sha256": "89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938"
+      },
+      {
+        "origin": "NuGet:HarfBuzzSharp.NativeAssets.Linux/8.3.1.3/THIRD-PARTY-NOTICES.txt",
+        "file": "licenses/21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5.txt",
+        "sha256": "21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5"
+      }
+    ]
+  },
+  {
+    "package": "HarfBuzzSharp.NativeAssets.macOS/8.3.1.3",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "KPTq0xnslkI6nAo0jh3ptcQPJvZZr7MWYXa2jUe4SnHc9q+JlHElmNXp0sfFoiTgoCX7WOYpYsurypuH9Gehxw==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://go.microsoft.com/fwlink/?linkid=868515",
+      "branch": "release/3.119.2",
+      "commit": "2888c737ad016d584c74525e2d35db5097ea8576"
+    },
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "texts": [
+      {
+        "origin": "NuGet:HarfBuzzSharp.NativeAssets.macOS/8.3.1.3/LICENSE.txt",
+        "file": "licenses/89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938.txt",
+        "sha256": "89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938"
+      },
+      {
+        "origin": "NuGet:HarfBuzzSharp.NativeAssets.macOS/8.3.1.3/THIRD-PARTY-NOTICES.txt",
+        "file": "licenses/21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5.txt",
+        "sha256": "21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5"
+      }
+    ]
+  },
+  {
+    "package": "HarfBuzzSharp.NativeAssets.WebAssembly/8.3.1.3",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "w2QfdNm9Uz/sUa0B5D+OnVQhyq3G/fBq6ibQMdWBlQqqwh0g0/5j3RFvYqZAmRZ5+RzvjVe8o8SFFnWYUSkuxA==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://go.microsoft.com/fwlink/?linkid=868515",
+      "branch": "release/3.119.2",
+      "commit": "2888c737ad016d584c74525e2d35db5097ea8576"
+    },
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "texts": [
+      {
+        "origin": "NuGet:HarfBuzzSharp.NativeAssets.WebAssembly/8.3.1.3/LICENSE.txt",
+        "file": "licenses/89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938.txt",
+        "sha256": "89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938"
+      },
+      {
+        "origin": "NuGet:HarfBuzzSharp.NativeAssets.WebAssembly/8.3.1.3/THIRD-PARTY-NOTICES.txt",
+        "file": "licenses/21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5.txt",
+        "sha256": "21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5"
+      }
+    ]
+  },
+  {
+    "package": "HarfBuzzSharp.NativeAssets.Win32/8.3.1.3",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "bx8CE8Js+XGX8PUxAHCBDEORt5aaBYtMN4Hr9QFs57Xithh6yjUyYqksizH6eRDhJkwsGI+SXWmPmMm8lZC9Pw==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://go.microsoft.com/fwlink/?linkid=868515",
+      "branch": "release/3.119.2",
+      "commit": "2888c737ad016d584c74525e2d35db5097ea8576"
+    },
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "texts": [
+      {
+        "origin": "NuGet:HarfBuzzSharp.NativeAssets.Win32/8.3.1.3/LICENSE.txt",
+        "file": "licenses/89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938.txt",
+        "sha256": "89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938"
+      },
+      {
+        "origin": "NuGet:HarfBuzzSharp.NativeAssets.Win32/8.3.1.3/THIRD-PARTY-NOTICES.txt",
+        "file": "licenses/21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5.txt",
+        "sha256": "21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5"
+      }
+    ]
+  },
+  {
+    "package": "MicroCom.Runtime/0.11.6",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "NdNWGDiZ6eS/Mf/9+QHR91cj1K7Hy+PX9yrHI/zM7xFYuj9IWT2uxtB6sCHjrnxAeLV9fut1R6zHDUGKX6f9lQ==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/kekekeks/MicroCom",
+      "commit": "76785efcafd91b5902fd19dd11145f6dd655b7b4"
+    },
+    "copyright": "Copyright 2021 © Nikita Tsukanov",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/kekekeks/MicroCom/76785efcafd91b5902fd19dd11145f6dd655b7b4/LICENSE",
+        "file": "licenses/6ee769c9ac4dac9abb16b98b1341e9528ff9f4ab685481410d3376d14148f3a9.txt",
+        "sha256": "6ee769c9ac4dac9abb16b98b1341e9528ff9f4ab685481410d3376d14148f3a9"
+      }
+    ]
+  },
+  {
+    "package": "SkiaSharp/3.119.4",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "53NOSUZ1Us+91Sm0uCkIivh/k7jOowRErZT2sIWwPFN9mLUvdxnE6rS4sWo4255+Rd2MWUSF+j0NMZHD6Cke+Q==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://go.microsoft.com/fwlink/?linkid=868515",
+      "branch": "release/3.119.4",
+      "commit": "f568ac94dd768ef9a2f593537cfde2dd0d348ef5"
+    },
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "texts": [
+      {
+        "origin": "NuGet:SkiaSharp/3.119.4/LICENSE.txt",
+        "file": "licenses/89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938.txt",
+        "sha256": "89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938"
+      }
+    ]
+  },
+  {
+    "package": "SkiaSharp.NativeAssets.Linux/3.119.4",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "UAyVzbqNfZsZbKbzj68zXLyUyF/SbTKmzTfOO6qDu++dtIUMMTzPBe8oOuzU/DiewpfKoUUlOSsJmqWc6blxBw==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://go.microsoft.com/fwlink/?linkid=868515",
+      "branch": "release/3.119.4",
+      "commit": "f568ac94dd768ef9a2f593537cfde2dd0d348ef5"
+    },
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "texts": [
+      {
+        "origin": "NuGet:SkiaSharp.NativeAssets.Linux/3.119.4/LICENSE.txt",
+        "file": "licenses/89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938.txt",
+        "sha256": "89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938"
+      },
+      {
+        "origin": "NuGet:SkiaSharp.NativeAssets.Linux/3.119.4/THIRD-PARTY-NOTICES.txt",
+        "file": "licenses/21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5.txt",
+        "sha256": "21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5"
+      }
+    ]
+  },
+  {
+    "package": "SkiaSharp.NativeAssets.macOS/3.119.4",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "fgBOWEqbY012x7gMfJU4ezgz6dfhJb30Z6YdW35h85Zoe39+a8YNbAAwL29ihPfWoppg5AjvyKNzD1oCvlqWwA==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://go.microsoft.com/fwlink/?linkid=868515",
+      "branch": "release/3.119.4",
+      "commit": "f568ac94dd768ef9a2f593537cfde2dd0d348ef5"
+    },
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "texts": [
+      {
+        "origin": "NuGet:SkiaSharp.NativeAssets.macOS/3.119.4/LICENSE.txt",
+        "file": "licenses/89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938.txt",
+        "sha256": "89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938"
+      },
+      {
+        "origin": "NuGet:SkiaSharp.NativeAssets.macOS/3.119.4/THIRD-PARTY-NOTICES.txt",
+        "file": "licenses/21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5.txt",
+        "sha256": "21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5"
+      }
+    ]
+  },
+  {
+    "package": "SkiaSharp.NativeAssets.WebAssembly/3.119.4",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "S1HOxtBbD4bYDtA2e9WH5TX+lxqRrTPvKjrjttRhxnHNNu7YY8VFo/LeCP7tNqoTA6PV+8vsvNbmRUEC2ip8RQ==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://go.microsoft.com/fwlink/?linkid=868515",
+      "branch": "release/3.119.4",
+      "commit": "f568ac94dd768ef9a2f593537cfde2dd0d348ef5"
+    },
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "texts": [
+      {
+        "origin": "NuGet:SkiaSharp.NativeAssets.WebAssembly/3.119.4/LICENSE.txt",
+        "file": "licenses/89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938.txt",
+        "sha256": "89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938"
+      },
+      {
+        "origin": "NuGet:SkiaSharp.NativeAssets.WebAssembly/3.119.4/THIRD-PARTY-NOTICES.txt",
+        "file": "licenses/21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5.txt",
+        "sha256": "21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5"
+      }
+    ]
+  },
+  {
+    "package": "SkiaSharp.NativeAssets.Win32/3.119.4",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "XOpbx/4CReO2wYsq2s6rbvdauc6dntG4Zv499sHGTJ87bwZaFXszFkwql3+FIZMc8kUPeaj3Mx2ezIJmo8a1Kg==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://go.microsoft.com/fwlink/?linkid=868515",
+      "branch": "release/3.119.4",
+      "commit": "f568ac94dd768ef9a2f593537cfde2dd0d348ef5"
+    },
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "texts": [
+      {
+        "origin": "NuGet:SkiaSharp.NativeAssets.Win32/3.119.4/LICENSE.txt",
+        "file": "licenses/89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938.txt",
+        "sha256": "89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938"
+      },
+      {
+        "origin": "NuGet:SkiaSharp.NativeAssets.Win32/3.119.4/THIRD-PARTY-NOTICES.txt",
+        "file": "licenses/21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5.txt",
+        "sha256": "21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5"
+      }
+    ]
+  },
+  {
+    "package": "Tmds.DBus.Protocol/0.94.1",
+    "projects": [
+      "src/MZTools.Desktop",
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "11YMr7FnAbL83bQmVxlhbIKHvSLxjO81D12Ej0QMSGXMDTxNA9MTOa4MQxx43nv5el/efuPHwzyrj6a5ha2gug==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/tmds/Tmds.DBus.git",
+      "branch": "refs/heads/main",
+      "commit": "b4a7fed0b878f74cb54f7cca84d2889af4e596ba"
+    },
+    "copyright": "Tom Deseyn",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/tmds/Tmds.DBus/b4a7fed0b878f74cb54f7cca84d2889af4e596ba/COPYING",
+        "file": "licenses/aca3b49277abcc7886ccb2f115603a9f5b15fc3f96019a10c00f2974098b210c.txt",
+        "sha256": "aca3b49277abcc7886ccb2f115603a9f5b15fc3f96019a10c00f2974098b210c"
+      }
+    ]
+  },
+  {
+    "package": "Avalonia.Fonts.Inter/12.1.4",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "PqzIALObVJ3ZUpfYDkoNNkijaVBUGVrHqAyWPkE39aJrPukbMv49aGMhS+c5HiW1s+/iuo3fW+ISOk34GOc0iw==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/AvaloniaUI/Avalonia/",
+      "branch": "refs/heads/release/12.1.4",
+      "commit": "2d79ba55fae1b1e71c69f93a668080c9029e6a31"
+    },
+    "copyright": "Copyright 2013-2026 © The AvaloniaUI Project",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/2d79ba55fae1b1e71c69f93a668080c9029e6a31/licence.md",
+        "file": "licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+        "sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b"
+      },
+      {
+        "origin": "https://raw.githubusercontent.com/rsms/inter/v4.1/LICENSE.txt",
+        "file": "licenses/262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a.txt",
+        "sha256": "262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a"
+      }
+    ]
+  },
+  {
+    "package": "Avalonia.Headless/12.1.4",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "XsVJaOc2OXDAMJ66eSnclm3YvfuVdiPay0zJUP0+fqoGoFv4XgPxvM2pMbwwt5VRVDyTSHHDpT0YGdg61ZCk/g==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/AvaloniaUI/Avalonia/",
+      "branch": "refs/heads/release/12.1.4",
+      "commit": "2d79ba55fae1b1e71c69f93a668080c9029e6a31"
+    },
+    "copyright": "Copyright 2013-2026 © The AvaloniaUI Project",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/2d79ba55fae1b1e71c69f93a668080c9029e6a31/licence.md",
+        "file": "licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+        "sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b"
+      }
+    ]
+  },
+  {
+    "package": "Avalonia.Headless.XUnit/12.1.4",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "TaulqNjkGYgHOOCHVfUZMrE3mcbitiUQ65FYC/oMwqHz23gWmzim3Pei2/KsLfjYfvis0iEAulswvm606MZNXg==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/AvaloniaUI/Avalonia/",
+      "branch": "refs/heads/release/12.1.4",
+      "commit": "2d79ba55fae1b1e71c69f93a668080c9029e6a31"
+    },
+    "copyright": "Copyright 2013-2026 © The AvaloniaUI Project",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/AvaloniaUI/Avalonia/2d79ba55fae1b1e71c69f93a668080c9029e6a31/licence.md",
+        "file": "licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+        "sha256": "213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b"
+      }
+    ]
+  },
+  {
+    "package": "Microsoft.ApplicationInsights/2.23.0",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "nWArUZTdU7iqZLycLKWe0TDms48KKGE6pONH2terYNa8REXiqixrMOkf1sk5DHGMaUTqONU2YkS4SAXBhLStgw==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "Git",
+      "url": "https://github.com/Microsoft/ApplicationInsights-dotnet",
+      "commit": "2faa7e8b157a431daa2e71785d68abd5fa817b53"
+    },
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/Microsoft/ApplicationInsights-dotnet/2faa7e8b157a431daa2e71785d68abd5fa817b53/LICENSE",
+        "file": "licenses/9b45236978bb5cd5de992021769e1eeaa79f0116d3b02cf8ba065a1ed603d5fa.txt",
+        "sha256": "9b45236978bb5cd5de992021769e1eeaa79f0116d3b02cf8ba065a1ed603d5fa"
+      }
+    ]
+  },
+  {
+    "package": "Microsoft.Bcl.AsyncInterfaces/6.0.0",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "UcSjPsst+DfAdJGVDsu346FX0ci0ah+lw3WRtn18NUwEqRt70HaOQ7lI72vy3+1LxtqI3T5GWwV39rQSrCzAeg==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/dotnet/runtime",
+      "commit": "4822e3c3aa77eb82b2fb33c9321f923cf11ddde6"
+    },
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "texts": [
+      {
+        "origin": "NuGet:Microsoft.Bcl.AsyncInterfaces/6.0.0/LICENSE.TXT",
+        "file": "licenses/d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b.txt",
+        "sha256": "d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b"
+      },
+      {
+        "origin": "NuGet:Microsoft.Bcl.AsyncInterfaces/6.0.0/THIRD-PARTY-NOTICES.TXT",
+        "file": "licenses/a6344bfb229bc08d1071cec400eea216e307439f961c5943ec1b56d2245acb95.txt",
+        "sha256": "a6344bfb229bc08d1071cec400eea216e307439f961c5943ec1b56d2245acb95"
+      }
+    ]
+  },
+  {
+    "package": "Microsoft.CodeCoverage/17.14.1",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "pmTrhfFIoplzFVbhVwUquT+77CbGH+h4/3mBpdmIlYtBi9nAB+kKI6dN3A/nV4DFi3wLLx/BlHIPK+MkbQ6Tpg==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/microsoft/vstest",
+      "commit": "490850ae3fdc1b470e3804ceab4f6a41cf89ae51"
+    },
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "texts": [
+      {
+        "origin": "NuGet:Microsoft.CodeCoverage/17.14.1/ThirdPartyNotices.txt",
+        "file": "licenses/4fc4244935bbe3516164402c573f053a5d246571ed4d357e6cccd8ebec296bbc.txt",
+        "sha256": "4fc4244935bbe3516164402c573f053a5d246571ed4d357e6cccd8ebec296bbc"
+      },
+      {
+        "origin": "NuGet:Microsoft.CodeCoverage/17.14.1/build/netstandard2.0/ThirdPartyNotices.txt",
+        "file": "licenses/4fc4244935bbe3516164402c573f053a5d246571ed4d357e6cccd8ebec296bbc.txt",
+        "sha256": "4fc4244935bbe3516164402c573f053a5d246571ed4d357e6cccd8ebec296bbc"
+      }
+    ]
+  },
+  {
+    "package": "Microsoft.NET.Test.Sdk/17.14.1",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "HJKqKOE+vshXra2aEHpi2TlxYX7Z9VFYkr+E5rwEvHC8eIXiyO+K9kNm8vmNom3e2rA56WqxU+/N9NJlLGXsJQ==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/microsoft/vstest",
+      "commit": "490850ae3fdc1b470e3804ceab4f6a41cf89ae51"
+    },
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/microsoft/vstest/490850ae3fdc1b470e3804ceab4f6a41cf89ae51/LICENSE",
+        "file": "licenses/4d0502953fdb7784a9ca9e1f7e93da5db076de7c52456d6a2a666327a1a9981d.txt",
+        "sha256": "4d0502953fdb7784a9ca9e1f7e93da5db076de7c52456d6a2a666327a1a9981d"
+      }
+    ]
+  },
+  {
+    "package": "Microsoft.Testing.Extensions.Telemetry/1.9.1",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "No5AudZMmSb+uNXjlgL2y3/stHD2IT4uxqc5yHwkE+/nNux9jbKcaJMvcp9SwgP4DVD8L9/P3OUz8mmmcvEIdQ==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/microsoft/testfx",
+      "commit": "cb5afc3bb9bb01ebd75b57f89e8358b914ee2a49"
+    },
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/microsoft/testfx/cb5afc3bb9bb01ebd75b57f89e8358b914ee2a49/LICENSE",
+        "file": "licenses/4d0502953fdb7784a9ca9e1f7e93da5db076de7c52456d6a2a666327a1a9981d.txt",
+        "sha256": "4d0502953fdb7784a9ca9e1f7e93da5db076de7c52456d6a2a666327a1a9981d"
+      }
+    ]
+  },
+  {
+    "package": "Microsoft.Testing.Extensions.TrxReport.Abstractions/1.9.1",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "AL46Xe1WBi85Ntd4mNPvat5ZSsZ2uejiVqoKCypr8J3wK0elA5xJ3AN4G/Q4GIwzUFnggZoH/DBjnr9J18IO/g==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/microsoft/testfx",
+      "commit": "cb5afc3bb9bb01ebd75b57f89e8358b914ee2a49"
+    },
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/microsoft/testfx/cb5afc3bb9bb01ebd75b57f89e8358b914ee2a49/LICENSE",
+        "file": "licenses/4d0502953fdb7784a9ca9e1f7e93da5db076de7c52456d6a2a666327a1a9981d.txt",
+        "sha256": "4d0502953fdb7784a9ca9e1f7e93da5db076de7c52456d6a2a666327a1a9981d"
+      }
+    ]
+  },
+  {
+    "package": "Microsoft.Testing.Platform/1.9.1",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "QafNtNSmEI0zazdebnsIkDKmFtTSpmx/5PLOjURWwozcPb3tvRxzosQSL8xwYNM1iPhhKiBksXZyRSE2COisrA==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/microsoft/testfx",
+      "commit": "cb5afc3bb9bb01ebd75b57f89e8358b914ee2a49"
+    },
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/microsoft/testfx/cb5afc3bb9bb01ebd75b57f89e8358b914ee2a49/LICENSE",
+        "file": "licenses/4d0502953fdb7784a9ca9e1f7e93da5db076de7c52456d6a2a666327a1a9981d.txt",
+        "sha256": "4d0502953fdb7784a9ca9e1f7e93da5db076de7c52456d6a2a666327a1a9981d"
+      }
+    ]
+  },
+  {
+    "package": "Microsoft.Testing.Platform.MSBuild/1.9.1",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "oTUtyR4X/s9ytuiNA29FGsNCCH0rNmY5Wdm14NCKLjTM1cT9edVSlA+rGS/mVmusPqcP0l/x9qOnMXg16v87RQ==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/microsoft/testfx",
+      "commit": "cb5afc3bb9bb01ebd75b57f89e8358b914ee2a49"
+    },
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/microsoft/testfx/cb5afc3bb9bb01ebd75b57f89e8358b914ee2a49/LICENSE",
+        "file": "licenses/4d0502953fdb7784a9ca9e1f7e93da5db076de7c52456d6a2a666327a1a9981d.txt",
+        "sha256": "4d0502953fdb7784a9ca9e1f7e93da5db076de7c52456d6a2a666327a1a9981d"
+      }
+    ]
+  },
+  {
+    "package": "Microsoft.TestPlatform.ObjectModel/17.14.1",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "xTP1W6Mi6SWmuxd3a+jj9G9UoC850WGwZUps1Wah9r1ZxgXhdJfj1QqDLJkFjHDCvN42qDL2Ps5KjQYWUU0zcQ==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/microsoft/vstest",
+      "commit": "490850ae3fdc1b470e3804ceab4f6a41cf89ae51"
+    },
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/microsoft/vstest/490850ae3fdc1b470e3804ceab4f6a41cf89ae51/LICENSE",
+        "file": "licenses/4d0502953fdb7784a9ca9e1f7e93da5db076de7c52456d6a2a666327a1a9981d.txt",
+        "sha256": "4d0502953fdb7784a9ca9e1f7e93da5db076de7c52456d6a2a666327a1a9981d"
+      }
+    ]
+  },
+  {
+    "package": "Microsoft.TestPlatform.TestHost/17.14.1",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "d78LPzGKkJwsJXAQwsbJJ7LE7D1wB+rAyhHHAaODF+RDSQ0NgMjDFkSA1Djw18VrxO76GlKAjRUhl+H8NL8Z+Q==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/microsoft/vstest",
+      "commit": "490850ae3fdc1b470e3804ceab4f6a41cf89ae51"
+    },
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "texts": [
+      {
+        "origin": "NuGet:Microsoft.TestPlatform.TestHost/17.14.1/ThirdPartyNotices.txt",
+        "file": "licenses/e2ce7628e0f67d0d724eea9d9286a6938bf1eedd253fc84b23d72ae54778a5f7.txt",
+        "sha256": "e2ce7628e0f67d0d724eea9d9286a6938bf1eedd253fc84b23d72ae54778a5f7"
+      }
+    ]
+  },
+  {
+    "package": "Microsoft.Win32.Registry/5.0.0",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "dDoKi0PnDz31yAyETfRntsLArTlVAVzUzCIvvEDsDsucrl33Dl8pIJG06ePTJTI3tGpeyHS9Cq7Foc/s4EeKcg==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "git://github.com/dotnet/runtime",
+      "commit": "cf258a14b70ad9069470a108f13765e0e5988f51"
+    },
+    "copyright": "© Microsoft Corporation. All rights reserved.",
+    "texts": [
+      {
+        "origin": "NuGet:Microsoft.Win32.Registry/5.0.0/LICENSE.TXT",
+        "file": "licenses/d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b.txt",
+        "sha256": "d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b"
+      },
+      {
+        "origin": "NuGet:Microsoft.Win32.Registry/5.0.0/THIRD-PARTY-NOTICES.TXT",
+        "file": "licenses/78e22d4d24a710d2a09426c09060f3448204778ed506b1da55447a6089b54fae.txt",
+        "sha256": "78e22d4d24a710d2a09426c09060f3448204778ed506b1da55447a6089b54fae"
+      }
+    ]
+  },
+  {
+    "package": "Newtonsoft.Json/13.0.3",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ==",
+    "license": "MIT",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/JamesNK/Newtonsoft.Json",
+      "commit": "0a2e291c0d9c0c7675d445703e51750363a549ef"
+    },
+    "copyright": "Copyright © James Newton-King 2008",
+    "texts": [
+      {
+        "origin": "NuGet:Newtonsoft.Json/13.0.3/LICENSE.md",
+        "file": "licenses/b98a397897ff55f76cddc380041507a95a896b2946e0188703bf0496793d6516.txt",
+        "sha256": "b98a397897ff55f76cddc380041507a95a896b2946e0188703bf0496793d6516"
+      }
+    ]
+  },
+  {
+    "package": "xunit.analyzers/1.27.0",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "y/pxIQaLvk/kxAoDkZW9GnHLCEqzwl5TW0vtX3pweyQpjizB9y3DXhb9pkw2dGeUqhLjsxvvJM1k89JowU6z3g==",
+    "license": "Apache-2.0",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/xunit/xunit.analyzers",
+      "commit": "a2260df3e96395e6b513e5c7485bd6c53806871e"
+    },
+    "copyright": "Copyright (C) .NET Foundation",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/xunit/xunit.analyzers/a2260df3e96395e6b513e5c7485bd6c53806871e/LICENSE",
+        "file": "licenses/918c2d961b0b79dd3aaf50d00afa237940436dac80fee83de1ed646efc599d56.txt",
+        "sha256": "918c2d961b0b79dd3aaf50d00afa237940436dac80fee83de1ed646efc599d56"
+      }
+    ]
+  },
+  {
+    "package": "xunit.runner.visualstudio/3.1.4",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "5mj99LvCqrq3CNi06xYdyIAXOEh+5b33F2nErCzI5zWiDdLHXiPXEWFSUAF8zlIv0ZWqjZNCwHTQeAPYbF3pCg==",
+    "license": "Apache-2.0",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/xunit/visualstudio.xunit",
+      "commit": "50e68bbb8b9ddd4b1bbb95d062b62010caf99909"
+    },
+    "copyright": "Copyright (C) .NET Foundation",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/xunit/visualstudio.xunit/50e68bbb8b9ddd4b1bbb95d062b62010caf99909/License.txt",
+        "file": "licenses/2db414dcd8f29ebc03790a1386e0a6ded2bb8813ba6763bd5df100d6f78c1b3d.txt",
+        "sha256": "2db414dcd8f29ebc03790a1386e0a6ded2bb8813ba6763bd5df100d6f78c1b3d"
+      }
+    ]
+  },
+  {
+    "package": "xunit.v3/3.2.2",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "L+4/4y0Uqcg8/d6hfnxhnwh4j9FaeULvefTwrk30rr1o4n/vdPfyUQ8k0yzH8VJx7bmFEkDdcRfbtbjEHlaYcA==",
+    "license": "Apache-2.0",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/xunit/xunit",
+      "commit": "728c1dce012cd82193035dddfeaba184baaa88c6"
+    },
+    "copyright": "Copyright (C) .NET Foundation",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/xunit/xunit/728c1dce012cd82193035dddfeaba184baaa88c6/LICENSE",
+        "file": "licenses/58662904756b51beb58c8828c89fe83957100e864ef916867a9602cfbcd02581.txt",
+        "sha256": "58662904756b51beb58c8828c89fe83957100e864ef916867a9602cfbcd02581"
+      }
+    ]
+  },
+  {
+    "package": "xunit.v3.assert/3.2.2",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "BPciBghgEEaJN/JG00QfCYDfEfnLgQhfnYEy+j1izoeHVNYd5+3Wm8GJ6JgYysOhpBPYGE+sbf75JtrRc7jrdA==",
+    "license": "Apache-2.0",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/xunit/xunit",
+      "commit": "728c1dce012cd82193035dddfeaba184baaa88c6"
+    },
+    "copyright": "Copyright (C) .NET Foundation",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/xunit/xunit/728c1dce012cd82193035dddfeaba184baaa88c6/LICENSE",
+        "file": "licenses/58662904756b51beb58c8828c89fe83957100e864ef916867a9602cfbcd02581.txt",
+        "sha256": "58662904756b51beb58c8828c89fe83957100e864ef916867a9602cfbcd02581"
+      }
+    ]
+  },
+  {
+    "package": "xunit.v3.common/3.2.2",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "Hj775PEH6GTbbg0wfKRvG2hNspDCvTH9irXhH4qIWgdrOSV1sQlqPie+DOvFeigsFg2fxSM3ZAaaCDQs+KreFA==",
+    "license": "Apache-2.0",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/xunit/xunit",
+      "commit": "728c1dce012cd82193035dddfeaba184baaa88c6"
+    },
+    "copyright": "Copyright (C) .NET Foundation",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/xunit/xunit/728c1dce012cd82193035dddfeaba184baaa88c6/LICENSE",
+        "file": "licenses/58662904756b51beb58c8828c89fe83957100e864ef916867a9602cfbcd02581.txt",
+        "sha256": "58662904756b51beb58c8828c89fe83957100e864ef916867a9602cfbcd02581"
+      }
+    ]
+  },
+  {
+    "package": "xunit.v3.core.mtp-v1/3.2.2",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "Ga5aA2Ca9ktz+5k3g5ukzwfexwoqwDUpV6z7atSEUvqtd6JuybU1XopHqg1oFd78QdTfZgZE9h5sHpO4qYIi5w==",
+    "license": "Apache-2.0",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/xunit/xunit",
+      "commit": "728c1dce012cd82193035dddfeaba184baaa88c6"
+    },
+    "copyright": "Copyright (C) .NET Foundation",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/xunit/xunit/728c1dce012cd82193035dddfeaba184baaa88c6/LICENSE",
+        "file": "licenses/58662904756b51beb58c8828c89fe83957100e864ef916867a9602cfbcd02581.txt",
+        "sha256": "58662904756b51beb58c8828c89fe83957100e864ef916867a9602cfbcd02581"
+      }
+    ]
+  },
+  {
+    "package": "xunit.v3.extensibility.core/3.2.2",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "srY8z/oMPvh/t8axtO2DwrHajhFMH7tnqKildvYrVQIfICi8fOn3yIBWkVPAcrKmHMwvXRJ/XsQM3VMR6DOYfQ==",
+    "license": "Apache-2.0",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/xunit/xunit",
+      "commit": "728c1dce012cd82193035dddfeaba184baaa88c6"
+    },
+    "copyright": "Copyright (C) .NET Foundation",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/xunit/xunit/728c1dce012cd82193035dddfeaba184baaa88c6/LICENSE",
+        "file": "licenses/58662904756b51beb58c8828c89fe83957100e864ef916867a9602cfbcd02581.txt",
+        "sha256": "58662904756b51beb58c8828c89fe83957100e864ef916867a9602cfbcd02581"
+      }
+    ]
+  },
+  {
+    "package": "xunit.v3.mtp-v1/3.2.2",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "O41aAzYKBT5PWqATa1oEWVNCyEUypFQ4va6K0kz37dduV3EKzXNMaV2UnEhufzU4Cce1I33gg0oldS8tGL5I0A==",
+    "license": "Apache-2.0",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/xunit/xunit",
+      "commit": "728c1dce012cd82193035dddfeaba184baaa88c6"
+    },
+    "copyright": "Copyright (C) .NET Foundation",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/xunit/xunit/728c1dce012cd82193035dddfeaba184baaa88c6/LICENSE",
+        "file": "licenses/58662904756b51beb58c8828c89fe83957100e864ef916867a9602cfbcd02581.txt",
+        "sha256": "58662904756b51beb58c8828c89fe83957100e864ef916867a9602cfbcd02581"
+      }
+    ]
+  },
+  {
+    "package": "xunit.v3.runner.common/3.2.2",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "/hkHkQCzGrugelOAehprm7RIWdsUFVmIVaD6jDH/8DNGCymTlKKPTbGokD5czbAfqfex47mBP0sb0zbHYwrO/g==",
+    "license": "Apache-2.0",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/xunit/xunit",
+      "commit": "728c1dce012cd82193035dddfeaba184baaa88c6"
+    },
+    "copyright": "Copyright (C) .NET Foundation",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/xunit/xunit/728c1dce012cd82193035dddfeaba184baaa88c6/LICENSE",
+        "file": "licenses/58662904756b51beb58c8828c89fe83957100e864ef916867a9602cfbcd02581.txt",
+        "sha256": "58662904756b51beb58c8828c89fe83957100e864ef916867a9602cfbcd02581"
+      }
+    ]
+  },
+  {
+    "package": "xunit.v3.runner.inproc.console/3.2.2",
+    "projects": [
+      "tests/MZTools.Desktop.Tests"
+    ],
+    "sha512": "ulWOdSvCk+bPXijJZ73bth9NyoOHsAs1ZOvamYbCkD4DNLX/Bd29Ve2ZNUwBbK0MqfIYWXHZViy/HKrdEC/izw==",
+    "license": "Apache-2.0",
+    "licenseType": "expression",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/xunit/xunit",
+      "commit": "728c1dce012cd82193035dddfeaba184baaa88c6"
+    },
+    "copyright": "Copyright (C) .NET Foundation",
+    "texts": [
+      {
+        "origin": "https://raw.githubusercontent.com/xunit/xunit/728c1dce012cd82193035dddfeaba184baaa88c6/LICENSE",
+        "file": "licenses/58662904756b51beb58c8828c89fe83957100e864ef916867a9602cfbcd02581.txt",
+        "sha256": "58662904756b51beb58c8828c89fe83957100e864ef916867a9602cfbcd02581"
+      }
+    ]
+  }
+]

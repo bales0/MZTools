@@ -257,9 +257,9 @@ public sealed class HfeNewImageTests
     {
         var options=new DskNewOptions(DskNewFormat.CustomRaw,3,1,3,1024,0xA7,
             DskDocumentFactory.RawSectorOrder.Custom,new[] {9,7,3},(HfeVersion)variant);
-        var created=DiskFormatting.CreateNew(options);
+        var created=DiskFormatService.CreateNew(options);
         var physical=HfeImage.Parse(created.SerializeContainer());
-        AssertSectorsEqual(DiskFormatting.Create(options).Image,physical);
+        AssertSectorsEqual(DiskFormatService.Create(options).Image,physical);
         Assert.All(physical.Tracks,track=> {
             Assert.Equal(new byte[] {9,7,3},track.Sectors.Select(s=>s.R));
             Assert.All(track.Sectors,sector=>Assert.All(sector.Data,value=>Assert.Equal((byte)0xA7,value)));
@@ -272,8 +272,8 @@ public sealed class HfeNewImageTests
     {
         foreach(var format in new[] {DskNewFormat.MzBasic,DskNewFormat.IplDisk,DskNewFormat.PersonalCpm,DskNewFormat.Sds400,DskNewFormat.LecCpmDd,DskNewFormat.LecCpmHd,DskNewFormat.Mrs,DskNewFormat.Lemmings,DskNewFormat.CustomRaw}) {
             var options=new DskNewOptions(format,format==DskNewFormat.Lemmings?80:40,2,HfeVersion:(HfeVersion)variant);
-            var expected=DiskFormatting.Create(options);
-            var actual=DiskFormatting.CreateNew(options);
+            var expected=DiskFormatService.Create(options);
+            var actual=DiskFormatService.CreateNew(options);
             Assert.Null(actual.FilePath);Assert.True(actual.IsModified);
             var reopened=HfeImage.Parse(actual.SerializeContainer());Assert.Equal((HfeVersion)variant,reopened.Version);
             AssertSectorsEqual(expected.Image,reopened);
@@ -290,7 +290,7 @@ public sealed class HfeNewImageTests
             new(record,name,new MzfCompressionOptions(MzfCompressionAlgorithm.None),record.Body.MzfBody.Length),
             new(record,"SECOND",new MzfCompressionOptions(MzfCompressionAlgorithm.None),record.Body.MzfBody.Length)]).Image:Mz800IplDskWriter.Build(record,name);
         byte[] initial=Build("FIRST");var expected=DskDocument.Open(initial);
-        var document=DiskFormatting.SetNewContainer(DskDocument.Open(initial),(HfeVersion)variant);
+        var document=DiskFormatService.SetNewContainer(DskDocument.Open(initial),(HfeVersion)variant);
         AssertSectorsEqual(expected.Image,HfeImage.Parse(document.SerializeContainer()));
         string directory=TapeTestData.CreateTempDirectory();
         try {

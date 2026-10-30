@@ -1,0 +1,290 @@
+[
+  {
+    "file": "windows-native-audio-compact.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-audio-compact.png",
+    "sha256": "66e5f61e44bfe16c445b04601829d10f99cf1c4d47c6a6374ecc2bc8a28ce10b",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-audio-pulses.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-audio-pulses.png",
+    "sha256": "b2ae9fb3b9ae140191de4bf0f368c3d9e8df0c3d45c4bcb3de448f972f571852",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-audio-records.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-audio-records.png",
+    "sha256": "27cf410d03c63699f36514c6f116f4e7dcafd1b0e8822dbafd612eccf46bf3cc",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-audio-recovery.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-audio-recovery.png",
+    "sha256": "a80a55fe8d383d984827ba7b27cc53bd5fb13fd9c70860f8609245e788148d90",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-audio-spectrogram.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-audio-spectrogram.png",
+    "sha256": "7b29dfb64657449e70088993c1ea323d7045928b9465a13ed4aa942c361c06cb",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-audio-spectrum.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-audio-spectrum.png",
+    "sha256": "0b844c8a6d7ab41bd2be0d392b76a84087de9fedcba23611bec61c79d667ee8e",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-disk-compact.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-disk-compact.png",
+    "sha256": "6cf1ab8852a2fac853f841590b1906ae0daffb9fc1a703c5d963941b0161f3c1",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-disk-files.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-disk-files.png",
+    "sha256": "c1e6c408fededac0b03471c19bbe986f797caeb4c2418e6804cb44a7cba50113",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-disk-map.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-disk-map.png",
+    "sha256": "349141b8c42b0583399b608e1f9ec07de8799cc04aa8db5455eabb603bf7a202",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-disk-repair.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-disk-repair.png",
+    "sha256": "9f095cd55da9039442fa24fda8d49bd3e59be17876245163facf9be82eddb0f7",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-hfe-physical.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-hfe-physical.png",
+    "sha256": "1682b25ec27958333b699ef30f75cbc2af83158d384d80402bd7f6a9210d2dff",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-layout-1366x768.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-layout-1366x768.png",
+    "sha256": "8f33ee482f4edf66c955671f426231ba59f90cbb4a97a56df197757830a0f8a7",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-layout-1440x960.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-layout-1440x960.png",
+    "sha256": "d3b993cd6382ebc92a7bcef14cd3f8acbfdcbe9fc621a8425157e93b87573bd7",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-layout-640x480.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-layout-640x480.png",
+    "sha256": "872f66991b0cda9476ee8aafd14d7dcbc7f85f7e145a7934a2ec49ecdb129bb2",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-layout-920x640.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-layout-920x640.png",
+    "sha256": "94729e78384d3cb09642e3d6118bb80bc46f2a2089e57e6bdc041e58997e38dd",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-media-compact.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-media-compact.png",
+    "sha256": "b0b4f81c68bda55672059478e6f8a429235a37e6108f6fe4ee161f8495d6613c",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-quickdisk-map.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-quickdisk-map.png",
+    "sha256": "6208395270acc69f50ee8d857f17f74a8015674dc54bff06bd2996adf672d3a6",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-quickdisk.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-quickdisk.png",
+    "sha256": "dfe769e0a761025925ccbd13f5500b39f895a33bf2a628787e228f0ddcca410f",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-recorder-alignment.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-recorder-alignment.png",
+    "sha256": "7157e9eb637939ba11e393b4972b9d6ae70c19e10fd1627e0556622750f13f1f",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-recorder-compact.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-recorder-compact.png",
+    "sha256": "d7a700a03a9d1cc7fbcce9d1e340b3b939d778cc502bf68fbad6aeeca2f43ad8",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-recorder-history.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-recorder-history.png",
+    "sha256": "b01256dc8ea3f42a9ac0ac87e174fe15e7f716abe8822399930c96c70a737d1d",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-recorder-pulses.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-recorder-pulses.png",
+    "sha256": "e2b6947cfd888d2e88591beb42d094e6b027a5d37ca5e6db35a65747ed24814c",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-recorder-signal.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-recorder-signal.png",
+    "sha256": "bdcc5fc451a0f739ca8873c8585bf87f43d7fe28d3d1266f1d0270d4ddcfd767",
+    "os": "windows"
+  },
+  {
+    "file": "windows-native-tape.png",
+    "source": "TestResults/Completion/windows/native-accepted/native-tape.png",
+    "sha256": "cb9703bef88298828de98e84032e0303c751e77cea1135279fd9bc63ee3ce275",
+    "os": "windows"
+  },
+  {
+    "file": "linux-native-audio-compact.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-audio-compact.png",
+    "sha256": "33044a47890c6efc7b523b3986c3ac7490cf8b2656a55683c02d59d908822fbb",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-audio-pulses.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-audio-pulses.png",
+    "sha256": "796db395ef5cf31d9ee6bd69262ac4d6ae2f88b8e445fe1ace0ef8e89ef8db21",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-audio-records.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-audio-records.png",
+    "sha256": "66d81370ae30e9b8db023bfbfdf3972dbbf861b4a21a5421425647e5d4b3521f",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-audio-recovery.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-audio-recovery.png",
+    "sha256": "c0f43090172074a06ddf9f387b1fb158302388aa37bd2d13ca5ca04255bae1c5",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-audio-spectrogram.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-audio-spectrogram.png",
+    "sha256": "4ddb0995e456c0cf3c8654360e30f6dbfca60aff2702c57def301c120d20f946",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-audio-spectrum.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-audio-spectrum.png",
+    "sha256": "cc82bba81e311de23e535fc91fc51794031b363058e07810e90d0d27dfbffa22",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-disk-compact.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-disk-compact.png",
+    "sha256": "74e638c865c292c612248fae8147ea8af8af6c1e152749fb40ff7e59ad4cf076",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-disk-files.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-disk-files.png",
+    "sha256": "3b754320c5fb87d16b3a1fa2f564ae9a6a74b9decfd317aa07deee99b38c8394",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-disk-map.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-disk-map.png",
+    "sha256": "fd655307ccde9be1a49246c55906e2d35a7db1b651f933d6482b0745d909b973",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-disk-repair.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-disk-repair.png",
+    "sha256": "f6f164776ba1dddbbc96c44e27afc830844e7ffdb47d98dc806e69d9353db434",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-hfe-physical.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-hfe-physical.png",
+    "sha256": "6c904bc34fa67afd58fbe870a71862fbefacccbccb45b9eb2c7483c16e5d4969",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-layout-1366x768.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-layout-1366x768.png",
+    "sha256": "2f98b1089e39b0c23ec3e0ebb63cdbef459bc3fcdf20ac5438289aa78b6b231d",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-layout-1440x960.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-layout-1440x960.png",
+    "sha256": "ffd068ecd928046a35029496d8c5627ee40a0922bf58904210d8aa7ce1acfe9d",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-layout-640x480.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-layout-640x480.png",
+    "sha256": "af0fe77a701be5767428d09250491e190d8906e90d80dc430f0958af58e70946",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-layout-920x640.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-layout-920x640.png",
+    "sha256": "57804a5701b4890ace13c90b7aaa507a63065c33cb7a0003cd9bb5bf2b79fd4a",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-media-compact.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-media-compact.png",
+    "sha256": "5292ddf06ee952a29b25a62eab5ba5fe26b7b27c3ba0ed2b99837ad789f0c239",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-quickdisk-map.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-quickdisk-map.png",
+    "sha256": "3c1015b4782f0a867313d19736dade9e90b65dbca933826ff7569c010bf77618",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-quickdisk.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-quickdisk.png",
+    "sha256": "cccb8a2b177943fde51a960cd348188d70eceaa160e7fec193a17971ec645df2",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-recorder-alignment.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-recorder-alignment.png",
+    "sha256": "2f9052608e9f7166b8f05beb43eb6527a284415354ab742193097b0ba28b13d6",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-recorder-compact.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-recorder-compact.png",
+    "sha256": "b6d527e710f2c9cf935b4285a322ebdbfd4407260a2c4ad2b97c3b2bed6fb5ed",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-recorder-history.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-recorder-history.png",
+    "sha256": "121d30cb88c8ebba928c6cec04682bb5aed26fa5f8a01fcbfc885afa721eaad2",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-recorder-pulses.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-recorder-pulses.png",
+    "sha256": "4df1bebac4a23869e4f4be04bab7f1c38187a11353b8e22e187a31752865884b",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-recorder-signal.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-recorder-signal.png",
+    "sha256": "5e73a708dce75d9bda474fdf8981e8c0aea2b707b1606568bed1781e08f9b76a",
+    "os": "linux"
+  },
+  {
+    "file": "linux-native-tape.png",
+    "source": "TestResults/Completion/linux/native-accepted/native-tape.png",
+    "sha256": "f904850fbe51c7bf53aaabda228517841a547b6b117656cc942863cba2dbe5ef",
+    "os": "linux"
+  }
+]

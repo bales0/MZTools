@@ -1,0 +1,72 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MZTools.Desktop.ViewModels" xmlns:c="using:MZTools.Desktop.Controls"
+             x:Class="MZTools.Desktop.Views.RecordWorkspace" x:DataType="vm:ShellViewModel">
+  <Grid RowDefinitions="Auto,*" RowSpacing="12" MinHeight="380">
+    <WrapPanel Orientation="Horizontal">
+      <Button Content="Import…" Command="{Binding ImportCommand}" Margin="0,0,6,6" />
+      <Button Content="Export…" Command="{Binding ExportCommand}" Margin="0,0,6,6" />
+      <Button Content="Compression…" Command="{Binding CompressCommand}" Margin="0,0,6,6" />
+      <Button Content="Move up" Command="{Binding MoveUpCommand}" Margin="0,0,6,6" />
+      <Button Content="Move down" Command="{Binding MoveDownCommand}" Margin="0,0,6,6" />
+      <Button Content="Delete…" Command="{Binding DeleteRecordsCommand}" Margin="0,0,6,6" />
+      <Button Content="Copy records" Command="{Binding CopyRecordsCommand}" Margin="0,0,6,6" />
+      <Button Content="Paste records…" Command="{Binding PasteRecordsCommand}" Margin="0,0,0,6" />
+    </WrapPanel>
+    <Grid Grid.Row="1" x:Name="EditorGrid" ColumnDefinitions="*,16,272">
+      <TabControl x:Name="RecordTabs" SelectedIndex="{Binding ActiveTape.ViewIndex, Mode=TwoWay}">
+        <TabItem Header="Records">
+          <Grid RowDefinitions="Auto,*" RowSpacing="12" Margin="0,12,0,0">
+            <TextBox x:Name="RecordFilter" Text="{Binding ActiveTape.Filter, Mode=TwoWay}" PlaceholderText="Filter records…" AutomationProperties.Name="Filter records" />
+            <Border Grid.Row="1" Classes="panel" Padding="0" MinHeight="200">
+              <Grid>
+              <TableView x:Name="RecordsTable" ItemsSource="{Binding ActiveTape.Rows}" SelectionMode="Multiple" IsEnabled="{Binding !Documents.IsBusy}"
+                         SelectionChanged="SelectionChanged" AutomationProperties.Name="Records" DragDrop.AllowDrop="True">
+                <TableView.ContextMenu>
+                  <ContextMenu>
+                    <MenuItem Header="Copy records" Command="{Binding CopyRecordsCommand}" />
+                    <MenuItem Header="Paste records…" Command="{Binding PasteRecordsCommand}" />
+                    <MenuItem Header="Compression…" Command="{Binding CompressCommand}" />
+                    <MenuItem Header="Export…" Command="{Binding ExportCommand}" />
+                    <Separator />
+                    <MenuItem Header="Delete selected records…" Command="{Binding DeleteRecordsCommand}" />
+                  </ContextMenu>
+                </TableView.ContextMenu>
+                <TableView.Columns>
+                  <TableViewColumn Header="#" Binding="{ReflectionBinding Number}" Width="44" />
+                  <TableViewColumn Header="Name" Binding="{ReflectionBinding Name}" Width="170" />
+                  <TableViewColumn Header="Type" Binding="{ReflectionBinding Type}" Width="60" />
+                  <TableViewColumn Header="Load" Binding="{ReflectionBinding Load}" Width="70" />
+                  <TableViewColumn Header="Execute" Binding="{ReflectionBinding Execute}" Width="70" />
+                  <TableViewColumn Header="Size" Binding="{ReflectionBinding Size}" Width="90" />
+                  <TableViewColumn Header="Tape profile" Binding="{ReflectionBinding Profile}" Width="170" />
+                  <TableViewColumn Header="Source compression" Binding="{ReflectionBinding Compression}" Width="180" />
+                </TableView.Columns>
+              </TableView>
+              <TextBlock Text="{Binding ActiveTape.EmptyMessage}" IsVisible="{Binding !ActiveTape.HasRows}" IsHitTestVisible="False" Margin="24,64,24,24" TextWrapping="Wrap" Classes="muted" />
+              </Grid>
+            </Border>
+          </Grid>
+        </TabItem>
+        <TabItem Header="Map">
+          <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Spacing="12" Margin="0,12,0,0">
+              <TextBlock Text="{Binding ActiveTape.MapSummary}" TextWrapping="Wrap" Classes="muted" />
+              <WrapPanel Orientation="Horizontal"><Button Content="Zoom +" Click="ZoomIn" Margin="0,0,6,0" /><Button Content="Zoom −" Click="ZoomOut" Margin="0,0,6,0" /><Button Content="Fit all" Click="Fit" Margin="0,0,6,0" /><Button Content="Fit selection" Click="FitSelection" IsEnabled="{Binding ActiveTape.CanFitSelection}" ToolTip.Tip="Select a record or a mapped region." /></WrapPanel>
+              <c:RegionMap x:Name="MediaMap" Session="{Binding ActiveTape}" Height="150" AutomationProperties.Name="Media regions" />
+              <TextBlock Text="{Binding ActiveTape.MapDetail}" TextWrapping="Wrap" />
+              <Expander Header="Host / integrity / source evidence" HorizontalAlignment="Stretch">
+                <TextBlock Text="{Binding ActiveTape.MediaEvidence}" TextWrapping="Wrap" />
+              </Expander>
+              <Button Content="Export selected region…" Click="ExportRegion" IsEnabled="{Binding ActiveTape.HasRegion}" ToolTip.Tip="Select a stored region in the map. Tape sequence blocks use record indices instead of stored byte ranges." HorizontalAlignment="Left" />
+              <TextBlock Text="Wheel zooms at the pointer; drag pans. Shift/Ctrl/Command click selects records. Coordinates come from the existing media layout." TextWrapping="Wrap" Classes="muted" />
+            </StackPanel>
+          </ScrollViewer>
+        </TabItem>
+        <TabItem Header="Hex"><c:ReportViewer Text="{Binding ActiveTape.Hex}" Margin="0,12,0,0" /></TabItem>
+      </TabControl>
+      <Border Grid.Column="2" x:Name="RecordInspectorPanel" Classes="panel" Margin="0,40,0,0" IsVisible="{Binding InspectorVisible}">
+        <c:RecordInspector x:Name="RecordInspector" />
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

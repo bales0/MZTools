@@ -1,5 +1,30 @@
 # Third-party notices
 
+## Avalonia desktop shell (F3)
+
+The new `MZTools.Desktop` host uses Avalonia 12.1.4 and Fluent templates (MIT),
+SkiaSharp 3.119.4, HarfBuzzSharp 8.3.1.3, and their platform native assets.
+ANGLE for Windows includes BSD terms. Native assets retain additional third-party
+licences; the wrapper package's MIT designation does not replace those terms.
+The exact restored package graph, source commits, content hashes and unmodified
+licence/notice texts are archived in
+[the F3 package inventory](docs/third-party/avalonia-f3/README.md).
+These files accompany desktop build and publish outputs.
+
+The new headless test project uses Avalonia.Headless.XUnit 12.1.4 and xUnit v3
+3.2.2 (Apache-2.0). The Inter font brought in by the headless platform is under
+SIL OFL 1.1; it is not a new production font dependency. Existing test projects
+continue using their original xUnit versions.
+
+F5 adds no NuGet packages, bundled native runtimes or fonts. Repair source identity
+uses existing Windows system APIs and Linux libc `statx`; these system libraries
+are not redistributed by this change. Existing package locks and notices remain
+applicable. See the [F5 report](docs/F5_DSK_HFE_2026-10-30.md).
+
+F6 adds no packages, fonts or external FFT/codec implementation. The shared periodic-Hann
+FFT service is extracted from the existing Capture implementation. FLAC codec integration
+remains deferred to F8. Existing package locks and notices apply.
+
 ## HFE / HFEv2 / HFEv3
 
 The HFE header, interleaved side storage, HFEv3 opcode and 36 MHz timing
@@ -148,3 +173,11 @@ PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIG
 HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
 CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+## Multiplatform audio and distribution (F7–F9)
+
+Windows uses the existing NAudio WASAPI adapter. Linux/macOS use dynamically loaded
+PortAudio (MIT); FLAC uses dynamically loaded libsndfile (LGPL 2.1 or optionally 3).
+The native runtime wrapper licence does not replace upstream library/codec terms.
+See [the production package inventory](docs/third-party/avalonia-f9/README.md) and
+[native licences, source/replacement information and security scope](docs/third-party/avalonia-f9/NATIVE_LIBRARIES.md).

@@ -1,0 +1,314 @@
+{
+  "phase": "F3",
+  "date": "2026-10-29",
+  "suites": {
+    "Windows/mztools.capture.tests.dll": {
+      "source": "TestResults/F3/windows/regression/f3-regression_net10.0_20261029180433.trx",
+      "sha256": "21f14af152e9ab15c41f6b280f434d7777e52f78bd46f5fb2867921e9bb3a048",
+      "total": 210,
+      "passed": 210,
+      "failed": 0,
+      "skipped": []
+    },
+    "Windows/mztools.capture.windows.tests.dll": {
+      "source": "TestResults/F3/windows/regression/f3-regression_net10.0_20261029180440.trx",
+      "sha256": "82c1df40bcdbc59b414e2116fdba4788f98f9b827ea15b6744b2ee1e07603d98",
+      "total": 52,
+      "passed": 52,
+      "failed": 0,
+      "skipped": []
+    },
+    "Windows/mztools.core.tests.dll": {
+      "source": "TestResults/F3/windows/regression/f3-regression_net10.0_20261029181911.trx",
+      "sha256": "1f1436be7daf5f37d8228535f6bad615d0a2b70067a3ad1312b5cd0b3877a60a",
+      "total": 412,
+      "passed": 411,
+      "failed": 0,
+      "skipped": [
+        {
+          "test": "MZTools.Tests.QuickDiskHostDetectionTests.RealReferenceHxCAndEquivalentFlashFloppyIdentifySameHost",
+          "reason": "Place the three documented full QD reference images in specification and rebuild to run local integration tests."
+        }
+      ]
+    },
+    "Windows/mztools.tests.dll": {
+      "source": "TestResults/F3/windows/regression/f3-regression_net10.0_20261029181955.trx",
+      "sha256": "a53fcc7a6099e74ea5e954eeee7eb9a632678651c2f71b3168afb1a8a7ffed2a",
+      "total": 1205,
+      "passed": 1202,
+      "failed": 0,
+      "skipped": [
+        {
+          "test": "MZTools.Tests.QuickDiskHostDetectionTests.RealReferenceHxCAndEquivalentFlashFloppyIdentifySameHost",
+          "reason": "Place the three documented full QD reference images in specification and rebuild to run local integration tests."
+        },
+        {
+          "test": "MZTools.Tests.CpmSystemBuilderTests.DescriptorChangesNeverRemainRegisteredOrInstallIntoCanonicalTarget",
+          "reason": "Place the five documented CP/M references in the sibling _SFD800 directory to run local full-image regressions."
+        },
+        {
+          "test": "MZTools.Tests.CpmSystemBuilderTests.RealRegisteredSystemsRemainIdentifiedWithDifferentComAndGameFiles",
+          "reason": "Place the five documented CP/M references in the sibling _SFD800 directory to run local full-image regressions."
+        }
+      ]
+    },
+    "Windows/Desktop": {
+      "source": "TestResults/F3/windows/desktop-final.trx",
+      "sha256": "a872ed559f221963895bade25b8776be00da489178b91e3ab29a50d977571b5d",
+      "total": 48,
+      "passed": 48,
+      "failed": 0,
+      "skipped": []
+    },
+    "Linux/Desktop": {
+      "source": "TestResults/F3/linux/desktop-final-linux.trx",
+      "sha256": "41c67d06343ccba7aa714c555283f6eddf03ac2b32eb66a0a46761e8b3f1b822",
+      "total": 48,
+      "passed": 48,
+      "failed": 0,
+      "skipped": []
+    },
+    "Linux/Core": {
+      "source": "TestResults/F3/linux/core-linux.trx",
+      "sha256": "68c38f62535e452d56dc2b8418c86249a9a03ccad38f91b3cd207adee8102dc7",
+      "total": 412,
+      "passed": 411,
+      "failed": 0,
+      "skipped": [
+        {
+          "test": "MZTools.Tests.QuickDiskHostDetectionTests.RealReferenceHxCAndEquivalentFlashFloppyIdentifySameHost",
+          "reason": "Place the three documented full QD reference images in specification and rebuild to run local integration tests."
+        }
+      ]
+    },
+    "Linux/Capture": {
+      "source": "TestResults/F3/linux/capture-linux.trx",
+      "sha256": "ddc41212128fdd17ecb56ebd5c3827ae75a90dc0c0bd2b16580616cf061a56a1",
+      "total": 210,
+      "passed": 210,
+      "failed": 0,
+      "skipped": []
+    }
+  },
+  "native": {
+    "windows": {
+      "os": "Microsoft Windows 10.0.26300",
+      "framework": ".NET 10.0.11",
+      "storageProvider": "Avalonia.Win32.Win32StorageProvider",
+      "backend": "Avalonia.Win32.WindowImpl",
+      "checks": [
+        {
+          "name": "Native window is visible",
+          "pass": true
+        },
+        {
+          "name": "Startup does not open files or devices",
+          "pass": true
+        },
+        {
+          "name": "Open reachable at 1440x960",
+          "pass": true
+        },
+        {
+          "name": "Open reachable at 1366x768",
+          "pass": true
+        },
+        {
+          "name": "Open reachable at 920x640",
+          "pass": true
+        },
+        {
+          "name": "Open reachable at 640x480",
+          "pass": true
+        },
+        {
+          "name": "Native input binding filters table",
+          "pass": true
+        },
+        {
+          "name": "Navigation and selection share context",
+          "pass": true
+        },
+        {
+          "name": "F6 changes focus region",
+          "pass": true
+        },
+        {
+          "name": "Native clipboard report roundtrip",
+          "pass": true
+        },
+        {
+          "name": "Explicit Open displayed a real platform picker window",
+          "pass": true
+        },
+        {
+          "name": "Cancel picker preserves empty document state without errors",
+          "pass": true
+        },
+        {
+          "name": "Explicit Save As picker can be cancelled without creating a file",
+          "pass": true
+        },
+        {
+          "name": "Save remains unavailable without document adapter",
+          "pass": true
+        },
+        {
+          "name": "Native close coordinator succeeds",
+          "pass": true
+        }
+      ],
+      "frames": [
+        {
+          "file": "native-layout-1440x960.png",
+          "logicalWidth": 1440,
+          "logicalHeight": 940,
+          "renderScaling": 1.5,
+          "pixels": "2160, 1410",
+          "origin": "Skia visual render of a real native window; not desktop screen capture"
+        },
+        {
+          "file": "native-layout-1366x768.png",
+          "logicalWidth": 1366,
+          "logicalHeight": 768,
+          "renderScaling": 1.5,
+          "pixels": "2049, 1152",
+          "origin": "Skia visual render of a real native window; not desktop screen capture"
+        },
+        {
+          "file": "native-layout-920x640.png",
+          "logicalWidth": 920,
+          "logicalHeight": 640,
+          "renderScaling": 1.5,
+          "pixels": "1380, 960",
+          "origin": "Skia visual render of a real native window; not desktop screen capture"
+        },
+        {
+          "file": "native-layout-640x480.png",
+          "logicalWidth": 640,
+          "logicalHeight": 480,
+          "renderScaling": 1.5,
+          "pixels": "960, 720",
+          "origin": "Skia visual render of a real native window; not desktop screen capture"
+        }
+      ],
+      "hardwareTested": false,
+      "allNativeDpiScalesTested": false,
+      "exit": 0
+    },
+    "linux": {
+      "os": "Debian GNU/Linux 13 (trixie)",
+      "framework": ".NET 10.0.11",
+      "storageProvider": "Avalonia.Platform.Storage.FallbackStorageProvider",
+      "backend": "Avalonia.X11.X11Window",
+      "checks": [
+        {
+          "name": "Native window is visible",
+          "pass": true
+        },
+        {
+          "name": "Startup does not open files or devices",
+          "pass": true
+        },
+        {
+          "name": "Open reachable at 1440x960",
+          "pass": true
+        },
+        {
+          "name": "Open reachable at 1366x768",
+          "pass": true
+        },
+        {
+          "name": "Open reachable at 920x640",
+          "pass": true
+        },
+        {
+          "name": "Open reachable at 640x480",
+          "pass": true
+        },
+        {
+          "name": "Native input binding filters table",
+          "pass": true
+        },
+        {
+          "name": "Navigation and selection share context",
+          "pass": true
+        },
+        {
+          "name": "F6 changes focus region",
+          "pass": true
+        },
+        {
+          "name": "Native clipboard report roundtrip",
+          "pass": true
+        },
+        {
+          "name": "Explicit Open displayed a real platform picker window",
+          "pass": true
+        },
+        {
+          "name": "Cancel picker preserves empty document state without errors",
+          "pass": true
+        },
+        {
+          "name": "Explicit Save As picker can be cancelled without creating a file",
+          "pass": true
+        },
+        {
+          "name": "Save remains unavailable without document adapter",
+          "pass": true
+        },
+        {
+          "name": "Native close coordinator succeeds",
+          "pass": true
+        }
+      ],
+      "frames": [
+        {
+          "file": "native-layout-1440x960.png",
+          "logicalWidth": 1440,
+          "logicalHeight": 960,
+          "renderScaling": 1,
+          "pixels": "1440, 960",
+          "origin": "Skia visual render of a real native window; not desktop screen capture"
+        },
+        {
+          "file": "native-layout-1366x768.png",
+          "logicalWidth": 1366,
+          "logicalHeight": 768,
+          "renderScaling": 1,
+          "pixels": "1366, 768",
+          "origin": "Skia visual render of a real native window; not desktop screen capture"
+        },
+        {
+          "file": "native-layout-920x640.png",
+          "logicalWidth": 920,
+          "logicalHeight": 640,
+          "renderScaling": 1,
+          "pixels": "920, 640",
+          "origin": "Skia visual render of a real native window; not desktop screen capture"
+        },
+        {
+          "file": "native-layout-640x480.png",
+          "logicalWidth": 640,
+          "logicalHeight": 480,
+          "renderScaling": 1,
+          "pixels": "640, 480",
+          "origin": "Skia visual render of a real native window; not desktop screen capture"
+        }
+      ],
+      "hardwareTested": false,
+      "allNativeDpiScalesTested": false,
+      "exit": 0
+    }
+  },
+  "macOS": "UNTESTED",
+  "audioHardware": "UNTESTED",
+  "nativeAllDpiScales": "UNTESTED",
+  "wpfSmokeLogs": [
+    "TestResults/F3/windows/report-smoke.log",
+    "TestResults/F3/windows/dsk-smoke.log",
+    "TestResults/F3/windows/audio-smoke.log",
+    "TestResults/F3/windows/recorder-smoke.log"
+  ]
+}

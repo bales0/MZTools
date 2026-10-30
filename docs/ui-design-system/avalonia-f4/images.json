@@ -1,0 +1,47 @@
+[
+  {
+    "file": "windows-tape.png",
+    "source": "TestResults/F4/windows/native/native-tape.png",
+    "sha256": "5d7b7515f30be8180fa45489ab6372108721ecb3eb469266fbe2e24ce2e6291e"
+  },
+  {
+    "file": "windows-quickdisk.png",
+    "source": "TestResults/F4/windows/native/native-quickdisk.png",
+    "sha256": "90f362b43adff5b8229ac55866580092ef8d80c2a87d66f45862d11fbae55cc3"
+  },
+  {
+    "file": "windows-map.png",
+    "source": "TestResults/F4/windows/native/native-quickdisk-map.png",
+    "sha256": "fc586edf0a2ca04f54ce324f0e0716e5b1a467a70920b19110d4ae10235c6551"
+  },
+  {
+    "file": "linux-tape.png",
+    "source": "TestResults/F4/linux/native/native-tape.png",
+    "sha256": "c6769d3114e9abc5542cb8b5e498f2d7fb8b5a1b4b615b0aa2725895fdf47ada"
+  },
+  {
+    "file": "linux-map.png",
+    "source": "TestResults/F4/linux/native/native-quickdisk-map.png",
+    "sha256": "e0a4fd63b363c0ff290961536eacd0b108b2f5a92799351376440af4182c9cc7"
+  },
+  {
+    "file": "compact.png",
+    "source": "TestResults/F4/windows/screenshots/tape-640x480-1.0.png",
+    "sha256": "6527f78bf6ac49c1b4078ed6aba5004726257aff914c41419c5cfedcbc4266fa"
+  },
+  {
+    "file": "metadata-validation.png",
+    "source": "TestResults/F4/windows/screenshots/metadata-validation.png",
+    "sha256": "3a2228fd7fc9fcc94c4e26792aa41aca58659ddbc418139a9e6f7261efd62b2a"
+  },
+  {
+    "file": "unknown-host.png",
+    "source": "TestResults/F4/windows/screenshots/unknown-host.png",
+    "sha256": "27fde56e093770dfacc83e14b8a1451187ccb8863bbd7007b36a559f8af90662"
+  },
+  {
+    "file": "scaled-200.png",
+    "source": "TestResults/F4/windows/screenshots/quickdisk-1366x768-2.0.png",
+    "sha256": "0d6c71fb599cd2f20b88e053fc053b5d827917cca1e6137164d18d4f34d6472e"
+  }
+]

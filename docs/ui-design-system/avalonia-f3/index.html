@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="cs"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MZTools – F3 Avalonia review</title>
+<link rel="stylesheet" href="../prototype/tokens.css">
+<style>
+body{font:15px/1.5 system-ui,sans-serif;color:var(--text);background:var(--canvas);margin:24px auto;max-width:1400px;padding:0 20px}
+article{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin:20px 0}img{display:block;max-width:100%;height:auto;border:1px solid var(--border)}a{color:var(--accent)}p{max-width:1000px}
+</style>
+<h1>MZTools · F3 Avalonia shell</h1>
+<p>Skutečná Avalonia UI, 29. 10. 2026. Ke schválení je shell a společné komponenty.
+Doménové editory médií, grafy a recorder se připojí v dalších fázích. Prázdný shell nepředstírá otevřené dokumenty ani výsledky měření.</p>
+<p><a href="../../F3_AVALONIA_SHELL_2026-10-29.md">Implementace a výsledky</a> · <a href="images.json">Původ a SHA-256 obrazů</a> · <a href="../gallery.html">Schválený směr F2</a></p>
+<article><h2>Windows · nativní okno</h2><p>Win32, skutečný render scale 150 %. Logický viewport 1366 × 768, výstup 2049 × 1152 px.
+Jde o Skia render vizuálního stromu skutečného okna, nikoli o snímek celé plochy s titulkovým rámem.</p><a href="windows-native.png"><img src="windows-native.png" alt="Skutečný Windows shell, seznam dostupnosti modulů a inspector"></a></article>
+<article><h2>Linux · nativní X11 okno přes WSLg</h2><p>Debian 13, render scale 100 %, 1366 × 768 px. File picker používá platformní fallback Avalonia.
+WSLg není náhradou testu samostatného Linux desktopu.</p><a href="linux-native.png"><img src="linux-native.png" alt="Skutečný Linux shell se stejnými komponentami"></a></article>
+<article><h2>Chybová obrazovka</h2><p>Skutečný headless Skia render. Open s dosud nepřipojeným adaptérem nezaloží dokument a nezmění zdroj.</p><a href="error.png"><img src="error.png" alt="Chybový banner při otevření typu bez připojeného editoru"></a></article>
+<article><h2>Společný report viewer</h2><p>Čitelný, označitelný textový report stavu shellu. Nejde o certifikaci testů ani analýzu média.</p><a href="report.png"><img src="report.png" alt="Report viewer v Avalonia shellu"></a></article>
+<article><h2>Malý viewport · 640 × 480</h2><p>Headless Skia, 100 %. Workspace lze vertikálně posunout; dosažitelnost posledního řádku má samostatný test.
+Inspector se otevírá do vlastněného detailního okna. Příkazy a stav zůstávají v pevných lištách.</p><a href="compact.png"><img src="compact.png" alt="Kompaktní shell s dosažitelným scrollovaným workspace"></a></article>
+<article><h2>Render 200 %</h2><p>Headless Skia při 1366 × 768 DIP do bitmapy 2732 × 1536 px. Ověřuje render a layout;
+není dokladem skutečného běhu na monitoru nastaveném na 200 %.</p><a href="scaled-200.png"><img src="scaled-200.png" alt="Shell vyrenderovaný do bitmapy při 200 procentech"></a></article>
+<p>Skutečný vzhled F3 schválen uživatelem 29. 10. 2026. macOS, screen reader a fyzické audio zařízení: UNTESTED.
+<a href="../../F4_TAPE_QUICKDISK_2026-10-29.md">Navazující F4</a> byla samostatně schválena a implementována; její skutečné obrazovky mají vlastní galerii.</p></html>

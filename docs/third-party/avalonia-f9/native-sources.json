@@ -1,0 +1,37 @@
+[
+  {
+    "file": "PORTAUDIO_MIT.txt",
+    "source": "https://raw.githubusercontent.com/PortAudio/portaudio/v19.7.0/LICENSE.txt",
+    "sha256": "ec52a1952d701f94e5135719a47376da4ee0b4a0201f1cafb49f61db6480ac3d"
+  },
+  {
+    "file": "LIBSNDFILE_COPYING.txt",
+    "source": "https://raw.githubusercontent.com/libsndfile/libsndfile/1.2.2/COPYING",
+    "sha256": "ad01ea5cd2755f6048383c8d54c88459cd6fcb17757c5c8892f8c5ea060f6140"
+  },
+  {
+    "file": "LGPL_3_0.txt",
+    "source": "https://www.gnu.org/licenses/lgpl-3.0.txt",
+    "sha256": "e3a994d82e644b03a792a930f574002658412f62407f5fee083f2555c5f23118"
+  },
+  {
+    "file": "FLAC_COPYING.txt",
+    "source": "https://raw.githubusercontent.com/xiph/flac/1.4.3/COPYING.Xiph",
+    "sha256": "12600ea1a7affcbf469bd0d8b2cd725e4167114a2ee834b88f5d2857bfd7ddbf"
+  },
+  {
+    "file": "OGG_COPYING.txt",
+    "source": "https://raw.githubusercontent.com/xiph/ogg/v1.3.5/COPYING",
+    "sha256": "d2ab5758336489da61c12cc5bb757da5339c4ae9001f9bb0562b4370249af814"
+  },
+  {
+    "file": "VORBIS_COPYING.txt",
+    "source": "https://raw.githubusercontent.com/xiph/vorbis/v1.3.7/COPYING",
+    "sha256": "ec1815db59fcd302846df949d7424876cb2e2dc5ed1606c5fb0b36787b1cf43a"
+  },
+  {
+    "file": "GPL_3_0.txt",
+    "source": "https://raw.githubusercontent.com/spdx/license-list-data/main/text/GPL-3.0-only.txt",
+    "sha256": "fb981668c18a279e285fc4d83fba1e836cc84dd4daa73c9697d3cfd2d8aca6e0"
+  }
+]

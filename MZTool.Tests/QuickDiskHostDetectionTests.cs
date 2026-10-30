@@ -23,7 +23,7 @@ public sealed class SharpQdReferenceTheoryAttribute : TheoryAttribute
     }
 }
 
-public class QuickDiskHostDetectionTests
+public partial class QuickDiskHostDetectionTests
 {
     [SharpQdReferenceTheory]
     [InlineData("FF_Blank_MZ_Formated.qd", 0)]
@@ -128,15 +128,6 @@ public class QuickDiskHostDetectionTests
         byte[] track = Encode([0x16,0xA5,0x5A,0x80], false);
         Assert.Equal(new byte[] {0x16,0xA5,0x5A,0x80}, QuickDiskHostBitstream.Decode(track, 3, 4, false));
         Assert.Equal(new byte[] {0x68,0xA5,0x5A,0x01}, QuickDiskHostBitstream.Decode(track, 3, 4, true));
-    }
-    [Fact]
-    public void DecodedUnitExportRejectsRawTrackAndMakesAnIndependentCopy()
-    {
-        var decoded = new QuickDiskInspectorControl.Unit("Block", "cell 42", 3, "CRC valid", [1, 2, 3], IsDecoded: true);
-        byte[] exported = QuickDiskInspectorControl.GetDecodedExport(decoded);
-        Assert.Equal(decoded.Data, exported); exported[0] = 99; Assert.Equal(1, decoded.Data[0]);
-        Assert.Throws<InvalidOperationException>(() => QuickDiskInspectorControl.GetDecodedExport(decoded with { IsDecoded = false }));
-        Assert.Throws<InvalidOperationException>(() => QuickDiskInspectorControl.GetDecodedExport(decoded with { Data = [] }));
     }
     [Theory]
     [InlineData(2)] [InlineData(4)] [InlineData(5)] [InlineData(6)]

@@ -1,0 +1,16 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:MZTools.Desktop.ViewModels" x:Class="MZTools.Desktop.Controls.AudioInspector" x:DataType="vm:ShellViewModel">
+ <ScrollViewer HorizontalScrollBarVisibility="Disabled"><StackPanel Spacing="10" Margin="0,0,8,0">
+  <TextBlock Text="Audio inspector" Classes="section" /><TextBlock Text="{Binding ActiveAudio.Summary}" Classes="muted" TextWrapping="Wrap" />
+  <TextBlock Text="{Binding ActiveAudio.Detail}" TextWrapping="Wrap" />
+  <Separator /><TextBlock Text="Preview transform · source PCM stays read-only" TextWrapping="Wrap" FontWeight="SemiBold" />
+  <StackPanel Spacing="8" IsEnabled="{Binding CanUseAudio}">
+   <TextBlock Text="Right shift · source frames" Classes="muted" /><TextBox Text="{Binding ActiveAudio.RightShift, Mode=TwoWay}" IsEnabled="{Binding ActiveAudio.CanAlign}" AutomationProperties.Name="Right channel shift in frames" />
+   <CheckBox Content="Invert right polarity" IsChecked="{Binding ActiveAudio.InvertRight, Mode=TwoWay}" IsEnabled="{Binding ActiveAudio.CanAlign}" /><CheckBox Content="Mix (L + R) / 2" IsChecked="{Binding ActiveAudio.Mix, Mode=TwoWay}" IsEnabled="{Binding ActiveAudio.CanAlign}" />
+   <WrapPanel><Button Content="Apply preview" Command="{Binding AudioPreviewCommand}" Margin="0,0,6,6" /><Button Content="Cancel edits" Command="{Binding AudioResetCommand}" /></WrapPanel>
+  </StackPanel>
+  <TextBlock Text="{Binding ActiveAudio.TransformDescription}" Classes="muted" TextWrapping="Wrap" />
+  <TextBlock Text="{Binding ActiveAudio.Validation}" Foreground="{DynamicResource F2.error}" TextWrapping="Wrap" />
+  <Separator /><TextBlock Text="Reference evidence" FontWeight="SemiBold" /><TextBlock Text="{Binding ActiveAudio.ReferenceEvidence}" TextWrapping="Wrap" Classes="muted" />
+  <Separator /><TextBlock Text="{Binding ActiveAudio.SelectionSummary}" TextWrapping="Wrap" />
+ </StackPanel></ScrollViewer>
+</UserControl>

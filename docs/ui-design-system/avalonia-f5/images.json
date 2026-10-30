@@ -1,0 +1,62 @@
+[
+  {
+    "file": "windows-files.png",
+    "source": "TestResults/F5/windows/native/native-disk-files.png",
+    "sha256": "88d171b3bf25336095e1f4d7f3d3ba666faf6ffbb5940d09b8ab9c0a3e5e8ca0"
+  },
+  {
+    "file": "windows-map.png",
+    "source": "TestResults/F5/windows/native/native-disk-map.png",
+    "sha256": "c6c19f423a65cf6d591dc303f33cb02761990cd3ca29a840bb21415501928e72"
+  },
+  {
+    "file": "windows-hfe.png",
+    "source": "TestResults/F5/windows/native/native-hfe-physical.png",
+    "sha256": "d651e2f9933796aa420a284f473483d68eb52ec634bcf9c33713b33fbbedff3e"
+  },
+  {
+    "file": "windows-repair.png",
+    "source": "TestResults/F5/windows/native/native-disk-repair.png",
+    "sha256": "715876cde501816082e4c575d3bfb24baef203ad68c4bd70f8adfad2f4cfb0fb"
+  },
+  {
+    "file": "linux-files.png",
+    "source": "TestResults/F5/linux/native/native-disk-files.png",
+    "sha256": "755e081bdf35d07a932ceafe4eeb99032418c2b72fdf4885c05d2625f36da339"
+  },
+  {
+    "file": "linux-map.png",
+    "source": "TestResults/F5/linux/native/native-disk-map.png",
+    "sha256": "455319280bbfc40a629286511d6b2ab432681252ecd7a99e2997c84ccb0db50b"
+  },
+  {
+    "file": "linux-hfe.png",
+    "source": "TestResults/F5/linux/native/native-hfe-physical.png",
+    "sha256": "3bee52a94454d9f8692e1b512a54799c1c03b80804882b38c5bf4b97037c91c4"
+  },
+  {
+    "file": "hex.png",
+    "source": "TestResults/F5/windows/screenshots/disk-hex.png",
+    "sha256": "4b532153c9600ba03da1246c396e6802edfacbd6d94ae9d1230d5183061d7608"
+  },
+  {
+    "file": "surface.png",
+    "source": "TestResults/F5/windows/screenshots/disk-surface.png",
+    "sha256": "521a602c9fb3d4de6eb7ab17ff818bff7a9684f9d585a3355f9601947c746127"
+  },
+  {
+    "file": "compact.png",
+    "source": "TestResults/F5/windows/screenshots/disk-640x480-1.00.png",
+    "sha256": "27df88d7823c6990c7fc02daf90bbdea195386e6e58214705cf814776e2c3943"
+  },
+  {
+    "file": "scaled-125.png",
+    "source": "TestResults/F5/windows/screenshots/disk-1366x768-1.25.png",
+    "sha256": "c9c7367dc81915e53a25bb646c3b7ca1e9dd72135d72cceb0dc67e01b16f2f4c"
+  },
+  {
+    "file": "scaled-200.png",
+    "source": "TestResults/F5/windows/screenshots/disk-1366x768-2.00.png",
+    "sha256": "6a7b3b0c61559754806f4a9fb231636726674378646f9c7a8c0fd8ac1e03bbdd"
+  }
+]

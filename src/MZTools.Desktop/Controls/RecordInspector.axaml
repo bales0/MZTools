@@ -1,0 +1,33 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MZTools.Desktop.ViewModels" x:Class="MZTools.Desktop.Controls.RecordInspector" x:DataType="vm:ShellViewModel">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Spacing="8">
+      <TextBlock Text="Record inspector" Classes="section" />
+      <TextBlock Text="{Binding ActiveTape.SelectedRow.Origin}" Classes="muted" TextWrapping="Wrap" />
+      <TextBlock Text="Selected record is hidden by the filter." IsVisible="{Binding ActiveTape.SelectedHidden}" TextWrapping="Wrap" Classes="muted" />
+      <StackPanel x:Name="MetadataEditor" Spacing="6" IsEnabled="{Binding CanEditMetadata}">
+        <TextBlock Text="Name · SHARP, up to 16 characters" Classes="muted" />
+        <TextBox x:Name="RecordName" Text="{Binding ActiveTape.Name, Mode=TwoWay}" AutomationProperties.Name="Record name" />
+        <TextBlock Text="Type · hexadecimal" Classes="muted" />
+        <TextBox Text="{Binding ActiveTape.FileType, Mode=TwoWay}" AutomationProperties.Name="Record type" />
+        <TextBlock Text="Load address · hexadecimal" Classes="muted" />
+        <TextBox Text="{Binding ActiveTape.LoadAddress, Mode=TwoWay}" AutomationProperties.Name="Load address" />
+        <TextBlock Text="Execute address · hexadecimal" Classes="muted" />
+        <TextBox Text="{Binding ActiveTape.ExecuteAddress, Mode=TwoWay}" AutomationProperties.Name="Execute address" />
+        <TextBlock Text="Tape profile / speed" Classes="muted" />
+        <ComboBox ItemsSource="{Binding ActiveTape.Profiles}" SelectedItem="{Binding ActiveTape.Profile, Mode=TwoWay}" HorizontalAlignment="Stretch" AutomationProperties.Name="Tape profile" />
+        <WrapPanel Orientation="Horizontal" Margin="0,8,0,0">
+          <Button Content="Apply metadata" Command="{Binding ApplyMetadataCommand}" Margin="0,0,6,6" />
+          <Button Content="Cancel edits" Click="CancelEdits" Margin="0,0,0,6" />
+        </WrapPanel>
+      </StackPanel>
+      <TextBlock Text="Unapplied edits" IsVisible="{Binding ActiveTape.HasDraft}" Foreground="{DynamicResource F2.warning}" />
+      <TextBlock Text="{Binding ActiveTape.Validation}" Foreground="{DynamicResource F2.error}" TextWrapping="Wrap" />
+      <Border Height="1" Background="{DynamicResource F2.border}" Margin="0,8" />
+      <TextBlock Text="Source compression" FontWeight="SemiBold" />
+      <TextBlock Text="{Binding ActiveTape.SelectedRow.Compression}" TextWrapping="Wrap" />
+      <TextBlock Text="{Binding DocumentReason}" Classes="muted" TextWrapping="Wrap" />
+      <TextBlock Text="{Binding ActiveTape.MapDetail}" Classes="muted" TextWrapping="Wrap" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

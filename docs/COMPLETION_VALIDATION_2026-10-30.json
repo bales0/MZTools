@@ -1,0 +1,2666 @@
+{
+  "generatedUtc": "2026-10-30T19:17:30.023463+00:00",
+  "scope": "Local Windows x64 and Debian/WSLg x64; macOS/ARM/hardware/signing/remote CI UNTESTED",
+  "suites": {
+    "windows/core-final": {
+      "source": "TestResults/Completion/windows/core-final.trx",
+      "sha256": "577293485400836fc6f659b911f61449c6993c49f01fe1d7655e4ab85e125c8d",
+      "passed": 411,
+      "failed": 0,
+      "skipped": 1
+    },
+    "windows/legacy-final": {
+      "source": "TestResults/Completion/windows/legacy-final.trx",
+      "sha256": "7d6f1fcae2a94868b741904eb2d0c7646862554c786ee52818b86e0e759772fd",
+      "passed": 1202,
+      "failed": 0,
+      "skipped": 3
+    },
+    "windows/MZTools.Capture.Tests-final": {
+      "source": "TestResults/Completion/windows/MZTools.Capture.Tests-final.trx",
+      "sha256": "5335b8e494493e3f786ff6e1843b8e3f47cb8b0c2b46baf792a6f9f603a6746d",
+      "passed": 224,
+      "failed": 0,
+      "skipped": 0
+    },
+    "windows/MZTools.Capture.Windows.Tests-final": {
+      "source": "TestResults/Completion/windows/MZTools.Capture.Windows.Tests-final.trx",
+      "sha256": "874c69db86dd2bd908efd83b7f78c3fb0f5b00c2ed24e22e20f8eb9ad8b251fa",
+      "passed": 52,
+      "failed": 0,
+      "skipped": 0
+    },
+    "windows/desktop-accepted": {
+      "source": "TestResults/Completion/windows/desktop-accepted.trx",
+      "sha256": "13a7594b687ac208f12a71d17716cce82cedc1e456a4a3f46a02e6aed9f8f50a",
+      "passed": 242,
+      "failed": 0,
+      "skipped": 0
+    },
+    "linux/core-final": {
+      "source": "TestResults/Completion/linux/core-final.trx",
+      "sha256": "a0bcd04d832bbb306071d4f624e39edc266c61e7f488db7eb2323157416d615f",
+      "passed": 411,
+      "failed": 0,
+      "skipped": 1
+    },
+    "linux/capture-final": {
+      "source": "TestResults/Completion/linux/capture-final.trx",
+      "sha256": "344a695f4c8daff4f3c2c7920d9e2e38c103e5d06110b72aa93fccab4cc215b6",
+      "passed": 224,
+      "failed": 0,
+      "skipped": 0
+    },
+    "linux/desktop-accepted": {
+      "source": "TestResults/Completion/linux/desktop-accepted.trx",
+      "sha256": "b4a83437ae4bece740e5485db5e7cf96d91bf8507fab8a66853fbb0d539b11bd",
+      "passed": 250,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "passed": 3016,
+  "failedTests": 0,
+  "skipped": 5,
+  "native": {
+    "windows": {
+      "native-audio": {
+        "source": "TestResults/Completion/windows/native-accepted/native-audio.json",
+        "sha256": "a0fdfc775efd41cd50e596b4dc97c127bc35ab0b5df30c30d148c929fe37b9c6",
+        "checks": [
+          {
+            "name": "Native F4 export creates actual decodable audio fixture",
+            "pass": true
+          },
+          {
+            "name": "Native WAV opens in read-only Audio workspace",
+            "pass": true
+          },
+          {
+            "name": "Native initial analysis recovers the actual MZF program",
+            "pass": true
+          },
+          {
+            "name": "Native record table selects exact Core block frames",
+            "pass": true
+          },
+          {
+            "name": "Native Measure uses existing pulse statistics",
+            "pass": true
+          },
+          {
+            "name": "Native FFT views retain method and exact-window provenance",
+            "pass": true
+          },
+          {
+            "name": "Native selected PCM export writes 900 actual PCM8 frames",
+            "pass": true
+          },
+          {
+            "name": "Native WAV export preserves original bytes and binding",
+            "pass": true
+          },
+          {
+            "name": "Native deeper analysis retains complete programs and checksum candidates",
+            "pass": true
+          },
+          {
+            "name": "Native recovery exposes actual consumed detector streams",
+            "pass": true
+          },
+          {
+            "name": "Native retained passes support evidence comparison",
+            "pass": true
+          },
+          {
+            "name": "Native recovered program transfers into F4 Tape document",
+            "pass": true
+          },
+          {
+            "name": "Native recovered program transfers into F4 QuickDisk document",
+            "pass": true
+          },
+          {
+            "name": "Native audio workflows keep all source media byte-identical",
+            "pass": true
+          },
+          {
+            "name": "Native audio document lifecycle closes all temporary drafts",
+            "pass": true
+          },
+          {
+            "name": "Native audio window closes after preview cancellation",
+            "pass": true
+          }
+        ],
+        "hardwareTested": false
+      },
+      "native-disk": {
+        "source": "TestResults/Completion/windows/native-accepted/native-disk.json",
+        "sha256": "96081b9de3c18c6c4dc35f74b59a0b64e49dee7eaf0e7df0d107eb53b2e36787",
+        "checks": [
+          {
+            "name": "Native New disk creates a Core DSK document",
+            "pass": true
+          },
+          {
+            "name": "Native disk import inserts actual MZF data",
+            "pass": true
+          },
+          {
+            "name": "Native inspector applies filename metadata",
+            "pass": true
+          },
+          {
+            "name": "Native disk Save As writes and rebinds only after success",
+            "pass": true
+          },
+          {
+            "name": "Native DSK reopen reloads edited directory",
+            "pass": true
+          },
+          {
+            "name": "Native disk map shares session zoom state",
+            "pass": true
+          },
+          {
+            "name": "Native disk copy uses the common typed transfer codec",
+            "pass": true
+          },
+          {
+            "name": "Native cross-disk paste applies compatible CP/M transfer preview",
+            "pass": true
+          },
+          {
+            "name": "Native HFE creation and verified Save As complete",
+            "pass": true
+          },
+          {
+            "name": "Native physical view loads actual stored HFE cells",
+            "pass": true
+          },
+          {
+            "name": "Native damaged open requires explicit repair preview and Save As",
+            "pass": true
+          },
+          {
+            "name": "Native repaired copy commits to a new clean binding",
+            "pass": true
+          },
+          {
+            "name": "Native repair leaves damaged original byte-identical",
+            "pass": true
+          },
+          {
+            "name": "Native disk workflows keep imported source unchanged",
+            "pass": true
+          },
+          {
+            "name": "Native disk documents close through shared lifecycle",
+            "pass": true
+          },
+          {
+            "name": "Native disk window closes without leaked document ownership",
+            "pass": true
+          }
+        ],
+        "hardwareTested": false
+      },
+      "native-media": {
+        "source": "TestResults/Completion/windows/native-accepted/native-media.json",
+        "sha256": "0c58dbec41efe03bf8ca0c67a596028bf68a620dc268bc372750b2510999671d",
+        "checks": [
+          {
+            "name": "Native New Tape creates a real document",
+            "pass": true
+          },
+          {
+            "name": "Native import applies two actual MZF files",
+            "pass": true
+          },
+          {
+            "name": "Native metadata Apply updates the selected record",
+            "pass": true
+          },
+          {
+            "name": "Native Save As writes media and sidecar",
+            "pass": true
+          },
+          {
+            "name": "Native Save As rebinds clean document",
+            "pass": true
+          },
+          {
+            "name": "Native edits keep the imported source unchanged",
+            "pass": true
+          },
+          {
+            "name": "Native reopen reads the persisted edit",
+            "pass": true
+          },
+          {
+            "name": "Native codec transfer copies into a separate QuickDisk document",
+            "pass": true
+          },
+          {
+            "name": "Native transfer retains the selected record identity",
+            "pass": true
+          },
+          {
+            "name": "Native QuickDisk Save As writes a real QDF",
+            "pass": true
+          },
+          {
+            "name": "Native export uses the real LEP writer",
+            "pass": true
+          },
+          {
+            "name": "Native Export preserves document binding",
+            "pass": true
+          },
+          {
+            "name": "Native compact window keeps document commands reachable",
+            "pass": true
+          },
+          {
+            "name": "Native media window closes through the document coordinator",
+            "pass": true
+          }
+        ],
+        "hardwareTested": false
+      },
+      "native-recorder": {
+        "source": "TestResults/Completion/windows/native-accepted/native-recorder.json",
+        "sha256": "21a727df6056349015963cb8586cf40cfaa7e9eac4b5d8874fda7bb2cf197d8b",
+        "checks": [
+          {
+            "name": "Recorder construction does not open input",
+            "pass": true
+          },
+          {
+            "name": "Enumeration requires explicit device selection and does not start input",
+            "pass": true
+          },
+          {
+            "name": "Record explicitly opens exactly one selected synthetic input",
+            "pass": true
+          },
+          {
+            "name": "Live/offline graph family is reused by recorder views",
+            "pass": true
+          },
+          {
+            "name": "Archive remains complete through live UI refresh/zoom load",
+            "pass": true
+          },
+          {
+            "name": "WAV and manifest account for every source frame",
+            "pass": true
+          },
+          {
+            "name": "Recorded segment bytes match delivered PCM hashes",
+            "pass": true
+          },
+          {
+            "name": "Archive loss counters remain separate from preview drops",
+            "pass": true
+          },
+          {
+            "name": "Bounded snapshots contain spectrum, alignment and optional pulse measurements",
+            "pass": true
+          },
+          {
+            "name": "Live pulse streams remain individually identifiable",
+            "pass": true
+          },
+          {
+            "name": "A/B stores two explicit user measurements with passage provenance",
+            "pass": true
+          },
+          {
+            "name": "Comparison does not invent a calibrated mechanical angle",
+            "pass": true
+          },
+          {
+            "name": "Explicit saved-audio actions navigate through the complete recording manifest",
+            "pass": true
+          },
+          {
+            "name": "Compact recorder keeps archive controls reachable",
+            "pass": true
+          },
+          {
+            "name": "Recorder close waits for session disposal and leaves no live window",
+            "pass": true
+          }
+        ],
+        "hardwareTested": false
+      },
+      "native-smoke": {
+        "source": "TestResults/Completion/windows/native-accepted/native-smoke.json",
+        "sha256": "5c6556ec0f65caf9932b924fbe619872e8d3aa27587c9d74168ecd4ceb116f78",
+        "checks": [
+          {
+            "name": "Native window is visible",
+            "pass": true
+          },
+          {
+            "name": "Startup does not open files or devices",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 1440x960",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 1366x768",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 920x640",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 640x480",
+            "pass": true
+          },
+          {
+            "name": "Native input binding filters table",
+            "pass": true
+          },
+          {
+            "name": "Navigation and selection share context",
+            "pass": true
+          },
+          {
+            "name": "F6 changes focus region",
+            "pass": true
+          },
+          {
+            "name": "Native clipboard report roundtrip",
+            "pass": true
+          },
+          {
+            "name": "Explicit Open displayed a real platform picker window",
+            "pass": true
+          },
+          {
+            "name": "Cancel picker preserves empty document state without errors",
+            "pass": true
+          },
+          {
+            "name": "Explicit Save As picker can be cancelled without creating a file",
+            "pass": true
+          },
+          {
+            "name": "Save remains unavailable without document adapter",
+            "pass": true
+          },
+          {
+            "name": "Native close coordinator succeeds",
+            "pass": true
+          }
+        ],
+        "hardwareTested": false
+      }
+    },
+    "linux": {
+      "native-audio": {
+        "source": "TestResults/Completion/linux/native-accepted/native-audio.json",
+        "sha256": "bb90ed582deb3e07fba4c625f14535fc8c6e1f3adbb2a56003e0df3ed010a7d2",
+        "checks": [
+          {
+            "name": "Native F4 export creates actual decodable audio fixture",
+            "pass": true
+          },
+          {
+            "name": "Native WAV opens in read-only Audio workspace",
+            "pass": true
+          },
+          {
+            "name": "Native initial analysis recovers the actual MZF program",
+            "pass": true
+          },
+          {
+            "name": "Native record table selects exact Core block frames",
+            "pass": true
+          },
+          {
+            "name": "Native Measure uses existing pulse statistics",
+            "pass": true
+          },
+          {
+            "name": "Native FFT views retain method and exact-window provenance",
+            "pass": true
+          },
+          {
+            "name": "Native selected PCM export writes 900 actual PCM8 frames",
+            "pass": true
+          },
+          {
+            "name": "Native WAV export preserves original bytes and binding",
+            "pass": true
+          },
+          {
+            "name": "Native deeper analysis retains complete programs and checksum candidates",
+            "pass": true
+          },
+          {
+            "name": "Native recovery exposes actual consumed detector streams",
+            "pass": true
+          },
+          {
+            "name": "Native retained passes support evidence comparison",
+            "pass": true
+          },
+          {
+            "name": "Native recovered program transfers into F4 Tape document",
+            "pass": true
+          },
+          {
+            "name": "Native recovered program transfers into F4 QuickDisk document",
+            "pass": true
+          },
+          {
+            "name": "Native audio workflows keep all source media byte-identical",
+            "pass": true
+          },
+          {
+            "name": "Native audio document lifecycle closes all temporary drafts",
+            "pass": true
+          },
+          {
+            "name": "Native audio window closes after preview cancellation",
+            "pass": true
+          }
+        ],
+        "hardwareTested": false
+      },
+      "native-disk": {
+        "source": "TestResults/Completion/linux/native-accepted/native-disk.json",
+        "sha256": "da936aaea7fc123dcb3909948cdf02538a0fc1e1115b6a221750dde0a33a2344",
+        "checks": [
+          {
+            "name": "Native New disk creates a Core DSK document",
+            "pass": true
+          },
+          {
+            "name": "Native disk import inserts actual MZF data",
+            "pass": true
+          },
+          {
+            "name": "Native inspector applies filename metadata",
+            "pass": true
+          },
+          {
+            "name": "Native disk Save As writes and rebinds only after success",
+            "pass": true
+          },
+          {
+            "name": "Native DSK reopen reloads edited directory",
+            "pass": true
+          },
+          {
+            "name": "Native disk map shares session zoom state",
+            "pass": true
+          },
+          {
+            "name": "Native disk copy uses the common typed transfer codec",
+            "pass": true
+          },
+          {
+            "name": "Native cross-disk paste applies compatible CP/M transfer preview",
+            "pass": true
+          },
+          {
+            "name": "Native HFE creation and verified Save As complete",
+            "pass": true
+          },
+          {
+            "name": "Native physical view loads actual stored HFE cells",
+            "pass": true
+          },
+          {
+            "name": "Native damaged open requires explicit repair preview and Save As",
+            "pass": true
+          },
+          {
+            "name": "Native repaired copy commits to a new clean binding",
+            "pass": true
+          },
+          {
+            "name": "Native repair leaves damaged original byte-identical",
+            "pass": true
+          },
+          {
+            "name": "Native disk workflows keep imported source unchanged",
+            "pass": true
+          },
+          {
+            "name": "Native disk documents close through shared lifecycle",
+            "pass": true
+          },
+          {
+            "name": "Native disk window closes without leaked document ownership",
+            "pass": true
+          }
+        ],
+        "hardwareTested": false
+      },
+      "native-media": {
+        "source": "TestResults/Completion/linux/native-accepted/native-media.json",
+        "sha256": "916f11886f7ed2fb2863840ded84e4a59b806b36f7c4e21eb7f003dbf487f6af",
+        "checks": [
+          {
+            "name": "Native New Tape creates a real document",
+            "pass": true
+          },
+          {
+            "name": "Native import applies two actual MZF files",
+            "pass": true
+          },
+          {
+            "name": "Native metadata Apply updates the selected record",
+            "pass": true
+          },
+          {
+            "name": "Native Save As writes media and sidecar",
+            "pass": true
+          },
+          {
+            "name": "Native Save As rebinds clean document",
+            "pass": true
+          },
+          {
+            "name": "Native edits keep the imported source unchanged",
+            "pass": true
+          },
+          {
+            "name": "Native reopen reads the persisted edit",
+            "pass": true
+          },
+          {
+            "name": "Native codec transfer copies into a separate QuickDisk document",
+            "pass": true
+          },
+          {
+            "name": "Native transfer retains the selected record identity",
+            "pass": true
+          },
+          {
+            "name": "Native QuickDisk Save As writes a real QDF",
+            "pass": true
+          },
+          {
+            "name": "Native export uses the real LEP writer",
+            "pass": true
+          },
+          {
+            "name": "Native Export preserves document binding",
+            "pass": true
+          },
+          {
+            "name": "Native compact window keeps document commands reachable",
+            "pass": true
+          },
+          {
+            "name": "Native media window closes through the document coordinator",
+            "pass": true
+          }
+        ],
+        "hardwareTested": false
+      },
+      "native-recorder": {
+        "source": "TestResults/Completion/linux/native-accepted/native-recorder.json",
+        "sha256": "dcbc2be7fd62b8c7affded9919f7a08a3d89e2b3dd2f45dc5aa35d4f2abdc6b5",
+        "checks": [
+          {
+            "name": "Recorder construction does not open input",
+            "pass": true
+          },
+          {
+            "name": "Enumeration requires explicit device selection and does not start input",
+            "pass": true
+          },
+          {
+            "name": "Record explicitly opens exactly one selected synthetic input",
+            "pass": true
+          },
+          {
+            "name": "Live/offline graph family is reused by recorder views",
+            "pass": true
+          },
+          {
+            "name": "Archive remains complete through live UI refresh/zoom load",
+            "pass": true
+          },
+          {
+            "name": "WAV and manifest account for every source frame",
+            "pass": true
+          },
+          {
+            "name": "Recorded segment bytes match delivered PCM hashes",
+            "pass": true
+          },
+          {
+            "name": "Archive loss counters remain separate from preview drops",
+            "pass": true
+          },
+          {
+            "name": "Bounded snapshots contain spectrum, alignment and optional pulse measurements",
+            "pass": true
+          },
+          {
+            "name": "Live pulse streams remain individually identifiable",
+            "pass": true
+          },
+          {
+            "name": "A/B stores two explicit user measurements with passage provenance",
+            "pass": true
+          },
+          {
+            "name": "Comparison does not invent a calibrated mechanical angle",
+            "pass": true
+          },
+          {
+            "name": "Explicit saved-audio actions navigate through the complete recording manifest",
+            "pass": true
+          },
+          {
+            "name": "Compact recorder keeps archive controls reachable",
+            "pass": true
+          },
+          {
+            "name": "Recorder close waits for session disposal and leaves no live window",
+            "pass": true
+          }
+        ],
+        "hardwareTested": false
+      },
+      "native-smoke": {
+        "source": "TestResults/Completion/linux/native-accepted/native-smoke.json",
+        "sha256": "8dadfcb35196707574dbabaeefae7e097aaa8e64a98fcbec89eae599db64b04e",
+        "checks": [
+          {
+            "name": "Native window is visible",
+            "pass": true
+          },
+          {
+            "name": "Startup does not open files or devices",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 1440x960",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 1366x768",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 920x640",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 640x480",
+            "pass": true
+          },
+          {
+            "name": "Native input binding filters table",
+            "pass": true
+          },
+          {
+            "name": "Navigation and selection share context",
+            "pass": true
+          },
+          {
+            "name": "F6 changes focus region",
+            "pass": true
+          },
+          {
+            "name": "Non-text/rich clipboard preserved; native text roundtrip UNTESTED for this run",
+            "pass": true
+          },
+          {
+            "name": "Explicit Open displayed a real platform picker window",
+            "pass": true
+          },
+          {
+            "name": "Cancel picker preserves empty document state without errors",
+            "pass": true
+          },
+          {
+            "name": "Explicit Save As picker can be cancelled without creating a file",
+            "pass": true
+          },
+          {
+            "name": "Save remains unavailable without document adapter",
+            "pass": true
+          },
+          {
+            "name": "Native close coordinator succeeds",
+            "pass": true
+          }
+        ],
+        "hardwareTested": false
+      }
+    }
+  },
+  "wpfSmoke": {
+    "wpf-disk-trace.log": {
+      "source": "TestResults/Completion/windows/wpf-disk-trace.log",
+      "sha256": "3454d87bda80baea51c9dea251fd51be3af4ff801303e12581ce966407a0ac9a",
+      "result": "PASS"
+    },
+    "wpf-recorder-final.log": {
+      "source": "TestResults/Completion/windows/wpf-recorder-final.log",
+      "sha256": "610fc438a8e6b36505edebd9496a2ee1cbfbd144d050526d5cff4c811d43c97c",
+      "result": "PASS"
+    },
+    "wpf-audio-final.log": {
+      "source": "TestResults/Completion/windows/wpf-audio-final.log",
+      "sha256": "ea2f7ec8fee21e51dbeb76dee1645c9d386c8a685d3491853480c82f3075e496",
+      "result": "PASS"
+    },
+    "wpf-report-final.log": {
+      "source": "TestResults/Completion/windows/wpf-report-final.log",
+      "sha256": "62052edafa88d2402fb82592284e2f2862fc72e9df2fa383dc00877d11e9a0b4",
+      "result": "PASS"
+    }
+  },
+  "benchmarks": {
+    "windows": {
+      "frames": 14400000,
+      "seconds": 300,
+      "channels": 2,
+      "fileBytes": 57600044,
+      "initialAnalysisMilliseconds": 21106,
+      "panMilliseconds": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "spectrogramCancellationIncludingFirstWindowsMilliseconds": 55,
+      "managedRetainedDeltaBytes": 50363840,
+      "spectralCacheBytes": 0,
+      "workingSetBytes": 327659520,
+      "sourceHandlesReleased": true
+    },
+    "linux": {
+      "frames": 14400000,
+      "seconds": 300,
+      "channels": 2,
+      "fileBytes": 57600044,
+      "initialAnalysisMilliseconds": 29568,
+      "panMilliseconds": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "spectrogramCancellationIncludingFirstWindowsMilliseconds": 41,
+      "managedRetainedDeltaBytes": 42225856,
+      "spectralCacheBytes": 0,
+      "workingSetBytes": 357937152,
+      "sourceHandlesReleased": true
+    }
+  },
+  "fixtureArchiveInventory": {
+    "archivesScanned": 39,
+    "exactReferenceNamesFound": [
+      {
+        "archive": "C:\\Dokumenty\\GitHub\\_SFD800\\CPMv42.zip",
+        "entry": "CPMv23_System/CPMv23 System.dsk",
+        "bytes": 777984
+      }
+    ]
+  },
+  "archives": [
+    {
+      "rid": "win-x64",
+      "archive": "C:\\Dokumenty\\GitHub\\MZTools\\TestResults\\Completion\\distribution\\MZTools-win-x64.zip",
+      "sha256": "04c90a97e8e3de1aaf8591dd4e49bdec37e8647385e1534caab19ea92d1258e7",
+      "files": 316,
+      "selfContained": true,
+      "signed": false,
+      "nativeHardwareTested": false
+    },
+    {
+      "rid": "win-arm64",
+      "archive": "C:\\Dokumenty\\GitHub\\MZTools\\TestResults\\Completion\\distribution\\MZTools-win-arm64.zip",
+      "sha256": "6e881608bed30add0f8c9282328be65c021dea8473dbf55d3c4dd1f8e43fc9ee",
+      "files": 316,
+      "selfContained": true,
+      "signed": false,
+      "nativeHardwareTested": false
+    },
+    {
+      "rid": "linux-x64",
+      "archive": "C:\\Dokumenty\\GitHub\\MZTools\\TestResults\\Completion\\distribution\\MZTools-linux-x64.tar.gz",
+      "sha256": "315d12ac1a2ff7091ba46abd7ec55bd682c5ecbec76c26042b0c2792a535f60f",
+      "files": 294,
+      "selfContained": true,
+      "signed": false,
+      "nativeHardwareTested": false
+    },
+    {
+      "rid": "linux-arm64",
+      "archive": "C:\\Dokumenty\\GitHub\\MZTools\\TestResults\\Completion\\distribution\\MZTools-linux-arm64.tar.gz",
+      "sha256": "a46480c214fd1b09770cbf345aac64378315303754516a570f4605342ef3c2a2",
+      "files": 294,
+      "selfContained": true,
+      "signed": false,
+      "nativeHardwareTested": false
+    },
+    {
+      "rid": "osx-x64",
+      "archive": "C:\\Dokumenty\\GitHub\\MZTools\\TestResults\\Completion\\distribution\\MZTools-osx-x64.zip",
+      "sha256": "29bc7e2bc27e3b6ba681909284ba1e684535c3e610608c3891f2a664c3ae96cf",
+      "files": 296,
+      "selfContained": true,
+      "signed": false,
+      "nativeHardwareTested": false
+    },
+    {
+      "rid": "osx-arm64",
+      "archive": "C:\\Dokumenty\\GitHub\\MZTools\\TestResults\\Completion\\distribution\\MZTools-osx-arm64.zip",
+      "sha256": "13f7e2bd8494ec0f29486a5abc061d3d9f8ed6538cf57e7e900d14ebd0888924",
+      "files": 296,
+      "selfContained": true,
+      "signed": false,
+      "nativeHardwareTested": false
+    }
+  ],
+  "sourceHashes": {
+    "src/MZTools.Core/AtomicFileTransaction.cs": "e6f43faeffc30f6e333e447776f82c085d86b23708d07b071fefaa88729ea35e",
+    "src/MZTools.Core/ListReorder.cs": "00cdb874c28587518e0debda1c570b7c34bd6e9710017f6e30a0ceedfa0ede0b",
+    "src/MZTools.Core/Mz800DskImage.cs": "f3e90e9c629b7777be5aa573eb8b663ec4aaf949633d053247bcda3fb34a5720",
+    "src/MZTools.Core/Mz800IplDskReader.cs": "3eea5234ea34b5b35ee55a602a50d4da9a90a1cac10c497f9ee80e9a26e13ffb",
+    "src/MZTools.Core/Mz800IplDskWriter.cs": "22a42c3ae595b9e889db3980a5a524c320693cf2714e6c7d44f4f11c39c11491",
+    "src/MZTools.Core/Mz800MultiGameIplDskWriter.cs": "39285716f5c86a55671121603b1197eda8989330d681b7a5e587dd3d677dec6b",
+    "src/MZTools.Core/Mzf.cs": "e6b18c74922582923d4797812041df51257ca3a8937380c945a98609e31d9412",
+    "src/MZTools.Core/MZTools.Core.csproj": "6835f0e12d0577ffaebf5935a82d08929645a554eecdd2e64e12a8a5a9426dca",
+    "src/MZTools.Core/QuickDisk.cs": "33eb78b4b964e273c387534da8206d4170e2b9c4b8235cc131bfd4dfa2ef3f74",
+    "src/MZTools.Core/QuickDiskFormatLabels.cs": "ce87695b1e54689e04ad698bfbc9be7573dbb022c305b48f4f23b17c9e5ad8b9",
+    "src/MZTools.Core/QuickDiskHostDetection.cs": "357b9430f822256448c07f46fe24be67ed463dfc081133c71f2e6f684f9797e5",
+    "src/MZTools.Core/QuickDiskLayout.cs": "49b8ce110f622e21dc112d5ddb8feea54b8946abea362950aa46bd2d4314d5dd",
+    "src/MZTools.Core/QuickDiskUnitStructure.cs": "390c18c6a9822511c4d4b5acb150b0590dae239282b8561246a0a623d9d9a70e",
+    "src/MZTools.Core/QuickDiskVisualSnapshot.cs": "94ff1ca9a59294427e86a93737bb6df9df6edf528a4375eaf022d96a33476599",
+    "src/MZTools.Core/ReportPresentation.cs": "71c4ce89de213f8c92162fabe5a1b2c3f7c0c66d68115aa26b9dbdbeff7ca408",
+    "src/MZTools.Core/SharpMzPulseDecoder.cs": "dc027a76aa153c2f573c951ee0bc4b0f2eb7589bccc93b2273706703c73efed1",
+    "src/MZTools.Core/TapeDocumentIO.cs": "235301236deba82c03d88548c158f04a1cb94272ed0b3d11bf852255a3f4d53f",
+    "src/MZTools.Core/TapeFileNameEncoding.cs": "f3333375a15fbcf6b66139affd0bbc6b21dda8456df64b291a3e6335012d9d8c",
+    "src/MZTools.Core/TapeFormat.cs": "e8b7374518d4e4db33e98bd5c4d32bc1b8ad798b97fbb091acea89916e70a801",
+    "src/MZTools.Core/TapeSavePolicy.cs": "278e18b595b7dd22680b4dd085a5cf64a084d823a23c71b04e61a88c4b2c8fd7",
+    "src/MZTools.Core/Utility.cs": "65a73c781c2840b01b6de2500022c5cdf75f03bf0f54449579010d1d2855b2d9",
+    "src/MZTools.Core/WavHeuristicAnalyzer.cs": "e7b3d1e73679f761c073a134bf017f83452dfc2054b36d238fa3c2d733942f94",
+    "src/MZTools.Core/WavPcmStreamReader.cs": "d00ad40ce2506a293bfb352e43fd9b6460ab35b3cd2acfdd3786cc173e06abff",
+    "src/MZTools.Desktop/App.axaml": "8e97eece17de046db13fe842fc2d61e57a502b18a73e35e069e38ab099bd546c",
+    "src/MZTools.Desktop/App.axaml.cs": "66f6f3ea2b3e05706ee2d9440748a96a9c1e02dd535a5a7ae5784b2eb6ee2db1",
+    "src/MZTools.Desktop/MZTools.Desktop.csproj": "3d902f141e6304cc452e4d6a6c22376893fc5b0aded25236edbd32f1130054e3",
+    "src/MZTools.Desktop/Program.cs": "b25124a325699191e74a4743eb9d76d1703c91f7916460ba5121d201f03e50f0",
+    "src/MZTools.Platform.Audio/MZTools.Platform.Audio.csproj": "fd88a2d1ab958211c6452956d6b9024e3ac9fcb6ed002df78fe31f0241885092",
+    "src/MZTools.Platform.Audio/NativeAudioCodecs.cs": "cc21f47b8649fe94e03c5ce32e7a42460c2ba8e7dbd2e2ef034bcaa27aceae7d",
+    "src/MZTools.Platform.Audio/NativeLibraries.cs": "b44263e3330db80991cec15ae6ca5168b9664f7ff969897e3bffbec28c91adc0",
+    "src/MZTools.Platform.Audio/PortAudioBackend.cs": "e318e51779d3a58d2984a90dc5efec62daba40cb327fa5f2067b47ec3cf92286",
+    "src/MZTools.Desktop/Controls/AudioChart.cs": "5b7527a3e2b5b2f87120b1d52ff6d38c5d2d4fe6e81cb43e5f1c2131fe50099b",
+    "src/MZTools.Desktop/Controls/AudioChart.Live.cs": "97ca1f97c23470c35ad6b0023dcccfc3f10623e718c19bf8028fcd4abb20f7b4",
+    "src/MZTools.Desktop/Controls/AudioInspector.axaml": "f0be066e82b0d39008ecad5ae7f83a28dd5e2addc38344b801217a81dd0e0266",
+    "src/MZTools.Desktop/Controls/AudioInspector.axaml.cs": "20d59a0b8166007e13e766af69fec5f3886ff0f38e797f7fdc26c533a7e7807f",
+    "src/MZTools.Desktop/Controls/DiskInspector.axaml": "2130817587da9de8cff11dfba9a5ee26c21796be09d2ea32538299c320c4ed49",
+    "src/MZTools.Desktop/Controls/DiskInspector.axaml.cs": "4896c7ac9676d2f64768db86c74101a3822b4b47dad18d8eb544790b77451961",
+    "src/MZTools.Desktop/Controls/DiskMap.cs": "288facda72283c4ff941e93e4a78e8ed3da2b56587f287da73d8a18cb343d6ae",
+    "src/MZTools.Desktop/Controls/DiskPhysicalPanel.axaml": "c6133b64f7f4f6fb0b1e73986499ea3233382ff5221d29ac6dce84a9e3fe6e01",
+    "src/MZTools.Desktop/Controls/DiskPhysicalPanel.axaml.cs": "aa8558fedff923cc8209adcb5e24038698dc0d09b80fd8e4e40b954552dd2b9c",
+    "src/MZTools.Desktop/Controls/DiskTrackView.cs": "5cf9dcdb5bb36c838d5f1d38b798380caf67aeb2350ce99d10f9adb9bd358add",
+    "src/MZTools.Desktop/Controls/PropertyForm.axaml": "02a877ed075bc07e23e33d6746a36c036b9ff5ad80baf1f9ecc425775465b6f5",
+    "src/MZTools.Desktop/Controls/PropertyForm.axaml.cs": "239b65ee8837e05266a1be92e2085c09c1167fe9142e100c9babb8364205332c",
+    "src/MZTools.Desktop/Controls/RecordInspector.axaml": "239edd0f5c71f25f33d3c4e6ec4b40cdddc1c35d8e7dc549a75124a5fc771382",
+    "src/MZTools.Desktop/Controls/RecordInspector.axaml.cs": "59d69624d44ec8ea3b49c86f685d8bd99bc9b82c830021b76e8483cc5c3f04b6",
+    "src/MZTools.Desktop/Controls/RegionMap.cs": "3ecf30ef81e0e148b2ddab0b9c9d859081e1484032e6c4fde2ff090d814e4648",
+    "src/MZTools.Desktop/Controls/ReportViewer.axaml": "8cfbc05238154e0a3d57264d86abe2e2f441191c19a62d29f6bc439eea50586b",
+    "src/MZTools.Desktop/Controls/ReportViewer.axaml.cs": "116a634c801792b526084859c661ee50391923921c38a27a6fb3c34b6cac5d23",
+    "src/MZTools.Desktop/Documents/AtomicDocumentStore.cs": "bece816669f4a172559e050e6cd404f9edebe2c02e5286ff63cb6fab9483d0fc",
+    "src/MZTools.Desktop/Documents/AudioOperations.cs": "f4db27e329fc5e2a3156a96a3c7352f827fab28070d871b2901491f8f9806c00",
+    "src/MZTools.Desktop/Documents/AudioRows.cs": "bfb595e8ffa041bbef6a044d8a0e75b32355f1b8566f83af3863dcf993a9ad94",
+    "src/MZTools.Desktop/Documents/AudioSession.Analysis.cs": "32a53471fd555543b94923bfd360902029528e209ec00335bdb1410a89024d00",
+    "src/MZTools.Desktop/Documents/AudioSession.cs": "33f6fd3a5bb255e8ec440d0d6cbf12a6e60ea3d2e19b5ffe1b4ae89f0f873359",
+    "src/MZTools.Desktop/Documents/AudioSession.Recovery.cs": "13a1effa38e5f017c9ee1a269ab73d0b3513aa8c8d1d81758c27c9c4f9a81114",
+    "src/MZTools.Desktop/Documents/BatchSession.cs": "79d97e2e788f09917dfce17eca1fd680b9f355dbdbaa2d0225b452a7cd4343c3",
+    "src/MZTools.Desktop/Documents/DiskDialogs.cs": "ebda8fd243d52f18215de4c968d6ef50c1f83a240a4e15c40bb06f08781b4fa5",
+    "src/MZTools.Desktop/Documents/DiskLoader.cs": "7894f911eedaa31ba2c2fc055e56650968224b452055e453cee41a3555d35fa6",
+    "src/MZTools.Desktop/Documents/DiskOperations.cs": "fd16a36678e1115528d41fcd66302a070fcd1d4744032c7e9259337f51628bea",
+    "src/MZTools.Desktop/Documents/DiskSession.cs": "98c531f5d1d0a1d663b994aa081c23418a8894a49351cee8e2c158c4285e61c1",
+    "src/MZTools.Desktop/Documents/DocumentCoordinator.cs": "c1151a5dd912de0ba7159782dcb96a17f3946dbe86475aa562e6b117bea2f34b",
+    "src/MZTools.Desktop/Documents/DocumentSavePlan.cs": "7fcdbe56ab3a8e93f0b2d7c23cd45ad8e0aa2854f6c1b1564ac306b5174fde99",
+    "src/MZTools.Desktop/Documents/DocumentSession.cs": "8d9754d836f197c8b932669994ae5f3674adffda63fc14c114247e157ac927d7",
+    "src/MZTools.Desktop/Documents/MediaOperations.cs": "ba95e7e16e46f619e2f0e8b63ae8c61c0abbb8e83796c1cb911664d4f2f17a17",
+    "src/MZTools.Desktop/Documents/TapeSession.cs": "5b7cc127cb65e93d83f310bb1a57dc73a8b6fbf83c7c9364dd7cb5620d57cd00",
+    "src/MZTools.Desktop/Platform/DesktopDialogs.cs": "bff6bdf7552b41dc0ee6df5cf0f4d7d167607fc0bf9344dbde52be968a302b37",
+    "src/MZTools.Desktop/Platform/DesktopDiskDialogs.cs": "21ca707c8b36bc3261d07ff1db36d631d9d8ba9778083f0876659dfbd991c700",
+    "src/MZTools.Desktop/Platform/DesktopMediaDialogs.cs": "0e5fab00b9e6fd657adb8db3594158003abb051a4c0c01752f08150b616a8848",
+    "src/MZTools.Desktop/Platform/DesktopPreferences.cs": "57d785333cdfd1d4efdc4b0eff191e3bebd3d553b89aa331415de6d3ce82a1de",
+    "src/MZTools.Desktop/Platform/DesktopRecorderNavigation.cs": "fc9ee86592be1cf1a8148083f101c036027ed4b301b3ec835e73f949c3bfd728",
+    "src/MZTools.Desktop/Platform/RecorderBackendFactory.cs": "acc5925b507316dd99757741ebe63e4315b3c744873043f920d9ac4a585371f7",
+    "src/MZTools.Desktop/Platform/RepairSourceProtection.cs": "ec2972fa5a955d6b88ea454d23ea641cd5a17d3d61a7158d13a80d20d782a93f",
+    "src/MZTools.Desktop/Theme/SharedStyles.axaml": "6c6c7535ee2a5d9e42790fb335016970f23e5117922eb04fe01bb9ca0a992470",
+    "src/MZTools.Desktop/Theme/Tokens.axaml": "f4dd45adee9191710f39e81fe3608b4d806b564a9968f75d5f94cabce24683fb",
+    "src/MZTools.Desktop/ViewModels/RecorderModel.cs": "1d808e431ac2588c59c2811dbde5c9c80da84136faa942bdc75d9c0613ea4d83",
+    "src/MZTools.Desktop/ViewModels/ShellAudioCommands.cs": "1a4afa4d6200d702b837aa47a1d4bf54564da5a9d48f6d0289eee702e7c1ee63",
+    "src/MZTools.Desktop/ViewModels/ShellAudioRecovery.cs": "c08bc729be757ae2336187bbb921e0acc36b1930d54fd7dcd1118a340c398aa0",
+    "src/MZTools.Desktop/ViewModels/ShellBatchCommands.cs": "5cb6b291c8d488a3a1c7fd95d1f6fc72c49b0817a8dec566f3593e9f6034d923",
+    "src/MZTools.Desktop/ViewModels/ShellDiskCommands.cs": "9b9ce7c9377e1c1bc66844b42c2f985d3a36ace27f707e71fe5d9345b6855dcb",
+    "src/MZTools.Desktop/ViewModels/ShellDiskDetails.cs": "357cc559413c035cb64924c6fd495866e5aee9ee1a81ed26ee39453dc90f698d",
+    "src/MZTools.Desktop/ViewModels/ShellMediaCommands.cs": "86f2bb20f938e5e89fa75d356c8bfbe29761653c03f235bf078f52b657f1e3c0",
+    "src/MZTools.Desktop/ViewModels/ShellViewModel.cs": "fffd052de71557160729a9f28d982e89cd103070d088456bcb5b70761f3dfcbd",
+    "src/MZTools.Desktop/Views/AudioWorkspace.axaml": "406db10cb979b43737d873fd40925ef8732a2d764c55c2fd26a57a358f2de36b",
+    "src/MZTools.Desktop/Views/AudioWorkspace.axaml.cs": "d0f54c6072133fe04b013a35dff446df3967c44199411647c12452e1c53d10fa",
+    "src/MZTools.Desktop/Views/BatchWorkspace.axaml": "100a14fe31df4a61f7dfeb80f3d3fb7aa0b7f672f47240dbac27dc8fdbad7999",
+    "src/MZTools.Desktop/Views/BatchWorkspace.axaml.cs": "491ba994a58e1bac1c3fc96c6e47f17054bb5da46e80d6422550692d87c100e6",
+    "src/MZTools.Desktop/Views/DiskWorkspace.axaml": "b07e32a25426ffc56aeff50ebb5e5d19d0e71179c9be6a27fed1f2e442602ad5",
+    "src/MZTools.Desktop/Views/DiskWorkspace.axaml.cs": "b9be811611672864e60a7bcc957fe3cfc16514c34cbf479ae4ddd383f4fa4b7e",
+    "src/MZTools.Desktop/Views/MainWindow.axaml": "0ce73cff8ba40a8a62b42ccc17eb1ea6747d5d964fbc204dcd1085aa6d856bf7",
+    "src/MZTools.Desktop/Views/MainWindow.axaml.cs": "83f641e6ad5488ec09f335faf79c929b3299923d90f5daa36822bd56d2f245e0",
+    "src/MZTools.Desktop/Views/RecorderWindow.axaml": "c71ff47e4d050bebbfac1f7e5e3b0724bc23a96a14fcd66baad7985661bc1412",
+    "src/MZTools.Desktop/Views/RecorderWindow.axaml.cs": "e16f2ba33795bc264dd09d25fc3edc752a71cad5a6094952f85d556732ef3367",
+    "src/MZTools.Desktop/Views/RecordWorkspace.axaml": "c70db867eeb3435dc75907e42f388a243bfc747aececfa42f874392b403d6dd6",
+    "src/MZTools.Desktop/Views/RecordWorkspace.axaml.cs": "6567004ca4681b2a35542935785639ee328f435e9a863d6809b907c351fcbfb7",
+    "src/MZTools.Core/Compression/CompressionDescription.cs": "d1bcb0b8b929855e2638880bb2affd4763d91a9a96e0c48111f59ba45f8dac05",
+    "src/MZTools.Core/Compression/MzfCompressionOptions.cs": "d95018670115c34cc43b5370b31f2f97f396b9a46eb2d72a295cef87786568a3",
+    "src/MZTools.Core/Compression/MzfCompressionService.cs": "885fb17268982e5eb4e20b628e0bd151b6246e080f1d339466125f3522e77121",
+    "src/MZTools.Core/Compression/MzfDecompressionService.cs": "83978863cce213be0029d9e48264e5dff9ba0d6965231b027af9da1d72b3252b",
+    "src/MZTools.Core/Compression/MzfLoaderBuilder.cs": "b4a53a590a156a9e843392526b3f91513f1923a174fed2775c9f95ba8e844615",
+    "src/MZTools.Core/Compression/Zx0Compressor.cs": "c3a23a6b14135b5e090ec09e9e65044d7169273b0bfb12e2c360b7304cec71b2",
+    "src/MZTools.Core/Compression/Zx7Compressor.cs": "ce71c7bf9e2227890d2f553056743c28254f7fb70bee721719df041bf9ad0c86",
+    "src/MZTools.Core/Dsk/BootstrapService.cs": "9f42f243145ec875e80547de24a894a9a4b239d4950ad778b221ab395795c1f7",
+    "src/MZTools.Core/Dsk/BundledBootSystems.cs": "10a9764aaa515fd57e7b55cf1f88b04a806c9d5ddb8135ff6437b017454cc484",
+    "src/MZTools.Core/Dsk/CpmFileSystem.cs": "200d49536df6d2503427eb5ea172c2dbadf9e6a5029b27bd47422850bcc1865a",
+    "src/MZTools.Core/Dsk/CpmLayoutService.cs": "83544ce4e441f33b14b912ec0dd8cceda7304d988bf34dfce9f183b5566059f3",
+    "src/MZTools.Core/Dsk/CpmSystemBuilder.cs": "3db8f056a069cdfb49b0ce4ea0591a5ddc200c0aebd0ea7d0e81c81767d7d83a",
+    "src/MZTools.Core/Dsk/CpmSystemProfiles.cs": "ad4a7eb2075f5fabcfb082f16500c3abbd4f9d681eb8d39007b81011b5c51fe6",
+    "src/MZTools.Core/Dsk/CrossDiskTransferService.cs": "b56dad72896429baa23a94ce015216fd9f491580838533d56bf6d1241c25057c",
+    "src/MZTools.Core/Dsk/DiskFormatService.cs": "f76407485b4ab56ff9c49a078baada5a8f4f820785b11e58afeae29fae786f09",
+    "src/MZTools.Core/Dsk/DskAnalyzer.cs": "b6487d38d5a4c45ee0b43c01c7fe5b5cf4ad7fcc5c698a25c61421ea5c030fcf",
+    "src/MZTools.Core/Dsk/DskBootInfo.cs": "468f7e8fc26b5d145b1fa0925a470afad7ab5c944ea7538a3800d02cee33309b",
+    "src/MZTools.Core/Dsk/DskCapabilityService.cs": "32965d9fdad1bb39313936112f94274651e971e501315d4ea87bcafb0303aa3f",
+    "src/MZTools.Core/Dsk/DskCompareService.cs": "11f0fad51f05feadc9c494c190e06e87704ef1f15a7b48738262308f78664265",
+    "src/MZTools.Core/Dsk/DskContainerRepairService.cs": "358e66034458d219b15e9321ca44b3b6f0a04be4d684df3211caba17d08e4d41",
+    "src/MZTools.Core/Dsk/DskDefragmentService.cs": "219ced6f0325ff2415469235b10a1519f4ee6cbb4872bace312dea2bf548b998",
+    "src/MZTools.Core/Dsk/DskDocument.cs": "31a74d8ff98006e533b3aa29c4a39cf31f60ecdeb8322a74cb607be581ce032a",
+    "src/MZTools.Core/Dsk/DskExportSupport.cs": "f4e50fb33e95bb9cf4532950c8cd8205f48a2b195e5831535e12bbda9c9ea8b9",
+    "src/MZTools.Core/Dsk/DskExtendedLengthRepair.cs": "e092885ee1eba6f07f280ca72780758d9da9b5e980d7826fb4f06a560302a1be",
+    "src/MZTools.Core/Dsk/DskFilePropertyService.cs": "61ae358a48ef422e339d2dd011c12a389c1fbdfa0e4f5e48ee96aca53d7dc90b",
+    "src/MZTools.Core/Dsk/DskFilesystemRepairService.cs": "78ffe1269a7cf0e109d5c26499fe2faf8e6eaf7a4518048baddbc611438ef066",
+    "src/MZTools.Core/Dsk/DskFileTransferService.cs": "07d63ade6e802053f3614e6301078673db2eadee930554128a80efac59885ad9",
+    "src/MZTools.Core/Dsk/DskGeneratedProjection.cs": "fc4ccf9ca2cf6643c2fab6176e9438c700342874f8bd84252903050a4cdc0ca8",
+    "src/MZTools.Core/Dsk/DskGeneratedTrackCache.cs": "79c0af49e60cf104307fb69e1a5bcce8651bb42532724ebf8bbc6ea76bab1172",
+    "src/MZTools.Core/Dsk/DskHexEditService.cs": "4ceda09267f6ea1bf4cfbf541a995a8b8a559ae6b89b3c9f531754577f63cf45",
+    "src/MZTools.Core/Dsk/DskImage.cs": "03fe6064cf17ef2b37e5ae673eea40a8ab49db1ccb2fac7a3c49d31c7aa7e2ba",
+    "src/MZTools.Core/Dsk/DskImportPolicy.cs": "ec520814377d6a627dcd95ce55158b487488b0297dacbcd846973157959eb3a0",
+    "src/MZTools.Core/Dsk/DskIssueHelp.cs": "2f3dd10ddd85cd821aec9afa98201030e4780d333f388e233880ce378d78523a",
+    "src/MZTools.Core/Dsk/DskLayoutModel.cs": "080bc13cec43506768de18dd282018ddc048ab37b0e27cd3a88a5722efc71b72",
+    "src/MZTools.Core/Dsk/DskNewOptions.cs": "aa3604085482d6e885752d9edcc634e3920a955815e3bc715ec279f5c9586265",
+    "src/MZTools.Core/Dsk/DskOpenCoordinator.cs": "daebc86908a8380c13a61c7cad1b52f48b71cc4f7e77339d793ed7d649bfed44",
+    "src/MZTools.Core/Dsk/DskPatchService.cs": "0b5cb6201a7ac260fd6cd01f1a177b8cac4fb900c155f7a8621f107b5a657c12",
+    "src/MZTools.Core/Dsk/DskPhysicalPropertyService.cs": "d0faca410e8e10556c9d414d4cffc43234684e9632c2890029e471b45046adf4",
+    "src/MZTools.Core/Dsk/DskRawRangeService.cs": "5338702c5ceeb88d337128f5cf7b1d977b0d9193277201e93904c7a9e991b287",
+    "src/MZTools.Core/Dsk/DskSectorSelection.cs": "c9bcbb43bec4cd6dfd18021b07376dcf1d88418da267f98bc5d27c82ef797231",
+    "src/MZTools.Core/Dsk/DskStructureService.cs": "1a88af2c181667fe31154de8f737aa4769e9dff3a648db5c62aab15ef994ac9e",
+    "src/MZTools.Core/Dsk/DskVisualModel.cs": "aefc0b0259befc0e02c5bdecc6ead03d6f3cc2af6f612ae8d824016387a2c8f7",
+    "src/MZTools.Core/Dsk/DskVisualReport.cs": "88ba2ce630ba0bfc1740048e89f8ebf57b79cdf934b1bcf8cd7d305b3a85ed35",
+    "src/MZTools.Core/Dsk/FixedHexInput.cs": "07a3041ee3e96a701f4222b077a7276415855132ecf13d02e4688d4687c86c8f",
+    "src/MZTools.Core/Dsk/FsmzFileSystem.cs": "d4c6444b762b90c3aff478b1439e9493fd8c7b08df73814720ac7de61942ca80",
+    "src/MZTools.Core/Dsk/MrsFileSystem.cs": "548d39873d4bff49bf067c62eafbb74c347f88dfa9143051fda7ee887e429a08",
+    "src/MZTools.Core/Dsk/MultiGameIplFileSystem.cs": "6f3fd7438d768d93da7a026b589e5e2ab8c8a086a6e03c3d1e6b244351b5b7e6",
+    "src/MZTools.Core/Dsk/PersonalCpmSystemInstaller.cs": "fd386e882decac7dd48c56bf8cb32695f06d38e459173f3def89ed22e86fc7ad",
+    "src/MZTools.Core/Dsk/SingleGameIplFileSystem.cs": "4719c836160827c60c78e926bd30062d0a3b267f04f34283da9c81456602376b",
+    "src/MZTools.Core/Dsk/UserProfileService.cs": "1ac0e5dd8cd640771ef697622f592083b9223e6e0a2a4844cf9b942e49e06d2e",
+    "src/MZTools.Core/Media/AudioAlignedPcm.cs": "2f763033e5a64d51073fd50e067a8250d8dd4afde84db24ab2f51f0639deaf0a",
+    "src/MZTools.Core/Media/AudioDecodePassComparison.cs": "99346dafe461322a6eaa5f7c21fb4d1b5eb1129f701aa19a9ad8ba239a3105b5",
+    "src/MZTools.Core/Media/AudioHeaderDiagnostics.cs": "c9f588d675f5583ffa8ab7ee116b3013344dc28d5e5b4a1ce0d5c984dbef2be5",
+    "src/MZTools.Core/Media/AudioImportPolicy.cs": "704e5b9060cc2687d49d4e16b2937a841d7769f43d10d9e3a5b07730c099bcc0",
+    "src/MZTools.Core/Media/AudioPulseMeasurementEngine.cs": "f7389f2789282360b53d8b282b85a93400b82cda6d679ae25945c513ef91e4bb",
+    "src/MZTools.Core/Media/AudioPulseReferences.cs": "d2594ac1b1299d4672067cdf417017593dd448bde35b81e86ca78889a07a4a66",
+    "src/MZTools.Core/Media/AudioRangeInspection.cs": "cb8ba56a5cf8ad11e2344696e4a65600a2436eb8e1081bc8120daeaf91177777",
+    "src/MZTools.Core/Media/AudioRecoveryDiagnostics.cs": "63d33ed8ca92d35b4f698ed21e261481714df5ab5bed6a21a364af4af22676ae",
+    "src/MZTools.Core/Media/AudioRecoveryHistogram.cs": "6ecea1beefde08e3623c97f9deba4eeabc4dfafa3f9c89a7cfef6f59e099ecce",
+    "src/MZTools.Core/Media/AudioRecoveryMeasurements.cs": "2765e852375c7b584b3cfbc29467c816a01587372e9bbc11a697b03638900225",
+    "src/MZTools.Core/Media/AudioRegionRecovery.cs": "fef59c8451ebf33ad4255fbdb7ba6a1fcade7769908656e0308ec818be295094",
+    "src/MZTools.Core/Media/AudioSelectionWaveExporter.cs": "d65005e35dc9feca2859c1111c6be9f70dbdb79a70934f1b198e849bdd1420b3",
+    "src/MZTools.Core/Media/AudioSignalAnalysis.cs": "8743bbfc0115a0360a2db82ede96d029f2fef9a761f317ef64c113dcb4224509",
+    "src/MZTools.Core/Media/AudioSignalAnalysisService.cs": "d53ca445f40a2322afb1116a787ec2d39a8ab25c0aa6953746e20782fbafd84c",
+    "src/MZTools.Core/Media/AudioSignalPassOrigin.cs": "5a2a5543c6c3baedd3346d9fe25b2464c373eeab0f4cc942c789023c8d9d3bf1",
+    "src/MZTools.Core/Media/AudioSpectralAnalysis.cs": "505e61c233c7e28cca9893231d26aa209341e568b20090639c2ca1e809edeb33",
+    "src/MZTools.Core/Media/AudioSyntheticHeader.cs": "2ca745e729e1a3c37b8b147864840ed78baa080454dc47cf570aae323856b8ff",
+    "src/MZTools.Core/Media/BatchMediaPolicy.cs": "293031e287f71a438f8a096dabf33421b336ef5e71012dee53f3621921024a1f",
+    "src/MZTools.Core/Media/BatchProcessService.cs": "18dcbc53fb7467140318600849395b3c5c04040649b223c6c6ff4a629a068be8",
+    "src/MZTools.Core/Media/BatchTapeService.cs": "a4a0067a0f38506be6155721b27967a55d4227c342ddc068f90af9a0e9be3560",
+    "src/MZTools.Core/Media/FlacStreamInfo.cs": "9434cc12940f1f61034166b0650b6a069757294571701d85cb0ec99982dc817e",
+    "src/MZTools.Core/Media/FloppyTrackCodec.cs": "7274ef33cd7f183c4c5b69a29dfd686a73cb1d78435a47688ea08840b405a186",
+    "src/MZTools.Core/Media/HfeDocumentSession.cs": "47f8f76543b77d03b15e32f8ced5583ca738011e9cd3cb7250bd5778aa30e17c",
+    "src/MZTools.Core/Media/HfeImage.cs": "323bdf1bce48e8a79cb5bbbc344c25083ec9dace04915003e1a064c094222b4d",
+    "src/MZTools.Core/Media/HfeSemanticInspection.cs": "d9918fc8d091042634a06cb60a89faf4075393178b0002d4c5d192ba91e8cee8",
+    "src/MZTools.Core/Media/ImageVerificationService.cs": "961f27142fc351bb1c4898b97492941c6c946ba85a1b6e796c8dae315f03b914",
+    "src/MZTools.Core/Media/ManualPulseDetection.cs": "31a5f012ab5b51d67586a85674df9fff8f3d0dc5ddafab1a6df0054b94aeb028",
+    "src/MZTools.Core/Media/MediaConversionService.cs": "b5944b73d1e9887ea5edf890032e95877c0e6832db0613aa704e90f72cd1fd71",
+    "src/MZTools.Core/Media/MediaFormats.cs": "b8ed06ce2302c78a2e10f6bc24cf1413f68d47c9c5bb307a57b8fb87f3a10e32",
+    "src/MZTools.Core/Media/MzfCpmCompatibilityAnalyzer.cs": "fc44013449684335a0fc0f2f10733462e1eac24942d70d13924b5b7120596358",
+    "src/MZTools.Core/Media/MzNativeComBuilder.cs": "23e21e11eddad436ab035a8cbbc85923f848afe5bf33a94c74e0a7b5d0ea689e",
+    "src/MZTools.Core/Media/NativeComConversionService.cs": "057440aadd21a6a262554404e502221923b770f5eecfe1801197b2bafe0b1c8a",
+    "src/MZTools.Core/Media/NativeComFeedback.cs": "25cc499410dbdad0d8e2bca52017a5cd9570047d645816a994b9f2a923748375",
+    "src/MZTools.Core/Media/NativeComImportService.cs": "76345b775b3c4b195ddc96a8250c02c7c71d2502a8ff82418262eb08c9ff4432",
+    "src/MZTools.Core/Media/NativeComSourceCompression.cs": "04849e334ed61e8cf59d7c3f502c1339053b47735e38fd55f012331d88e52d1a",
+    "src/MZTools.Core/Media/NativeProgramImage.cs": "b8e9c9c25da3bca788757bb9c0471bab6d1ace045d85f7fc1100262c2100ff75",
+    "src/MZTools.Core/Media/PhysicalTrack.cs": "7eab1273a0b49c54ff44f828191163e77f6c4454e0d6938d5025417626b5746a",
+    "src/MZTools.Core/Media/PulseReferenceCatalog.cs": "8ad87e3a20317c746d2f6d4e4199816c2f6b23f55f8d6a63a50ba7fb0c6f02fd",
+    "src/MZTools.Core/Media/SegmentedPcmStreamReader.cs": "1e738c36ecb308d2e07e44f7cf188544f14b9f890f8a9e1997637770d77755b8",
+    "src/MZTools.Core/Media/TapeCopyPreview.cs": "fb17fbfdde1d944da3bd7b28d2a5543ec98fa0de94d0b870e6f763d2bba9bb11",
+    "src/MZTools.Core/Media/WorkspaceDragCodec.cs": "d647a7a9fd5e84562b0150a35b280ae928e04c27a1f34df98ceb6f28eb51912c",
+    "src/MZTools.Core/Platform/CorePlatformServices.cs": "000aeb4dbc0d143620e34e9ac2bb6e6d56c382312407c032fd1ce14c3178ad10",
+    "MZTools.Capture/AudioCaptureContracts.cs": "9ea2c2f568ea97f43db059da7c17e48f4d8c7aba3a698b1a49b803ef94c16131",
+    "MZTools.Capture/AudioCaptureModels.cs": "d8cca693dc878acbaaf992fcd5dc0c07a52f655b56f7b1785ee0f8cc4acf928a",
+    "MZTools.Capture/AudioPcmQuantizer.cs": "4d76c1575ad38a8a9b5f4486e116eabf1162b3599e22648d8b1956eb01b16d68",
+    "MZTools.Capture/AudioRecorderViewModel.cs": "8a8ea0a59bc58a61ad7d09ea6bf147815b54633fe690824ef22128077067eb11",
+    "MZTools.Capture/CapturePipeline.cs": "78bbd89eb1cc3f2b036aaa08a8203dd21ccaa978f6233ddd05386f4df464e1f8",
+    "MZTools.Capture/CaptureSession.cs": "fe29bf9fae76440845035802a1e9685190652d451bf061a706388d9a1687ab5b",
+    "MZTools.Capture/HeadAlignmentAnalyzer.cs": "d96ea6712ca30ea3c0cc1c478008e44c07e1579c63cc6ae49a8cea99e4056861",
+    "MZTools.Capture/HeadAlignmentModels.cs": "5eee6c8154fcef7fa9f8f1328a39faeeb585ab1479e28a396a0569477016ea76",
+    "MZTools.Capture/HeadEdgeAdjustmentModel.cs": "2187334933f7b7a1184e3c80b54d81726b4d9c386c124f9a14de5c84f2b67922",
+    "MZTools.Capture/LivePulseAnalyzer.cs": "a1d35822a72182b74f9749ee78a8d637c84f0088540b16e75022d8023eac9b9c",
+    "MZTools.Capture/LivePulseModels.cs": "3e94a90a3735addfd95621c7a17597edecba15fbc9ad33b11578be2087ae5bb8",
+    "MZTools.Capture/LiveSignalAnalyzer.cs": "503cd92620a93383bcfd7c63f36d732616ca3594b7aaa3fecdd4968d8a245d21",
+    "MZTools.Capture/LiveSignalModels.cs": "502b803318e0961b0f96e4de56844226bf98432a661143b6f67896132b997a32",
+    "MZTools.Capture/MZTools.Capture.csproj": "9b8458580be4e786dd73ed606f80627ab81a4545fbe8834e205dc430a56e7544",
+    "MZTools.Capture/PcmWaveRecordingSink.cs": "21c6abc5c6af970ec0db668c1f7703962dc63eacb15bb8325738d6badde8aeb9",
+    "MZTools.Capture/SpectralAnalysis.cs": "1fc96e7a9405c8ab3ef5428c4964cc5699849f17cb391a13e414272706301a76",
+    "MZTools.Capture/StreamingPulseDetectors.cs": "352e2b39e2229012e5a5aebbf91024d0f78d75695bcd43b47e3182b9a24a0d32",
+    "MZTools.Capture/SyntheticCaptureBackend.cs": "f6ef23d2ca9831cd1d93984747fd27c23d38bdd89e6760ae8f0ba00a8390f248",
+    "MZTools.Capture/WaveRecordingModels.cs": "23f11a87f8d963813898ed5f81877d4dccabeae59ab91f37360266f65f4fd773",
+    "MZTools.Capture.Windows/ExclusiveCaptureTransport.cs": "2779c3b6f88d149b22ec8bf890f4368bf811bdf42ab4658c78317cb6e160c9cd",
+    "MZTools.Capture.Windows/MZTools.Capture.Windows.csproj": "a9353129a8f3e93806c98868e0eb6542eea849199a610f97f0acd80526c274b3",
+    "MZTools.Capture.Windows/WasapiCapturePlatform.cs": "79ff2b595b445e8e8ceba289f4ec131b0f053f643efc6ff76e3e0d3a347c362e",
+    "MZTools.Capture.Windows/WindowsAudioCaptureBackend.cs": "74926d063006771ee6c8d87e7ca92d5eafccac91e6f9cd19d975d5fb6a04cc4e",
+    "tools/package_desktop.py": "3580cb22e59ef70ebc8b0cffb364c57ed7124554a2a6e6a67fec39e7d24fc50f",
+    "tools/validate_completion.py": "f9b32825f5c9b1458f4a7f98b4ceef6ac84edba1242ddb2b310382ccfcf937a4",
+    "tools/verify_packaged_runtime.py": "7276b91023edb50bb22ab3a9d5d5aa16d63b6642b20f19e0e15e5503845a14d1",
+    ".github/workflows/multiplatform.yml": "594fc31fc053400ce165276da921b9dfec94282a1b16708acb447ddb0dcdc877",
+    "tests/MZTools.Core.Tests/CorePortabilityTests.cs": "54f575d6914eca2527a8043fb64c8e4e89a61bfc88b7fdda1c7799c4a68a1851",
+    "tests/MZTools.Core.Tests/MZTools.Core.Tests.csproj": "1aa1e8be25d53a949946ff42a2a01bed7e1d0b4628a8cc330b323f303e914952",
+    "tests/MZTools.Desktop.Smoke/AudioScenario.cs": "ec04dae6a1227e072e08af06633599a617ec1d0c21d9b3a7484251aa941e16a8",
+    "tests/MZTools.Desktop.Smoke/collect_completion_notices.py": "7d87de81f364607d66b2392549fcc8e62ffb5c18dd6816a734f5dda0d22456bf",
+    "tests/MZTools.Desktop.Smoke/collect_notices.py": "b26a85a48a0d6b5a052624352cf33a8ca1c27ac107bd50c7e6a8ba57a38e72da",
+    "tests/MZTools.Desktop.Smoke/DiskScenario.cs": "f674588f8f96daa84b96a0d1bd53d02fe8967548387e4a94a9aefbf7dff4ce9a",
+    "tests/MZTools.Desktop.Smoke/MediaScenario.cs": "348c027d5dbc71963172c03ea586342dcea3021cba6f268568aea1a3633f3b72",
+    "tests/MZTools.Desktop.Smoke/MZTools.Desktop.Smoke.csproj": "b2e6b835cf682e43532047ef0f7d3f4d4915755210e3209782ccfc6330417281",
+    "tests/MZTools.Desktop.Smoke/Program.cs": "849becb6a7a2f9ffe2f70d8e68016e1254a910da86e82e0d7ff212facb80363f",
+    "tests/MZTools.Desktop.Smoke/RecorderScenario.cs": "2c01392d6c75160c8af97e0c41d557cc60659a3081423807083175850bb3ff5d",
+    "tests/MZTools.Desktop.Smoke/summarize_f4.py": "79d39dc0a406bb5cfad145ca619c63666c72c7f002650ea000f7e2235f9a677d",
+    "tests/MZTools.Desktop.Smoke/summarize_f5.py": "1d96b184160192c884981ba52d1c25d470e2508c2254d8a33fda9a9b8ffd86a5",
+    "tests/MZTools.Desktop.Smoke/summarize_f6.py": "e11b1ebae924d1e548fa727b068982437dec7c9cc65cd23505c2aa5e4301014a",
+    "tests/MZTools.Desktop.Smoke/summarize_results.py": "3ad70ba669195486521f9b980bc3b34086f5db0b11ce017a10d5841ed00fb759",
+    "tests/MZTools.Desktop.Smoke/validate_f4.py": "618288668c129b3f18c47e633a4034804610ef062e4268914ad74ea428c502be",
+    "tests/MZTools.Desktop.Smoke/validate_f5.py": "c01671f4abdad8a3c26846fe062341f6cf79965e1ed4761a980a0900e5ed5f2e",
+    "tests/MZTools.Desktop.Smoke/validate_f6.py": "26ad02109b5013cf51d90441a5f9df186566d7b6401345a7b8099a7d4f590f9c",
+    "tests/MZTools.Desktop.Tests/AudioDocumentTests.cs": "b32eec90d1f79fdfc4c91c102e2beefb465b7a1211ac43767f307b16da73baca",
+    "tests/MZTools.Desktop.Tests/AudioPerformanceTests.cs": "f839d38580d953f388cf2c0e56d9d2c37809677a23d624629b9a512c71ec81c8",
+    "tests/MZTools.Desktop.Tests/AudioUiTests.cs": "924d62ad8ae028beb008c6269dd73dac857a04e06b6ca1ace477d72f7553b37c",
+    "tests/MZTools.Desktop.Tests/BatchDocumentTests.cs": "a27dfc95d7755ecbef44029d0e20d06ce49d87e0938624eafe573b3644af257a",
+    "tests/MZTools.Desktop.Tests/DiskDocumentTests.cs": "cadd4378acc6029571e6b9cce861c68caf354963a76e1897b780fa191895a24d",
+    "tests/MZTools.Desktop.Tests/DiskUiTests.cs": "f23decad6a900589804828ac335d7847e08f03b4ec281ce6502af6710faa6d3d",
+    "tests/MZTools.Desktop.Tests/DiskWorkflowTests.cs": "3266d504319db316b63337d8d7a7b16f23221e2eeaef6831213084292c9e93a0",
+    "tests/MZTools.Desktop.Tests/DocumentLifecycleTests.cs": "062fd0c173ae2882d1244cd873a5ee45cbadf522a16b29285a787e99645b272f",
+    "tests/MZTools.Desktop.Tests/HeadlessSetup.cs": "1b0030e90db1b9c7ae192b2a9e79d2928593228a96c3990fdf578d235844ac14",
+    "tests/MZTools.Desktop.Tests/MediaDocumentTests.cs": "6bdd48cfa7bcfc809dbb0c27d43ef159188dc80cb4781f5fa418f600441b29b4",
+    "tests/MZTools.Desktop.Tests/MediaUiTests.cs": "cc1fdd7325419226fa4c9dc3f4d7d46ee3fe8e15ff341556df0150f17bb8b493",
+    "tests/MZTools.Desktop.Tests/MZTools.Desktop.Tests.csproj": "533252f6552f6223ebb6af90849b3f38f855117a32dc11ad1f1e85a413477acb",
+    "tests/MZTools.Desktop.Tests/NativeFlacTests.cs": "b1f8dba72ec9c0fc8a0e14e0fb458756b0c749c7010ebcaaf6854bb9aad7e78d",
+    "tests/MZTools.Desktop.Tests/PortAudioNativeTests.cs": "8939ed298fc1084a6f5d28a19390cfa51014fc25296f0fc36657ea913d6d8dd4",
+    "tests/MZTools.Desktop.Tests/RecorderTests.cs": "47cf564a4caa27dcea779aa72e898d07b20876e6feb3dde4f53924954cc57c67",
+    "tests/MZTools.Desktop.Tests/ShellTests.cs": "8b8c8f1889cf7f5eee0ec9e2ad6da2a6a645592acb63899b5455d582491eb9a1",
+    "tests/native/portaudio_fake.c": "bf0fa8035a0763def3ed49a98ef74a9739dc42fc1f7a49e6d45f86a8c895a09c"
+  },
+  "checks": [
+    {
+      "name": "windows/core-final no failures",
+      "pass": true
+    },
+    {
+      "name": "windows/legacy-final no failures",
+      "pass": true
+    },
+    {
+      "name": "windows/MZTools.Capture.Tests-final no failures",
+      "pass": true
+    },
+    {
+      "name": "windows/MZTools.Capture.Windows.Tests-final no failures",
+      "pass": true
+    },
+    {
+      "name": "windows/desktop-accepted no failures",
+      "pass": true
+    },
+    {
+      "name": "linux/core-final no failures",
+      "pass": true
+    },
+    {
+      "name": "linux/capture-final no failures",
+      "pass": true
+    },
+    {
+      "name": "linux/desktop-accepted no failures",
+      "pass": true
+    },
+    {
+      "name": "windows/native-audio",
+      "pass": true
+    },
+    {
+      "name": "windows/native-disk",
+      "pass": true
+    },
+    {
+      "name": "windows/native-media",
+      "pass": true
+    },
+    {
+      "name": "windows/native-recorder",
+      "pass": true
+    },
+    {
+      "name": "windows/native-smoke",
+      "pass": true
+    },
+    {
+      "name": "windows five native suites present",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-audio-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-audio-pulses.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-audio-records.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-audio-recovery.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-audio-spectrogram.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-audio-spectrum.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-disk-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-disk-files.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-disk-map.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-disk-repair.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-hfe-physical.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-layout-1366x768.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-layout-1440x960.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-layout-640x480.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-layout-920x640.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-media-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-quickdisk-map.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-quickdisk.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-recorder-alignment.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-recorder-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-recorder-history.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-recorder-pulses.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-recorder-signal.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render windows-native-tape.png",
+      "pass": true
+    },
+    {
+      "name": "linux/native-audio",
+      "pass": true
+    },
+    {
+      "name": "linux/native-disk",
+      "pass": true
+    },
+    {
+      "name": "linux/native-media",
+      "pass": true
+    },
+    {
+      "name": "linux/native-recorder",
+      "pass": true
+    },
+    {
+      "name": "linux/native-smoke",
+      "pass": true
+    },
+    {
+      "name": "linux five native suites present",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-audio-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-audio-pulses.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-audio-records.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-audio-recovery.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-audio-spectrogram.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-audio-spectrum.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-disk-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-disk-files.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-disk-map.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-disk-repair.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-hfe-physical.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-layout-1366x768.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-layout-1440x960.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-layout-640x480.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-layout-920x640.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-media-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-quickdisk-map.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-quickdisk.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-recorder-alignment.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-recorder-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-recorder-history.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-recorder-pulses.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-recorder-signal.png",
+      "pass": true
+    },
+    {
+      "name": "Actual render linux-native-tape.png",
+      "pass": true
+    },
+    {
+      "name": "Original algorithm WavHeuristicAnalyzer.cs",
+      "pass": true
+    },
+    {
+      "name": "Original algorithm SharpMzPulseDecoder.cs",
+      "pass": true
+    },
+    {
+      "name": "Original algorithm Media/AudioPulseMeasurementEngine.cs",
+      "pass": true
+    },
+    {
+      "name": "Original algorithm Media/AudioRegionRecovery.cs",
+      "pass": true
+    },
+    {
+      "name": "Original algorithm Media/AudioRecoveryMeasurements.cs",
+      "pass": true
+    },
+    {
+      "name": "Original algorithm Media/PulseReferenceCatalog.cs",
+      "pass": true
+    },
+    {
+      "name": "Original algorithm Media/AudioSyntheticHeader.cs",
+      "pass": true
+    },
+    {
+      "name": "Original algorithm Media/AudioSelectionWaveExporter.cs",
+      "pass": true
+    },
+    {
+      "name": "Original algorithm Media/SegmentedPcmStreamReader.cs",
+      "pass": true
+    },
+    {
+      "name": "Capture callback StartAsync unchanged",
+      "pass": true
+    },
+    {
+      "name": "Capture callback Process unchanged",
+      "pass": true
+    },
+    {
+      "name": "Capture pipeline and WASAPI retained",
+      "pass": true
+    },
+    {
+      "name": "Reference goldens unchanged",
+      "pass": true
+    },
+    {
+      "name": "WPF retained App.xaml.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained AssemblyInfo.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained AudioPulseReferenceControl.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained AudioRecorderNavigation.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained AudioRecorderWindow.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained AudioRegionRecoveryComparison.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained AudioRegionRecoveryExport.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained AudioRegionRecoveryHeaderless.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained AudioRegionRecoveryPreview.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained AudioRegionRecoveryWindow.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained AudioSignalAnalyzerExport.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained AudioSignalAnalyzerSelection.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained AudioSignalAnalyzerWindow.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained AudioSignalCharts.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained BatchFileDetailsDialog.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained BatchProcessDialog.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained BootstrapDialog.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained CompressionOptionsControl.xaml.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained CompressionSettingsDialog.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained CpmLayoutDialog.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained CpmSystemBuilderDialog.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained CrossDiskTransferDialog.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained DiskFormatting.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained DiskMapVisuals.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained DskCompareWindow.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained DskConversionDialog.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained DskDiskMapControl.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained DskEditorSectorSelection.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained DskEditorVisualAnalysis.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained DskEditorWindow.xaml.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained DskFilePropertiesControl.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained DskFilePropertiesDialog.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained DskHexEditorWindow.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained DskMfmDetailControl.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained DskNewDialog.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained DskPatchPreviewWindow.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained DskPhysicalPropertiesDialog.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained DskRawRangeDialog.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained DskRepairDialog.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained DskStructureWindow.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained DskVisualCanvas.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained DskVisualInspectorDetails.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained DskVisualInspectorWindow.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained HeadAlignmentPanel.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained HeadEdgeAdjustmentControl.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained HexBrowser.xaml.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained IplDskOptionsDialog.xaml.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained LivePulsePanel.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained LiveSignalCanvas.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained MainWindow.xaml.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained MainWindowQuickDiskVisual.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained MapInteraction.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained MultiGameIplDskOptionsDialog.xaml.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained NativeComDialog.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained PhysicalTrackViewerWindow.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained QuickDiskInspectorControl.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained QuickDiskMapControl.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained QuickDiskSurfaceCanvas.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained QuickDiskVisualCanvas.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained QuickDiskVisualInspectorWindow.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained ReportView.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained SaveOptionsDialog.xaml.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained SeparateExportDialog.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained UserProfilesDialog.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained WavAnalysisProgressWindow.xaml.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained WavAnalysisStatisticsWindow.xaml.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained WavImportOptionsWindow.xaml.cs",
+      "pass": true
+    },
+    {
+      "name": "WPF retained App.xaml",
+      "pass": true
+    },
+    {
+      "name": "WPF retained CompressionOptionsControl.xaml",
+      "pass": true
+    },
+    {
+      "name": "WPF retained DskEditorWindow.xaml",
+      "pass": true
+    },
+    {
+      "name": "WPF retained HexBrowser.xaml",
+      "pass": true
+    },
+    {
+      "name": "WPF retained IplDskOptionsDialog.xaml",
+      "pass": true
+    },
+    {
+      "name": "WPF retained MainWindow.xaml",
+      "pass": true
+    },
+    {
+      "name": "WPF retained MultiGameIplDskOptionsDialog.xaml",
+      "pass": true
+    },
+    {
+      "name": "WPF retained SaveOptionsDialog.xaml",
+      "pass": true
+    },
+    {
+      "name": "WPF retained WavAnalysisProgressWindow.xaml",
+      "pass": true
+    },
+    {
+      "name": "WPF retained WavAnalysisStatisticsWindow.xaml",
+      "pass": true
+    },
+    {
+      "name": "WPF retained WavImportOptionsWindow.xaml",
+      "pass": true
+    },
+    {
+      "name": "Render has no IO/FFT AudioChart.cs",
+      "pass": true
+    },
+    {
+      "name": "Render has no IO/FFT AudioChart.Live.cs",
+      "pass": true
+    },
+    {
+      "name": "Native licence PORTAUDIO_MIT.txt",
+      "pass": true
+    },
+    {
+      "name": "Native licence LIBSNDFILE_COPYING.txt",
+      "pass": true
+    },
+    {
+      "name": "Native licence LGPL_3_0.txt",
+      "pass": true
+    },
+    {
+      "name": "Native licence FLAC_COPYING.txt",
+      "pass": true
+    },
+    {
+      "name": "Native licence OGG_COPYING.txt",
+      "pass": true
+    },
+    {
+      "name": "Native licence VORBIS_COPYING.txt",
+      "pass": true
+    },
+    {
+      "name": "Native licence GPL_3_0.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms Avalonia/12.1.4",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms Avalonia.Angle.Windows.Natives/2.1.27548.20260419",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/54aff7276217df9f6b5181613999d208c9e40d2b1d51bf55217837e6871a4a63.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms Avalonia.BuildServices/11.3.2",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/94162c40c663bd96ec1b870e6aba6ef0a43f44c9eb500807e7965e7078f6dc47.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms Avalonia.Desktop/12.1.4",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms Avalonia.FreeDesktop/12.1.4",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms Avalonia.FreeDesktop.AtSpi/12.1.4",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms Avalonia.HarfBuzz/12.1.4",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms Avalonia.Native/12.1.4",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms Avalonia.Remote.Protocol/12.1.4",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms Avalonia.Skia/12.1.4",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms Avalonia.Themes.Fluent/12.1.4",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms Avalonia.Win32/12.1.4",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms Avalonia.X11/12.1.4",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/213814d306090074d234d760239ff0f67eb9b8d20eefb4d5631bb39dbe0b769b.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms HarfBuzzSharp/8.3.1.3",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms HarfBuzzSharp.NativeAssets.Linux/8.3.1.3",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938.txt",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms HarfBuzzSharp.NativeAssets.macOS/8.3.1.3",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938.txt",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms HarfBuzzSharp.NativeAssets.WebAssembly/8.3.1.3",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938.txt",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms HarfBuzzSharp.NativeAssets.Win32/8.3.1.3",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938.txt",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms MicroCom.Runtime/0.11.6",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/6ee769c9ac4dac9abb16b98b1341e9528ff9f4ab685481410d3376d14148f3a9.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms NAudio.Core/3.3.0",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/e518e168af44d37da3de236e719c986169e47b46b90e37c1355056175744e037.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms NAudio.Wasapi/3.3.0",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/e518e168af44d37da3de236e719c986169e47b46b90e37c1355056175744e037.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms org.sndfile.runtime.win-x64/1.2.2",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/074e6e32c86a4c0ef8b3ed25b721ca23aca83df277cd88106ef7177c354615ff.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms SkiaSharp/3.119.4",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms SkiaSharp.NativeAssets.Linux/3.119.4",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938.txt",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms SkiaSharp.NativeAssets.macOS/3.119.4",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938.txt",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms SkiaSharp.NativeAssets.WebAssembly/3.119.4",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938.txt",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms SkiaSharp.NativeAssets.Win32/3.119.4",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938.txt",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms System.Numerics.Tensors/9.0.0",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/d7a68596ab69b06f51ca278a6545148e4269a9381c26d597c13df5d88e08cf5b.txt",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/40686c6447a7d5b5d3693068e4571b5f483d7ed335aeee773ef662440de4c5d5.txt",
+      "pass": true
+    },
+    {
+      "name": "Package terms Tmds.DBus.Protocol/0.94.1",
+      "pass": true
+    },
+    {
+      "name": "Original archived terms licenses/aca3b49277abcc7886ccb2f115603a9f5b15fc3f96019a10c00f2974098b210c.txt",
+      "pass": true
+    },
+    {
+      "name": "Archive hash win-x64",
+      "pass": true
+    },
+    {
+      "name": "Archive contents win-x64",
+      "pass": true
+    },
+    {
+      "name": "Apphost architecture win-x64",
+      "pass": true
+    },
+    {
+      "name": "Platform dependencies win-x64",
+      "pass": true
+    },
+    {
+      "name": "No WPF frontend dependency win-x64",
+      "pass": true
+    },
+    {
+      "name": "Native notice packaged win-x64",
+      "pass": true
+    },
+    {
+      "name": "libsndfile CPU win-x64",
+      "pass": true
+    },
+    {
+      "name": "Archive hash win-arm64",
+      "pass": true
+    },
+    {
+      "name": "Archive contents win-arm64",
+      "pass": true
+    },
+    {
+      "name": "Apphost architecture win-arm64",
+      "pass": true
+    },
+    {
+      "name": "Platform dependencies win-arm64",
+      "pass": true
+    },
+    {
+      "name": "No WPF frontend dependency win-arm64",
+      "pass": true
+    },
+    {
+      "name": "Native notice packaged win-arm64",
+      "pass": true
+    },
+    {
+      "name": "libsndfile CPU win-arm64",
+      "pass": true
+    },
+    {
+      "name": "Archive hash linux-x64",
+      "pass": true
+    },
+    {
+      "name": "Archive contents linux-x64",
+      "pass": true
+    },
+    {
+      "name": "Executable permission linux-x64",
+      "pass": true
+    },
+    {
+      "name": "Apphost architecture linux-x64",
+      "pass": true
+    },
+    {
+      "name": "Platform dependencies linux-x64",
+      "pass": true
+    },
+    {
+      "name": "No WPF frontend dependency linux-x64",
+      "pass": true
+    },
+    {
+      "name": "Native notice packaged linux-x64",
+      "pass": true
+    },
+    {
+      "name": "Archive hash linux-arm64",
+      "pass": true
+    },
+    {
+      "name": "Archive contents linux-arm64",
+      "pass": true
+    },
+    {
+      "name": "Executable permission linux-arm64",
+      "pass": true
+    },
+    {
+      "name": "Apphost architecture linux-arm64",
+      "pass": true
+    },
+    {
+      "name": "Platform dependencies linux-arm64",
+      "pass": true
+    },
+    {
+      "name": "No WPF frontend dependency linux-arm64",
+      "pass": true
+    },
+    {
+      "name": "Native notice packaged linux-arm64",
+      "pass": true
+    },
+    {
+      "name": "Archive hash osx-x64",
+      "pass": true
+    },
+    {
+      "name": "Archive contents osx-x64",
+      "pass": true
+    },
+    {
+      "name": "Executable permission osx-x64",
+      "pass": true
+    },
+    {
+      "name": "Apphost architecture osx-x64",
+      "pass": true
+    },
+    {
+      "name": "Platform dependencies osx-x64",
+      "pass": true
+    },
+    {
+      "name": "No WPF frontend dependency osx-x64",
+      "pass": true
+    },
+    {
+      "name": "Native notice packaged osx-x64",
+      "pass": true
+    },
+    {
+      "name": "Archive hash osx-arm64",
+      "pass": true
+    },
+    {
+      "name": "Archive contents osx-arm64",
+      "pass": true
+    },
+    {
+      "name": "Executable permission osx-arm64",
+      "pass": true
+    },
+    {
+      "name": "Apphost architecture osx-arm64",
+      "pass": true
+    },
+    {
+      "name": "Platform dependencies osx-arm64",
+      "pass": true
+    },
+    {
+      "name": "No WPF frontend dependency osx-arm64",
+      "pass": true
+    },
+    {
+      "name": "Native notice packaged osx-arm64",
+      "pass": true
+    },
+    {
+      "name": "Packaged runtime windows",
+      "pass": true
+    },
+    {
+      "name": "Packaged runtime linux",
+      "pass": true
+    },
+    {
+      "name": "wpf-disk-trace.log completed",
+      "pass": true
+    },
+    {
+      "name": "wpf-recorder-final.log completed",
+      "pass": true
+    },
+    {
+      "name": "wpf-audio-final.log completed",
+      "pass": true
+    },
+    {
+      "name": "wpf-report-final.log completed",
+      "pass": true
+    },
+    {
+      "name": "Gallery link ../../MIGRATION_COMPLETION_2026-10-30.md",
+      "pass": true
+    },
+    {
+      "name": "Gallery link images.json",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-audio-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-audio-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-audio-pulses.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-audio-pulses.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-audio-records.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-audio-records.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-audio-recovery.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-audio-recovery.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-audio-spectrogram.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-audio-spectrogram.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-audio-spectrum.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-audio-spectrum.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-disk-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-disk-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-disk-files.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-disk-files.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-disk-map.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-disk-map.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-disk-repair.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-disk-repair.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-hfe-physical.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-hfe-physical.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-layout-1366x768.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-layout-1366x768.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-layout-1440x960.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-layout-1440x960.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-layout-640x480.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-layout-640x480.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-layout-920x640.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-layout-920x640.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-media-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-media-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-quickdisk-map.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-quickdisk-map.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-quickdisk.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-quickdisk.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-recorder-alignment.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-recorder-alignment.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-recorder-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-recorder-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-recorder-history.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-recorder-history.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-recorder-pulses.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-recorder-pulses.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-recorder-signal.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-recorder-signal.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-tape.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link windows-native-tape.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-audio-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-audio-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-audio-pulses.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-audio-pulses.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-audio-records.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-audio-records.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-audio-recovery.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-audio-recovery.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-audio-spectrogram.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-audio-spectrogram.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-audio-spectrum.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-audio-spectrum.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-disk-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-disk-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-disk-files.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-disk-files.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-disk-map.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-disk-map.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-disk-repair.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-disk-repair.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-hfe-physical.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-hfe-physical.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-layout-1366x768.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-layout-1366x768.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-layout-1440x960.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-layout-1440x960.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-layout-640x480.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-layout-640x480.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-layout-920x640.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-layout-920x640.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-media-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-media-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-quickdisk-map.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-quickdisk-map.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-quickdisk.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-quickdisk.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-recorder-alignment.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-recorder-alignment.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-recorder-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-recorder-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-recorder-history.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-recorder-history.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-recorder-pulses.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-recorder-pulses.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-recorder-signal.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-recorder-signal.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-tape.png",
+      "pass": true
+    },
+    {
+      "name": "Gallery link linux-native-tape.png",
+      "pass": true
+    }
+  ],
+  "failedChecks": []
+}

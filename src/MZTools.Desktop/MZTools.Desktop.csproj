@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework Condition="('$(RuntimeIdentifier)' == '' And $([MSBuild]::IsOSPlatform('Windows'))) Or $([System.String]::Copy('$(RuntimeIdentifier)').StartsWith('win-'))">net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <Version>0.9.9</Version>
+    <ApplicationIcon>../../images/MZTool.ico</ApplicationIcon>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+    <ProjectReference Include="../MZTools.Core/MZTools.Core.csproj" />
+    <ProjectReference Include="../MZTools.Platform.Audio/MZTools.Platform.Audio.csproj" />
+    <ProjectReference Include="../../MZTools.Capture.Windows/MZTools.Capture.Windows.csproj" Condition="'$(TargetFramework)' == 'net10.0-windows'" />
+    <InternalsVisibleTo Include="MZTools.Desktop.Tests" />
+    <None Include="../../LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="../../THIRD_PARTY_NOTICES.md" Link="THIRD_PARTY_NOTICES.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="../../docs/third-party/avalonia-f9/**/*" Link="docs/third-party/avalonia-f9/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="../../docs/third-party/avalonia-f3/**/*" Link="docs/third-party/avalonia-f3/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

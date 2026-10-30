@@ -11,6 +11,37 @@ The goal of this fork is to keep the original application simple for normal MZF/
 
 <img width="786" height="443" src="/images/MZTools_scr_2026-09-27.png">
 
+The stable Windows/WPF editor is retained alongside the Avalonia application. The format, disk, compression and
+offline-analysis implementation now resides in `src/MZTools.Core` (`net10.0`), shared
+with the unchanged portable Capture pipeline. See the [F1 architecture and regression
+report](docs/F1_CORE_EXTRACTION_2026-10-29.md) for platform boundaries, test commands
+and validation limits.
+
+An independent Avalonia desktop shell is now available in `src/MZTools.Desktop`.
+Run it with `dotnet run --project src/MZTools.Desktop/MZTools.Desktop.csproj`.
+It implements the approved F2 theme, shared navigation/components and document
+lifecycle infrastructure. Tape/MZF/M12/MZT and SHARP QuickDisk support real editing,
+compression, import/export and safe media/sidecar saves. F5 adds the DSK/HFE workspace:
+filesystems, maps, writable hex, previewed repair, boot/system installation and IPL.
+F6 adds read-only WAV/complete recording analysis, shared pulse graphs, offline FFT/spectrogram,
+manual recovery and safe WAV/report/program exports or Tape/QuickDisk transfer.
+The recorder now uses the existing Capture pipeline in an independent Avalonia window,
+with live waveform/spectrum/pulses, qualified head diagnostics, manual zero and A/B comparison.
+Batch operations use shared Core preflight, explicit execution and source protection.
+Windows uses WASAPI; Linux/macOS use PortAudio. FLAC uses libsndfile with integer PCM verification.
+Inputs start only after an explicit Monitor or Record action.
+Linux requires `libportaudio2 libsndfile1`; macOS requires `brew install portaudio libsndfile`.
+Self-contained archives for Windows/Linux/macOS x64 and arm64 can be built with
+`python tools/package_desktop.py --rid <rid> --output artifacts`.
+See the [completion report](docs/MIGRATION_COMPLETION_2026-10-30.md),
+[actual final UI](docs/ui-design-system/avalonia-completion/index.html) and
+[release checklist](docs/RELEASE_CHECKLIST.md) for measured results and remaining platform acceptance.
+See the [F6 implementation and validation](docs/F6_AUDIO_ANALYZER_2026-10-30.md)
+and [actual Avalonia audio UI](docs/ui-design-system/avalonia-f6/index.html).
+The [F5 disk report](docs/F5_DSK_HFE_2026-10-30.md) remains available.
+The preceding [F4 report](docs/F4_TAPE_QUICKDISK_2026-10-29.md) remains available.
+Windows and Linux/WSLg were tested; macOS and physical audio hardware remain untested.
+
 ## Main functions
 
 MZTools provides:

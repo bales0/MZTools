@@ -1,0 +1,32 @@
+[
+  {
+    "file": "windows-native.png",
+    "source": "TestResults/F3/windows/native/native-layout-1366x768.png",
+    "sha256": "cd0da7435d69ede9bf45f180bbcb9d18c18ea62be7175d23803db87d1e7ccef9"
+  },
+  {
+    "file": "linux-native.png",
+    "source": "TestResults/F3/linux/native/native-layout-1366x768.png",
+    "sha256": "d6ee6827245bc58c65d661c16367d09defd1f87c79ad33b9707bf7cf4dfba139"
+  },
+  {
+    "file": "compact.png",
+    "source": "TestResults/F3/windows/screenshots/headless-shell-640x480-1.0.png",
+    "sha256": "e3cc4008cb261a438a980c970b07d6866a76361ffc5b931788c5c575057d7c4d"
+  },
+  {
+    "file": "scaled-200.png",
+    "source": "TestResults/F3/windows/screenshots/headless-shell-1366x768-2.0.png",
+    "sha256": "56d951e20adecb6959816aeecff632e060b74c787bfee65260219e15b1c3a156"
+  },
+  {
+    "file": "error.png",
+    "source": "TestResults/F3/windows/screenshots/headless-error.png",
+    "sha256": "7767be22b43548a484899237d79f5ab9d470cb7293703bc7bb254c13db318596"
+  },
+  {
+    "file": "report.png",
+    "source": "TestResults/F3/windows/screenshots/headless-report.png",
+    "sha256": "7e46ae55e9309f79c62e426f26eebd0395f6fe307c1dc559949871e334bbe368"
+  }
+]

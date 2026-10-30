@@ -13,7 +13,7 @@ internal static class Program
 {
     private static T Field<T>(object target,string name) => (T)target.GetType().GetField(name,BindingFlags.Instance|BindingFlags.NonPublic)!.GetValue(target)!;
     private static object? Call(object target,string name,params object?[] args) => target.GetType().GetMethod(name,BindingFlags.Instance|BindingFlags.NonPublic)!.Invoke(target,args);
-    private static void Check(bool value,string message) { if(!value) throw new InvalidOperationException(message); }
+    private static void Check(bool value,string message) { if(!value) throw new InvalidOperationException(message); if(Environment.GetEnvironmentVariable("MZTOOLS_SMOKE_TRACE")=="1") Console.WriteLine("PASS: "+message); }
     private static IEnumerable<T> Children<T>(DependencyObject parent) where T:DependencyObject {
         for(int i=0;i<VisualTreeHelper.GetChildrenCount(parent);i++) {
             var child=VisualTreeHelper.GetChild(parent,i); if(child is T found) yield return found;
@@ -118,7 +118,7 @@ internal static class Program
                 oneCanvas.Measure(new Size(800,400)); oneCanvas.Arrange(new Rect(0,0,800,400));
                 Check(oneCanvas.SurfaceSides.SequenceEqual(new[] {0}) && oneCanvas.Hit(SurfaceSample(oneCanvas,0).Point)?.Sector==SurfaceSample(oneCanvas,0).Address,"Single-sided All sides remains one surface");
                 await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
-                var artifact=Path.Combine(Path.GetTempPath(),"MZTools-DskVisualUiSmoke"); Directory.CreateDirectory(artifact);
+                var artifact=Path.Combine(Path.GetTempPath(),"MZTools-DskVisualUiSmoke",Guid.NewGuid().ToString("N")); Directory.CreateDirectory(artifact);
                 var bitmap=new RenderTargetBitmap((int)window.ActualWidth,(int)window.ActualHeight,96,96,PixelFormats.Pbgra32); bitmap.Render(window);
                 var png=new PngBitmapEncoder(); png.Frames.Add(BitmapFrame.Create(bitmap));
                 using(var output=File.Create(Path.Combine(artifact,"surface.png"))) png.Save(output);

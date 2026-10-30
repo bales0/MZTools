@@ -1,0 +1,476 @@
+{
+  "scope": "Current frontend source evidence, not runtime coverage",
+  "sources": [
+    {
+      "source": "App.xaml.cs",
+      "sha256": "aa8c135b84b6d9c4a24be360bad33dbc880c4d7c4e994ea0875c04f3e145e319",
+      "module": "Application",
+      "target": "Theme / app resources"
+    },
+    {
+      "source": "AssemblyInfo.cs",
+      "sha256": "3e7a95591f834844c4395cb3eed23d333ece8548e8e69eddc3e1693534474347",
+      "module": "Application",
+      "target": "Theme registration metadata"
+    },
+    {
+      "source": "AudioPulseReferenceControl.cs",
+      "sha256": "1092e6ba678dadac227abd139ca24fbb75e8b02a7860c5575c20303f720879c4",
+      "module": "Audio / Recorder",
+      "target": "PulseReferencePicker"
+    },
+    {
+      "source": "AudioRecorderNavigation.cs",
+      "sha256": "a7f793e3c097d01fc3a329b4e047c40febb61d8942342326e15ef2f3609637de",
+      "module": "Recorder",
+      "target": "RecordingNavigation"
+    },
+    {
+      "source": "AudioRecorderWindow.cs",
+      "sha256": "05e6814907b1ebe36cd84fc29797f2c806ceb1c9577dce18eae2c18bb9b5a531",
+      "module": "Recorder",
+      "target": "RecorderView"
+    },
+    {
+      "source": "AudioRegionRecoveryComparison.cs",
+      "sha256": "d55e360d4d56f69f2c4a6376f0fa97e58234ebac92b0ea3f4e0642cfcc3f0667",
+      "module": "Audio recovery",
+      "target": "RecoveryComparison"
+    },
+    {
+      "source": "AudioRegionRecoveryExport.cs",
+      "sha256": "ca70e9de1b7a4c2e4568bc4c4a7fa92ce91caf63313d3d198dfe0653e2df59bd",
+      "module": "Audio recovery",
+      "target": "RecoveredArtifactExport"
+    },
+    {
+      "source": "AudioRegionRecoveryHeaderless.cs",
+      "sha256": "0dfd5a921dac682c0e8a91058a05c1aaa0dadc5e51e2437b06a3d4f1a9847443",
+      "module": "Audio recovery",
+      "target": "HeaderlessRecovery"
+    },
+    {
+      "source": "AudioRegionRecoveryPreview.cs",
+      "sha256": "b7de4090aeeca1cdf491f82ece3d8c855136e14475bf293a6f95c0b933a83cb0",
+      "module": "Audio recovery",
+      "target": "CandidatePreview"
+    },
+    {
+      "source": "AudioRegionRecoveryWindow.cs",
+      "sha256": "6f8df3fb33fea675fb99aa55671b8b07a3f4f736b0c6fb0891c6113222524fd7",
+      "module": "Audio recovery",
+      "target": "RecoveryView"
+    },
+    {
+      "source": "AudioSignalAnalyzerExport.cs",
+      "sha256": "f52bd02ce36d800eee775175282d81aebb4536c27a1419be7a6278ba2b4e05b2",
+      "module": "Audio",
+      "target": "ExportPreview"
+    },
+    {
+      "source": "AudioSignalAnalyzerSelection.cs",
+      "sha256": "a797bdb2ac1b3d8854b0ad12f757da6ed25b26c6690b66f6fb0f884e09dfa49a",
+      "module": "Audio",
+      "target": "SelectionCoordinator"
+    },
+    {
+      "source": "AudioSignalAnalyzerWindow.cs",
+      "sha256": "4b38dee79eaecadaacfe9c75f813bf18f3610c8fa1d34377c7d4557b9fc1435e",
+      "module": "Audio",
+      "target": "AudioAnalysisView"
+    },
+    {
+      "source": "AudioSignalCharts.cs",
+      "sha256": "7575fb8b76b89ba0daad84825dc072672865aaab222a4775e746c106048641b8",
+      "module": "Audio",
+      "target": "SignalPlot / HistogramPlot / DriftPlot"
+    },
+    {
+      "source": "BatchFileDetailsDialog.cs",
+      "sha256": "3f5022714505139519f323a21474ff09e31f062e100be6143e768d8d3526acb0",
+      "module": "Batch",
+      "target": "ReportDrawer"
+    },
+    {
+      "source": "BatchProcessDialog.cs",
+      "sha256": "913b1774e5da3c4297c7d8a7e8dc6884b21c4758dae4e0050aa89749f2970fc1",
+      "module": "Batch",
+      "target": "BatchWorkspace"
+    },
+    {
+      "source": "BootstrapDialog.cs",
+      "sha256": "6dc71c3719f82383783ad27093bd52db367f511c58ba51ffc47fd9358d699f66",
+      "module": "Disk boot",
+      "target": "BootstrapEditor"
+    },
+    {
+      "source": "CompressionOptionsControl.xaml.cs",
+      "sha256": "34be463ff4431817fb49cecb87d02aa91bce6fe3445b7a3f6f2ea42455440807",
+      "module": "Shared conversion",
+      "target": "CompressionOptions"
+    },
+    {
+      "source": "CompressionSettingsDialog.cs",
+      "sha256": "2e8d0a85350d8daedfaf79ffef422524ab1cac0507b4f7fd82517fa19efe9213",
+      "module": "Shared conversion",
+      "target": "CompressionDialog"
+    },
+    {
+      "source": "CpmLayoutDialog.cs",
+      "sha256": "8aa61af15ae54f0a6cd1c16272f89c24258975d235e26ff0f7b9d3b65a4e7147",
+      "module": "Disk filesystem",
+      "target": "CpmLayoutEditor"
+    },
+    {
+      "source": "CpmSystemBuilderDialog.cs",
+      "sha256": "1bbcff624d8f44c016feb68016ec8eeb39cb9bb32db6d99ba013ae970625f0ec",
+      "module": "Disk boot",
+      "target": "BootInstallPreview"
+    },
+    {
+      "source": "CrossDiskTransferDialog.cs",
+      "sha256": "feeda9c0b7fc56a8074d19e421dfe3ceee46e29477b76d33e8742fefb50b6c01",
+      "module": "Disk transfer",
+      "target": "TransferPreview"
+    },
+    {
+      "source": "DiskFormatting.cs",
+      "sha256": "22373a041b1ac9b463f2d2fe57957ae0988ba188517237b3c73dce4f087a6579",
+      "module": "Disk formatting",
+      "target": "ChangePreview"
+    },
+    {
+      "source": "DiskMapVisuals.cs",
+      "sha256": "9b55b328ae708aa205af2800db5fd7320e40c75182ab9cb6eb286269feaacec5",
+      "module": "Shared",
+      "target": "SelectionStyles"
+    },
+    {
+      "source": "DskCompareWindow.cs",
+      "sha256": "1e43f062b113cd76b4ffe65c22b1b02931b7be1ddc78aee6cd4f781225466fbb",
+      "module": "Disk compare",
+      "target": "CompareView / HexDiff"
+    },
+    {
+      "source": "DskConversionDialog.cs",
+      "sha256": "6df4b07121dd8fe18bf374914b05dd787491d5c8daa9ab69183666aceb543149",
+      "module": "Disk conversion",
+      "target": "ConversionExportPreview"
+    },
+    {
+      "source": "DskDiskMapControl.cs",
+      "sha256": "a65b6bea979fa1e145af97915afc65ae09f064e522546def41f101a711b0b022",
+      "module": "Disk / HFE",
+      "target": "DiskMapRenderer"
+    },
+    {
+      "source": "DskEditorSectorSelection.cs",
+      "sha256": "dd1c6172804b78ffc2a862d79a19a8074e0db54d25ba7b2f620f80a95f6c8e3e",
+      "module": "Disk / HFE",
+      "target": "SelectionCoordinator"
+    },
+    {
+      "source": "DskEditorVisualAnalysis.cs",
+      "sha256": "7400ca999f2997a114f72bcb03980b3954e01253533729eeca4dd21af64d28d1",
+      "module": "Disk / HFE",
+      "target": "InspectorCoordinator"
+    },
+    {
+      "source": "DskEditorWindow.xaml.cs",
+      "sha256": "b170068edd9407821e657f7fd878bbcb61712c612178f34c58f2dd8681d7ac76",
+      "module": "Disk / HFE",
+      "target": "DiskWorkspace"
+    },
+    {
+      "source": "DskFilePropertiesControl.cs",
+      "sha256": "9b3555c6be04ff55afddbd9ad560e11c32748454fde1f1f222e923cdc8c240bf",
+      "module": "Disk properties",
+      "target": "PropertyEditor"
+    },
+    {
+      "source": "DskFilePropertiesDialog.cs",
+      "sha256": "cfc9513b41b66c2f82505904f446457e866d99d7305445f2923bddec269110e3",
+      "module": "Disk properties",
+      "target": "PropertiesDialog"
+    },
+    {
+      "source": "DskHexEditorWindow.cs",
+      "sha256": "2172e7d48c7ca9bbfc2a6d78875bcb3c60de45ea9920da2376d4ed019bca7928",
+      "module": "Disk hex",
+      "target": "HexEditor"
+    },
+    {
+      "source": "DskMfmDetailControl.cs",
+      "sha256": "6aea65f7657363f6ab27e2a2a18b7c4b6f2eeefc051b3b44f3c606e4ac5d3b5d",
+      "module": "Disk physical",
+      "target": "TrackCellRenderer"
+    },
+    {
+      "source": "DskNewDialog.cs",
+      "sha256": "ec6fcc3ab1142addb218e70dd96c1e028bb13b5937762a43375a9ec1accfc064",
+      "module": "Disk creation",
+      "target": "NewDiskDialog"
+    },
+    {
+      "source": "DskPatchPreviewWindow.cs",
+      "sha256": "517e6e2ef4dfa9da583ab422b9ef72d42732102bf1e226c45708a1796ad2c3f7",
+      "module": "Disk changes",
+      "target": "ChangePreview"
+    },
+    {
+      "source": "DskPhysicalPropertiesDialog.cs",
+      "sha256": "9129e4f7c0a81b0a66b50290c0c27f08e81524901ebb3d52a88e67eb619a5a8d",
+      "module": "Disk properties",
+      "target": "PhysicalPropertyEditor"
+    },
+    {
+      "source": "DskRawRangeDialog.cs",
+      "sha256": "db86a42c855b9a70758c3fb7680fb59aa753fd78b010453fe1e2e2abf7b3df19",
+      "module": "Disk transfer",
+      "target": "RawRangeTransfer"
+    },
+    {
+      "source": "DskRepairDialog.cs",
+      "sha256": "5cbf28606d023c9df8d3fef93c26113f67a7c46e6f9afe7c9aa49c45a3da891a",
+      "module": "Disk repair",
+      "target": "ContainerRepairPreview"
+    },
+    {
+      "source": "DskStructureWindow.cs",
+      "sha256": "23848988d0da22f7ab928c657c897adda83788cf39f86b97df3b75c9d4c876c4",
+      "module": "Disk filesystem",
+      "target": "StructureView"
+    },
+    {
+      "source": "DskVisualCanvas.cs",
+      "sha256": "e18bbbd5ca3a084bc2c66646cb88de3338996e1194870e12b17090b5dde947f6",
+      "module": "Disk physical",
+      "target": "DiskSurfaceRenderer"
+    },
+    {
+      "source": "DskVisualInspectorDetails.cs",
+      "sha256": "abb102335e61441aa079e8465a701d8bff16f9eee4a670322581ef905e69a134",
+      "module": "Disk inspection",
+      "target": "InspectorDetails"
+    },
+    {
+      "source": "DskVisualInspectorWindow.cs",
+      "sha256": "bf4d3747929baa08bd60e0bdb968a7c6542b7024e8ce38582e56449cd1d71788",
+      "module": "Disk inspection",
+      "target": "InspectorHost"
+    },
+    {
+      "source": "HeadAlignmentPanel.cs",
+      "sha256": "4fe464008a3539ed475ce8db1816df6d3a42244fdc111b569bffc2d55ae3489c",
+      "module": "Recorder",
+      "target": "HeadAlignmentView"
+    },
+    {
+      "source": "HeadEdgeAdjustmentControl.cs",
+      "sha256": "e606612de854b4a23ca902225c56dbed76ad3c6539dae56a89841be7d6adcab3",
+      "module": "Recorder",
+      "target": "RelativeEdgeDial"
+    },
+    {
+      "source": "HexBrowser.xaml.cs",
+      "sha256": "bb044cbf86218da86acab3564d8582eea29b2a676cb51d80574ffa9f7263c48e",
+      "module": "Shared hex",
+      "target": "ReadOnlyHexView"
+    },
+    {
+      "source": "IplDskOptionsDialog.xaml.cs",
+      "sha256": "bbccd10a5c21942aa3af7f5cc46c4ea091bef0986b07c9c3685a3d54001303d4",
+      "module": "Single IPL",
+      "target": "SingleIplOptions"
+    },
+    {
+      "source": "LivePulsePanel.cs",
+      "sha256": "4cb3f3c9bc5d96cea56d5e76f8d56c5635fefe225a24ab8d3228a480bdd60928",
+      "module": "Recorder",
+      "target": "LivePulseView"
+    },
+    {
+      "source": "LiveSignalCanvas.cs",
+      "sha256": "a6b63a0f0223cd0235a6ade7afc5ceb5215a1b919e450fe05ba3b3924d1313da",
+      "module": "Recorder",
+      "target": "SignalPlot / SpectrumPlot"
+    },
+    {
+      "source": "MainWindow.xaml.cs",
+      "sha256": "decb2963ad879ec4b959b8fb60ddebdae5e8a3d53c2896cfcf6bc212211f622d",
+      "module": "Tape / QuickDisk",
+      "target": "DocumentWorkspace"
+    },
+    {
+      "source": "MainWindowQuickDiskVisual.cs",
+      "sha256": "fe65b4b9c4cb8b21f8b73e8334cd98fb4aacecad7b2933d914693ee0a07e4082",
+      "module": "QuickDisk",
+      "target": "QuickDiskWorkspace"
+    },
+    {
+      "source": "MapInteraction.cs",
+      "sha256": "10d31091dcb1fced46051422db0b012db3f54694664302a84526713b79f05ede",
+      "module": "Shared",
+      "target": "SelectionPolicy"
+    },
+    {
+      "source": "MultiGameIplDskOptionsDialog.xaml.cs",
+      "sha256": "b884065344445d11cd442175b3f50665721684ae7eb378220a2bb1783c46de40",
+      "module": "Multi IPL",
+      "target": "MultiIplEditor"
+    },
+    {
+      "source": "NativeComDialog.cs",
+      "sha256": "a0bc3fa13cd7cf993fc3f3e2884f753e08c234863114355f06cfd4b2073221cf",
+      "module": "Native COM",
+      "target": "NativeComDialog"
+    },
+    {
+      "source": "PhysicalTrackViewerWindow.cs",
+      "sha256": "c72917e432513614f8e368aff5172207f292889532054665d449666d6591b7f4",
+      "module": "Physical media",
+      "target": "PhysicalTrackView"
+    },
+    {
+      "source": "QuickDiskInspectorControl.cs",
+      "sha256": "252d1c5a16f4ac95cab5de8b24f76babc938dd15f653e1889b89a308ae40faad",
+      "module": "QuickDisk hosts",
+      "target": "HostInspector"
+    },
+    {
+      "source": "QuickDiskMapControl.cs",
+      "sha256": "90da97c5dc79fbb76c4227450d1bd31bd295769e67b037e7ce1cd21a50ce72b7",
+      "module": "QuickDisk logical",
+      "target": "QuickDiskMapRenderer"
+    },
+    {
+      "source": "QuickDiskSurfaceCanvas.cs",
+      "sha256": "667a95d939c1ba3020cd83d050afd685101884d12175055a4d612ec152077514",
+      "module": "QuickDisk surface",
+      "target": "QuickDiskSurfaceRenderer"
+    },
+    {
+      "source": "QuickDiskVisualCanvas.cs",
+      "sha256": "844c8221b3d4dd560ed036d7706d77e74e000d245fdb1402b139e0203a9d6654",
+      "module": "QuickDisk physical",
+      "target": "QuickDiskPhysicalRenderer"
+    },
+    {
+      "source": "QuickDiskVisualInspectorWindow.cs",
+      "sha256": "182c3bb4dd983d841486c9b1ff718aaaac3cffb555dab2ed1e46bf821128a18b",
+      "module": "QuickDisk inspection",
+      "target": "InspectorHost"
+    },
+    {
+      "source": "ReportView.cs",
+      "sha256": "b914513e1a533387d06e157ace4e535702960098036f942a7b0bca922168eef8",
+      "module": "Shared reports",
+      "target": "ReportViewer"
+    },
+    {
+      "source": "SaveOptionsDialog.xaml.cs",
+      "sha256": "988613101868b45d72959eb0eb0edf908de3c3782a2d892d3108b00a6c094a32",
+      "module": "Tape / QuickDisk",
+      "target": "SaveExportOptions"
+    },
+    {
+      "source": "SeparateExportDialog.cs",
+      "sha256": "dae740135aa09047da03936c869bcf2b7df15946048254bec9b56d4c92db6c53",
+      "module": "Shared export",
+      "target": "MultiExportPreview"
+    },
+    {
+      "source": "UserProfilesDialog.cs",
+      "sha256": "9b431ab1ed4b03fa9dd1ff033396f95b45c362c0edd998406fb77a4ef7e287f5",
+      "module": "Profiles",
+      "target": "ProfilesView"
+    },
+    {
+      "source": "WavAnalysisProgressWindow.xaml.cs",
+      "sha256": "9cc28773d6fa021c531fd105f030c889cfcbb2a9bd9bdccdc80350696b7e9fa6",
+      "module": "Audio progress",
+      "target": "BackgroundTaskProgress"
+    },
+    {
+      "source": "WavAnalysisStatisticsWindow.xaml.cs",
+      "sha256": "a854e8dd3c1c5ca422fa3f970e83377b4423087d38329c95480ae0951b9c628b",
+      "module": "Audio statistics",
+      "target": "AudioStatistics"
+    },
+    {
+      "source": "WavImportOptionsWindow.xaml.cs",
+      "sha256": "47672b04a67c21e2a44e763456ea7acd72dddd20ced47429ae58281d956ca92e",
+      "module": "Audio import",
+      "target": "AudioImportOptions"
+    },
+    {
+      "source": "App.xaml",
+      "sha256": "1e7c7dc168912cf97f0fb2ba8678c49f356d440bd680610a96b16d3c8be8ed30",
+      "module": "Application",
+      "target": "Theme / app resources"
+    },
+    {
+      "source": "CompressionOptionsControl.xaml",
+      "sha256": "bb8a630bfccc0fb08eb937eff152581d4ba399df3047ab4b5057a65ef32ea838",
+      "module": "Shared conversion",
+      "target": "CompressionOptions"
+    },
+    {
+      "source": "DskEditorWindow.xaml",
+      "sha256": "620d600b69b4e48963c80903cf3dafbb3baae94b1970de531d14f9376890e5cf",
+      "module": "Disk / HFE",
+      "target": "DiskWorkspace"
+    },
+    {
+      "source": "HexBrowser.xaml",
+      "sha256": "e124a96ceae20fc27585f20258257aaf9bb19179a0c50a4c390e55ff3af3e69f",
+      "module": "Shared hex",
+      "target": "ReadOnlyHexView"
+    },
+    {
+      "source": "IplDskOptionsDialog.xaml",
+      "sha256": "e0a3692bb52fe99a56ddfbd89b2df4d3abb33aa5d49a9d87f8a40aa6bcbae0b3",
+      "module": "Single IPL",
+      "target": "SingleIplOptions"
+    },
+    {
+      "source": "MainWindow.xaml",
+      "sha256": "8466d9d3cf58a615097696f075c153e8ed25ca3c0c2d3a319f1fe16cea4d975b",
+      "module": "Tape / QuickDisk",
+      "target": "DocumentWorkspace"
+    },
+    {
+      "source": "MultiGameIplDskOptionsDialog.xaml",
+      "sha256": "f0f0d35752d82069bb71fb4d20c2bcb6a21f566924c0ac7cf1b266fb571f0ff4",
+      "module": "Multi IPL",
+      "target": "MultiIplEditor"
+    },
+    {
+      "source": "SaveOptionsDialog.xaml",
+      "sha256": "ea2bef318f8ec4f1f60dca312ab684caab5c01f7824113a5fb2f0fe996a78e71",
+      "module": "Tape / QuickDisk",
+      "target": "SaveExportOptions"
+    },
+    {
+      "source": "WavAnalysisProgressWindow.xaml",
+      "sha256": "3c9607781392afca76ad0f4aec00d6310655596cdc18db59f67752d9c7af612a",
+      "module": "Audio progress",
+      "target": "BackgroundTaskProgress"
+    },
+    {
+      "source": "WavAnalysisStatisticsWindow.xaml",
+      "sha256": "0a1a513ce9c245f4cc151e22780afed5776d2d86ada9603eca37929b8006c99e",
+      "module": "Audio statistics",
+      "target": "AudioStatistics"
+    },
+    {
+      "source": "WavImportOptionsWindow.xaml",
+      "sha256": "2276a5f709258876e9a5efddb4daffe4307b1329092d63e264eb56abb0c0aad0",
+      "module": "Audio import",
+      "target": "AudioImportOptions"
+    }
+  ],
+  "controlRows": 453,
+  "inputRows": 64,
+  "unmapped": []
+}

@@ -3,7 +3,7 @@ namespace MZTools.Tests;
 public sealed class WorkspaceDragTransferTests
 {
     private static TapeRecord Record(string name = "TEST") => TapeTestData.ReadRecord(TapeTestData.CreateMzf([1, 2, 3], name: name));
-    private static WorkspaceDragPacket Wire(WorkspaceDragPacket packet) => WorkspaceDragTransfer.Decode(WorkspaceDragTransfer.Encode(packet));
+    private static WorkspaceDragPacket Wire(WorkspaceDragPacket packet) => WorkspaceDragCodec.Decode(WorkspaceDragCodec.Encode(packet));
     private static DskDocument Disk(string kind) => kind switch
     {
         "fsmz" => DskDocumentFactory.CreateFsmz(), "mrs" => DskDocumentFactory.CreateMrs(),
@@ -20,9 +20,9 @@ public sealed class WorkspaceDragTransferTests
         source.FileSystem.Insert("A.BIN", [1, 2, 3], 1, 0x1200, 0x1200);
         source.FileSystem.Insert("B.BIN", [4, 5, 6]); source.MarkModified();
         var entry = source.FileSystem.ReadDirectory().First();
-        var packet = Wire(WorkspaceDragTransfer.Capture(source, [entry]));
+        var packet = Wire(WorkspaceDragCodec.Capture(source, [entry]));
         byte[] before = source.Serialize(), targetBefore = target.Serialize();
-        var detached = WorkspaceDragTransfer.OpenDisk(packet);
+        var detached = WorkspaceDragCodec.OpenDisk(packet);
         var preview = CrossDiskTransferService.Preview(detached, target, packet.Keys.Select(k => new DiskCopyRequest(k)).ToArray(), DiskCollisionPolicy.Cancel);
         Assert.Equal(before, source.Serialize()); Assert.Equal(targetBefore, target.Serialize());
         preview.Operation.Apply(target);
@@ -39,8 +39,8 @@ public sealed class WorkspaceDragTransferTests
         CpmFileSystem.Format(image, dpb);
         var source = DskDocument.Open(image.Serialize()); source.AttachCpmLayout(dpb);
         source.FileSystem.Insert("A.COM", [0xC9], user: 3); source.MarkModified();
-        var packet = Wire(WorkspaceDragTransfer.Capture(source, source.FileSystem.ReadDirectory()));
-        var detached = WorkspaceDragTransfer.OpenDisk(packet);
+        var packet = Wire(WorkspaceDragCodec.Capture(source, source.FileSystem.ReadDirectory()));
+        var detached = WorkspaceDragCodec.OpenDisk(packet);
         Assert.Equal(dpb, detached.AttachedDpb);
         var target = Disk("cpm");
         CrossDiskTransferService.Preview(detached, target, [new(packet.Keys[0])], DiskCollisionPolicy.Cancel).Operation.Apply(target);
@@ -53,7 +53,7 @@ public sealed class WorkspaceDragTransferTests
         var source = Record("FIRST"); source.Profile = TapeProfile.Tc1_3; source.MetadataOrigin = MetadataOrigin.LoadedFromM2i;
         var body = source.Body; body.TrailingData = [0xFA, 0xFB]; source.Body = body;
         source.RawHeader[30] = 0xAC;
-        var packet = Wire(WorkspaceDragTransfer.Capture(new[] { source, Record("SECOND") }));
+        var packet = Wire(WorkspaceDragCodec.Capture(new[] { source, Record("SECOND") }));
         var target = new TapeDocument { Format = TapeDocumentFormat.Mzt }; target.Records.Add(Record("KEEP"));
         var preview = new TapeCopyPreview(target, packet, 0);
         Assert.Single(target.Records); Assert.False(target.IsModified); // cancel leaves target intact
@@ -70,7 +70,7 @@ public sealed class WorkspaceDragTransferTests
     [Fact]
     public void TapePreviewRejectsStaleTargetAndQuickDiskOverflow()
     {
-        var packet = Wire(WorkspaceDragTransfer.Capture(new[] { Record() }));
+        var packet = Wire(WorkspaceDragCodec.Capture(new[] { Record() }));
         var target = new TapeDocument { Format = TapeDocumentFormat.Mzt }; target.Records.Add(Record());
         var preview = new TapeCopyPreview(target, packet, 0);
         target.Records[0].Profile = TapeProfile.Ultra;
@@ -85,7 +85,7 @@ public sealed class WorkspaceDragTransferTests
     public void EmptyTargetBecomesUnsavedDocumentAfterApplyOnly()
     {
         var target = new TapeDocument();
-        var preview = new TapeCopyPreview(target, Wire(WorkspaceDragTransfer.Capture(new[] { Record() })), 0);
+        var preview = new TapeCopyPreview(target, Wire(WorkspaceDragCodec.Capture(new[] { Record() })), 0);
         Assert.Equal(TapeDocumentFormat.None, target.Format); preview.Apply(target);
         Assert.Equal(TapeDocumentFormat.Mzf, target.Format); Assert.Null(target.FilePath); Assert.True(target.IsModified);
     }
@@ -93,13 +93,13 @@ public sealed class WorkspaceDragTransferTests
     [Fact]
     public void InvalidVersionSelectionAndRecordAreRejected()
     {
-        var packet = WorkspaceDragTransfer.Capture(new[] { Record() });
+        var packet = WorkspaceDragCodec.Capture(new[] { Record() });
         Assert.Throws<InvalidDataException>(() => Wire(packet with { Version = 2 }));
         Assert.Throws<InvalidDataException>(() => Wire(packet with { Records = [] }));
-        Assert.Throws<InvalidDataException>(() => WorkspaceDragTransfer.OpenRecords(packet with { Records = [packet.Records[0] with { Payload = [1] }] }));
-        Assert.Throws<InvalidDataException>(() => WorkspaceDragTransfer.OpenRecords(packet with { Records = [packet.Records[0] with { Payload = [1, 2, 3, 4] }] }));
+        Assert.Throws<InvalidDataException>(() => WorkspaceDragCodec.OpenRecords(packet with { Records = [packet.Records[0] with { Payload = [1] }] }));
+        Assert.Throws<InvalidDataException>(() => WorkspaceDragCodec.OpenRecords(packet with { Records = [packet.Records[0] with { Payload = [1, 2, 3, 4] }] }));
         var disk = Disk("cpm"); disk.FileSystem.Insert("A.COM", [0xC9]); disk.MarkModified();
-        var diskPacket = WorkspaceDragTransfer.Capture(disk, disk.FileSystem.ReadDirectory());
+        var diskPacket = WorkspaceDragCodec.Capture(disk, disk.FileSystem.ReadDirectory());
         Assert.Throws<InvalidDataException>(() => Wire(diskPacket with { Keys = [diskPacket.Keys[0], diskPacket.Keys[0]] }));
     }
 }

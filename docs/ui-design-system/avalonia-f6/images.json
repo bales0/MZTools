@@ -1,0 +1,72 @@
+[
+  {
+    "file": "windows-records.png",
+    "source": "TestResults/F6/windows/native/native-audio-records.png",
+    "sha256": "5bbbec34ee722c13ca967727606eb38d30d3d92e831c37f44ac1e375960a3b27"
+  },
+  {
+    "file": "histogram.png",
+    "source": "TestResults/F6/windows/ui/audio-histogram-detail.png",
+    "sha256": "8d1bd20c252c0e06de001c9d74c79a2f92379aa410c4de8978a1bc6907ae241f"
+  },
+  {
+    "file": "scatter.png",
+    "source": "TestResults/F6/windows/ui/audio-scatter-detail.png",
+    "sha256": "3e513858fb995775294cbb6a2064ebe17377978bac43aafc09abcb203e758a2f"
+  },
+  {
+    "file": "drift.png",
+    "source": "TestResults/F6/windows/ui/audio-drift-detail.png",
+    "sha256": "f565e76f06950d3906d30054c48a01962465d1da50a9475efe98253376bce4c6"
+  },
+  {
+    "file": "spectrum.png",
+    "source": "TestResults/F6/windows/ui/audio-spectrum-detail.png",
+    "sha256": "3a1012d5dcc464d5a76e07c9de625c4e55764ed6930862dbb5dd264a800015f9"
+  },
+  {
+    "file": "spectrogram.png",
+    "source": "TestResults/F6/windows/ui/audio-spectrogram-detail.png",
+    "sha256": "1c68817b1cc885805b9f752de991e52c625c94553af3d49f1f8ffd56621b21c7"
+  },
+  {
+    "file": "windows-recovery.png",
+    "source": "TestResults/F6/windows/native/native-audio-recovery.png",
+    "sha256": "4880a856e09ea6f2e8be5124f92d246fcf0e47d314ed5b5d566317934d5f9f23"
+  },
+  {
+    "file": "candidate.png",
+    "source": "TestResults/F6/windows/ui/audio-candidate.png",
+    "sha256": "3e49a5691537e19637cf1918ba76c935f0c41626c3f6b41d90bab2cd316c1017"
+  },
+  {
+    "file": "linux-records.png",
+    "source": "TestResults/F6/linux/native/native-audio-records.png",
+    "sha256": "c0dd5762645c5cc5d37f3061baa0e58984a01565e28855201601e4b469754462"
+  },
+  {
+    "file": "linux-spectrogram.png",
+    "source": "TestResults/F6/linux/ui/audio-spectrogram-detail.png",
+    "sha256": "ad3e89406d8b8d0b80cbd6b023a7194d070c5e6d0a656baef312f2b00f7c2d85"
+  },
+  {
+    "file": "compact.png",
+    "source": "TestResults/F6/windows/ui/audio-layout-640x480-1,0.png",
+    "sha256": "de8e92dc1d7e28e45f77e0143006253a96d675c2298127637f505af35e7aa35c"
+  },
+  {
+    "file": "inspector.png",
+    "source": "TestResults/F6/windows/ui/audio-inspector-compact-640.png",
+    "sha256": "00f28925cae22b6495fe9956b98f6368d9ae8d656c3e43e43a09b0045b038fb4"
+  },
+  {
+    "file": "scaled-150.png",
+    "source": "TestResults/F6/windows/ui/audio-layout-1366x768-1,5.png",
+    "sha256": "5e05a0f7a531633267c29cee6e780f2fff01bb3feb8d914b4fc8b5229b732f8b"
+  },
+  {
+    "file": "scaled-200.png",
+    "source": "TestResults/F6/windows/ui/audio-layout-920x640-2,0.png",
+    "sha256": "c374a69170c6d25cb490871dfd3c723f0c947f39bd60db2a5a78a295fdddf503"
+  }
+]

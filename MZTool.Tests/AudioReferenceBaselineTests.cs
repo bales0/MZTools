@@ -84,7 +84,8 @@ public class AudioReferenceBaselineTests
         if (!string.IsNullOrEmpty(output)) File.WriteAllText(output, json);
         string golden = Path.Combine(AppContext.BaseDirectory, "ReferenceGolden", "export-fingerprints.json");
         Assert.True(File.Exists(golden), "Missing checked-in reference fingerprints.");
-        Assert.Equal(File.ReadAllText(golden).Trim(), json.Trim());
+        var expected = JsonSerializer.Deserialize<SortedDictionary<string, string>>(File.ReadAllText(golden))!;
+        Assert.Equal(expected.ToArray(), fingerprints.ToArray());
         Assert.Equal(39, fingerprints.Count);
     }
 

@@ -94,13 +94,7 @@ namespace MZTools
             OptionsChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        internal static string Describe(MzfCompressionOptions options)
-        {
-            if (options.Algorithm is MzfCompressionAlgorithm.None or MzfCompressionAlgorithm.Auto) return options.Algorithm.ToString();
-            return options.Algorithm.ToString().ToUpperInvariant() + (options.Zx0Quick ? " quick" : "") +
-                (options.Direction == CompressionDirection.Backward ? " backward" : " forward") +
-                (options.Zx7EmbeddedLoader ? ", embedded" : "") + (options.SkipBytes > 0 ? $", skip {options.SkipBytes}" : "");
-        }
+        internal static string Describe(MzfCompressionOptions options) => CompressionDescription.Describe(options);
 
         internal bool TryGetOptions(out MzfCompressionOptions options, out string error)
         {

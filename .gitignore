@@ -402,3 +402,6 @@ FodyWeavers.xsd
 .gitignore
 # /MZTools.Tests
 /acceptance
+
+# Regression sources must be present in clean checkouts; media remain local.
+!MZTool.Tests/*.cs

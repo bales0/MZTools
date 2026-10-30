@@ -1,0 +1,41 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:MZTools.Desktop.ViewModels" xmlns:c="using:MZTools.Desktop.Controls" x:Class="MZTools.Desktop.Views.DiskWorkspace" x:DataType="vm:ShellViewModel">
+ <Grid RowDefinitions="Auto,*" RowSpacing="12" MinHeight="420">
+  <WrapPanel IsEnabled="{Binding CanUseDisk}">
+   <Button Content="Import…" Command="{Binding DiskImportCommand}" Margin="0,0,6,6" /><Button Content="Export…" Command="{Binding DiskExportCommand}" Margin="0,0,6,6" />
+   <Button Content="Delete…" Command="{Binding DiskDeleteCommand}" Margin="0,0,6,6" /><Button Content="Copy files" Command="{Binding DiskCopyCommand}" Margin="0,0,6,6" /><Button Content="Paste files…" Command="{Binding DiskPasteCommand}" Margin="0,0,6,6" />
+   <ComboBox ItemsSource="{Binding DiskTools}" SelectedItem="{Binding DiskTool, Mode=TwoWay}" MinWidth="190" Margin="0,0,6,6" AutomationProperties.Name="Disk tool" />
+   <Button Content="Run tool…" Command="{Binding DiskToolCommand}" Margin="0,0,6,6" />
+  </WrapPanel>
+  <Grid Grid.Row="1" x:Name="DiskGrid" ColumnDefinitions="*,16,288">
+   <TabControl x:Name="DiskTabs" SelectedIndex="{Binding ActiveDisk.ViewIndex, Mode=TwoWay}" IsEnabled="{Binding CanUseDisk}">
+    <TabControl.ItemsPanel><ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate></TabControl.ItemsPanel>
+    <TabItem Header="Files"><Grid RowDefinitions="Auto,*" RowSpacing="12" Margin="0,12,0,0">
+     <TextBox x:Name="DiskFilter" Text="{Binding ActiveDisk.Filter, Mode=TwoWay}" PlaceholderText="Filter disk files…" AutomationProperties.Name="Filter disk files" />
+     <TableView Grid.Row="1" x:Name="DiskFiles" AutoScrollToSelectedItem="False" ItemsSource="{Binding ActiveDisk.Files}" SelectionMode="Multiple" AutomationProperties.Name="Disk files" DragDrop.AllowDrop="True">
+      <TableView.Columns>
+       <TableViewColumn Header="Name" Binding="{ReflectionBinding Name}" Width="2*" /><TableViewColumn Header="Bytes" Binding="{ReflectionBinding Bytes}" Width="85" />
+       <TableViewColumn Header="Type" Binding="{ReflectionBinding Type}" Width="65" /><TableViewColumn Header="Load" Binding="{ReflectionBinding Load}" Width="80" /><TableViewColumn Header="Execute" Binding="{ReflectionBinding Execute}" Width="80" /><TableViewColumn Header="Attributes" Binding="{ReflectionBinding Attributes}" Width="2*" />
+      </TableView.Columns>
+      <TableView.ContextMenu><ContextMenu><MenuItem Header="Export…" Command="{Binding DiskExportCommand}" /><MenuItem Header="Copy files" Command="{Binding DiskCopyCommand}" /><MenuItem Header="Paste files…" Command="{Binding DiskPasteCommand}" /><Separator /><MenuItem Header="Delete…" Command="{Binding DiskDeleteCommand}" /></ContextMenu></TableView.ContextMenu>
+     </TableView>
+    </Grid></TabItem>
+    <TabItem Header="Map"><Grid RowDefinitions="Auto,Auto,280,Auto,220" RowSpacing="8" Margin="0,12,0,0">
+     <WrapPanel><Button Content="Zoom +" Click="ZoomIn" Margin="0,0,6,0" /><Button Content="Zoom −" Click="ZoomOut" Margin="0,0,6,0" /><Button Content="Fit all" Click="Fit" Margin="0,0,6,0" /><Button Content="Fit selection" Click="FitSelection" Margin="0,0,6,0" /><CheckBox Content="Sector-ID order" IsChecked="{Binding ActiveDisk.LogicalOrder, Mode=TwoWay}" /></WrapPanel>
+     <ComboBox Grid.Row="1" x:Name="MapMode" SelectedIndex="{Binding ActiveDisk.MapMode, Mode=TwoWay}" SelectionChanged="MapModeChanged" AutomationProperties.Name="Disk map view"><ComboBoxItem Content="Track map" /><ComboBoxItem Content="Surface side 0" /><ComboBoxItem Content="Surface side 1" /></ComboBox>
+     <c:DiskMap Grid.Row="2" x:Name="Map" Session="{Binding ActiveDisk}" />
+     <TextBlock Grid.Row="3" Text="Directory/system · allocated file · free · unassigned · issue. Wheel zooms at pointer, drag pans track rows; Ctrl/Command toggles, Shift extends selection." TextWrapping="Wrap" Classes="muted" />
+     <TableView Grid.Row="4" x:Name="DiskSectors" AutoScrollToSelectedItem="False" ItemsSource="{Binding ActiveDisk.Sectors}" SelectionMode="Multiple" AutomationProperties.Name="Disk sectors">
+      <TableView.Columns><TableViewColumn Header="Track" Binding="{ReflectionBinding Track}" Width="60" /><TableViewColumn Header="#" Binding="{ReflectionBinding Descriptor}" Width="40" /><TableViewColumn Header="CHRN" Binding="{ReflectionBinding Chrn}" Width="105" /><TableViewColumn Header="ST1/ST2" Binding="{ReflectionBinding Status}" Width="80" /><TableViewColumn Header="Bytes" Binding="{ReflectionBinding Bytes}" Width="65" /><TableViewColumn Header="Role" Binding="{ReflectionBinding Role}" Width="*" /><TableViewColumn Header="Files" Binding="{ReflectionBinding Files}" Width="2*" /></TableView.Columns>
+     </TableView>
+    </Grid></TabItem>
+    <TabItem Header="Analysis"><Grid RowDefinitions="Auto,*,Auto" RowSpacing="8" Margin="0,12,0,0"><ComboBox ItemsSource="{Binding ActiveDisk.IssueFilters}" SelectedItem="{Binding ActiveDisk.IssueFilter, Mode=TwoWay}" AutomationProperties.Name="Finding severity" /><TableView Grid.Row="1" x:Name="Findings" ItemsSource="{Binding ActiveDisk.Findings}" SelectedItem="{Binding ActiveDisk.SelectedFinding, Mode=TwoWay}"><TableView.Columns><TableViewColumn Header="Severity" Binding="{ReflectionBinding Severity}" Width="80" /><TableViewColumn Header="Code" Binding="{ReflectionBinding Code}" Width="150" /><TableViewColumn Header="Location" Binding="{ReflectionBinding Location}" Width="130" /><TableViewColumn Header="Finding" Binding="{ReflectionBinding Description}" Width="*" /></TableView.Columns></TableView><TextBlock Grid.Row="2" Text="{Binding ActiveDisk.Capacity}" TextWrapping="Wrap" /></Grid></TabItem>
+    <TabItem Header="Hex"><Grid RowDefinitions="Auto,*,Auto" RowSpacing="8" Margin="0,12,0,0"><TextBlock Text="{Binding ActiveDisk.HexTitle}" TextWrapping="Wrap" Classes="muted" /><TextBox Grid.Row="1" x:Name="DiskHex" Text="{Binding ActiveDisk.HexText, Mode=TwoWay}" AcceptsReturn="True" TextWrapping="NoWrap" IsReadOnly="{Binding !ActiveDisk.CanEditHex}" FontFamily="monospace" AutomationProperties.Name="Disk hex buffer" /><WrapPanel Grid.Row="2"><Button Content="Apply hex…" Command="{Binding DiskApplyHexCommand}" Margin="0,0,6,0" /><Button Content="Cancel edits" Command="{Binding DiskCancelDraftCommand}" /></WrapPanel></Grid></TabItem>
+    <TabItem Header="Physical"><Grid RowDefinitions="*,Auto"><c:DiskPhysicalPanel x:Name="PhysicalPanel" /><Button Grid.Row="1" Content="Open physical detail" Click="PhysicalDetail" /></Grid></TabItem>
+    <TabItem Header="Compare"><Grid RowDefinitions="Auto,*" RowSpacing="8" Margin="0,12,0,0"><TextBlock Text="{Binding ActiveDisk.ComparisonReport}" TextWrapping="Wrap" /><TableView Grid.Row="1" x:Name="Differences" ItemsSource="{Binding ActiveDisk.Differences}" SelectionChanged="DifferenceSelected"><TableView.Columns><TableViewColumn Header="Level" Binding="{ReflectionBinding Level}" Width="100" /><TableViewColumn Header="State" Binding="{ReflectionBinding State}" Width="90" /><TableViewColumn Header="Item" Binding="{ReflectionBinding Name}" Width="*" /></TableView.Columns></TableView></Grid></TabItem>
+    <TabItem Header="Structure"><c:ReportViewer Text="{Binding ActiveDisk.Structure}" Margin="0,12,0,0" /></TabItem>
+    <TabItem Header="Report"><c:ReportViewer Text="{Binding ActiveDisk.Report}" Margin="0,12,0,0" /></TabItem>
+   </TabControl>
+   <Border Grid.Column="2" x:Name="DiskInspectorPanel" Classes="panel" Margin="0,44,0,0"><c:DiskInspector x:Name="Inspector" /></Border>
+  </Grid>
+ </Grid>
+</UserControl>
