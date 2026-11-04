@@ -131,7 +131,7 @@ public sealed partial class ShellViewModel : Observable
         RefreshDiskCommands();
         RefreshAudioCommands();
         RefreshBatchCommands();
-        Changed(nameof(WpfStatus)); Changed(nameof(HasDocument)); Changed(nameof(DocumentReason)); Changed(nameof(ActiveTape)); Changed(nameof(ShowMedia)); Changed(nameof(Description)); Changed(nameof(Report));
+        Changed(nameof(WpfStatus)); Changed(nameof(WpfAudioStatus)); Changed(nameof(WpfAudioProgress)); Changed(nameof(HasDocument)); Changed(nameof(DocumentReason)); Changed(nameof(ActiveTape)); Changed(nameof(ShowMedia)); Changed(nameof(Description)); Changed(nameof(Report));
     }
     private void ApplyFilter()
     {

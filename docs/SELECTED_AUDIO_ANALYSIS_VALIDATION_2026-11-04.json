@@ -1,0 +1,100 @@
+{
+  "tests": {
+    "windows": {
+      "file": "TestResults\\SelectedAnalysis-2026-11-04\\windows\\desktop.trx",
+      "counters": {
+        "total": "269",
+        "executed": "269",
+        "passed": "269",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "selectedAnalysisTests": [
+        "MZTools.Desktop.Tests.SelectedAnalysisWindowTests.AnalyzeSelectedOpensImmediatelyAndFreezesOnlyTheCapturedInterval",
+        "MZTools.Desktop.Tests.SelectedAnalysisWindowTests.PreviewAlignmentAndExplicitRangeChangeAreIndependentOfTheParent",
+        "MZTools.Desktop.Tests.SelectedAnalysisWindowTests.DraggedPreviewIntervalBecomesTheActualDecoderRange",
+        "MZTools.Desktop.Tests.SelectedAnalysisWindowTests.PreviewFitPanAndZoomNeverExpandPastTheSelectedScope"
+      ]
+    },
+    "linux": {
+      "file": "TestResults\\SelectedAnalysis-2026-11-04\\linux\\_AcerNotebook_2026-11-04_18_08_41_net10.0.trx",
+      "counters": {
+        "total": "277",
+        "executed": "277",
+        "passed": "277",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "selectedAnalysisTests": [
+        "MZTools.Desktop.Tests.SelectedAnalysisWindowTests.PreviewAlignmentAndExplicitRangeChangeAreIndependentOfTheParent",
+        "MZTools.Desktop.Tests.SelectedAnalysisWindowTests.DraggedPreviewIntervalBecomesTheActualDecoderRange",
+        "MZTools.Desktop.Tests.SelectedAnalysisWindowTests.PreviewFitPanAndZoomNeverExpandPastTheSelectedScope",
+        "MZTools.Desktop.Tests.SelectedAnalysisWindowTests.AnalyzeSelectedOpensImmediatelyAndFreezesOnlyTheCapturedInterval"
+      ]
+    }
+  },
+  "native": {
+    "windows": {
+      "native-audio.json": 21,
+      "native-disk.json": 17,
+      "native-media.json": 25,
+      "native-recorder.json": 16,
+      "native-smoke.json": 11
+    },
+    "linux": {
+      "native-audio.json": 21,
+      "native-disk.json": 17,
+      "native-media.json": 25,
+      "native-recorder.json": 16,
+      "native-smoke.json": 11
+    }
+  },
+  "packages": {
+    "MZTools-win-x64.zip": {
+      "sha256": "353d655a1fd3440bc50f50ce9f157dc8cffaafa086d313f6fe796b5afb6f92d5",
+      "verifiedFiles": 332
+    },
+    "MZTools-linux-x64.tar.gz": {
+      "sha256": "5b03c4ad66fda58cfdd6ece879a49da2cdd73c8c936f17dbeeaea7ad4629d466",
+      "verifiedFiles": 310
+    }
+  },
+  "windowsRuntime": {
+    "runtime": "win-x64",
+    "framework": ".NET 10.0.11",
+    "flac": "libsndfile-1.2.2",
+    "captureStarted": false
+  },
+  "linuxRuntime": {
+    "runtime": "linux-x64",
+    "framework": ".NET 10.0.11",
+    "flac": "libsndfile-1.2.2",
+    "captureStarted": false
+  },
+  "testTotal": 546,
+  "nativeCheckTotal": 180,
+  "galleryOriginalHashesVerified": true,
+  "unchangedCoreCaptureAndWpf": true
+}

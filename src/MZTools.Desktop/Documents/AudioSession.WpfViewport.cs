@@ -28,6 +28,7 @@ public sealed partial class AudioSession
             selectionAtStart != selectionGeneration || viewportAtStart != viewGeneration)
             return false;
 
+        if(previewBounds is not null)SetRawSelectedPreview(result);
         AppliedTransform = transform;
         DisplayWaveform = result.Analysis.Waveform;
         DisplayedTransform = transform;

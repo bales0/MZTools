@@ -20,27 +20,29 @@ public sealed partial class AudioChart : Control
     public AudioSession? Session {get=>GetValue(SessionProperty);set=>SetValue(SessionProperty,value);}
     public static readonly StyledProperty<AudioPlotKind> KindProperty=AvaloniaProperty.Register<AudioChart,AudioPlotKind>(nameof(Kind));
     public AudioPlotKind Kind {get=>GetValue(KindProperty);set=>SetValue(KindProperty,value);}
+    public event Action<long,long>? RangeSelected;
+    public bool ShowIssueMarkers {get;set;}
     private AudioSession? observed;
     private WriteableBitmap? leftRaster,rightRaster;
     private AudioSpectrogram? rasterSource;
     private Point? press;private long pressStart,pressEnd;private double pressAxis;private bool selecting,moved;
-    private Rect Plot=>new(56,24,Math.Max(1,Bounds.Width-68),Math.Max(1,Bounds.Height-52));
+    private Rect Plot=>Kind==AudioPlotKind.Waveform && LiveSnapshot is null ? new(64,60,Math.Max(1,Bounds.Width-76),Math.Max(1,Bounds.Height-90)) : new(56,24,Math.Max(1,Bounds.Width-68),Math.Max(1,Bounds.Height-52));
     private IBrush Brush(string name)=>this.FindResource("F2."+name) as IBrush??Brushes.Transparent;
     private void Text(DrawingContext c,string value,double x,double y,string color="text",double size=11)=>c.DrawText(new FormattedText(value,CultureInfo.CurrentCulture,FlowDirection.LeftToRight,Typeface.Default,size,Brush(color)),new Point(x,y));
     public AudioChart()
     {
-        Focusable=true;ClipToBounds=true;MinHeight=180;InitializeLive();
-        AttachedToVisualTree+=(_,_)=>{DisposeRaster();Bind();};DetachedFromVisualTree+=(_,_)=>{if(observed is not null)observed.PropertyChanged-=Changed;observed=null;DisposeRaster();};
+        Focusable=true;ClipToBounds=true;MinHeight=180;InitializeLive();InitializePcmDetail();
+        AttachedToVisualTree+=(_,_)=>{DisposeRaster();Bind();SchedulePcmDetail();};DetachedFromVisualTree+=(_,_)=>{pcmDetailTimer.Stop();if(observed is not null)observed.PropertyChanged-=Changed;observed=null;DisposeRaster();};
     }
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {base.OnPropertyChanged(change);if(change.Property==SessionProperty||change.Property==KindProperty)Bind();}
     private void Bind()
     {
         if(observed!=Session){if(observed is not null)observed.PropertyChanged-=Changed;observed=Session;if(observed is not null)observed.PropertyChanged+=Changed;DisposeRaster();}
-        if(Kind==AudioPlotKind.Spectrogram)PrepareRaster();InvalidateVisual();
+        if(Kind==AudioPlotKind.Spectrogram)PrepareRaster();SchedulePcmDetail();InvalidateVisual();
     }
     private void Changed(object? sender,PropertyChangedEventArgs e)
-    {if(Kind==AudioPlotKind.Spectrogram&&e.PropertyName=="SpectrogramData")PrepareRaster();InvalidateVisual();}
+    {if(Kind==AudioPlotKind.Spectrogram&&e.PropertyName=="SpectrogramData")PrepareRaster();if(e.PropertyName is nameof(AudioSession.ViewStart) or nameof(AudioSession.ViewEnd) or nameof(AudioSession.ChannelMode) or nameof(AudioSession.TransformDescription))SchedulePcmDetail();InvalidateVisual();}
     private void DisposeRaster(){leftRaster?.Dispose();rightRaster?.Dispose();leftRaster=rightRaster=null;rasterSource=null;}
     private void PrepareRaster()
     {
@@ -88,24 +90,9 @@ public sealed partial class AudioChart : Control
     }
     private void Waveform(DrawingContext c,AudioSession s)
     {
-        Grid(c,$"PCM FS · {(s.AutoScale?"Auto scale":"Display gain ×"+s.Gain.ToString("0.###"))} · frames [{s.ViewStart:N0}, {s.ViewEnd:N0})");TimeAxis(c);
-        if(s.DisplayedTransform!=s.EffectiveTransform){Text(c,"Preparing requested PCM transform…",Plot.X,Plot.Y+20);return;}
-        var buckets=s.DisplayWaveform.VisibleBuckets(s.ViewStart,s.ViewEnd,Math.Max(1,(int)Plot.Width));
-        bool both=s.ChannelMode==2&&!s.EffectiveTransform.Mix&&s.Model.ChannelCount==2,right=s.ChannelMode==1&&!s.EffectiveTransform.Mix;
-        double peak=buckets.Count==0?0:buckets.Max(b=>both?Math.Max(Math.Max(Math.Abs(b.LeftMin),Math.Abs(b.LeftMax)),Math.Max(Math.Abs(b.RightMin),Math.Abs(b.RightMax))):right?Math.Max(Math.Abs(b.RightMin),Math.Abs(b.RightMax)):Math.Max(Math.Abs(b.LeftMin),Math.Abs(b.LeftMax)));
-        double scale=s.AutoScale?(peak>0?.9/peak:1):s.Gain;
-        double Y(double value)=>Plot.Y+Plot.Height/2-value*scale*Plot.Height/2;
-        Text(c,$"{1/scale:0.###}",0,Plot.Y);Text(c,"0",25,Plot.Y+Plot.Height/2);Text(c,$"{-1/scale:0.###}",0,Plot.Bottom-12);
-        using(c.PushClip(Plot))
-        {
-            foreach(var interval in s.SelectedIntervals){double left=Math.Max(Plot.X,FrameX(interval.Start)),last=Math.Min(Plot.Right,FrameX(interval.End));if(last>left)c.DrawRectangle(Brush("selected"),null,new Rect(left,Plot.Y,last-left,Plot.Height));}
-            void Channel(bool r,string color)=>DrawWaveSeries(c,buckets.Select(b=>new MZTools.Capture.LiveWaveBucket(b.StartSample,b.EndSample,b.LeftMin,b.LeftMax,b.RightMin,b.RightMax)),FrameX,Y,r,color);
-            Channel(right,right?"wave-r":"wave-l");if(both)Channel(true,"wave-r");
-            foreach(var region in s.Model.Regions.Where(r=>r.EndSample>s.ViewStart&&r.StartSample<s.ViewEnd))
-            {double left=Math.Max(Plot.X,FrameX(region.StartSample)),last=Math.Min(Plot.Right,FrameX(region.EndSample));if(last>left)c.DrawRectangle(Brush(region.Kind.StartsWith("Unassigned",StringComparison.Ordinal)?"disk-unassigned":"disk-system"),null,new Rect(left,Plot.Bottom-5,last-left,5));}
-        }
-        Text(c,s.EffectiveTransform.Mix?"Mix / average":both?"L + R overlay":right?"R":"L / mono",Plot.Right-110,Plot.Y+4);
+        RenderWpfWaveform(c,s);
     }
+
     private IBrush Pulse(string group)=>Brush(group switch{"SHORT High"=>"pulse-sh","SHORT Low"=>"pulse-sl","LONG High"=>"pulse-lh",_=>"pulse-ll"});
     private void Histogram(DrawingContext c,AudioSession s)
     {
@@ -203,10 +190,10 @@ public sealed partial class AudioChart : Control
         if(press is null||Session is null)return;
         if(!moved&&Kind==AudioPlotKind.Waveform)
         {
-            long frame=Math.Min(Session.Model.FrameCount-1,AtFrame(e.GetPosition(this).X));
-            var region=e.GetPosition(this).Y>=Plot.Bottom-8?Session.Regions.FirstOrDefault(r=>r.Start<=frame&&r.End>frame):null;
-            if(region is not null)Session.SelectedRegion=region;else Session.SetSelection([(frame,frame+1)]);
+            var point=e.GetPosition(this);
+            if(Plot.Contains(point))Session.SelectDetectedAtFrame(Math.Min(Session.Model.FrameCount-1,AtFrame(point.X)));
         }
+        if(moved&&selecting&&Kind is AudioPlotKind.Waveform or AudioPlotKind.Spectrogram)RangeSelected?.Invoke(Session.SelectionStart,Session.SelectionEnd);
         press=null;e.Pointer.Capture(null);e.Handled=true;
     }
     protected override void OnKeyDown(KeyEventArgs e)

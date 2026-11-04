@@ -22,10 +22,12 @@ public sealed class DiskSectorRow
     internal DiskSectorRow(DskVisualSector sector) => Sector = sector;
     public int Track => Sector.Track;
     public int Descriptor => Sector.Descriptor;
+    public int R => Sector.R;
+    public string Offset => $"0x{Sector.DataOffset:X}";
     public string Chrn => $"{Sector.C}/{Sector.H}/{Sector.R}/{Sector.N}";
     public string Status => $"{Sector.St1:X2}/{Sector.St2:X2}";
     public string Role => Sector.Role.ToString();
-    public string Files => Sector.Ownership;
+    public string Files => string.Join(", ",Sector.Owners.Select(o=>o.FileName).Distinct());
     public int Bytes => Sector.StoredBytes;
     public string Detail => $"T{Track} descriptor {Descriptor} · CHRN {Chrn}\nST1/ST2: {Status} · {Sector.Status}\n{Bytes:N0} stored B / {Sector.DeclaredBytes:N0} declared B\n{(Sector.PhysicalCells ? "Track bitcell" : "File byte")} offset 0x{Sector.DataOffset:X}\n{Role} · {Files}\nSHA-256 {Sector.DataSha256}";
 }
@@ -92,16 +94,18 @@ public sealed class DiskSession : DocumentSession, IFileSetDocument
         : IsModified ? "Changes remain in memory until Save." : "No unsaved changes.";
     public string Summary => $"{Container} · {projection?.FileSystem.DisplayName ?? "Physical image without safe filesystem projection"} · {Files.Count} files · {Snapshot.Sectors.Count():N0} sectors";
     public string Capacity => projection is null ? "Decoded filesystem capacity unavailable." : $"Used {Model.FileSystem.UsedBytes:N0} B · free {Model.FileSystem.FreeBytes:N0} B";
+    public string WpfInformation {get;private set;}="";
+    public bool ShowFileCommands=>ViewIndex==0;
     private string filter = "", issueFilter = "All";
     private IReadOnlyList<DiskFileRow> files = [];
     public IReadOnlyList<DiskFileRow> Files => files.Where(f => f.Name.Contains(Filter,StringComparison.OrdinalIgnoreCase)).ToArray();
     public IReadOnlyList<DiskSectorRow> Sectors { get; private set; } = [];
-    public IReadOnlyList<DiskFindingRow> Findings => (Layout?.Issues ?? []).Where(i => IssueFilter == "All" || i.Severity.ToString() == IssueFilter).Select(i => new DiskFindingRow(i)).ToArray();
+    public IReadOnlyList<DiskFindingRow> Findings => Snapshot.Issues.Where(i => IssueFilter == "All" || i.Severity.ToString() == IssueFilter || IssueFilter=="Error"&&i.Severity==DskIssueSeverity.Unsafe).Select(i => new DiskFindingRow(i)).ToArray();
     public IReadOnlyList<string> IssueFilters { get; } = ["All","Unsafe","Error","Warning","Info"];
     public string Filter { get => filter; set { if(Set(ref filter,value)) Changed(nameof(Files)); } }
     public string IssueFilter { get => issueFilter; set { if(Set(ref issueFilter,value)) Changed(nameof(Findings)); } }
     private int viewIndex;
-    public int ViewIndex { get => viewIndex; set => Set(ref viewIndex,value); }
+    public int ViewIndex { get => viewIndex; set {if(Set(ref viewIndex,value))Changed(nameof(ShowFileCommands));} }
     private int mapMode;
     public int MapMode {get=>mapMode;set=>Set(ref mapMode,value);}
     internal double SurfaceZoom {get;set;}=1;
@@ -252,6 +256,14 @@ public sealed class DiskSession : DocumentSession, IFileSetDocument
         else {if(!toggle)SectorSelection.Clear();if(!SectorSelection.Add(row.Sector.Address))SectorSelection.Remove(row.Sector.Address);}
         selectedFinding=null;SelectedSector=SectorSelection.Count==0?null:SectorSelection.Contains(row.Sector.Address)?row:Sectors.Last(s=>SectorSelection.Contains(s.Sector.Address));Changed(nameof(SectorSelection));Changed(nameof(Detail));
     }
+    internal void SetSectorSelection(IEnumerable<DskSectorAddress> addresses,DskSectorAddress? focus)
+    {
+        if(HasDraft)throw new InvalidOperationException("Apply or Cancel edits before selecting another sector.");
+        var valid=Sectors.Select(s=>s.Sector.Address).ToHashSet();var next=addresses.Where(valid.Contains).ToHashSet();
+        SectorSelection.Clear();SectorSelection.UnionWith(next);selectedFinding=null;
+        SelectedSector=Sectors.FirstOrDefault(s=>next.Contains(s.Sector.Address)&&s.Sector.Address==focus)??Sectors.FirstOrDefault(s=>next.Contains(s.Sector.Address));
+        Changed(nameof(SectorSelection));Changed(nameof(Detail));
+    }
     internal void Refresh()
     {
         string? key=selectedFile?.Key;var address=selectedSector?.Sector.Address;
@@ -260,6 +272,11 @@ public sealed class DiskSession : DocumentSession, IFileSetDocument
         trackCache?.Dispose();trackCache=new(Snapshot);TrackData=null;CellStart=CellLength=0;
         files=projection?.FileSystem.ReadDirectory().Select(e=>new DiskFileRow(e)).ToArray()??[];
         Sectors=Snapshot.Sectors.Select(s=>new DiskSectorRow(s)).ToArray();SortSectors();
+        WpfInformation=projection is null?Summary: $"Container: {Model.ContainerName} | Creator: {(Model.SourceHfe is null?Model.Image.Creator:"not stored in HFE")} | Tracks: {Model.Image.TrackCount} | Sides: {Model.Image.SideCount} | Physical tracks: {Model.Image.Tracks.Count} | Image: {SerializeContainer().Length:N0} B\n"+
+            $"Filesystem: {Model.FileSystem.DisplayName} | Sector sizes: {string.Join(", ",Sectors.Select(s=>s.Bytes).Distinct().Order())} B | Used: {Model.FileSystem.UsedBytes:N0} B | Free: {Model.FileSystem.FreeBytes:N0} B"+
+            (Model.FileSystem is MultiGameIplFileSystem multi?"\n"+multi.MetadataLocationDescription:"")+"\n"+DskBootInfo.Inspect(Model).Summary+
+            (Model.LastSavedSha256 is{} saved?"\nLast saved output SHA-256: "+saved:"");
+        Changed(nameof(WpfInformation));
         selectedFile=files.FirstOrDefault(f=>f.Key==key);selectedSector=Sectors.FirstOrDefault(s=>s.Sector.Address==address);selectedFinding=null;
         SectorSelection.RemoveWhere(a=>!Sectors.Any(s=>s.Sector.Address==a));ResetDraft();
         foreach(var p in new[]{nameof(Files),nameof(Sectors),nameof(Findings),nameof(SelectedFile),nameof(SelectedSector),nameof(SelectedFinding),nameof(Summary),nameof(Capacity),nameof(TrackIndices),nameof(Detail),nameof(Report),nameof(Structure),nameof(CanEdit),nameof(CanEditHex),nameof(CanEditIpl),nameof(CanEditFileName),nameof(CanDeleteFiles),nameof(CanEditCpmProperties),nameof(CanEditAddresses),nameof(CanEditFsmzProperties),nameof(CanSave),nameof(SaveDisabledReason)})Changed(p);

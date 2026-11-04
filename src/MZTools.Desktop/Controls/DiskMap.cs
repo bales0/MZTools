@@ -8,19 +8,19 @@ using MZTools.Desktop.Documents;
 namespace MZTools.Desktop.Controls;
 
 // Rendering and hit testing consume the immutable Core snapshot, never a decoder.
-public sealed class DiskMap : Control
+public sealed partial class DiskMap : Control
 {
     public static readonly StyledProperty<DiskSession?> SessionProperty=AvaloniaProperty.Register<DiskMap,DiskSession?>(nameof(Session));
     public DiskSession? Session {get=>GetValue(SessionProperty);set=>SetValue(SessionProperty,value);}
     public static readonly StyledProperty<int> ModeProperty=AvaloniaProperty.Register<DiskMap,int>(nameof(Mode));
     public int Mode {get=>GetValue(ModeProperty);set=>SetValue(ModeProperty,value);}
-    static DiskMap(){AffectsRender<DiskMap>(SessionProperty,ModeProperty);}
+    static DiskMap(){AffectsRender<DiskMap>(SessionProperty,ModeProperty);AffectsMeasure<DiskMap>(SessionProperty,ModeProperty);}
     public DiskMap(){Focusable=true;ClipToBounds=true;MinHeight=260;}
     public event Action<DiskSectorRow,KeyModifiers>? SectorSelected;
     private Point? press;private double pressOffset,pressPanX,pressPanY;private bool moved;
     private IBrush Brush(string name)=>this.FindResource("F2."+name) as IBrush??Brushes.Transparent;
     private void Text(DrawingContext c,string text,Point p)=>c.DrawText(new FormattedText(text,CultureInfo.CurrentCulture,FlowDirection.LeftToRight,Typeface.Default,12,Brush("text")),p);
-    public void Fit(){if(Session is null)return;if(Mode>0){Session.SurfaceZoom=1;Session.SurfacePanX=Session.SurfacePanY=0;}else{Session.MapZoom=1;Session.MapOffset=0;}InvalidateVisual();}
+    public void Fit(){if(Session is null)return;if(Mode>0){Session.SurfaceZoom=1;Session.SurfacePanX=Session.SurfacePanY=0;}else{Session.MapZoom=1;Session.MapOffset=0;}InvalidateMeasure();InvalidateVisual();}
     public void FitSelection()
     {
         if(Session is null||Session.SectorSelection.Count==0)return;
@@ -37,7 +37,7 @@ public sealed class DiskMap : Control
     {
         if(Session is null)return;if(Mode>0){ZoomSurface(factor,new Point(Bounds.Width/2,Bounds.Height/2));return;}double count=Session.Snapshot.Tracks.Count;
         double old=count/Session.MapZoom;Session.MapZoom=Math.Clamp(Session.MapZoom*factor,1,Math.Max(1,count));
-        Session.MapOffset=Math.Clamp(Session.MapOffset+old*anchor-count/Session.MapZoom*anchor,0,Math.Max(0,count-count/Session.MapZoom));InvalidateVisual();
+        Session.MapOffset=Math.Clamp(Session.MapOffset+old*anchor-count/Session.MapZoom*anchor,0,Math.Max(0,count-count/Session.MapZoom));InvalidateMeasure();InvalidateVisual();
     }
     private void ZoomSurface(double factor,Point anchor)
     {
@@ -51,6 +51,7 @@ public sealed class DiskMap : Control
     {
         base.Render(c);c.DrawRectangle(Brush("surface"),new Pen(Brush("border")),new Rect(Bounds.Size));if(Session is not { } s)return;
         if(Mode>0){DrawSurface(c,s);return;}
+        if(s.Layout is not null){RenderWpfTrackMap(c,s);return;}
         double rowHeight=Math.Max(1,(Bounds.Height-30)/Math.Max(1,s.Snapshot.Tracks.Count)*s.MapZoom);
         using(c.PushClip(new Rect(0,24,Bounds.Width,Math.Max(0,Bounds.Height-24))))
         {
@@ -91,6 +92,7 @@ public sealed class DiskMap : Control
     internal DiskSectorRow? Hit(Point point)
     {
         if(Session is not { } s)return null;
+        if(Mode==0 && s.Layout is not null)return HitWpfTrackMap(point,s);
         if(Mode>0)
         {
             double radius=(Math.Min(Bounds.Width,Bounds.Height-28)/2-8)*s.SurfaceZoom;if(radius<=0)return null;

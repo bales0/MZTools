@@ -15,35 +15,31 @@ public sealed partial class AudioWorkspace : UserControl
     private AudioSession? observed;
     private bool syncing;
     private Window? inspectorWindow;
-    private readonly DispatcherTimer debounce=new(){Interval=TimeSpan.FromMilliseconds(150)};
     internal Control WorkspaceFocusRegion=>AudioTabs.SelectedIndex==0?AudioBlocks:AudioTabs;
     internal Control InspectorFocusRegion=>Inspector;
     public AudioWorkspace()
     {
-        InitializeComponent();ConfigureWpfAudioLayout();
+        InitializeComponent();ConfigureWpfAudioLayout();ConfigureWpfAudioWindows();
         DataContextChanged+=(_,_)=>BindSession();
         AttachedToVisualTree+=(_,_)=>BindSession();
-        DetachedFromVisualTree+=(_,_)=>{debounce.Stop();if(observed is not null)observed.PropertyChanged-=Changed;observed=null;};
+        DetachedFromVisualTree+=(_,_)=>{if(observed is not null)observed.PropertyChanged-=Changed;observed=null;};
         SizeChanged+=(_,_)=>Reflow();AudioTabs.SelectionChanged+=(_,_)=>Reflow();
         AudioBlocks.SelectionChanged+=BlocksSelected;AudioRegions.SelectionChanged+=RegionsSelected;
-        debounce.Tick+=async (_,_)=>{debounce.Stop();if(observed is { } session)await session.RefreshViewportAsync();};
     }
     internal void BindSession()
     {
         if(observed!=Model?.ActiveAudio)
         {
-            debounce.Stop();if(observed is not null)observed.PropertyChanged-=Changed;
-            observed=Model?.ActiveAudio;if(observed is not null){observed.PropertyChanged+=Changed;Schedule();}
+            CloseWpfAudioTools();if(observed is not null)observed.PropertyChanged-=Changed;
+            observed=Model?.ActiveAudio;if(observed is not null){observed.PropertyChanged+=Changed;}
             RestoreSelection();
         }
         Reflow();
     }
     private void Changed(object? sender,PropertyChangedEventArgs e)
     {
-        if(e.PropertyName is nameof(AudioSession.ViewStart) or nameof(AudioSession.ChannelMode))Schedule();
         if(e.PropertyName is nameof(AudioSession.SelectedBlock) or nameof(AudioSession.SelectedRegion))RestoreSelection();
     }
-    private void Schedule(){debounce.Stop();debounce.Start();}
     private void BlocksSelected(object? sender,SelectionChangedEventArgs e)
     {
         if(syncing||observed is null)return;
@@ -81,7 +77,14 @@ public sealed partial class AudioWorkspace : UserControl
     private void WaveZoomIn(object? sender,RoutedEventArgs e)=>Waveform.Zoom(2);
     private void WaveZoomOut(object? sender,RoutedEventArgs e)=>Waveform.Zoom(.5);
     private void WaveFit(object? sender,RoutedEventArgs e)=>Waveform.Fit();
-    private void WaveFitSelection(object? sender,RoutedEventArgs e)=>observed?.FitSelection();
+    private void WaveFitSelection(object? sender,RoutedEventArgs e)
+    {
+        if(observed is null)return;
+        var blocks=AudioBlocks.SelectedItems!.OfType<AudioBlockRow>().ToArray();
+        if(blocks.Length>0)observed.SetSelection(blocks.Select(b=>(b.Start,b.End)));
+        else if(observed.SelectedBlock is{} block)observed.SetSelection([(block.Start,block.End)]);
+        observed.FitSelection();
+    }
     private void SelectedRecord(object? sender,RoutedEventArgs e){if(observed?.SelectedBlock is { } block){observed.SetSelection(observed.Blocks.Where(b=>b.Record==block.Record).Select(b=>(b.Start,b.End)));observed.FitSelection();}}
     private void PulseKindChanged(object? sender,SelectionChangedEventArgs e){if(PulseChart is not null)PulseChart.Kind=(AudioPlotKind)(1+Math.Max(0,PulseKind.SelectedIndex));}
     private void SpectralKindChanged(object? sender,SelectionChangedEventArgs e){if(SpectrumChart is not null)SpectrumChart.Kind=SpectralKind.SelectedIndex==1?AudioPlotKind.Spectrogram:AudioPlotKind.Spectrum;}

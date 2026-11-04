@@ -24,7 +24,7 @@ public sealed partial class DiskWorkspace : UserControl
     internal Control InspectorFocusRegion=>Inspector;
     public DiskWorkspace()
     {
-        InitializeComponent();ConfigureWpfDiskWindows();Map.MinHeight=100;DataContextChanged+=(_,_)=>BindSession();SizeChanged+=(_,_)=>Reflow();
+        InitializeComponent();ConfigureWpfDiskWindows();ConfigureWpfMap();Map.MinHeight=100;DataContextChanged+=(_,_)=>BindSession();SizeChanged+=(_,_)=>Reflow();
         DetachedFromVisualTree+=(_,_)=>{if(observed is not null)observed.PropertyChanged-=Changed;observed=null;};
         AttachedToVisualTree+=(_,_)=>BindSession();
         Map.SectorSelected+=(row,mod)=>
@@ -49,11 +49,12 @@ public sealed partial class DiskWorkspace : UserControl
             if(observed is not null)observed.PropertyChanged-=Changed;
             observed=Model?.ActiveDisk;if(observed is not null)observed.PropertyChanged+=Changed;
         }
-        Map.Session=observed;RestoreSelection();Reflow();
+        Map.Session=observed;RestoreSelection();RefreshMapOverview();Reflow();
     }
     private void Changed(object? sender,PropertyChangedEventArgs e)
     {
         Map.InvalidateVisual();
+        RefreshMapOverview();
         if(e.PropertyName is nameof(DiskSession.Files) or nameof(DiskSession.Sectors) or nameof(DiskSession.SectorSelection) or nameof(DiskSession.SelectedSector))Dispatcher.UIThread.Post(RestoreSelection);
     }
     private void FileSelectionChanged(object? sender,SelectionChangedEventArgs e)
@@ -84,7 +85,7 @@ public sealed partial class DiskWorkspace : UserControl
     private void Reflow()
     {
         MinHeight=0;
-        bool show=Bounds.Width>=900&&Model?.InspectorVisible==true;DiskInspectorPanel.IsVisible=show;
+        bool show=DiskTabs.SelectedIndex==0&&Bounds.Width>=900&&Model?.InspectorVisible==true;DiskInspectorPanel.IsVisible=show;
         DiskGrid.ColumnDefinitions[1].Width=new GridLength(show?16:0);DiskGrid.ColumnDefinitions[2].Width=new GridLength(show?288:0);
     }
     internal void ShowInspector(Window owner)

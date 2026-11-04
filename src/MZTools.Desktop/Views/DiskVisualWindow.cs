@@ -1,9 +1,12 @@
-using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Templates;
 using Avalonia.Data;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using MZTools.Desktop.Controls;
 using MZTools.Desktop.Documents;
 using MZTools.Desktop.Platform;
@@ -11,76 +14,318 @@ using MZTools.Desktop.ViewModels;
 
 namespace MZTools.Desktop.Views;
 
-/// <summary>Read-only inspector over the same Core snapshot and shared editor selection.</summary>
-public sealed class DiskVisualWindow:Window
+public sealed partial class DiskVisualWindow : Window
 {
-    private readonly DiskSession session;
-    private readonly DiskMap left,right;
-    private readonly TextBlock detail=new(){TextWrapping=Avalonia.Media.TextWrapping.Wrap};
-    private Window? floating;
-    private TableView? sectorRows,issueRows,trackRows;
-    private sealed record Metric(string Property,string Value);
-    public DiskVisualWindow(ShellViewModel model)
+    private DskVisualSnapshot snapshot;
+    private readonly Func<int,DskSectorAddress?,bool> navigate;
+    private readonly Action<DskSectorAddress> hex;
+    private readonly Action<string> file;
+    private readonly Func<IReadOnlyCollection<DskSectorAddress>,DskSectorAddress?,bool>? selectMany;
+    private HashSet<DskSectorAddress> selectionKeys=new();
+    private DskSectorAddress? selectionAnchor;
+    private readonly WrapPanel cards=new();
+    internal IReadOnlyCollection<DskSectorAddress> Selections=>selectionKeys;
+    private readonly ComboBox trackChoice=new() { Width=230 }, sideChoice=new() { Width=100 }, widthChoice=new() { Width=180 }, layerChoice=new() { Width=155 };
+    private readonly ComboBox severity=new() { Width=100 }, issueType=new() { Width=200 }, role=new() { Width=160 }, ownerFilter=new() { Width=190 };
+    private readonly TableView tracks=Table(), sectors=Table(), issues=Table(), statistics=Table();
+    private readonly DskReportView details=new();
+    private readonly TextBlock source=new() { TextWrapping=TextWrapping.Wrap }, status=new() { TextWrapping=TextWrapping.Wrap };
+    private readonly DskVisualCanvas trackCanvas=new() { Kind=DskVisualCanvas.ViewKind.Track }, surfaceCanvas=new() { Kind=DskVisualCanvas.ViewKind.Surface };
+    private readonly TabControl tabs=new(){Name="DskVisualTabs"};
+    private readonly Button cancel=new() { Content="Cancel operation", IsEnabled=false };
+    private CancellationTokenSource? work;
+    private int revision;
+    private bool updating, closed;
+    private int selectedTrack;
+    private DskSectorAddress? selected;
+    private string[] relatedKeys=Array.Empty<string>();
+
+    internal DskVisualSnapshot Snapshot => snapshot;
+    internal int SelectedTrack => selectedTrack;
+    internal DskSectorAddress? Selection => selected;
+    private readonly ShellViewModel model;
+    internal DiskSession Session {get;}
+    public DiskVisualWindow(ShellViewModel shell)
     {
-        session=model.ActiveDisk??throw new InvalidOperationException("Open a disk first.");
-        Title="Visual "+session.Snapshot.SourceFormat+" Inspector — read-only";Width=1260;Height=850;MinWidth=800;MinHeight=600;
-        DataContext=model;var root=new DockPanel{Margin=new Thickness(10)};Content=root;
-        var actions=new WrapPanel{Orientation=Orientation.Horizontal};DockPanel.SetDock(actions,Dock.Top);root.Children.Add(actions);
-        left=new DiskMap{Session=session,Mode=1};right=new DiskMap{Session=session,Mode=2};
-        var side=new ComboBox{ItemsSource=new[]{"All sides","Side 0","Side 1"},SelectedIndex=0,Width=100,Margin=new Thickness(4)};
-        side.SelectionChanged+=(_,_)=>{left.IsVisible=side.SelectedIndex!=2;right.IsVisible=side.SelectedIndex!=1&&session.Snapshot.Sides>1;};actions.Children.Add(side);
-        void Button(string caption,Action action){var b=new Button{Content=caption,Margin=new Thickness(4),Padding=new Thickness(8,3)};b.Click+=(_,_)=>action();actions.Children.Add(b);}
-        Button("Zoom +",()=>Zoom(1.2));Button("Zoom −",()=>Zoom(1/1.2));Button("Fit",()=>{left.Fit();right.Fit();});Button("Selected sector",()=>{left.FitSelection();right.FitSelection();});
-        var floatingCheck=new CheckBox{Content="Floating selection details",Margin=new Thickness(8,0)};actions.Children.Add(floatingCheck);
-        floatingCheck.IsCheckedChanged+=(_,_)=>
-        {
-            if(floatingCheck.IsChecked!=true){floating?.Close();return;}
-            if(floating is not null){floating.Activate();return;}
-            var report=new ReportViewer{Text=session.Detail,Margin=new Thickness(10)};floating=new Window{Title="Selection details",Width=520,Height=600,Content=report};
-            void Update(object? s,PropertyChangedEventArgs e)=>report.Text=session.Detail;
-            session.PropertyChanged+=Update;floating.Closed+=(_,_)=>{session.PropertyChanged-=Update;floating=null;floatingCheck.IsChecked=false;};floating.Show(this);
-        };
-        foreach(string format in new[]{"txt","csv","json"})Button("Export "+format.ToUpperInvariant()+"…",async()=>
-        {
-            await model.Documents.ExecuteAsync(async ct=>
-            {
-                var dialogs=new DesktopDialogs(this);string? path=await dialogs.PickDiskOutputAsync("Export visual analysis","disk-analysis."+format);if(path is null)return false;
-                await model.Documents.WriteExportAsync(new Dictionary<string,byte[]>{[path]=System.Text.Encoding.UTF8.GetBytes(DskVisualReport.Export(session.Snapshot,format))},ct);return true;
-            });
-        });
-        var bottom=new TextBlock{Text=session.Snapshot.SurfaceText,Margin=new Thickness(0,6,0,0),TextWrapping=Avalonia.Media.TextWrapping.Wrap};DockPanel.SetDock(bottom,Dock.Bottom);root.Children.Add(bottom);
-        var tabs=new TabControl();root.Children.Add(tabs);
-        var surfaces=new Grid{ColumnDefinitions=new ColumnDefinitions("*,*"),ColumnSpacing=8};surfaces.Children.Add(left);Grid.SetColumn(right,1);surfaces.Children.Add(right);right.IsVisible=session.Snapshot.Sides>1;
-        if(session.Snapshot.Sides<2)surfaces.ColumnDefinitions[1].Width=new GridLength(0);
-        side.SelectionChanged+=(_,_)=>{surfaces.ColumnDefinitions[0].Width=new GridLength(side.SelectedIndex==2?0:1,GridUnitType.Star);surfaces.ColumnDefinitions[1].Width=new GridLength(side.SelectedIndex==1||session.Snapshot.Sides<2?0:1,GridUnitType.Star);};
-        tabs.Items.Add(new TabItem{Header="Disk Surface",Content=surfaces});
-        var sectors=Table(session.Sectors,("Track","Track",65),("#","Descriptor",45),("CHRN","Chrn",120),("ST1/ST2","Status",80),("Bytes","Bytes",80),("Role","Role",150),("Files","Files",250));
-        sectorRows=sectors;
-        sectors.SelectionChanged+=(_,_)=>{if(sectors.SelectedItem is DiskSectorRow row)Select(row,KeyModifiers.None);};
-        var trackPanel=new Grid{RowDefinitions=new RowDefinitions("*,Auto"),RowSpacing=8};trackPanel.Children.Add(sectors);Grid.SetRow(detail,1);trackPanel.Children.Add(detail);tabs.Items.Add(new TabItem{Header="Track / Sector",Content=trackPanel});
-        var issues=Table(session.Findings,("Severity","Severity",90),("Code","Code",170),("Location","Location",130),("Finding","Description",600));issueRows=issues;tabs.Items.Add(new TabItem{Header="Issues",Content=issues});
-        tabs.Items.Add(new TabItem{Header="Statistics",Content=Table(new[]{new Metric("Container",session.Snapshot.SourceFormat),new("Cylinders",session.Snapshot.Cylinders.ToString()),new("Sides",session.Snapshot.Sides.ToString()),new("Tracks",session.Snapshot.Tracks.Count.ToString()),new("Sectors",session.Sectors.Count.ToString()),new("Filesystem",session.Snapshot.FileSystem),new("Capacity",session.Capacity)},("Property","Property",220),("Value","Value",600))});
-        trackRows=Table(session.Snapshot.Tracks,("Track","PhysicalIndex",80),("Cylinder","DeclaredCylinder",80),("Side","DeclaredSide",70),("Sectors","SectorCount",90),("Bytes","StoredBytes",100),("Issues","IssueCount",90),("Sector ID order","DescriptorSequence",500));tabs.Items.Add(new TabItem{Header="Tracks",Content=trackRows});
-        var physical=new DiskPhysicalPanel{DataContext=model};tabs.Items.Add(new TabItem{Header="Unrolled MFM detail",Content=physical});
-        left.SectorSelected+=Select;right.SectorSelected+=Select;
-        session.PropertyChanged+=Changed;Closed+=(_,_)=>{session.PropertyChanged-=Changed;floating?.Close();};
+        this.model=shell;Session=shell.ActiveDisk??throw new InvalidOperationException("Open a disk first.");snapshot=Session.Snapshot;
+        navigate=(track,address)=>ApplyEditorSelection(address is null?[]:[address],address);
+        selectMany=(keys,focus)=>ApplyEditorSelection(keys,focus);
+        hex=address=>{if(ApplyEditorSelection(selectionKeys.Contains(address)?selectionKeys:[address],address))Session.ViewIndex=3;};
+        file=key=>{if(Session.HasDraft){shell.Documents.ReportError("Apply or Cancel edits before selecting a file.");return;}Session.SelectedFile=Session.Files.FirstOrDefault(f=>f.Key==key);Session.ViewIndex=0;};
+        var modelSnapshot=snapshot;DataContext=shell;
+        trackChoice.Name="VisualTrackChoice";sideChoice.Name="VisualSideChoice";widthChoice.Name="VisualWidthChoice";layerChoice.Name="VisualLayerChoice";severity.Name="VisualSeverityFilter";issueType.Name="VisualIssueTypeFilter";role.Name="VisualRoleFilter";ownerFilter.Name="VisualOwnerFilter";sectors.Name="VisualSectors";issues.Name="VisualIssues";statistics.Name="VisualStatistics";tracks.Name="VisualTracks";trackCanvas.Name="VisualTrackCanvas";surfaceCanvas.Name="VisualSurfaceCanvas";
+        trackChoice.ItemTemplate=new FuncDataTemplate<DskVisualTrack>((t,_)=>new TextBlock{Text=t?.Label});
+        var model=modelSnapshot;
+        Title="Visual "+model.SourceFormat+" Inspector — read-only";
+        double availableWidth=1250,availableHeight=850;
+        Width=Math.Min(1250,availableWidth); Height=Math.Min(850,availableHeight); MinWidth=Math.Min(850,availableWidth); MinHeight=Math.Min(600,availableHeight);
+        WindowStartupLocation=WindowStartupLocation.CenterOwner;
+        var root=new Grid { Margin=new Thickness(10) }; Content=root;
+        foreach(var height in new[] { GridLength.Auto,GridLength.Auto,new GridLength(1,GridUnitType.Star),GridLength.Auto }) root.RowDefinitions.Add(new() { Height=height });
+        root.Children.Add(source);
+        var tools=new WrapPanel { Margin=new Thickness(0,8,0,8) }; Grid.SetRow(tools,1); root.Children.Add(tools);
+        void Choice(string label,ComboBox box) { var pair=new StackPanel {Orientation=Orientation.Horizontal,Margin=new Thickness(0,0,6,4)}; pair.Children.Add(new TextBlock { Text=label,VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(0,0,4,0) }); pair.Children.Add(box); tools.Children.Add(pair); }
+        Choice("Track",trackChoice); Choice("Side",sideChoice); Choice("Widths",widthChoice); Choice("Layer",layerChoice);
+        widthChoice.ItemsSource=new[] { "Equal per descriptor", "Relative to stored bytes" }; widthChoice.SelectedIndex=0;
+        layerChoice.ItemsSource=new[] { "Role","Ownership","Issue severity",model.IsPhysical?"CRC / deleted mark":"FDC status","Data length anomalies","Current selection" }; layerChoice.SelectedIndex=0;
+        Button Tool(string label,Action action) { var b=new Button { Content=label,Margin=new Thickness(4,0,0,0),Padding=new Thickness(8,4,8,4) }; b.Click+=(_,_)=>action(); tools.Children.Add(b); return b; }
+        Tool("Fit",()=>AllCanvases(c=>c.Fit())); Tool("Zoom +",()=>AllCanvases(c=>c.ZoomBy(1.25))); Tool("Zoom −",()=>AllCanvases(c=>c.ZoomBy(.8)));
+        Tool("Export report…",async ()=>await ExportReport()); Tool("Copy summary",async()=>{try{if(Clipboard is{} clipboard)await clipboard.SetTextAsync(Summary());}catch(Exception e){status.Text=e.Message;}});
+        Grid.SetRow(tabs,2); root.Children.Add(tabs);
+        Tab("Disk Surface",CreateSurfaceView());
+        Tab("Track / Sector",SplitView(trackCanvas,sectors));
+        var issueView=new DockPanel(); var filters=new WrapPanel { Margin=new Thickness(4) }; DockPanel.SetDock(filters,Dock.Top); issueView.Children.Add(filters);
+        foreach(var pair in new[] { ("Severity",severity),("Type",issueType),("Role",role),("Owner",ownerFilter) }) {
+            filters.Children.Add(new TextBlock { Text=pair.Item1,VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(5) }); filters.Children.Add(pair.Item2);
+        }
+        var jump=new Button { Content="Jump to issue",Margin=new Thickness(5) }; jump.Click+=(_,_)=>JumpIssue(); filters.Children.Add(jump);
+        var issueDetails=new Button {Content="Finding details…",Margin=new Thickness(5)}; issueDetails.Click+=(_,_)=>ShowSelectionDetails(); filters.Children.Add(issueDetails);
+        issueView.Children.Add(issues); Tab("Issues",issueView);
+        Tab("Statistics",statistics); Tab("Tracks",tracks);
+        cancel.Click+=(_,_)=>work?.Cancel();
+        var footer=new DockPanel(); Grid.SetRow(footer,3); root.Children.Add(footer);
+        DockPanel.SetDock(cancel,Dock.Right); footer.Children.Add(cancel); footer.Children.Add(status);
+        Columns(tracks,("Track","PhysicalIndex"),("Slot C","SlotCylinder"),("Slot side","SlotSide"),("Declared C","DeclaredCylinder"),("Declared H","DeclaredSide"),("Missing","Missing"),("Sectors","SectorCount"),("Stored B","StoredBytes"),("Declared B","DeclaredBytes"),("Padding B","PaddingBytes"),("Issues","IssueCount"),("Descriptor R order","DescriptorSequence"));
+        Columns(sectors,("Descriptor","Descriptor"),("C","C"),("H","H"),("R","R"),("N","N"),("Stored B","StoredBytes"),("Declared B","DeclaredBytes"),(model.IsPhysical?"Header CRC valid":"ST1",model.IsPhysical?"HeaderCrcValid":"St1"),(model.IsPhysical?"Data CRC valid":"ST2",model.IsPhysical?"DataCrcValid":"St2"),("Role","Role"),("Owner","Ownership"),("CP/M user","Users"),("Issues","IssueCount"),(model.IsPhysical?"Header cell":"Descriptor offset","DescriptorOffset"),(model.IsPhysical?"Data cell":"Data offset","DataOffset"));
+        Columns(issues,("Severity","Severity"),("Code","Code"),("Location","Location"),("Description","Description"));
+        Columns(statistics,("Category","Category"),("Value","Value"),("Meaning / provenance","Meaning"));
+        ConfigureTextColumns(statistics,180,2,3);
+        ConfigureTextColumns(issues,100,150,160,4);
+        foreach(var table in new[]{tracks,sectors,issues,statistics})DskTableBehavior.Configure(table,action=>{bool before=updating;updating=true;try{action();}finally{updating=before;}});
+        trackChoice.SelectionChanged+=(_,_)=> { if(!updating && trackChoice.SelectedItem is DskVisualTrack t) Request(t.PhysicalIndex,null,false); };
+        sideChoice.SelectionChanged+=(_,_)=> { if(updating) return; ApplyFilters(); RefreshCanvases(); };
+        widthChoice.SelectionChanged+=(_,_)=>RefreshCanvases(); layerChoice.SelectionChanged+=(_,_)=>RefreshCanvases();
+        foreach(var f in new[] { severity,issueType,role,ownerFilter }) f.SelectionChanged+=(_,_)=> { if(!updating) ApplyFilters(); };
+        sectors.SelectionChanged+=(_,e)=> { if(updating) return;
+            var rows=sectors.SelectedItems!.OfType<DskVisualSector>().ToArray();
+            var keys=selectionKeys.Where(k=>k.Track!=selectedTrack).Concat(rows.Select(s=>s.Address)).ToHashSet();
+            RequestMany(keys,e.AddedItems.OfType<DskVisualSector>().LastOrDefault()?.Address??rows.LastOrDefault()?.Address); };
+        sectors.DoubleTapped+=(_,_)=>OpenHex();
+        sectors.KeyDown+=(_,e)=> { if(e.Key==Key.Escape) { RequestMany(Array.Empty<DskSectorAddress>(),null); e.Handled=true; } };
+        tracks.DoubleTapped+=(_,_)=> { if(tracks.SelectedItem is DskVisualTrack t && Request(t.PhysicalIndex,null,false)) tabs.SelectedIndex=1; };
+        issues.SelectionChanged+=(_,_)=> { if(!updating && issues.SelectedItem is DskAnalysisIssue i) details.Text=i.Explanation; };
+        issues.DoubleTapped+=(_,_)=>JumpIssue();
+        AllCanvases(c=>c.Gesture+=(t,a,h,mod)=>RequestGesture(t,a,h,mod));
+        InitializeFloatingAndMfm();
+        foreach(var element in new Control[]{surfaceCanvas,trackCanvas,sectors,mfmDetail}) {
+            var menu=element.ContextMenu??new ContextMenu();element.ContextMenu=menu;
+            var raw=new MenuItem{Header="Export / Import Selected Sectors…"};menu.Items.Add(raw);
+            var export=new MenuItem{Header="Export selected sectors…"};raw.Items.Add(export);export.Click+=async(_,_)=>await ExportSectors();
+            var import=new MenuItem{Header="Import selected sectors…"};raw.Items.Add(import);import.Click+=(_,_)=>{if(Session.HasProjection){this.model.DiskTool="Raw import";if(this.model.DiskToolCommand.CanExecute(null))this.model.DiskToolCommand.Execute(null);}};
+            var hexItem=new MenuItem{Header="Open Hex…"};menu.Items.Add(hexItem);hexItem.Click+=(_,_)=>OpenHex();
+            var owner=new MenuItem{Header="Select owner file"};menu.Items.Add(owner);owner.Click+=(_,_)=>OwnerMenu(owner);
+            menu.Opened+=(_,_)=>{raw.IsEnabled=selectionKeys.Count>0;import.IsEnabled=Session.CanEditHex;hexItem.IsEnabled=selected!=null;owner.IsEnabled=CurrentSector()?.Owners.Count>0;};
+        }
+        Opened+=(_,_)=>RefreshFloatingAndMfm();
+        Session.PropertyChanged+=EditorChanged;
+        Closed+=(_,_)=> { Session.PropertyChanged-=EditorChanged; closed=true; work?.Cancel(); detailWork?.Cancel(); generatedCache?.Dispose(); floatingDetails?.Close(); };
+        SetSnapshot(model);SyncSelection(Session.SelectedSector?.Track??0,Session.SelectedSector?.Sector.Address,Session.FileSelection,Session.SectorSelection);
     }
-    private static TableView Table(System.Collections.IEnumerable rows,params (string Caption,string Path,int Width)[] columns)
+    private void Tab(string name,Control content) => tabs.Items.Add(new TabItem { Header=name,Content=content });
+    private static Grid SplitView(Control canvas,Control table)
     {
-        var table=new TableView{ItemsSource=rows,Margin=new Thickness(0,8,0,0),SelectionMode=SelectionMode.Multiple};
-        foreach(var c in columns)table.Columns.Add(new TableViewColumn{Header=c.Caption,Binding=new Binding(c.Path),Width=new GridLength(c.Width)});
-        return table;
+        canvas.MinHeight=60;
+        var grid=new Grid();
+        grid.RowDefinitions.Add(new() {Height=new GridLength(1,GridUnitType.Star),MinHeight=60});
+        grid.RowDefinitions.Add(new() {Height=new GridLength(6)});
+        grid.RowDefinitions.Add(new() {Height=new GridLength(2,GridUnitType.Star),MinHeight=120});
+        grid.Children.Add(canvas);
+        var divider=new GridSplitter {Height=6,HorizontalAlignment=HorizontalAlignment.Stretch,ResizeDirection=GridResizeDirection.Rows,ResizeBehavior=GridResizeBehavior.PreviousAndNext,Background=Brushes.DarkGray,Name="VisualTrackDivider"};
+        Grid.SetRow(divider,1); grid.Children.Add(divider); Grid.SetRow(table,2); grid.Children.Add(table);
+        return grid;
     }
-    private void Zoom(double factor){left.Zoom(factor);right.InvalidateVisual();}
-    private void Select(DiskSectorRow row,KeyModifiers modifiers)
-    {
-        session.SelectSector(row,modifiers.HasFlag(OperatingSystem.IsMacOS()?KeyModifiers.Meta:KeyModifiers.Control),modifiers.HasFlag(KeyModifiers.Shift));
-        left.InvalidateVisual();right.InvalidateVisual();detail.Text=session.Detail;
+    private static void ConfigureTextColumns(TableView grid,params double[] widths) {
+        for(int i=0;i<widths.Length;i++){grid.Columns[i].Width=widths[i]<=4?new GridLength(widths[i],GridUnitType.Star):new GridLength(widths[i]);DskTableBehavior.WrapColumn(grid.Columns[i]);}
     }
-    private void Changed(object? sender,PropertyChangedEventArgs e)
+    private void ShowSelectionDetails()
     {
-        left.InvalidateVisual();right.InvalidateVisual();detail.Text=session.Detail;
-        if(e.PropertyName==nameof(DiskSession.Sectors)){if(sectorRows is not null)sectorRows.ItemsSource=session.Sectors;if(trackRows is not null)trackRows.ItemsSource=session.Snapshot.Tracks;}
-        if(e.PropertyName is nameof(DiskSession.Sectors) or nameof(DiskSession.Findings)){if(issueRows is not null)issueRows.ItemsSource=session.Findings;}
+        var finding=tabs.SelectedIndex==2?issues.SelectedItem as DskAnalysisIssue:null;
+        if(finding!=null) details.Text=finding.Explanation;
+        else ShowDetails();
+        OpenFloatingDetails();
+    }
+    private static TableView Table()=>new(){SelectionMode=SelectionMode.Multiple,AutoScrollToSelectedItem=true};
+    private static void Columns(TableView grid,params (string Label,string Path)[] columns) {
+        foreach(var c in columns)grid.Columns.Add(new TableViewColumn{Header=c.Label,Binding=new Binding(c.Path),Width=GridLength.Auto});
+    }
+    private void AllCanvases(Action<DskVisualCanvas> action) { foreach(var c in new[] { trackCanvas,surfaceCanvas }) action(c); }
+    private string Summary() => $"{snapshot.Cylinders} cylinders × {snapshot.Sides} sides; {snapshot.Sectors.Count()} sectors; filesystem {snapshot.FileSystem}; issues {snapshot.Issues.Count}; missing {snapshot.Tracks.Count(t=>t.Missing)} tracks";
+    internal void SetVerificationDetails(string hash,bool canonicalPadding)
+    {
+        var rows=statistics.Items.Cast<object>().Where(row=> {
+            string? category=row.GetType().GetProperty("Category")?.GetValue(row) as string;
+            return category is not ("Current image SHA-256" or "Creator padding");
+        }).ToList();
+        rows.Add(new {Category="Current image SHA-256",Value=hash,Meaning="Current serialized image, including unsaved changes; not boot certification"});
+        if(!snapshot.IsPhysical) rows.Add(new {Category="Creator padding",Value=canonicalPadding?"Canonical":"Non-canonical",Meaning="Creator-field trailing spaces/NULs; Normalize Container remains an explicit action"});
+        statistics.ItemsSource=rows;
+    }
+    internal void SetSnapshot(DskVisualSnapshot model)
+    {
+        work?.Cancel(); detailWork?.Cancel(); generatedCache?.Dispose(); generatedCache=new(model); mfmDetail.SetTrack(null,0); revision++; snapshot=model; updating=true;
+        try {
+            trackChoice.ItemsSource=model.Tracks; tracks.ItemsSource=model.Tracks;
+            sideChoice.ItemsSource=Enumerable.Range(0,model.Sides).Select(s=>$"Side {s}").Prepend("All sides").ToArray(); sideChoice.SelectedIndex=Math.Min(Math.Max(0,sideChoice.SelectedIndex),model.Sides);
+            void Fill(ComboBox box,IEnumerable<string> values) { var old=box.SelectedItem as string; box.ItemsSource=values.Prepend("All").Distinct().ToArray(); box.SelectedItem=old??"All"; if(box.SelectedIndex<0) box.SelectedIndex=0; }
+            Fill(severity,Enum.GetNames<DskIssueSeverity>()); Fill(issueType,model.Issues.Select(i=>i.Code)); Fill(role,Enum.GetNames<DskSectorRole>()); Fill(ownerFilter,model.Sectors.SelectMany(s=>s.Owners).Select(DskVisualSector.OwnerLabel).Prepend("Unassigned"));
+            var rows=new List<object> {
+                new { Category="Container",Value=Summary(),Meaning=model.OriginText },
+                new { Category="Physical timing / CRC / flux",Value=model.TimingText,Meaning=model.IsPhysical?"CRC is recalculated from decoded fields; stored cell values are not measured flux.":"Stored ST1/ST2 flags do not prove current physical integrity." },
+                new { Category="Trailing / padding",Value=$"{model.TrailingBytes} / {model.Tracks.Sum(t=>t.PaddingBytes)} B",Meaning="Stored container bytes" },
+                new { Category="Filesystem mapping",Value=model.FileSystem,Meaning="Existing DskAnalyzer mapping; unknown ownership stays Unassigned. Candidate layouts retain their analyzer issues/confidence." }
+            };
+            foreach(var group in model.Issues.GroupBy(i=>i.Severity)) rows.Add(new { Category="Issues / "+group.Key,Value=group.Count().ToString(),Meaning="Existing DskAnalyzer issues" });
+            foreach(var group in model.Sectors.GroupBy(s=>s.StoredBytes)) rows.Add(new { Category="Sector size",Value=$"{group.Key} B: {group.Count()}",Meaning="Stored byte distribution" });
+            foreach(var group in model.Sectors.GroupBy(s=>s.Role)) rows.Add(new { Category="Role / "+group.Key,Value=group.Count().ToString(),Meaning="Existing filesystem mapping" });
+            foreach(var group in model.Tracks.GroupBy(t=>t.SlotSide)) rows.Add(new { Category="Side "+group.Key,Value=$"{group.Count()} tracks; {group.Sum(t=>t.IssueCount)} track-associated issues",Meaning="Physical container slots; global filesystem issues remain listed separately" });
+            var blocks=model.Sectors.SelectMany(s=>s.AllocationBlocks.Select(b=>(Block:b,Sector:s))).GroupBy(p=>p.Block).ToArray();
+            rows.Add(new { Category="Mapped allocation blocks",Value=blocks.Length==0?"Unknown / not evaluated":$"{blocks.Length} distinct block IDs; {blocks.Count(g=>g.All(p=>p.Sector.Role.HasFlag(DskSectorRole.Free)))} marked free; {blocks.Count(g=>g.Any(p=>p.Sector.Owners.Count>0))} owned",Meaning="Only existing FS mapping; not an independent capacity estimate. Overlap findings come from analyzer Issues." });
+            if(model.IsPhysical) foreach(var track in model.PhysicalImage!.Tracks) rows.Add(new {Category=$"C{track.Cylinder}/H{track.Side} cells",Value=$"{track.BitCellCount:N0}; weak {track.WeakBitMask.Sum(b=>System.Numerics.BitOperations.PopCount((uint)b))}; index {string.Join(", ",track.IndexCells)}",Meaning=$"Encoding {track.Encoding}; header bitrate {track.BitRate}; RPM {track.Rpm}; timing changes {track.Timing.Count}; v2 controls {track.V2Controls.Count}"});
+            else foreach(var group in model.Sectors.GroupBy(s=>(s.St1,s.St2))) rows.Add(new { Category="Stored status",Value=$"ST1={group.Key.St1:X2} ST2={group.Key.St2:X2}: {group.Count()}",Meaning=DskVisualSnapshot.StatusFlags(group.Key.St1,group.Key.St2) });
+            statistics.ItemsSource=rows;
+            cards.Children.Clear();
+            foreach(var card in new[] {($"{model.Sectors.Count():N0}","Sectors"),($"{model.Tracks.Count}","Tracks"),($"{model.Tracks.Count(t=>t.Missing)}","Missing"),($"{model.Issues.Count}","Analyzer findings")}) {
+                var panel=new TextBlock {Text=card.Item1+" "+card.Item2,FontWeight=FontWeight.SemiBold};
+                if(card.Item2=="Analyzer findings") {
+                    var findingsButton=new Button {Content=panel,Padding=new Thickness(14,6,14,6),Margin=new Thickness(4)};
+                    findingsButton.Click+=(_,_)=> { tabs.SelectedIndex=2; severity.SelectedIndex=issueType.SelectedIndex=role.SelectedIndex=ownerFilter.SelectedIndex=0; sideChoice.SelectedIndex=0; issues.Focus(); if(issues.Items.Count>0) { issues.SelectedIndex=0; } };
+                    cards.Children.Add(findingsButton);
+                } else cards.Children.Add(new Border {Child=panel,Padding=new Thickness(14,6,14,6),Margin=new Thickness(4),Background=new SolidColorBrush(Color.Parse("#F0F0F0")),CornerRadius=new CornerRadius(5)});
+            }
+            AllCanvases(c=> { c.Snapshot=model; c.Generated=null; c.Refresh(); });
+        } finally { updating=false; }
+        try{byte[] bytes=Session.SerializeContainer();SetVerificationDetails(ImageVerificationService.Hash(bytes),!model.IsPhysical&&ContainerNormalizeService.Candidate(Session.Model).AsSpan().SequenceEqual(bytes));}catch(Exception e)when(e is not OutOfMemoryException){status.Text="Verification details unavailable: "+e.Message;}
+        source.Text="Read-only "+model.SourceFormat+" inspector · "+Summary();
+        ToolTip.SetTip(source,model.OriginText+"\n"+model.SurfaceText+"\nLegend: orange metadata; green data; gray unassigned/free; ! issues; blue selected; gold related files. Stored flags are not measured integrity.");
+        SyncSelection(model.Tracks.Any(t=>t.PhysicalIndex==selectedTrack)?selectedTrack:0,selected,relatedKeys); ApplyFilters();
+    }
+    internal void SyncSelection(int track,DskSectorAddress? address,IEnumerable<string>? files=null,IEnumerable<DskSectorAddress>? selections=null)
+    {
+        if(closed) return;
+        selectedTrack=track; selected=snapshot.Sectors.Any(s=>s.Address==address)?address:null;
+        if(selections!=null) { var valid=snapshot.Sectors.Select(s=>s.Address).ToHashSet(); selectionKeys=selections.Where(valid.Contains).ToHashSet(); }
+        else if(selected!=null && !selectionKeys.Contains(selected)) selectionKeys=new() {selected};
+        if(files!=null) relatedKeys=files.ToArray();
+        updating=true;
+        try { trackChoice.SelectedItem=snapshot.Tracks.FirstOrDefault(t=>t.PhysicalIndex==track); tracks.SelectedItem=trackChoice.SelectedItem;
+            sectors.ItemsSource=snapshot.Tracks.FirstOrDefault(t=>t.PhysicalIndex==track)?.Sectors;
+            sectors.SelectedItems!.Clear(); foreach(var s in sectors.Items.OfType<DskVisualSector>().Where(s=>selectionKeys.Contains(s.Address))) sectors.SelectedItems!.Add(s);
+
+        } finally { updating=false; }
+        updating=true;
+        try { ApplyFilters(); } finally { updating=false; }
+        if(mfmTrack!=selectedTrack) surfaceCanvas.Generated=null;
+        ShowDetails(); RefreshCanvases();
+    }
+    internal bool Request(int track,DskSectorAddress? address,bool openHex)
+    {
+        if(!navigate(track,address)) { SyncSelection(selectedTrack,selected); return false; }
+        SyncSelection(track,address,null,address==null?Array.Empty<DskSectorAddress>():new[] {address}); if(openHex) OpenHex(); return true;
+    }
+    internal bool RequestMany(IEnumerable<DskSectorAddress> keys,DskSectorAddress? focus)
+    {
+        var next=keys.ToHashSet(); focus=focus!=null && next.Contains(focus)?focus:next.FirstOrDefault();
+        bool accepted=selectMany?.Invoke(next,focus)??navigate(focus?.Track??selectedTrack,focus);
+        if(!accepted) { SyncSelection(selectedTrack,selected,null,selectionKeys); return false; }
+        SyncSelection(focus?.Track??selectedTrack,focus,null,next); return true;
+    }
+    internal bool RequestGesture(int track,DskSectorAddress? address,bool openHex,KeyModifiers modifiers)
+    {
+        if(address==null) return Request(track,null,false);
+        var order=snapshot.Tracks.Where(t=>tabs.SelectedIndex==0?t.SlotSide==track%Math.Max(1,snapshot.Sides):t.PhysicalIndex==track).SelectMany(t=>t.Sectors).Select(s=>s.Address).ToArray();
+        var next=openHex && selectionKeys.Contains(address)?selectionKeys:DskSectorSelection.Next(selectionKeys,selectionAnchor,address,order,modifiers.HasFlag((OperatingSystem.IsMacOS()?KeyModifiers.Meta:KeyModifiers.Control)),modifiers.HasFlag(KeyModifiers.Shift));
+        bool result=RequestMany(next,address);
+        if(result) { if(!modifiers.HasFlag(KeyModifiers.Shift)) selectionAnchor=address; if(openHex) OpenHex(); }
+        return result;
+    }
+    private DskVisualSector? CurrentSector() => snapshot.Sectors.FirstOrDefault(s=>s.Address==selected);
+    private void OpenHex() { if(selected!=null) hex(selected); }
+    private void ShowDetails()
+    {
+        if(snapshot.PhysicalImage is {} physical) {
+            var track=physical.Tracks[selectedTrack]; var sector=selected is {} a?track.Sectors.ElementAtOrDefault(a.Sector):null;
+            details.Text=$"{physical.Variant} track {selectedTrack}; C{track.Cylinder}/H{track.Side}\nEncoding: {track.Encoding}; cells: {track.BitCellCount}; header bitrate: {track.BitRate}; RPM: {track.Rpm}\nIndex cells: {string.Join(", ",track.IndexCells)}\nWeak cells: {track.WeakBitMask.Sum(b=>System.Numerics.BitOperations.PopCount((uint)b))}\nTiming changes: {track.Timing.Count}; v2 controls: {track.V2Controls.Count}\nStored cells, not measured flux. Surface is schematic.\n";
+            if(sector!=null) details.Text+=$"R{sector.R}; {sector.Data.Length} B; header cell {sector.HeaderCell}; data cell {sector.DataCell}\nHeader CRC: {sector.HeaderCrcValid}; data CRC: {sector.DataCrcValid}\nOwners: {CurrentSector()?.Ownership}; CP/M user: {CurrentSector()?.Users}\n";
+            return;
+        }
+        var t=snapshot.Tracks.FirstOrDefault(t=>t.PhysicalIndex==selectedTrack); if(t==null) { details.Text="No track available."; return; }
+        string text=$"{t.Label}; physical slot C{t.SlotCylinder}/H{t.SlotSide}\nBlock {t.BlockSize} B; padding {t.PaddingBytes} B; GAP3={t.Gap3}; filler={t.Filler}; stored rate/mode codes={t.DataRateCode}/{t.RecordingCode}\nInterleave pattern inferred from descriptor order: {t.DescriptorSequence}\n";
+        var s=CurrentSector();
+        if(s!=null) {
+            text+=$"{s.Label}\nParsed N size: {s.ParsedNBytes?.ToString()??"Unknown"} B; stored {s.StoredBytes} B; declared {s.DeclaredBytes} B\nDescriptor offset 0x{s.DescriptorOffset:X}; data [0x{s.DataOffset:X}, 0x{s.EndOffset:X})\nST1=0x{s.St1:X2}; ST2=0x{s.St2:X2}: {s.Status}\nRole: {s.Role}; owners: {s.Ownership}\nLogical sectors: {string.Join(", ",s.LogicalBlocks)}; allocation blocks: {string.Join(", ",s.AllocationBlocks)}\n";
+            text+="\nCP/M user: "+(string.IsNullOrEmpty(s.Users)?"Not applicable":s.Users)+"\n";
+            text+=string.Join("\n",s.Owners.Select(o=>$"Owner: {DskVisualSector.OwnerLabel(o)}; extent={o.Extent}; logical sector {o.LogicalSector}; byte slice {o.Offset}..{o.Offset+o.Length}; file block {o.FileBlock}"));
+            text+="\nHex preview (first 64 stored bytes): "+Convert.ToHexString(s.Data.AsSpan(0,Math.Min(64,s.Data.Length)))+"\n";
+            text+=string.Join("\n",s.Issues.Select(i=>i.Explanation));
+        } else text+=t.Missing?"Missing / unformatted track. No sector data.":$"{t.SectorCount} sector descriptors.\n"+string.Join("\n",t.Issues.Select(i=>i.Explanation));
+        var selectedOwners=snapshot.Sectors.Where(sector=>selectionKeys.Contains(sector.Address)).SelectMany(sector=>sector.Owners).DistinctBy(owner=>owner.FileKey).ToArray();
+        details.Text=$"Selected sectors: {selectionKeys.Count}\nSelected owners: {string.Join(", ",selectedOwners.Select(DskVisualSector.OwnerLabel))}\n"+text+"\nActual flux, physical CRC, rotation: "+snapshot.TimingText;
+    }
+    private void RefreshCanvases()
+    {
+        if(updating) return;
+        int surfaceSide=sideChoice.SelectedIndex>0?sideChoice.SelectedIndex-1:-1;
+        var related=snapshot.Sectors.Where(s=>s.Owners.Any(o=>relatedKeys.Contains(o.FileKey))).Select(s=>s.Address).ToHashSet();
+        AllCanvases(c=> { c.TrackIndex=selectedTrack; c.Side=surfaceSide; c.Proportional=widthChoice.SelectedIndex==1; c.Layer=layerChoice.SelectedItem as string??"Role"; c.Selected=selected; c.Selection=selectionKeys; c.Related=related; c.InvalidateVisual(); });
+        RefreshFloatingAndMfm();
+    }
+    private void ApplyFilters()
+    {
+        bool Match(DskVisualSector s) => (sideChoice.SelectedIndex<=0 || snapshot.Tracks.First(t=>t.PhysicalIndex==s.Track).SlotSide==sideChoice.SelectedIndex-1) &&
+            (role.SelectedIndex<=0 || Enum.TryParse<DskSectorRole>(role.SelectedItem as string,out var r) && (r==DskSectorRole.Unknown?s.Role==r:s.Role.HasFlag(r))) &&
+            (ownerFilter.SelectedIndex<=0 || ownerFilter.SelectedItem as string=="Unassigned" && s.Owners.Count==0 || s.Owners.Any(o=>DskVisualSector.OwnerLabel(o)==ownerFilter.SelectedItem as string));
+        var byAddress=snapshot.Sectors.ToDictionary(s=>s.Address);
+        var matched=byAddress.Values.Where(Match).Select(s=>s.Address).ToHashSet();
+        if(severity.SelectedIndex>0 || issueType.SelectedIndex>0)
+            matched.RemoveWhere(a=>!byAddress[a].Issues.Any(i=>
+                (severity.SelectedIndex<=0 || i.Severity.ToString()==severity.SelectedItem as string) && (issueType.SelectedIndex<=0 || i.Code==issueType.SelectedItem as string)));
+        issues.ItemsSource=snapshot.Issues.Where(i=>(severity.SelectedIndex<=0 || i.Severity.ToString()==severity.SelectedItem as string) &&
+            (issueType.SelectedIndex<=0 || i.Code==issueType.SelectedItem as string) &&
+            (sideChoice.SelectedIndex<=0 || i.Track is int t && snapshot.Tracks.Any(tr=>tr.PhysicalIndex==t && tr.SlotSide==sideChoice.SelectedIndex-1)) &&
+            (role.SelectedIndex<=0 && ownerFilter.SelectedIndex<=0 || matched.Any(a=>a.Track==i.Track && (i.Sector==null || a.Sector==i.Sector)))).ToArray();
+        AllCanvases(c=> { c.Filtered=matched; c.InvalidateVisual(); });
+        bool before=updating;updating=true;try{sectors.ItemsSource=snapshot.Tracks.FirstOrDefault(t=>t.PhysicalIndex==selectedTrack)?.Sectors.Where(s=>matched.Contains(s.Address)).ToArray();foreach(var sector in sectors.Items.OfType<DskVisualSector>().Where(s=>selectionKeys.Contains(s.Address)))sectors.SelectedItems!.Add(sector);}finally{updating=before;}
+        status.Text=$"{matched.Count} matching sectors · {selectionKeys.Count} selected · {issues.Items.Count} filtered issues";
+        ToolTip.SetTip(status,"Ctrl: toggle; Shift: range; Esc: clear. Drag: pan; wheel: zoom; Home: Fit; double-click sector: Hex. Use Floating details for properties; tables: Ctrl+C copies headers.");
+    }
+    private void JumpIssue() {
+        if(issues.SelectedItem is not DskAnalysisIssue i) return;
+        NavigateIssue(i);
+    }
+    private void NavigateIssue(DskAnalysisIssue i) {
+        int? track=i.Track??snapshot.Sectors.FirstOrDefault(s=>i.FileKey!=null && s.Owners.Any(o=>o.FileKey==i.FileKey))?.Track;
+        if(track is int t) {
+            if(!Request(t,i.Sector is int d?new(t,d):null,false)) return;
+            tabs.SelectedIndex=1; trackCanvas.Fit(); details.Text=i.Explanation+"\n\n"+details.Text;
+        } else { details.Text=i.Explanation; OpenFloatingDetails(); }
+    }
+    private async Task ExportReport() {
+        if(work!=null)return;
+        var choice=await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions{Title="Export visual analysis",SuggestedFileName="disk-analysis.txt",FileTypeChoices=[new("Text"){Patterns=["*.txt"]},new("CSV"){Patterns=["*.csv"]},new("JSON"){Patterns=["*.json"]}]});
+        string? path=choice?.TryGetLocalPath();if(path==null||closed)return;var snapshot=this.snapshot;
+        await model.Documents.ExecuteAsync(async ct=>{using var cancellation=CancellationTokenSource.CreateLinkedTokenSource(ct);work=cancellation;cancel.IsEnabled=true;status.Text="Preparing diagnostic report…";
+            try{string format=System.IO.Path.GetExtension(path).ToLowerInvariant() switch{".json"=>"json",".csv"=>"csv",_=>"txt"};string report=await Task.Run(()=>DskVisualReport.Export(snapshot,format,cancellation.Token),cancellation.Token);await model.Documents.WriteExportAsync(new Dictionary<string,byte[]>{[path]=System.Text.Encoding.UTF8.GetBytes(report)},cancellation.Token);if(!closed)status.Text="Diagnostic report saved: "+path;return true;}
+            finally{work=null;cancel.IsEnabled=false;}});
+        if(model.Documents.HasError)status.Text=model.Documents.Error;
+    }
+    private async Task ExportSectors() {
+        var sectors=snapshot.Sectors.Where(s=>selectionKeys.Contains(s.Address)).ToArray();if(sectors.Length==0)return;
+        string? path=await new DesktopDialogs(this).PickDiskOutputAsync("Export selected sectors","selected-sectors.bin");if(path==null)return;
+        await model.Documents.ExecuteAsync(async ct=>{await model.Documents.WriteExportAsync(new Dictionary<string,byte[]>{[path]=sectors.SelectMany(s=>s.Data).ToArray()},ct);return true;});
+    }
+    private bool ApplyEditorSelection(IEnumerable<DskSectorAddress> keys,DskSectorAddress? focus) {
+        bool before=updating;updating=true;try{Session.SetSectorSelection(keys,focus);return true;}catch(InvalidOperationException e){model.Documents.ReportError(e.Message);return false;}finally{updating=before;}
+    }
+    private void EditorChanged(object? sender,System.ComponentModel.PropertyChangedEventArgs e) {
+        if(updating||closed)return;
+        if(!ReferenceEquals(snapshot,Session.Snapshot)){SetSnapshot(Session.Snapshot);return;}
+        if(e.PropertyName is nameof(DiskSession.SectorSelection) or nameof(DiskSession.SelectedSector) or nameof(DiskSession.SelectedFile))SyncSelection(Session.SelectedSector?.Track??selectedTrack,Session.SelectedSector?.Sector.Address,Session.FileSelection,Session.SectorSelection);
+    }
+    private void OwnerMenu(Control control) {
+        var menu=new ContextMenu();foreach(var owner in CurrentSector()?.Owners.DistinctBy(o=>o.FileKey)??[]){var item=new MenuItem{Header=DskVisualSector.OwnerLabel(owner)};item.Click+=(_,_)=>file(owner.FileKey);menu.Items.Add(item);}if(menu.Items.Count>0)menu.Open(control);
+    }
+    internal void ShowView(string view) {
+        if(view=="Details") { ShowSelectionDetails(); return; }
+        tabs.SelectedIndex=view switch { "Track"=>1,"Issues"=>2,"Statistics"=>3,"Tracks"=>4,_=>0 }; Activate();
     }
 }

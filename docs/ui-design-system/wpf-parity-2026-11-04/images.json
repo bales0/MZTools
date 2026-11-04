@@ -1,0 +1,224 @@
+[
+  {
+    "name": "wpf-wpf-original-audio-flac.png",
+    "source": "TestResults/WpfParity-2026-11-04/wpf-reference/wpf-original-audio-flac.png",
+    "sha256": "fc97d2f13fa8e9de62f3db039eb138740a2b74a0147e85310f50afeba7bf08aa",
+    "origin": "wpf"
+  },
+  {
+    "name": "wpf-wpf-original-audio-waveform.png",
+    "source": "TestResults/WpfParity-2026-11-04/wpf-reference/wpf-original-audio-waveform.png",
+    "sha256": "9c725e371e8fb9d42707872af1dc0cecc00b05a6ff04925073041565e61c9568",
+    "origin": "wpf"
+  },
+  {
+    "name": "wpf-wpf-original-disk.png",
+    "source": "TestResults/WpfParity-2026-11-04/wpf-reference/wpf-original-disk.png",
+    "sha256": "deefe85178f19537d4fc2b1d0e695ee51b1b544a9a9879466c2ee455b0044bd1",
+    "origin": "wpf"
+  },
+  {
+    "name": "wpf-wpf-original-empty.png",
+    "source": "TestResults/WpfParity-2026-11-04/wpf-reference/wpf-original-empty.png",
+    "sha256": "49ab9834802acccbeb1d39cad6acc2078d54d50d5526e2903a58ed1555d1b324",
+    "origin": "wpf"
+  },
+  {
+    "name": "wpf-wpf-original-quickdisk-map.png",
+    "source": "TestResults/WpfParity-2026-11-04/wpf-reference/wpf-original-quickdisk-map.png",
+    "sha256": "a23d451ed26afd20dc2dd53e86d483739a2bc00fd447b8835e367a7bc9d5b4e6",
+    "origin": "wpf"
+  },
+  {
+    "name": "wpf-wpf-original-quickdisk-visual.png",
+    "source": "TestResults/WpfParity-2026-11-04/wpf-reference/wpf-original-quickdisk-visual.png",
+    "sha256": "e5f7dc7043cd39ef9e760d3c483bb2d7e1548d4400bf72da1f6aca33ec00e3fc",
+    "origin": "wpf"
+  },
+  {
+    "name": "wpf-wpf-original-recorder-live.png",
+    "source": "TestResults/WpfParity-2026-11-04/wpf-reference/wpf-original-recorder-live.png",
+    "sha256": "34d6571a7daa655cc8131b5ae50ca57f6b41b2e97fe7c856816686510a3eb347",
+    "origin": "wpf"
+  },
+  {
+    "name": "wpf-wpf-original-recorder.png",
+    "source": "TestResults/WpfParity-2026-11-04/wpf-reference/wpf-original-recorder.png",
+    "sha256": "9ce8e37b81f722eb8862212a40685a65d5e5248cec77115332224a9b8eec218d",
+    "origin": "wpf"
+  },
+  {
+    "name": "wpf-wpf-original-tape.png",
+    "source": "TestResults/WpfParity-2026-11-04/wpf-reference/wpf-original-tape.png",
+    "sha256": "e13158b759c85fa5df64cb847bd51915c8b38fa77cbf5c4f62fc3a58ef949dd6",
+    "origin": "wpf"
+  },
+  {
+    "name": "avalonia-windows-avalonia-audio-analysis.png",
+    "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/avalonia-audio-analysis.png",
+    "sha256": "4f4e63159f5bfdea4103163eda0c31bb3b8b3746f8b6a2998fbb65d027d0126c",
+    "origin": "avalonia-windows"
+  },
+  {
+    "name": "avalonia-windows-avalonia-dsk-map.png",
+    "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/avalonia-dsk-map.png",
+    "sha256": "b142da05c637ae3158bc55d2748325cfc4dbdb79415bb76e0236e8e5b432b70a",
+    "origin": "avalonia-windows"
+  },
+  {
+    "name": "avalonia-windows-avalonia-quickdisk-map.png",
+    "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/avalonia-quickdisk-map.png",
+    "sha256": "c36b46a20a3280c2d33ae13549f3bf40b416a5b2222d791838f7a9744baeab9a",
+    "origin": "avalonia-windows"
+  },
+  {
+    "name": "avalonia-windows-avalonia-quickdisk-visual.png",
+    "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/avalonia-quickdisk-visual.png",
+    "sha256": "62984721d5ca53112eaf03bb347550b72406515607eeafa7bedfd4e202cc30b5",
+    "origin": "avalonia-windows"
+  },
+  {
+    "name": "avalonia-windows-avalonia-waveform-flac.png",
+    "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/avalonia-waveform-flac.png",
+    "sha256": "88b3030c5cf6fb6e873991751fe5ea6aaca0f56c54c972a98c007d7bf7f4f8c2",
+    "origin": "avalonia-windows"
+  },
+  {
+    "name": "avalonia-windows-avalonia-waveform-wav.png",
+    "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/avalonia-waveform-wav.png",
+    "sha256": "88b3030c5cf6fb6e873991751fe5ea6aaca0f56c54c972a98c007d7bf7f4f8c2",
+    "origin": "avalonia-windows"
+  },
+  {
+    "name": "avalonia-windows-wpf-audio-independent.png",
+    "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/wpf-audio-independent.png",
+    "sha256": "e0cad9c8afd5d23b572576b107923631f028c9307e0bee931fe11c160dab08f3",
+    "origin": "avalonia-windows"
+  },
+  {
+    "name": "avalonia-windows-wpf-disk-1320x600.png",
+    "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/wpf-disk-1320x600.png",
+    "sha256": "70b6b839337d8487cec23cbb476c6c3915248ba1f28b0f738d301d2788362482",
+    "origin": "avalonia-windows"
+  },
+  {
+    "name": "avalonia-windows-wpf-disk-900x480.png",
+    "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/wpf-disk-900x480.png",
+    "sha256": "560cb22a798961cb26a03e429a712466658b5fdd574836ab7914f4e5441b6854",
+    "origin": "avalonia-windows"
+  },
+  {
+    "name": "avalonia-windows-wpf-disk-inspector.png",
+    "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/wpf-disk-inspector.png",
+    "sha256": "5935575477ad103997f727912373c30d196eab77ff5a00b168131ef81699d82a",
+    "origin": "avalonia-windows"
+  },
+  {
+    "name": "avalonia-windows-wpf-hex-browser.png",
+    "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/wpf-hex-browser.png",
+    "sha256": "35abe36a896b525d7cecab6f2eeb2fe15ba9c338d4572ee92af7dfc1fe7d5a9b",
+    "origin": "avalonia-windows"
+  },
+  {
+    "name": "avalonia-windows-wpf-loader-speed.png",
+    "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/wpf-loader-speed.png",
+    "sha256": "8c3dd1b6a86807d6d65c0722a4d058d7e457b4c8500fe1bcd9ed6c6d9ae9d03b",
+    "origin": "avalonia-windows"
+  },
+  {
+    "name": "avalonia-windows-wpf-quickdisk-inspector.png",
+    "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/wpf-quickdisk-inspector.png",
+    "sha256": "687c04f2a53fd6dc3c0ea635367bba0b7e2433036010894a5ac23c0ae5c2ee93",
+    "origin": "avalonia-windows"
+  },
+  {
+    "name": "avalonia-windows-wpf-tape-inline.png",
+    "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/wpf-tape-inline.png",
+    "sha256": "e83afed92446ea711cf884e065975db6d8591c792d7bfcf4452ee97da5846dd2",
+    "origin": "avalonia-windows"
+  },
+  {
+    "name": "avalonia-linux-avalonia-audio-analysis.png",
+    "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/avalonia-audio-analysis.png",
+    "sha256": "1b052f96102f888d50644c4e1c185381a0328b9e025b62a823d75bec66478d83",
+    "origin": "avalonia-linux"
+  },
+  {
+    "name": "avalonia-linux-avalonia-dsk-map.png",
+    "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/avalonia-dsk-map.png",
+    "sha256": "0fe7bd4adc1adae7fde2614e91c18b5de55a18dfdf00958dd58a8ef4ade1d679",
+    "origin": "avalonia-linux"
+  },
+  {
+    "name": "avalonia-linux-avalonia-quickdisk-map.png",
+    "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/avalonia-quickdisk-map.png",
+    "sha256": "5eb0e83966615938ba4a90e8d7100155453f43430cc432a812ae9ac8197e89fd",
+    "origin": "avalonia-linux"
+  },
+  {
+    "name": "avalonia-linux-avalonia-quickdisk-visual.png",
+    "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/avalonia-quickdisk-visual.png",
+    "sha256": "65049aea1524de820709559bdcfb536eb008cf9ff95ffc6cce5ede9664da274b",
+    "origin": "avalonia-linux"
+  },
+  {
+    "name": "avalonia-linux-avalonia-waveform-flac.png",
+    "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/avalonia-waveform-flac.png",
+    "sha256": "1fd39dd4e3007d01341c1a7eaef5bad7abaa12dc8ff8e1a1ce70150ace717020",
+    "origin": "avalonia-linux"
+  },
+  {
+    "name": "avalonia-linux-avalonia-waveform-wav.png",
+    "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/avalonia-waveform-wav.png",
+    "sha256": "1fd39dd4e3007d01341c1a7eaef5bad7abaa12dc8ff8e1a1ce70150ace717020",
+    "origin": "avalonia-linux"
+  },
+  {
+    "name": "avalonia-linux-wpf-audio-independent.png",
+    "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/wpf-audio-independent.png",
+    "sha256": "a08db389efcf16d7ba7501f2b9f438503a29f32191cd5a8604dcb63ccada17aa",
+    "origin": "avalonia-linux"
+  },
+  {
+    "name": "avalonia-linux-wpf-disk-1320x600.png",
+    "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/wpf-disk-1320x600.png",
+    "sha256": "bd5c41a6a3f9f1fdc71633f188d4f0495c22dd708840fdf94240bdb08bab5a5e",
+    "origin": "avalonia-linux"
+  },
+  {
+    "name": "avalonia-linux-wpf-disk-900x480.png",
+    "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/wpf-disk-900x480.png",
+    "sha256": "e97b31ab9eccd7f9874cc1526f0f339d7eacf7fbd8da18b47bcf9c120b0fbff9",
+    "origin": "avalonia-linux"
+  },
+  {
+    "name": "avalonia-linux-wpf-disk-inspector.png",
+    "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/wpf-disk-inspector.png",
+    "sha256": "17da09766a97e4e7dcb4a0aa1e8316521c045d9643b0cba94e2d830f454e897e",
+    "origin": "avalonia-linux"
+  },
+  {
+    "name": "avalonia-linux-wpf-hex-browser.png",
+    "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/wpf-hex-browser.png",
+    "sha256": "e24e75206071e373164e613b32bd3de0009dd0d1c3ffa4ebf6a0fe8529405d1d",
+    "origin": "avalonia-linux"
+  },
+  {
+    "name": "avalonia-linux-wpf-loader-speed.png",
+    "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/wpf-loader-speed.png",
+    "sha256": "aeb7554b1627bba5387f9b8af6304e393148ef4743153857df70a421ae33676a",
+    "origin": "avalonia-linux"
+  },
+  {
+    "name": "avalonia-linux-wpf-quickdisk-inspector.png",
+    "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/wpf-quickdisk-inspector.png",
+    "sha256": "2ce74bc0dbcf30b7fa5f758a6c41754cf3a30c0ced5be758b7694ee41278d93d",
+    "origin": "avalonia-linux"
+  },
+  {
+    "name": "avalonia-linux-wpf-tape-inline.png",
+    "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/wpf-tape-inline.png",
+    "sha256": "6338f7d75f2b64ad4ef80f4c99517f31f0b18e26955f2d904ae25999e67cec0d",
+    "origin": "avalonia-linux"
+  }
+]

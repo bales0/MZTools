@@ -7,6 +7,10 @@ public sealed class AudioBlockRow
     public int Record=>Value.Record;public string Name=>Value.Name;public string Block=>Value.Block;public string Profile=>Value.Profile;
     public int Channel=>Value.Channel;public long Start=>Value.StartSample;public long End=>Value.EndSample;
     public bool Checksum=>Value.ChecksumValid;public bool Recovered=>Value.Recovered;public bool Inverted=>Value.Inverted;public string Detector=>Value.DecodeDetector;
+    public string ReferenceName=>Value.ReferenceName;
+    public string PulseMeasurement=>Value.PulseMeasurement;
+    public int? RecordedChecksum=>Value.RecordedChecksum;
+    public int? CalculatedChecksum=>Value.CalculatedChecksum;
     public string Detail=>$"Record {Record} · {Name} / {Block} · {Profile}\nFrames [{Start:N0}, {End:N0}) · channel {Channel} · {Detector} · inverted {Inverted}\nChecksum {Checksum} · recovered {Recovered}\n{Value.PulseMeasurement}\n{Value.MeasurementProvenance}\nGlobal scale {Value.GlobalTimingScale:0.#####} · speed offset {Value.SpeedOffsetPercent:0.###}%\n{Value.PulseSource?.Meaning}";
 }
 public sealed class AudioRegionRow

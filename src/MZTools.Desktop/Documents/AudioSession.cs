@@ -38,7 +38,7 @@ public sealed partial class AudioSession : DocumentSession,IFileSetDocument
     public int PulseViewIndex {get=>pulseViewIndex;set=>Set(ref pulseViewIndex,value);}
     public int SpectralViewIndex {get=>spectralViewIndex;set=>Set(ref spectralViewIndex,value);}
     public int ViewIndex {get=>viewIndex;set=>Set(ref viewIndex,value);}
-    public IReadOnlyList<string> Channels=>Model.ChannelCount==1?["Mono"]:["Left","Right","Overlay","Average"];
+    public IReadOnlyList<string> Channels=>Model.ChannelCount==1?["Mono"]:["Left","Right","Overlay L/R","Average"];
     public int ChannelMode
     {
         get=>channelMode;
@@ -46,6 +46,7 @@ public sealed partial class AudioSession : DocumentSession,IFileSetDocument
     }
     private long viewStart,viewEnd,selectionStart,selectionEnd;
     public long ViewStart=>viewStart;public long ViewEnd=>viewEnd;
+    internal bool HasVisualSelection { get; private set; }
     public long SelectionStart=>selectionStart;public long SelectionEnd=>selectionEnd;
     public string SelectionSummary=>$"Frames [{SelectionStart:N0}, {SelectionEnd:N0}) · {(SelectionEnd-SelectionStart)/(double)Model.SampleRate:0.######} s · {SelectedIntervals.Count} interval(s)";
     internal IReadOnlyList<(long Start,long End)> SelectedIntervals {get;private set;}=[];
@@ -59,7 +60,7 @@ public sealed partial class AudioSession : DocumentSession,IFileSetDocument
         get=>selectedBlock;
         set
         {
-            if(!Set(ref selectedBlock,value))return;
+            Set(ref selectedBlock,value);
             if(value is not null){SetSelection([(value.Start,value.End)]);MeasuredBlock=value.Value;NotifyMeasurement();if(FollowReference)FollowBlockReference(value.Value);}
             Changed(nameof(Detail));
         }
@@ -69,7 +70,7 @@ public sealed partial class AudioSession : DocumentSession,IFileSetDocument
     public AudioIssueRow? SelectedIssue
     {get=>selectedIssue;set{if(Set(ref selectedIssue,value)&&value is not null){SelectEvidence(value.Start,value.End);Changed(nameof(Detail));}}}
     public string Detail=>SelectedCandidate?.Hex??SelectedIssue?.Description??SelectedBlock?.Detail??SelectedRegion?.Evidence??Quality;
-    private bool autoScale=true;
+    private bool autoScale=false;
     private double gain=1;
     public bool AutoScale {get=>autoScale;set=>Set(ref autoScale,value);}
     public double Gain {get=>gain;set{if(double.IsFinite(value)&&value>0&&value<=1000&&Set(ref gain,value))AutoScale=false;}}
@@ -88,11 +89,12 @@ public sealed partial class AudioSession : DocumentSession,IFileSetDocument
     private void DraftChanged(){settingsDirty=true;settingsGeneration++;Changed(nameof(HasDraft));Changed(nameof(Title));}
     internal AudioSession(AudioSignalAnalysis model,Dictionary<string,string?> hashes)
     {
-        Model=model;baseReport=AudioAnalysisReport.Export(model,"txt");sources=hashes;viewEnd=model.FrameCount;selectionEnd=model.FrameCount;SelectedIntervals=[(0,model.FrameCount)];DisplayWaveform=model.Waveform;
+        Model=model;baseReport=AudioAnalysisReport.Export(model,"txt");sources=hashes;channelMode=model.ChannelCount>1?2:0;viewEnd=model.FrameCount;selectionEnd=model.FrameCount;SelectedIntervals=[(0,model.FrameCount)];DisplayWaveform=model.Waveform;
         Blocks=model.Blocks.Select(b=>new AudioBlockRow(b)).ToArray();Regions=model.Regions.Select(r=>new AudioRegionRow(r)).ToArray();issues=model.Issues.Select(i=>new AudioIssueRow(i)).ToArray();Levels=model.Channels.Select(c=>new AudioLevelRow(c)).ToArray();Agreement=model.DecodeAgreement.Select(a=>new AudioAgreementRow(a)).ToArray();
         _=model.Waveform.VisibleBuckets(0,model.FrameCount,2048);
         references.AddRange(AudioPulseReferences.Choices);
         RefreshRecoveryRows();
+        if(Blocks.Count>0){selectedBlock=Blocks[0];MeasuredBlock=selectedBlock.Value;NotifyMeasurement();if(FollowReference)FollowBlockReference(selectedBlock.Value);}
     }
     protected override void OnLoaded()=>IsReadOnly=true;
     internal static async Task<AudioSession> LoadAsync(string path,IProgress<WavAnalysisProgress>? progress,CancellationToken ct)
@@ -113,10 +115,10 @@ public sealed partial class AudioSession : DocumentSession,IFileSetDocument
     {foreach(var pair in sources)if(AtomicFileTransaction.Hash(pair.Key)!=pair.Value)throw new IOException("An audio source or recording segment changed. Reopen it before export.");}
     public void SetSelection(IEnumerable<(long Start,long End)> intervals)
     {
-        var requested=intervals.ToArray();if(requested.Any(r=>r.Start<0||r.End>Model.FrameCount||r.End<=r.Start))throw new ArgumentOutOfRangeException(nameof(intervals),"Frame intervals must be nonempty and within the recording.");
+        var requested=intervals.Select(r=>previewBounds is null?r:(Start:Math.Max(PreviewStart,r.Start),End:Math.Min(PreviewEnd,r.End))).ToArray();if(requested.Any(r=>r.Start<0||r.End>Model.FrameCount||r.End<=r.Start))throw new ArgumentOutOfRangeException(nameof(intervals),"Frame intervals must be nonempty and within the recording.");
         var spans=AudioRangeInspection.MergeRanges(requested);
         if(spans.Length==0)throw new ArgumentException("Select a nonempty frame interval.");
-        selectionGeneration++;SelectedIntervals=spans;selectionStart=spans[0].Start;selectionEnd=spans[^1].End;
+        HasVisualSelection=true;selectionGeneration++;SelectedIntervals=spans;selectionStart=spans[0].Start;selectionEnd=spans[^1].End;
         foreach(var p in new[]{nameof(SelectionStart),nameof(SelectionEnd),nameof(SelectionSummary)})Changed(p);
     }
     internal void SelectEvidence(long first,long last)
@@ -124,8 +126,8 @@ public sealed partial class AudioSession : DocumentSession,IFileSetDocument
     internal void RequireSingleInterval()
     {if(SelectedIntervals.Count!=1)throw new InvalidOperationException("Choose one contiguous frame interval for this operation. Measure selection supports a union; analysis windows never concatenate disjoint PCM silently.");}
     public void ShowRange(long start,long end)
-    {long count=Math.Clamp(end-start,1,Math.Max(1,Model.FrameCount));viewStart=Math.Clamp(start,0,Math.Max(0,Model.FrameCount-count));viewEnd=viewStart+count;InvalidateView();}
-    public void Fit()=>ShowRange(0,Model.FrameCount);
+    {long count=Math.Clamp(end-start,1,Math.Max(1,PreviewEnd-PreviewStart));viewStart=Math.Clamp(start,PreviewStart,Math.Max(PreviewStart,PreviewEnd-count));viewEnd=viewStart+count;InvalidateView();}
+    public void Fit()=>ShowRange(PreviewStart,PreviewEnd);
     public void FitSelection()=>ShowRange(SelectionStart,SelectionEnd);
     public void Zoom(double factor,double anchor=.5)
     {
@@ -164,7 +166,7 @@ public sealed partial class AudioSession : DocumentSession,IFileSetDocument
                 transform.Visit(reader,bounds.Start,bounds.End,(frame,l,r)=>builder.Add(frame,l,r),request.Token);
                 AudioRangeInspection.VerifySource(Model);return new WaveformRenderModel(builder.Finish(),Model.FrameCount,(ushort)(transform.Mix?1:Model.ChannelCount));
             },request.Token);
-            if(disposed||request.IsCancellationRequested||generation!=viewGeneration)return;
+            if(disposed||request.IsCancellationRequested||generation!=viewGeneration||transform!=EffectiveTransform)return;
             DisplayWaveform=waveform;DisplayedTransform=transform;Validation="";Changed(nameof(DisplayWaveform));Changed(nameof(Validation));
         }
         catch(OperationCanceledException){}

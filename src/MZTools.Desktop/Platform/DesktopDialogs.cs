@@ -8,10 +8,11 @@ namespace MZTools.Desktop.Platform;
 
 public sealed partial class DesktopDialogs(Window owner) : IDocumentDialogs
 {
+    public bool AudioOnly {get;init;}
     public async Task<string?> OpenAsync()
     {
         var files = await owner.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-        { Title = "Open media · editor availability depends on the module", AllowMultiple = false });
+        { Title = AudioOnly?"Open audio / recording":"Open media", AllowMultiple = false, FileTypeFilter=AudioOnly?[new FilePickerFileType("Audio captures / complete recordings (*.wav;*.flac;*.wav.json)"){Patterns=["*.wav","*.flac","*.wav.json"]}]:null });
         return files.Count == 0 ? null : files[0].TryGetLocalPath()
             ?? throw new NotSupportedException("This provider did not return a local path.");
     }

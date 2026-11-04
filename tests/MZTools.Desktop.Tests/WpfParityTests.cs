@@ -23,9 +23,9 @@ public sealed class WpfParityTests
         try
         {
             Dispatcher.UIThread.RunJobs();Assert.Equal("Visual DSK Inspector — read-only",inspector.Title);
-            var tabs=inspector.GetVisualDescendants().OfType<TabControl>().Single();Assert.Equal(new[]{"Disk Surface","Track / Sector","Issues","Statistics","Tracks","Unrolled MFM detail"},tabs.Items.OfType<TabItem>().Select(t=>t.Header));
-            var maps=inspector.GetVisualDescendants().OfType<MZTools.Desktop.Controls.DiskMap>().ToArray();Assert.Equal(2,maps.Length);Assert.All(maps,m=>Assert.Same(session,m.Session));
-            session.SelectSector(session.Sectors[0]);maps[0].Zoom(1.2);Assert.Equal(before,session.SerializeContainer());Assert.False(session.IsModified);
+            var tabs=inspector.GetVisualDescendants().OfType<TabControl>().Single(t=>t.Name=="DskVisualTabs");Assert.Equal(new[]{"Disk Surface","Track / Sector","Issues","Statistics","Tracks"},tabs.Items.OfType<TabItem>().Select(t=>t.Header));
+            var maps=inspector.GetVisualDescendants().OfType<MZTools.Desktop.Controls.DskVisualCanvas>().ToArray();Assert.Single(maps);Assert.Same(session.Snapshot,maps[0].Snapshot);
+            session.SelectSector(session.Sectors[0]);maps[0].ZoomBy(1.2);Assert.Equal(before,session.SerializeContainer());Assert.False(session.IsModified);
             Capture(inspector,"wpf-disk-inspector.png");
         }finally{inspector.Close();owner.Close();Dispatcher.UIThread.RunJobs();}
     }
@@ -47,8 +47,8 @@ public sealed class WpfParityTests
         try
         {
             Dispatcher.UIThread.RunJobs();Assert.Equal("Visual QuickDisk Inspector — read-only",inspector.Title);
-            var tabs=inspector.GetVisualDescendants().OfType<TabControl>().Single();Assert.Equal(new[]{"Disk Surface","Regions","Files","Findings","Statistics"},tabs.Items.OfType<TabItem>().Select(t=>t.Header));
-            Assert.Same(tape,inspector.GetVisualDescendants().OfType<MZTools.Desktop.Controls.QuickDiskForensicView>().Single().Session);Capture(inspector,"wpf-quickdisk-inspector.png");
+            var tabs=inspector.GetVisualDescendants().OfType<TabControl>().Single();Assert.Equal(new[]{"Disk Surface","Regions","Files",$"Findings ({tape.Snapshot!.Findings.Count})","Statistics"},tabs.Items.OfType<TabItem>().Select(t=>t.Header));
+            Assert.Same(tape.Snapshot,inspector.GetVisualDescendants().OfType<MZTools.Desktop.Controls.QuickDiskSurfaceCanvas>().Single().Snapshot);Assert.Same(tape.Snapshot,inspector.GetVisualDescendants().OfType<MZTools.Desktop.Controls.QuickDiskVisualCanvas>().Single().Snapshot);Capture(inspector,"wpf-quickdisk-inspector.png");
         }finally{inspector.Close();Dispatcher.UIThread.RunJobs();}
         await Task.CompletedTask;
     }

@@ -9,11 +9,12 @@ using MZTools.Desktop.Documents;
 namespace MZTools.Desktop.Controls;
 
 // Paints only the existing immutable Core layout. No media reads, decoding or writing.
-public sealed class RegionMap : Control
+public sealed partial class RegionMap : Control
 {
     public static readonly StyledProperty<TapeSession?> SessionProperty = AvaloniaProperty.Register<RegionMap, TapeSession?>(nameof(Session));
     public TapeSession? Session { get => GetValue(SessionProperty); set => SetValue(SessionProperty, value); }
     public event Action<int, KeyModifiers>? FileSelected;
+    public event Action? SelectionCleared;
     private Point? press; private double startAtPress; private bool moved;
     public RegionMap() { Focusable = true; MinHeight = 130; ClipToBounds = true; }
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -58,9 +59,8 @@ public sealed class RegionMap : Control
         if (Session is null || Total == 0) { Text(context, "No mapped data", new(12,24)); return; }
         if (Session.Snapshot is { } snapshot)
         {
-            foreach (var region in snapshot.Layout.Regions)
-                DrawRegion(context, region.Start, region.Length, region.Name, region.Kind switch
-                { QuickDiskRegionKind.Payload => "disk-file", QuickDiskRegionKind.Header => "disk-system", QuickDiskRegionKind.Gap => "disk-free", _ => "disk-unassigned" }, region.FileIndex);
+            RenderWrapped(context, snapshot);
+            return;
         }
         else foreach (var row in Session.Model.Records.Select((r, i) => new RecordRow(r, i))) DrawRegion(context, row.Index, 1, row.Name, "disk-file", row.Index);
         Text(context, $"[{Start:N0}, {Start + Length:N0}) · {Session.Snapshot?.Layout.Unit ?? "record indices"}", new(12,96));
@@ -79,7 +79,15 @@ public sealed class RegionMap : Control
     { if(e.Delta.Y==0)return;Zoom(e.Delta.Y > 0 ? 1.5 : 1/1.5, Math.Clamp(e.GetPosition(this).X / Math.Max(1, Bounds.Width),0,1)); e.Handled = true; }
     protected override void OnKeyDown(KeyEventArgs e)
     {
-        if (e.Key is Key.Add or Key.OemPlus) { Zoom(1.5); e.Handled = true; }
+        if (Session?.Snapshot is { } snapshot && e.Key is Key.Left or Key.Right or Key.Up or Key.Down)
+        {
+            var regions = snapshot.Layout.Regions.OrderBy(r=>r.Start).ToArray();
+            int index = Array.IndexOf(regions, Session.SelectedRegion);
+            int step = e.Key is Key.Left or Key.Up ? -1 : 1;
+            if (regions.Length > 0) Session.SelectRegion(regions[Math.Clamp(index < 0 ? (step > 0 ? 0 : regions.Length-1) : index+step, 0, regions.Length-1)]);
+            e.Handled = true;
+        }
+        else if (e.Key is Key.Add or Key.OemPlus) { Zoom(1.5); e.Handled = true; }
         else if (e.Key is Key.Subtract or Key.OemMinus) { Zoom(1/1.5); e.Handled = true; }
         else if (e.Key == Key.Home) { Fit(); e.Handled = true; }
         base.OnKeyDown(e);
@@ -93,12 +101,11 @@ public sealed class RegionMap : Control
     {
         if (Session is null) return;
         Point position = e.GetPosition(this);
-        if (press is { } original && (moved || Math.Abs(position.X-original.X) > 3))
+        if (Session.Snapshot is null && press is { } original && (moved || Math.Abs(position.X-original.X) > 3))
         { moved = true; Session.MapStart = Math.Clamp(startAtPress - (position.X-original.X)/Math.Max(1,Bounds.Width)*Length, 0, Math.Max(0,Total-Length)); InvalidateVisual(); }
         if (Session.Snapshot is { } snapshot)
         {
-            double point = Start + position.X / Math.Max(1,Bounds.Width) * Length;
-            var region = snapshot.Layout.Regions.FirstOrDefault(r => point >= r.Start && point < r.End);
+            var region = HitWrapped(position);
             ToolTip.SetTip(this, region is null ? null : snapshot.Layout.Detail(region));
         }
         base.OnPointerMoved(e);
@@ -111,8 +118,11 @@ public sealed class RegionMap : Control
             double point = Start + e.GetPosition(this).X / Math.Max(1, Bounds.Width) * Length;
             if (Session.Snapshot is { } snapshot)
             {
-                var region = snapshot.Layout.Regions.FirstOrDefault(r => point >= r.Start && point < r.End);
-                if (region is not null) { Session.SelectRegion(region); if (region.FileIndex >= 0) FileSelected?.Invoke(region.FileIndex, e.KeyModifiers); }
+                var region = HitWrapped(e.GetPosition(this));
+                if (region == Session.SelectedRegion) region = null;
+                Session.SelectRegion(region);
+                if(region is null)SelectionCleared?.Invoke();
+                if (region?.FileIndex >= 0) FileSelected?.Invoke(region.FileIndex, e.KeyModifiers);
             }
             else if (point >= 0 && point < Total) FileSelected?.Invoke((int)point,e.KeyModifiers);
         }

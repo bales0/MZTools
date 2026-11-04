@@ -49,11 +49,12 @@ public sealed class DiskUiTests
     [AvaloniaFact]public async Task MapPointerSelectionCtrlShiftAndViewStateSurviveModuleSwitch()
     {
         using var host=new Host();var s=await host.Open();host.Tabs.SelectedIndex=1;Dispatcher.UIThread.RunJobs();
-        host.Map.Zoom(8);double zoom=s.MapZoom;
-        var row=s.Sectors[0];var point=host.Map.TranslatePoint(new Point(70,30),host.Window)!.Value;
+        double zoom=8;
+        var row=s.Sectors[0];var point=host.Map.TranslatePoint(new Point(125,35),host.Window)!.Value;
         host.Window.MouseDown(point,MouseButton.Left,RawInputModifiers.None);host.Window.MouseUp(point,MouseButton.Left,RawInputModifiers.None);Dispatcher.UIThread.RunJobs();Assert.NotNull(s.SelectedSector);Assert.NotEmpty(s.SectorSelection);
         var primary=OperatingSystem.IsMacOS()?RawInputModifiers.Meta:RawInputModifiers.Control;
         host.Window.MouseDown(point,MouseButton.Left,primary);host.Window.MouseUp(point,MouseButton.Left,primary);Dispatcher.UIThread.RunJobs();Assert.Empty(s.SectorSelection);
+        host.Map.Zoom(zoom);
         host.Files.Shell.NewTapeCommand.Execute(null);await Until(()=>!host.Files.Coordinator.IsBusy);host.Files.Coordinator.Active=s;Dispatcher.UIThread.RunJobs();Assert.Equal(zoom,s.MapZoom);Assert.Equal(1,s.ViewIndex);
         Capture(host.Window,"disk-map.png");
     }

@@ -52,19 +52,33 @@
           </Grid>
         </TabItem>
         <TabItem Header="Disk Map">
-          <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-            <StackPanel Spacing="12" Margin="0,12,0,0">
-              <TextBlock Text="{Binding ActiveTape.MapSummary}" TextWrapping="Wrap" Classes="muted" />
-              <WrapPanel Orientation="Horizontal"><Button Content="Zoom +" Click="ZoomIn" Margin="0,0,6,0" /><Button Content="Zoom −" Click="ZoomOut" Margin="0,0,6,0" /><Button Content="Fit all" Click="Fit" Margin="0,0,6,0" /><Button Content="Fit selection" Click="FitSelection" IsEnabled="{Binding ActiveTape.CanFitSelection}" ToolTip.Tip="Select a record or a mapped region." /></WrapPanel>
-              <c:RegionMap x:Name="MediaMap" Session="{Binding ActiveTape}" Height="150" AutomationProperties.Name="Media regions" />
-              <TextBlock Text="{Binding ActiveTape.MapDetail}" TextWrapping="Wrap" />
-              <Expander Header="Host / integrity / source evidence" HorizontalAlignment="Stretch">
-                <TextBlock Text="{Binding ActiveTape.MediaEvidence}" TextWrapping="Wrap" />
-              </Expander>
-              <Button Content="Export selected region…" Click="ExportRegion" IsEnabled="{Binding ActiveTape.HasRegion}" ToolTip.Tip="Select a stored region in the map. Tape sequence blocks use record indices instead of stored byte ranges." HorizontalAlignment="Left" />
-              <TextBlock Text="Wheel zooms at the pointer; drag pans. Shift/Ctrl/Command click selects records. Coordinates come from the existing media layout." TextWrapping="Wrap" Classes="muted" />
-            </StackPanel>
-          </ScrollViewer>
+          <Grid Margin="8" ColumnDefinitions="3*,6,2*" RowDefinitions="42,Auto,*">
+            <TextBlock Grid.ColumnSpan="3" Text="{Binding ActiveTape.WpfMapSummary}" TextWrapping="Wrap" Margin="0,0,0,6" />
+            <WrapPanel Grid.Row="1" Grid.ColumnSpan="3" Margin="12,0,0,6">
+              <Button Content="Hex view block" Click="MapHex" IsEnabled="{Binding ActiveTape.HasRegion}" Margin="0,0,6,0" />
+              <Button Content="Clear selection" Click="MapClear" IsEnabled="{Binding ActiveTape.HasRegion}" />
+              <Button Content="Copy report" Click="MapCopy" Margin="6,0" /><Button Content="Save report..." Click="MapReport" />
+            </WrapPanel>
+            <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+              <c:RegionMap x:Name="MediaMap" Session="{Binding ActiveTape}" MinWidth="600" MinHeight="279" VerticalAlignment="Top" Height="279" AutomationProperties.Name="Media regions" />
+            </ScrollViewer>
+            <GridSplitter Grid.Row="2" Grid.Column="1" Width="6" Background="LightGray" ResizeDirection="Columns" />
+            <Grid Grid.Row="2" Grid.Column="2" RowDefinitions="2*,6,3*" Margin="6,0,0,0">
+              <TableView x:Name="QuickDiskBlocks" ItemsSource="{Binding ActiveTape.MapRegions}" SelectionChanged="MapRegionSelected" AutoScrollToSelectedItem="True" AutomationProperties.Name="QuickDisk mapped blocks">
+                <TableView.Columns>
+                  <TableViewColumn Header="Role" Binding="{ReflectionBinding Kind}" Width="100" /><TableViewColumn Header="#" Binding="{ReflectionBinding FileNumber}" Width="32" />
+                  <TableViewColumn Header="File / details" Binding="{ReflectionBinding Name}" Width="200" /><TableViewColumn Header="Start" Binding="{ReflectionBinding Offset}" Width="100" />
+                  <TableViewColumn Header="Length*" Binding="{ReflectionBinding Length}" Width="90" /><TableViewColumn Header="Payload B" Binding="{ReflectionBinding Size}" Width="80" />
+                  <TableViewColumn Header="LOAD" Binding="{ReflectionBinding LoadText}" Width="75" /><TableViewColumn Header="EXEC" Binding="{ReflectionBinding ExecuteText}" Width="75" />
+                </TableView.Columns>
+              </TableView>
+              <GridSplitter Grid.Row="1" Height="6" Background="LightGray" ResizeDirection="Rows" />
+              <Grid Grid.Row="2" RowDefinitions="Auto,*" Margin="0,4,0,0">
+                <DockPanel><Button DockPanel.Dock="Right" Content="Export report..." Click="MapReport" /><TextBlock Text="{Binding ActiveTape.WpfMapDetail}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontWeight="Bold" /></DockPanel>
+                <TabControl Grid.Row="1"><TabItem Header="Messages"><TableView ItemsSource="{Binding ActiveTape.MapMessages}"><TableView.Columns><TableViewColumn Header="Category" Binding="{ReflectionBinding Category}" Width="150" /><TableViewColumn Header="Details" Binding="{ReflectionBinding Details}" Width="*" /></TableView.Columns></TableView></TabItem></TabControl>
+              </Grid>
+            </Grid>
+          </Grid>
         </TabItem>
         <TabItem Header="Hex"><c:ReportViewer Text="{Binding ActiveTape.Hex}" Margin="0,12,0,0" /></TabItem>
       </TabControl>

@@ -1,0 +1,69 @@
+{
+  "tests": {
+    "windows": {
+      "file": "TestResults\\PayloadUnknown-2026-11-04\\windows\\full\\alesb_ACERNOTEBOOK_2026-11-04_18_48_11_net10.0.trx",
+      "counters": {
+        "total": "273",
+        "executed": "273",
+        "passed": "273",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "payloadRegressions": [
+        "MZTools.Desktop.Tests.SelectedAnalysisWindowTests.PayloadRecoveryFindsActualBytesWithBlankUnknownOrKnownLength(length: \"invalid stale size\", unknown: True)",
+        "MZTools.Desktop.Tests.SelectedAnalysisWindowTests.PayloadRecoveryFindsActualBytesWithBlankUnknownOrKnownLength(length: \"32\", unknown: False)",
+        "MZTools.Desktop.Tests.SelectedAnalysisWindowTests.PayloadRecoveryFindsActualBytesWithBlankUnknownOrKnownLength(length: \"1\", unknown: True)",
+        "MZTools.Desktop.Tests.SelectedAnalysisWindowTests.PayloadRecoveryFindsActualBytesWithBlankUnknownOrKnownLength(length: \"\", unknown: False)"
+      ]
+    },
+    "linux": {
+      "file": "TestResults\\PayloadUnknown-2026-11-04\\linux\\_AcerNotebook_2026-11-04_18_48_32_net10.0.trx",
+      "counters": {
+        "total": "281",
+        "executed": "281",
+        "passed": "281",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "payloadRegressions": [
+        "MZTools.Desktop.Tests.SelectedAnalysisWindowTests.PayloadRecoveryFindsActualBytesWithBlankUnknownOrKnownLength(length: \"1\", unknown: True)",
+        "MZTools.Desktop.Tests.SelectedAnalysisWindowTests.PayloadRecoveryFindsActualBytesWithBlankUnknownOrKnownLength(length: \"32\", unknown: False)",
+        "MZTools.Desktop.Tests.SelectedAnalysisWindowTests.PayloadRecoveryFindsActualBytesWithBlankUnknownOrKnownLength(length: \"\", unknown: False)",
+        "MZTools.Desktop.Tests.SelectedAnalysisWindowTests.PayloadRecoveryFindsActualBytesWithBlankUnknownOrKnownLength(length: \"invalid stale size\", unknown: True)"
+      ]
+    }
+  },
+  "packages": {
+    "MZTools-win-x64.zip": {
+      "sha256": "a6e42d6ed2492f6599ec3812c260db3f54bf5c4e712adc180a722d73115028c0",
+      "verifiedFiles": 334
+    },
+    "MZTools-linux-x64.tar.gz": {
+      "sha256": "19b8be1ce02f7a71281f1cb425bb65f332734b302d30c0fc31255352ba243550",
+      "verifiedFiles": 312
+    }
+  },
+  "passedTotal": 554
+}

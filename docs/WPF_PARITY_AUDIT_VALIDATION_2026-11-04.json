@@ -1,0 +1,535 @@
+{
+  "date": "2026-11-04",
+  "fullWpfParity": false,
+  "tests": {
+    "windows": {
+      "path": "TestResults/WpfParity-2026-11-04/windows/desktop.trx",
+      "sha256": "7c6abd6edcb3c50cac3376cbde3801082436a13f2dbd646649a4ba12a7ca9bea",
+      "passed": 260,
+      "failed": 0
+    },
+    "linux": {
+      "path": "TestResults/WpfParity-2026-11-04/linux/_AcerNotebook_2026-11-04_16_49_07_net10.0.trx",
+      "sha256": "0f5454297e97cb2d849e16002a05dbe8af951e269bfb55557129a95c3a3363ff",
+      "passed": 268,
+      "failed": 0
+    }
+  },
+  "native": {
+    "windows": [
+      {
+        "path": "TestResults/WpfParity-2026-11-04/windows/native/native-smoke.json",
+        "sha256": "db164e7f49a0cb6615e901c69eb64fffe0b738d9fb3540b57b94dc0f53c362c7",
+        "passed": 11
+      },
+      {
+        "path": "TestResults/WpfParity-2026-11-04/windows/native/native-media.json",
+        "sha256": "7708b72db6e2135f8fcad04b90c0cf68574a07a7f70f51c78708d39bb6c678ad",
+        "passed": 15
+      },
+      {
+        "path": "TestResults/WpfParity-2026-11-04/windows/native/native-disk.json",
+        "sha256": "74f8ff8b04f4feb64eae218b4b842df600e7e343757716318b6bcdde3a52307e",
+        "passed": 17
+      },
+      {
+        "path": "TestResults/WpfParity-2026-11-04/windows/native/native-audio.json",
+        "sha256": "0da7319b3fcdb31222b09c74475e5b6d1613b6d3be5326b82dba78b90ad6fbe8",
+        "passed": 16
+      },
+      {
+        "path": "TestResults/WpfParity-2026-11-04/windows/native/native-recorder.json",
+        "sha256": "1ffc372e3ebdcc3fa9575ac15e0929e91132ce4e55541044e2cb30c225f1f1b1",
+        "passed": 16
+      }
+    ],
+    "linux": [
+      {
+        "path": "TestResults/WpfParity-2026-11-04/linux/native/native-smoke.json",
+        "sha256": "dbd5a07f082eb81830657a536d6f72839d9c3a42e8ced783e11e90039b3f118f",
+        "passed": 11
+      },
+      {
+        "path": "TestResults/WpfParity-2026-11-04/linux/native/native-media.json",
+        "sha256": "1e55df254569574a8519e26e26242b69a8c8aa15210b4fddab21a4e762b7420b",
+        "passed": 15
+      },
+      {
+        "path": "TestResults/WpfParity-2026-11-04/linux/native/native-disk.json",
+        "sha256": "b3a441697ecc8b83a14989bb671a6634b81787ea7b3941ed22ee098887d66ef3",
+        "passed": 17
+      },
+      {
+        "path": "TestResults/WpfParity-2026-11-04/linux/native/native-audio.json",
+        "sha256": "ca4bc6dd8684fb3fff1312078346022810a2ed6bb96a929b2648da829cd497c9",
+        "passed": 16
+      },
+      {
+        "path": "TestResults/WpfParity-2026-11-04/linux/native/native-recorder.json",
+        "sha256": "df3721b23c7cf5017a40534a87bdc4c4ab8503966e04991a2f686f1488e2522f",
+        "passed": 16
+      }
+    ]
+  },
+  "images": [
+    {
+      "name": "wpf-wpf-original-audio-flac.png",
+      "source": "TestResults/WpfParity-2026-11-04/wpf-reference/wpf-original-audio-flac.png",
+      "sha256": "fc97d2f13fa8e9de62f3db039eb138740a2b74a0147e85310f50afeba7bf08aa",
+      "origin": "wpf"
+    },
+    {
+      "name": "wpf-wpf-original-audio-waveform.png",
+      "source": "TestResults/WpfParity-2026-11-04/wpf-reference/wpf-original-audio-waveform.png",
+      "sha256": "9c725e371e8fb9d42707872af1dc0cecc00b05a6ff04925073041565e61c9568",
+      "origin": "wpf"
+    },
+    {
+      "name": "wpf-wpf-original-disk.png",
+      "source": "TestResults/WpfParity-2026-11-04/wpf-reference/wpf-original-disk.png",
+      "sha256": "deefe85178f19537d4fc2b1d0e695ee51b1b544a9a9879466c2ee455b0044bd1",
+      "origin": "wpf"
+    },
+    {
+      "name": "wpf-wpf-original-empty.png",
+      "source": "TestResults/WpfParity-2026-11-04/wpf-reference/wpf-original-empty.png",
+      "sha256": "49ab9834802acccbeb1d39cad6acc2078d54d50d5526e2903a58ed1555d1b324",
+      "origin": "wpf"
+    },
+    {
+      "name": "wpf-wpf-original-quickdisk-map.png",
+      "source": "TestResults/WpfParity-2026-11-04/wpf-reference/wpf-original-quickdisk-map.png",
+      "sha256": "a23d451ed26afd20dc2dd53e86d483739a2bc00fd447b8835e367a7bc9d5b4e6",
+      "origin": "wpf"
+    },
+    {
+      "name": "wpf-wpf-original-quickdisk-visual.png",
+      "source": "TestResults/WpfParity-2026-11-04/wpf-reference/wpf-original-quickdisk-visual.png",
+      "sha256": "e5f7dc7043cd39ef9e760d3c483bb2d7e1548d4400bf72da1f6aca33ec00e3fc",
+      "origin": "wpf"
+    },
+    {
+      "name": "wpf-wpf-original-recorder-live.png",
+      "source": "TestResults/WpfParity-2026-11-04/wpf-reference/wpf-original-recorder-live.png",
+      "sha256": "34d6571a7daa655cc8131b5ae50ca57f6b41b2e97fe7c856816686510a3eb347",
+      "origin": "wpf"
+    },
+    {
+      "name": "wpf-wpf-original-recorder.png",
+      "source": "TestResults/WpfParity-2026-11-04/wpf-reference/wpf-original-recorder.png",
+      "sha256": "9ce8e37b81f722eb8862212a40685a65d5e5248cec77115332224a9b8eec218d",
+      "origin": "wpf"
+    },
+    {
+      "name": "wpf-wpf-original-tape.png",
+      "source": "TestResults/WpfParity-2026-11-04/wpf-reference/wpf-original-tape.png",
+      "sha256": "e13158b759c85fa5df64cb847bd51915c8b38fa77cbf5c4f62fc3a58ef949dd6",
+      "origin": "wpf"
+    },
+    {
+      "name": "avalonia-windows-avalonia-audio-analysis.png",
+      "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/avalonia-audio-analysis.png",
+      "sha256": "4f4e63159f5bfdea4103163eda0c31bb3b8b3746f8b6a2998fbb65d027d0126c",
+      "origin": "avalonia-windows"
+    },
+    {
+      "name": "avalonia-windows-avalonia-dsk-map.png",
+      "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/avalonia-dsk-map.png",
+      "sha256": "b142da05c637ae3158bc55d2748325cfc4dbdb79415bb76e0236e8e5b432b70a",
+      "origin": "avalonia-windows"
+    },
+    {
+      "name": "avalonia-windows-avalonia-quickdisk-map.png",
+      "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/avalonia-quickdisk-map.png",
+      "sha256": "c36b46a20a3280c2d33ae13549f3bf40b416a5b2222d791838f7a9744baeab9a",
+      "origin": "avalonia-windows"
+    },
+    {
+      "name": "avalonia-windows-avalonia-quickdisk-visual.png",
+      "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/avalonia-quickdisk-visual.png",
+      "sha256": "62984721d5ca53112eaf03bb347550b72406515607eeafa7bedfd4e202cc30b5",
+      "origin": "avalonia-windows"
+    },
+    {
+      "name": "avalonia-windows-avalonia-waveform-flac.png",
+      "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/avalonia-waveform-flac.png",
+      "sha256": "88b3030c5cf6fb6e873991751fe5ea6aaca0f56c54c972a98c007d7bf7f4f8c2",
+      "origin": "avalonia-windows"
+    },
+    {
+      "name": "avalonia-windows-avalonia-waveform-wav.png",
+      "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/avalonia-waveform-wav.png",
+      "sha256": "88b3030c5cf6fb6e873991751fe5ea6aaca0f56c54c972a98c007d7bf7f4f8c2",
+      "origin": "avalonia-windows"
+    },
+    {
+      "name": "avalonia-windows-wpf-audio-independent.png",
+      "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/wpf-audio-independent.png",
+      "sha256": "e0cad9c8afd5d23b572576b107923631f028c9307e0bee931fe11c160dab08f3",
+      "origin": "avalonia-windows"
+    },
+    {
+      "name": "avalonia-windows-wpf-disk-1320x600.png",
+      "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/wpf-disk-1320x600.png",
+      "sha256": "70b6b839337d8487cec23cbb476c6c3915248ba1f28b0f738d301d2788362482",
+      "origin": "avalonia-windows"
+    },
+    {
+      "name": "avalonia-windows-wpf-disk-900x480.png",
+      "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/wpf-disk-900x480.png",
+      "sha256": "560cb22a798961cb26a03e429a712466658b5fdd574836ab7914f4e5441b6854",
+      "origin": "avalonia-windows"
+    },
+    {
+      "name": "avalonia-windows-wpf-disk-inspector.png",
+      "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/wpf-disk-inspector.png",
+      "sha256": "5935575477ad103997f727912373c30d196eab77ff5a00b168131ef81699d82a",
+      "origin": "avalonia-windows"
+    },
+    {
+      "name": "avalonia-windows-wpf-hex-browser.png",
+      "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/wpf-hex-browser.png",
+      "sha256": "35abe36a896b525d7cecab6f2eeb2fe15ba9c338d4572ee92af7dfc1fe7d5a9b",
+      "origin": "avalonia-windows"
+    },
+    {
+      "name": "avalonia-windows-wpf-loader-speed.png",
+      "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/wpf-loader-speed.png",
+      "sha256": "8c3dd1b6a86807d6d65c0722a4d058d7e457b4c8500fe1bcd9ed6c6d9ae9d03b",
+      "origin": "avalonia-windows"
+    },
+    {
+      "name": "avalonia-windows-wpf-quickdisk-inspector.png",
+      "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/wpf-quickdisk-inspector.png",
+      "sha256": "687c04f2a53fd6dc3c0ea635367bba0b7e2433036010894a5ac23c0ae5c2ee93",
+      "origin": "avalonia-windows"
+    },
+    {
+      "name": "avalonia-windows-wpf-tape-inline.png",
+      "source": "TestResults/WpfParity-2026-11-04/windows/screenshots/wpf-tape-inline.png",
+      "sha256": "e83afed92446ea711cf884e065975db6d8591c792d7bfcf4452ee97da5846dd2",
+      "origin": "avalonia-windows"
+    },
+    {
+      "name": "avalonia-linux-avalonia-audio-analysis.png",
+      "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/avalonia-audio-analysis.png",
+      "sha256": "1b052f96102f888d50644c4e1c185381a0328b9e025b62a823d75bec66478d83",
+      "origin": "avalonia-linux"
+    },
+    {
+      "name": "avalonia-linux-avalonia-dsk-map.png",
+      "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/avalonia-dsk-map.png",
+      "sha256": "0fe7bd4adc1adae7fde2614e91c18b5de55a18dfdf00958dd58a8ef4ade1d679",
+      "origin": "avalonia-linux"
+    },
+    {
+      "name": "avalonia-linux-avalonia-quickdisk-map.png",
+      "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/avalonia-quickdisk-map.png",
+      "sha256": "5eb0e83966615938ba4a90e8d7100155453f43430cc432a812ae9ac8197e89fd",
+      "origin": "avalonia-linux"
+    },
+    {
+      "name": "avalonia-linux-avalonia-quickdisk-visual.png",
+      "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/avalonia-quickdisk-visual.png",
+      "sha256": "65049aea1524de820709559bdcfb536eb008cf9ff95ffc6cce5ede9664da274b",
+      "origin": "avalonia-linux"
+    },
+    {
+      "name": "avalonia-linux-avalonia-waveform-flac.png",
+      "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/avalonia-waveform-flac.png",
+      "sha256": "1fd39dd4e3007d01341c1a7eaef5bad7abaa12dc8ff8e1a1ce70150ace717020",
+      "origin": "avalonia-linux"
+    },
+    {
+      "name": "avalonia-linux-avalonia-waveform-wav.png",
+      "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/avalonia-waveform-wav.png",
+      "sha256": "1fd39dd4e3007d01341c1a7eaef5bad7abaa12dc8ff8e1a1ce70150ace717020",
+      "origin": "avalonia-linux"
+    },
+    {
+      "name": "avalonia-linux-wpf-audio-independent.png",
+      "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/wpf-audio-independent.png",
+      "sha256": "a08db389efcf16d7ba7501f2b9f438503a29f32191cd5a8604dcb63ccada17aa",
+      "origin": "avalonia-linux"
+    },
+    {
+      "name": "avalonia-linux-wpf-disk-1320x600.png",
+      "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/wpf-disk-1320x600.png",
+      "sha256": "bd5c41a6a3f9f1fdc71633f188d4f0495c22dd708840fdf94240bdb08bab5a5e",
+      "origin": "avalonia-linux"
+    },
+    {
+      "name": "avalonia-linux-wpf-disk-900x480.png",
+      "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/wpf-disk-900x480.png",
+      "sha256": "e97b31ab9eccd7f9874cc1526f0f339d7eacf7fbd8da18b47bcf9c120b0fbff9",
+      "origin": "avalonia-linux"
+    },
+    {
+      "name": "avalonia-linux-wpf-disk-inspector.png",
+      "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/wpf-disk-inspector.png",
+      "sha256": "17da09766a97e4e7dcb4a0aa1e8316521c045d9643b0cba94e2d830f454e897e",
+      "origin": "avalonia-linux"
+    },
+    {
+      "name": "avalonia-linux-wpf-hex-browser.png",
+      "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/wpf-hex-browser.png",
+      "sha256": "e24e75206071e373164e613b32bd3de0009dd0d1c3ffa4ebf6a0fe8529405d1d",
+      "origin": "avalonia-linux"
+    },
+    {
+      "name": "avalonia-linux-wpf-loader-speed.png",
+      "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/wpf-loader-speed.png",
+      "sha256": "aeb7554b1627bba5387f9b8af6304e393148ef4743153857df70a421ae33676a",
+      "origin": "avalonia-linux"
+    },
+    {
+      "name": "avalonia-linux-wpf-quickdisk-inspector.png",
+      "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/wpf-quickdisk-inspector.png",
+      "sha256": "2ce74bc0dbcf30b7fa5f758a6c41754cf3a30c0ced5be758b7694ee41278d93d",
+      "origin": "avalonia-linux"
+    },
+    {
+      "name": "avalonia-linux-wpf-tape-inline.png",
+      "source": "TestResults/WpfParity-2026-11-04/linux/screenshots/wpf-tape-inline.png",
+      "sha256": "6338f7d75f2b64ad4ef80f4c99517f31f0b18e26955f2d904ae25999e67cec0d",
+      "origin": "avalonia-linux"
+    }
+  ],
+  "packages": [
+    {
+      "rid": "win-x64",
+      "archive": "C:\\Dokumenty\\GitHub\\MZTools\\TestResults\\WpfParity-2026-11-04\\distribution\\MZTools-win-x64.zip",
+      "sha256": "268eb4500fe5311ead42087cf1b279ea0810c0415e08ad299ac8e77409705612",
+      "files": 322,
+      "selfContained": true,
+      "signed": false,
+      "nativeHardwareTested": false,
+      "staging": "C:\\Dokumenty\\GitHub\\MZTools\\TestResults\\WpfParity-2026-11-04\\distribution\\mztools-package-_bihmkdr"
+    },
+    {
+      "rid": "linux-x64",
+      "archive": "C:\\Dokumenty\\GitHub\\MZTools\\TestResults\\WpfParity-2026-11-04\\distribution\\MZTools-linux-x64.tar.gz",
+      "sha256": "0af2169a32bc643987df465648f72bc4d23ee9850198b1cba78f0a0257041421",
+      "files": 300,
+      "selfContained": true,
+      "signed": false,
+      "nativeHardwareTested": false,
+      "staging": "C:\\Dokumenty\\GitHub\\MZTools\\TestResults\\WpfParity-2026-11-04\\distribution\\mztools-package-n2qs0pag"
+    }
+  ],
+  "sources": {
+    "src/MZTools.Desktop/App.axaml": "74030bb9fa260d333272beffed3e09f5e1344531ccd25f01d788d6882da88933",
+    "src/MZTools.Desktop/App.axaml.cs": "66f6f3ea2b3e05706ee2d9440748a96a9c1e02dd535a5a7ae5784b2eb6ee2db1",
+    "src/MZTools.Desktop/Controls/AudioChart.cs": "796b5d46551faf63a3060e5c026f8f74a142f960b7e9834a5c55aab43bc71684",
+    "src/MZTools.Desktop/Controls/AudioChart.Live.cs": "be277cda387e89cf1d7582b2a0368fb252f9e106aa60b1ca3d465dfda46cb6a8",
+    "src/MZTools.Desktop/Controls/AudioChart.WpfWaveform.cs": "51c4184882d90fd02ac2a81db26f848ead48c6b1ae61b256f9ead62a595df1a8",
+    "src/MZTools.Desktop/Controls/AudioInspector.axaml": "62716957d0f378415b67734d9ce8709573c635b095466a6f9cc002d52c4ccdc8",
+    "src/MZTools.Desktop/Controls/AudioInspector.axaml.cs": "20d59a0b8166007e13e766af69fec5f3886ff0f38e797f7fdc26c533a7e7807f",
+    "src/MZTools.Desktop/Controls/DiskInspector.axaml": "ac2515ed22edbcd4fa80c32e7a41831a8c46d146aa246328f2420701055caaec",
+    "src/MZTools.Desktop/Controls/DiskInspector.axaml.cs": "92dd3f1ae1894e546d8fa57d667f3fba4d923abaeb02162144cec0ab36eb1065",
+    "src/MZTools.Desktop/Controls/DiskMap.cs": "0ac0b1e91ae83d3c52ab531bcf6197338620f045a1c252812b84bf17c57bd41e",
+    "src/MZTools.Desktop/Controls/DiskMap.Wpf.cs": "19f402734775e726a7b7db6ff27155054892242261520f9dd5e5d085e34cdeac",
+    "src/MZTools.Desktop/Controls/DiskPhysicalPanel.axaml": "c6133b64f7f4f6fb0b1e73986499ea3233382ff5221d29ac6dce84a9e3fe6e01",
+    "src/MZTools.Desktop/Controls/DiskPhysicalPanel.axaml.cs": "a1f4e0afc97763c8ff19f1f321da57e619eb1ce9570af820a6f71d0f663d2a0b",
+    "src/MZTools.Desktop/Controls/DiskPhysicalPanel.WpfScrollBar.cs": "adca169d4aa19ca51114b483b5325f3f85e3f0567ec0af69ef26b89059364f0e",
+    "src/MZTools.Desktop/Controls/DiskTrackView.cs": "17dd037c3bcc7d98e689857d8177c65d0002fec0978ee94cfffb5fa72fe70de0",
+    "src/MZTools.Desktop/Controls/PropertyForm.axaml": "02a877ed075bc07e23e33d6746a36c036b9ff5ad80baf1f9ecc425775465b6f5",
+    "src/MZTools.Desktop/Controls/PropertyForm.axaml.cs": "239b65ee8837e05266a1be92e2085c09c1167fe9142e100c9babb8364205332c",
+    "src/MZTools.Desktop/Controls/QuickDiskForensicView.cs": "e3b03aa9f7b75d7d2d5ee1a9dc063ae5c04b2dcf61bca8517c971f830f8850c7",
+    "src/MZTools.Desktop/Controls/QuickDiskSurfaceCanvas.cs": "9e98e30e4cb4f751714f495bf2357a2ea9d8bfba78272c5cf539112906afa394",
+    "src/MZTools.Desktop/Controls/QuickDiskVisualCanvas.cs": "2ab02e3518dd18e713b7b30d09ff69c537fe6f2018dc0505da91238b5349a300",
+    "src/MZTools.Desktop/Controls/RecordInspector.axaml": "239edd0f5c71f25f33d3c4e6ec4b40cdddc1c35d8e7dc549a75124a5fc771382",
+    "src/MZTools.Desktop/Controls/RecordInspector.axaml.cs": "59d69624d44ec8ea3b49c86f685d8bd99bc9b82c830021b76e8483cc5c3f04b6",
+    "src/MZTools.Desktop/Controls/RegionMap.cs": "c9c1881e14132e7873630cb474335afda2304da2e40dcf74bc3d8bfb359061c9",
+    "src/MZTools.Desktop/Controls/RegionMap.Wpf.cs": "ef68fabff7b584cdefdc68c33c52b0a44590547f1922d260b8969cb8a6dcf444",
+    "src/MZTools.Desktop/Controls/ReportViewer.axaml": "8cfbc05238154e0a3d57264d86abe2e2f441191c19a62d29f6bc439eea50586b",
+    "src/MZTools.Desktop/Controls/ReportViewer.axaml.cs": "116a634c801792b526084859c661ee50391923921c38a27a6fb3c34b6cac5d23",
+    "src/MZTools.Desktop/Controls/TapeLoaderConverter.cs": "e9bf734c3dd2bded4c583813fc45aacf1bc4011f692018c4075d1ca6474143a8",
+    "src/MZTools.Desktop/Documents/AtomicDocumentStore.cs": "bece816669f4a172559e050e6cd404f9edebe2c02e5286ff63cb6fab9483d0fc",
+    "src/MZTools.Desktop/Documents/AudioOperations.cs": "f4db27e329fc5e2a3156a96a3c7352f827fab28070d871b2901491f8f9806c00",
+    "src/MZTools.Desktop/Documents/AudioRows.cs": "e6acb3d1d3b47e571ed86e57c2ae3f65da74663f9fbb67b2800d27ea741a1e77",
+    "src/MZTools.Desktop/Documents/AudioSession.Analysis.cs": "32a53471fd555543b94923bfd360902029528e209ec00335bdb1410a89024d00",
+    "src/MZTools.Desktop/Documents/AudioSession.cs": "36f38d721e9782cb0ec25117e923b880269449aec0209969a64cd47b7b7a2045",
+    "src/MZTools.Desktop/Documents/AudioSession.Recovery.cs": "13a1effa38e5f017c9ee1a269ab73d0b3513aa8c8d1d81758c27c9c4f9a81114",
+    "src/MZTools.Desktop/Documents/AudioSession.WpfPresentation.cs": "d7845d2083feca65f00572d78ff339933a26166500c48f476cf16380150f20a2",
+    "src/MZTools.Desktop/Documents/AudioSession.WpfViewport.cs": "090725f7573bab9f2afdf793091e2fbc7eaed566747abed6c9276a68c0d4ffdf",
+    "src/MZTools.Desktop/Documents/BatchSession.cs": "79d97e2e788f09917dfce17eca1fd680b9f355dbdbaa2d0225b452a7cd4343c3",
+    "src/MZTools.Desktop/Documents/DiskDialogs.cs": "ebda8fd243d52f18215de4c968d6ef50c1f83a240a4e15c40bb06f08781b4fa5",
+    "src/MZTools.Desktop/Documents/DiskLoader.cs": "7894f911eedaa31ba2c2fc055e56650968224b452055e453cee41a3555d35fa6",
+    "src/MZTools.Desktop/Documents/DiskOperations.cs": "fd16a36678e1115528d41fcd66302a070fcd1d4744032c7e9259337f51628bea",
+    "src/MZTools.Desktop/Documents/DiskSession.cs": "98c531f5d1d0a1d663b994aa081c23418a8894a49351cee8e2c158c4285e61c1",
+    "src/MZTools.Desktop/Documents/DocumentCoordinator.cs": "c1151a5dd912de0ba7159782dcb96a17f3946dbe86475aa562e6b117bea2f34b",
+    "src/MZTools.Desktop/Documents/DocumentSavePlan.cs": "7fcdbe56ab3a8e93f0b2d7c23cd45ad8e0aa2854f6c1b1564ac306b5174fde99",
+    "src/MZTools.Desktop/Documents/DocumentSession.cs": "8d9754d836f197c8b932669994ae5f3674adffda63fc14c114247e157ac927d7",
+    "src/MZTools.Desktop/Documents/MediaOperations.cs": "ba95e7e16e46f619e2f0e8b63ae8c61c0abbb8e83796c1cb911664d4f2f17a17",
+    "src/MZTools.Desktop/Documents/TapeSession.cs": "1a0812daab2a4f2d351250f04c7a8c55cb084a88a50a964f67b89a6006a85574",
+    "src/MZTools.Desktop/Documents/TapeSession.Wpf.cs": "66ac332a42424dff9f46a655633ac227af1e966e45c2d9423575c14b8a209167",
+    "src/MZTools.Desktop/Documents/TapeSession.WpfMap.cs": "e7f84205067dfb4173c4a513004d4a5c9d951f4955fbe0ed7c66809c7adf2cc7",
+    "src/MZTools.Desktop/MZTools.Desktop.csproj": "3d902f141e6304cc452e4d6a6c22376893fc5b0aded25236edbd32f1130054e3",
+    "src/MZTools.Desktop/Platform/DesktopDialogs.cs": "2f9f1f4350a54e3174ff02edaec5a034929566197d36da8a001b61a6b9f31604",
+    "src/MZTools.Desktop/Platform/DesktopDiskDialogs.cs": "21ca707c8b36bc3261d07ff1db36d631d9d8ba9778083f0876659dfbd991c700",
+    "src/MZTools.Desktop/Platform/DesktopMediaDialogs.cs": "0e5fab00b9e6fd657adb8db3594158003abb051a4c0c01752f08150b616a8848",
+    "src/MZTools.Desktop/Platform/DesktopPreferences.cs": "c2f9297dc75598d3536506a72bf6dbfa1888fe81ac8a55ce21754e463f1723b5",
+    "src/MZTools.Desktop/Platform/DesktopQuickDiskDialogs.cs": "45518c9d4bec10e01f0e0df204ccef66e8a3d9590f02e70d39a0f42867f8e554",
+    "src/MZTools.Desktop/Platform/DesktopRecorderNavigation.cs": "fc9ee86592be1cf1a8148083f101c036027ed4b301b3ec835e73f949c3bfd728",
+    "src/MZTools.Desktop/Platform/RecorderBackendFactory.cs": "c00be860c52f0ab4a7b573ada95b2df1f6f29ab16f5929010e60fd5bc5fe6158",
+    "src/MZTools.Desktop/Platform/RepairSourceProtection.cs": "ec2972fa5a955d6b88ea454d23ea641cd5a17d3d61a7158d13a80d20d782a93f",
+    "src/MZTools.Desktop/Program.cs": "b25124a325699191e74a4743eb9d76d1703c91f7916460ba5121d201f03e50f0",
+    "src/MZTools.Desktop/Theme/SharedStyles.axaml": "a876dee5fe79e878b92cae5bfe729d04f26c7b9f2250182aa960f6de7bafccdc",
+    "src/MZTools.Desktop/Theme/Tokens.axaml": "f4dd45adee9191710f39e81fe3608b4d806b564a9968f75d5f94cabce24683fb",
+    "src/MZTools.Desktop/Theme/WpfResources.axaml": "68454402990bec9ee566f3bebb422613cc1d0aab668f2459a573f042a881da9c",
+    "src/MZTools.Desktop/Theme/WpfStyles.axaml": "ac4bf9118f807522d100f7f0db3b44368922689f543c27e64b5c7e976f44860f",
+    "src/MZTools.Desktop/ViewModels/RecorderModel.cs": "5af3f68e9fc4c3d5c29f9b925107b58b3f499d1febc69983c22124f945d085a5",
+    "src/MZTools.Desktop/ViewModels/RecorderModel.WpfPresentation.cs": "9f118f65bf23710c99be9dca09947457dbe8b9c87b113537010b9cb11747f861",
+    "src/MZTools.Desktop/ViewModels/RecorderModel.WpfProbe.cs": "059385b0ebe2e25154469ed78fba0b63182d9e2e511cc006eb570cec4cf25dc0",
+    "src/MZTools.Desktop/ViewModels/ShellAudioCommands.cs": "1a4afa4d6200d702b837aa47a1d4bf54564da5a9d48f6d0289eee702e7c1ee63",
+    "src/MZTools.Desktop/ViewModels/ShellAudioRecovery.cs": "26625f0590336e0501a4c65c47595ad3d225aaa528bcc23df059ad449b1ac04e",
+    "src/MZTools.Desktop/ViewModels/ShellAudioWpfParity.cs": "dd75c66e88db65b50dc0a0c8a7696f3a8393e6bb0ac961fe052531aadebc4f21",
+    "src/MZTools.Desktop/ViewModels/ShellBatchCommands.cs": "5cb6b291c8d488a3a1c7fd95d1f6fc72c49b0817a8dec566f3593e9f6034d923",
+    "src/MZTools.Desktop/ViewModels/ShellDiskCommands.cs": "9b9ce7c9377e1c1bc66844b42c2f985d3a36ace27f707e71fe5d9345b6855dcb",
+    "src/MZTools.Desktop/ViewModels/ShellDiskDetails.cs": "357cc559413c035cb64924c6fd495866e5aee9ee1a81ed26ee39453dc90f698d",
+    "src/MZTools.Desktop/ViewModels/ShellDiskWpfCopy.cs": "d66bebede417f1ebb63fb7d73067b1dbeca48836940e2183576125a8e01f7fe1",
+    "src/MZTools.Desktop/ViewModels/ShellMediaCommands.cs": "66fcc33705dd48cc1e991a0e60d7793187deeabdffadbf9f3362013eaff4207e",
+    "src/MZTools.Desktop/ViewModels/ShellNativeComTools.cs": "557af105329f98a1bcabee6a7863a6f5126a136d6d3c2704ada862db3e99e5a4",
+    "src/MZTools.Desktop/ViewModels/ShellViewModel.cs": "3c06f0b613c2620a420c531d13d838cb116bc1021fd657e5895749f5afa97011",
+    "src/MZTools.Desktop/ViewModels/ShellWpfPresentation.cs": "1cbbe39052b37c838d2578d16cc2260ad6c27855c756d95c0666b396bad12f1a",
+    "src/MZTools.Desktop/Views/AnalysisWindow.cs": "83fd8db363c220d5c3c1cf2a16dd74960d582db9a6a314a283755cfdf7332476",
+    "src/MZTools.Desktop/Views/AudioWorkspace.axaml": "893951d2944d0db7f9a40c8bbe8a1e0edf499d59739156955041a9b672aa8d25",
+    "src/MZTools.Desktop/Views/AudioWorkspace.axaml.cs": "c4e04cb2d9e4fb179647025d50b7d92847fe432e5cc6e22f9973dc5d6f99fefb",
+    "src/MZTools.Desktop/Views/AudioWorkspace.WpfLayout.cs": "3cf3a472505ce74147feb12fa3522c65b395e9703c99091e54c8fcd4266f45f6",
+    "src/MZTools.Desktop/Views/AudioWorkspace.WpfScrollBar.cs": "6a71e988215d8cf45ceea56c080748454e0dcb196b341eeedd990d3c879d3d70",
+    "src/MZTools.Desktop/Views/AudioWorkspace.WpfWindows.cs": "9b434d8322e977e843e7d7d05e625bce667167a3bdf8f04291950c253f03d91a",
+    "src/MZTools.Desktop/Views/BatchWorkspace.axaml": "100a14fe31df4a61f7dfeb80f3d3fb7aa0b7f672f47240dbac27dc8fdbad7999",
+    "src/MZTools.Desktop/Views/BatchWorkspace.axaml.cs": "491ba994a58e1bac1c3fc96c6e47f17054bb5da46e80d6422550692d87c100e6",
+    "src/MZTools.Desktop/Views/DiskVisualWindow.cs": "3d447964bb7e58de0b6fb9ac0e12fe068dff368a1273d23a357555ed8047b55d",
+    "src/MZTools.Desktop/Views/DiskWorkspace.axaml": "2d5b0008663a3b6fd568a4801bff483ae51b4ab5ee3180bb58ee83aaf55b2048",
+    "src/MZTools.Desktop/Views/DiskWorkspace.axaml.cs": "a106744663067d6b24ba25fc6c27451380347711a10088e2712d02eeb657467a",
+    "src/MZTools.Desktop/Views/DiskWorkspace.WpfMenus.cs": "c47fc03460c1900a3f4748433aa9d6595e481d5f99dca3322b0bfb73c85398ba",
+    "src/MZTools.Desktop/Views/DiskWorkspace.WpfSplitter.cs": "ca10b27baeb3345dc6e54be0fb6a064df5d737a0de9e3147115d46cb7073f966",
+    "src/MZTools.Desktop/Views/DiskWorkspace.WpfWindows.cs": "70d29254401874f72d0918e240812183d0745fceb7e40541362241c29641bc12",
+    "src/MZTools.Desktop/Views/HexViewWindow.cs": "8a70a99970f50432319b92610d78595b93fccb6f572b6146c28ead6a2f3be5f6",
+    "src/MZTools.Desktop/Views/MainWindow.axaml": "761c297878e5002b027570559b3ca69d9a038c6d0ee2a55a9887e546ef87161a",
+    "src/MZTools.Desktop/Views/MainWindow.axaml.cs": "6fc506cba59ea2721e23e3194ac266bf5eebd47fd4b527af8d35e92177ec16bb",
+    "src/MZTools.Desktop/Views/MainWindow.Compact.cs": "648283d06c29f68c482bd4d6c4bd18b2870d3af39ae7eac1689675507ae8c440",
+    "src/MZTools.Desktop/Views/MainWindow.Tools.cs": "a40429d94023b1defa191a7f5e9c978f374ec07d5389ec1c8f4310cef226ee85",
+    "src/MZTools.Desktop/Views/MainWindow.Wpf.cs": "16377339c52c61d2739aeb1b87eae8a1def2d6a1d39199da265be03788f69c2d",
+    "src/MZTools.Desktop/Views/QuickDiskVisualWindow.cs": "272c8a3b67d7749be23074b553d9db0903c672812c4f6b2f5e9e33de1cd87e2d",
+    "src/MZTools.Desktop/Views/RecorderWindow.axaml": "cd55fa676e35bbc5760e5c26b1b0150a9be0874afff94b50eb616deb7f9503eb",
+    "src/MZTools.Desktop/Views/RecorderWindow.axaml.cs": "e44870af47762c4a36957a953db6611001603c8aa5772624062ca710d66a4f71",
+    "src/MZTools.Desktop/Views/RecordWorkspace.axaml": "6ed5adc9fc3c7a148f5613094e640032f97b3496b5ff72ea77c956cf8f352238",
+    "src/MZTools.Desktop/Views/RecordWorkspace.axaml.cs": "53bc420fef87f096b9460e3c95cc94b3203bd2b91fb33e1eb351f9ab18a871a5",
+    "src/MZTools.Desktop/Views/RecordWorkspace.Forensics.cs": "55d2fdd93b9008bfee0534d81ad22c704f6f1c2d2caa3f5cf1ab89dea9648007",
+    "src/MZTools.Desktop/Views/RecordWorkspace.Wpf.cs": "b4cdf19979e79da34530d87ed964ba48a1be7657ebb87b49ccdbe0d09f9b1212",
+    "src/MZTools.Desktop/Views/RecordWorkspace.WpfMap.cs": "ad5e8f7eff02bd42cb0d4a0ab9cf040b23a38fecc6ff5c37e76b72a60f66203c",
+    "tests/MZTools.Desktop.Tests/AudioDocumentTests.cs": "b32eec90d1f79fdfc4c91c102e2beefb465b7a1211ac43767f307b16da73baca",
+    "tests/MZTools.Desktop.Tests/AudioPerformanceTests.cs": "f839d38580d953f388cf2c0e56d9d2c37809677a23d624629b9a512c71ec81c8",
+    "tests/MZTools.Desktop.Tests/AudioUiTests.cs": "519e0b5e7a23d5f266e4a71a0f1810d31aa5254d374a24426f8a1b2034967092",
+    "tests/MZTools.Desktop.Tests/BatchDocumentTests.cs": "a27dfc95d7755ecbef44029d0e20d06ce49d87e0938624eafe573b3644af257a",
+    "tests/MZTools.Desktop.Tests/DeepWpfParityTests.cs": "837c51496bde8a39c86cf7220005b5bd5cfd4697101258da43260da744cb7c09",
+    "tests/MZTools.Desktop.Tests/DiskDocumentTests.cs": "cadd4378acc6029571e6b9cce861c68caf354963a76e1897b780fa191895a24d",
+    "tests/MZTools.Desktop.Tests/DiskUiTests.cs": "531fe20155c59466a621f9929612a759306d1da33d0d1b5e36403c8ff9012b4f",
+    "tests/MZTools.Desktop.Tests/DiskWorkflowTests.cs": "3266d504319db316b63337d8d7a7b16f23221e2eeaef6831213084292c9e93a0",
+    "tests/MZTools.Desktop.Tests/DocumentLifecycleTests.cs": "062fd0c173ae2882d1244cd873a5ee45cbadf522a16b29285a787e99645b272f",
+    "tests/MZTools.Desktop.Tests/HeadlessSetup.cs": "1b0030e90db1b9c7ae192b2a9e79d2928593228a96c3990fdf578d235844ac14",
+    "tests/MZTools.Desktop.Tests/MediaDocumentTests.cs": "6bdd48cfa7bcfc809dbb0c27d43ef159188dc80cb4781f5fa418f600441b29b4",
+    "tests/MZTools.Desktop.Tests/MediaUiTests.cs": "cc5ab8d69120c8c6de7945bfd064099f9f7589d12fbccac0ce8ea1d2fea4a46d",
+    "tests/MZTools.Desktop.Tests/MZTools.Desktop.Tests.csproj": "533252f6552f6223ebb6af90849b3f38f855117a32dc11ad1f1e85a413477acb",
+    "tests/MZTools.Desktop.Tests/NativeFlacTests.cs": "b1f8dba72ec9c0fc8a0e14e0fb458756b0c749c7010ebcaaf6854bb9aad7e78d",
+    "tests/MZTools.Desktop.Tests/PortAudioNativeTests.cs": "8939ed298fc1084a6f5d28a19390cfa51014fc25296f0fc36657ea913d6d8dd4",
+    "tests/MZTools.Desktop.Tests/RecorderTests.cs": "30ccb5079e937f2b52a782bac894aa94a695ba675aaa2c0196af98b431a14978",
+    "tests/MZTools.Desktop.Tests/ShellTests.cs": "53528ce359ab6c9b94a2761aaa82d177d3d76248ba7fa2841886fea1dc7954c7",
+    "tests/MZTools.Desktop.Tests/WpfParityTests.cs": "5db2e8e72c7ebb357aeeba74031647b84031bc9f48fc533af015fc9ca6b550f3",
+    "tests/MZTools.Desktop.Smoke/AudioScenario.cs": "d781406a217ac70028a34556188b14273fd88623d49e5f014d47c7f4d967e538",
+    "tests/MZTools.Desktop.Smoke/DiskScenario.cs": "0a7d7245e3997201070856095a07d1496deff67bf1155a400dbc820c5900d44b",
+    "tests/MZTools.Desktop.Smoke/MediaScenario.cs": "7b4d1b12ed84e87108db091376c950c03adba8899cd86f2de92adaa27090368e",
+    "tests/MZTools.Desktop.Smoke/MZTools.Desktop.Smoke.csproj": "b2e6b835cf682e43532047ef0f7d3f4d4915755210e3209782ccfc6330417281",
+    "tests/MZTools.Desktop.Smoke/Program.cs": "99e9a6518a230f6326b70deab53aeb19876dfc2eef6620359f41679923408792",
+    "tests/MZTools.Desktop.Smoke/RecorderScenario.cs": "fb14109fe16db223e6bf4cab9e25f379c272b17accbe7ae0fcca8df041a1a55a",
+    "MZTool.Tests/WpfParityUiSmoke/Program.cs": "c8f81eb144ce2847b8d51188d5a3711399d3e13f6e9c51afcd553df6c98ae9fe",
+    "MZTool.Tests/WpfParityUiSmoke/Smoke.csproj": "1acc942487ba8fe8838abf962bac49a7fe77d151c15cbf971d953cfe6737c8e5"
+  },
+  "runtimes": {
+    "windows": {
+      "runtime": "win-x64",
+      "framework": ".NET 10.0.11",
+      "flac": "libsndfile-1.2.2",
+      "captureStarted": false
+    },
+    "linux": {
+      "runtime": "linux-x64",
+      "framework": ".NET 10.0.11",
+      "flac": "libsndfile-1.2.2",
+      "captureStarted": false
+    }
+  },
+  "wpfReference": {
+    "exit": 0,
+    "frames": [
+      {
+        "file": "wpf-original-empty.png",
+        "logicalWidth": 1320,
+        "logicalHeight": 600,
+        "scale": 1.5,
+        "origin": "Unmodified render of the retained WPF frontend"
+      },
+      {
+        "file": "wpf-original-tape.png",
+        "logicalWidth": 1320,
+        "logicalHeight": 600,
+        "scale": 1.5,
+        "origin": "Unmodified render of the retained WPF frontend"
+      },
+      {
+        "file": "wpf-original-quickdisk-map.png",
+        "logicalWidth": 1320,
+        "logicalHeight": 600,
+        "scale": 1.5,
+        "origin": "Unmodified render of the retained WPF frontend"
+      },
+      {
+        "file": "wpf-original-quickdisk-visual.png",
+        "logicalWidth": 1150,
+        "logicalHeight": 780,
+        "scale": 1.5,
+        "origin": "Unmodified render of the retained WPF frontend"
+      },
+      {
+        "file": "wpf-original-audio-waveform.png",
+        "logicalWidth": 1200,
+        "logicalHeight": 850,
+        "scale": 1.5,
+        "origin": "Unmodified render of the retained WPF frontend"
+      },
+      {
+        "file": "wpf-original-audio-flac.png",
+        "logicalWidth": 1200,
+        "logicalHeight": 850,
+        "scale": 1.5,
+        "origin": "Unmodified render of the retained WPF frontend"
+      },
+      {
+        "file": "wpf-original-disk.png",
+        "logicalWidth": 1320,
+        "logicalHeight": 600,
+        "scale": 1.5,
+        "origin": "Unmodified render of the retained WPF frontend"
+      },
+      {
+        "file": "wpf-original-recorder.png",
+        "logicalWidth": 1220,
+        "logicalHeight": 900,
+        "scale": 1.5,
+        "origin": "Unmodified render of the retained WPF frontend"
+      },
+      {
+        "file": "wpf-original-recorder-live.png",
+        "logicalWidth": 1220,
+        "logicalHeight": 900,
+        "scale": 1.5,
+        "origin": "Unmodified render of the retained WPF frontend"
+      }
+    ],
+    "hardwareTested": false
+  },
+  "coreCaptureAndOriginalWpfUnchanged": true
+}

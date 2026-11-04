@@ -17,10 +17,10 @@ public sealed class HexViewWindow:Window
             get{var chars=new char[Math.Min(16,Bytes.Length-Offset)];for(int i=0;i<chars.Length;i++){byte b=Bytes[Offset+i];chars[i]=b is >=32 and <127?(char)b:'.';}return new string(chars);}
         }
     }
-    internal HexViewWindow(RecordRow row)
+    internal HexViewWindow(RecordRow row) : this(row.Record.GetSerializedHeader().Concat(row.Record.Body.MzfBody).Concat(row.Record.Body.TrailingData??[]).ToArray()) { }
+    internal HexViewWindow(byte[] bytes)
     {
         Title="Hex Browser";Width=800;Height=450;MinWidth=600;MinHeight=300;
-        byte[] bytes=row.Record.GetSerializedHeader().Concat(row.Record.Body.MzfBody).Concat(row.Record.Body.TrailingData??[]).ToArray();
         var table=new TableView{FontFamily=new FontFamily("Consolas, DejaVu Sans Mono"),Margin=new Thickness(8),ItemsSource=Enumerable.Range(0,(bytes.Length+15)/16).Select(i=>new Row(bytes,i*16)).ToArray()};
         table.Columns.Add(new(){Header="Offset",Binding=new Binding("Address"),Width=new GridLength(90)});
         table.Columns.Add(new(){Header="Hex",Binding=new Binding("Hex"),Width=new GridLength(3,GridUnitType.Star)});

@@ -13,10 +13,10 @@ internal sealed class DesktopRecorderNavigation(MainWindow? initial) : IRecorder
         cancellationToken.ThrowIfCancellationRequested();if(browser?.IsVisible!=true){browser=new MainWindow();browser.Show();}browser.Activate();
         if(!await browser.Model.Documents.OpenPathAsync(path))throw new IOException(browser.Model.Documents.Error??"Audio navigation was canceled or the browser is busy.");
         if(browser.Model.ActiveAudio is not { } audio)throw new InvalidOperationException("The saved recording did not open as an audio document.");
-        if(action==RecordedAudioAction.ManualRecovery)audio.ViewIndex=5;
+        if(action==RecordedAudioAction.ManualRecovery)new RecoveryWindow(audio,0,audio.Model.FrameCount).Show(browser);
         if(action==RecordedAudioAction.HeuristicImport)
         {
-            var records=audio.ExportRecords(true);if(records.Length==0){audio.ViewIndex=5;throw new InvalidDataException("No complete program was recovered. Use manual recovery; the source remains read-only.");}
+            var records=audio.ExportRecords(true);if(records.Length==0){new RecoveryWindow(audio,0,audio.Model.FrameCount).Show(browser);throw new InvalidDataException("No complete program was recovered. Use manual recovery; the source remains read-only.");}
             var tape=TapeSession.New(false);tape.ApplyRecords(records);browser.Model.Documents.Add(tape);
         }
     }

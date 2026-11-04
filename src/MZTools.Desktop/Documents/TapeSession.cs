@@ -103,7 +103,7 @@ public sealed partial class TapeSession : DocumentSession, IFileSetDocument
     public string MediaReport => Summary + "\n" + (Path ?? "Untitled") + "\n\n" +
         string.Join("\n",Model.Records.Select((r,i)=>new RecordRow(r,i)).Select(r=>$"#{r.Number} {r.Name} · type {r.Type} · LOAD {r.Load} · EXEC {r.Execute} · {r.Size} · {r.Profile} · {r.Compression}")) +
         "\n\n" + MediaEvidence + "\n\nUnapplied metadata fields are not included. No hardware capture or test certification is implied.";
-    internal void SelectRegion(QuickDiskRegion region) { SelectedRegion = region; Changed(nameof(MapDetail)); Changed(nameof(HasRegion)); Changed(nameof(CanFitSelection)); }
+    internal void SelectRegion(QuickDiskRegion? region) { SelectedRegion = region; Changed(nameof(MapDetail)); Changed(nameof(WpfMapDetail)); Changed(nameof(MapMessages)); Changed(nameof(HasRegion)); Changed(nameof(CanFitSelection)); }
 
     internal TapeSession(TapeDocument document, Dictionary<string, string?>? hashes = null)
     {
@@ -144,7 +144,7 @@ public sealed partial class TapeSession : DocumentSession, IFileSetDocument
             snapshotDirty = false; SelectedRegion = null;
         }
         Changed(nameof(Rows)); Changed(nameof(HasRows)); Changed(nameof(EmptyMessage)); Changed(nameof(SelectedRow)); Changed(nameof(Summary)); Changed(nameof(Format)); Changed(nameof(CanEdit)); Changed(nameof(IsQuickDisk));
-        Changed(nameof(MapSummary)); Changed(nameof(Hex)); Changed(nameof(SaveDisabledReason)); Changed(nameof(SelectedHidden)); Changed(nameof(MapDetail)); Changed(nameof(HasRegion)); Changed(nameof(CanFitSelection)); Changed(nameof(MediaEvidence)); Changed(nameof(MediaReport));
+        Changed(nameof(MapSummary)); Changed(nameof(MapRegions)); Changed(nameof(WpfMapSummary)); Changed(nameof(Hex)); Changed(nameof(SaveDisabledReason)); Changed(nameof(SelectedHidden)); Changed(nameof(MapDetail)); Changed(nameof(WpfMapDetail)); Changed(nameof(MapMessages)); Changed(nameof(HasRegion)); Changed(nameof(CanFitSelection)); Changed(nameof(MediaEvidence)); Changed(nameof(MediaReport));
         refreshing = false; if (!hadDraft || previousRecord != selected?.Record) LoadFields();
     }
     private void EnsureEditable() { if (!CanEdit) throw new InvalidOperationException(SaveDisabledReason); }
@@ -258,7 +258,7 @@ public sealed partial class TapeSession : DocumentSession, IFileSetDocument
     public override Task ValidateSavedAsync(string temporaryPath, CancellationToken cancellationToken) => throw new NotSupportedException("Validation belongs to the file-set plan.");
 }
 
-public sealed class MediaDocumentLoader(IDiskDialogs? diskDialogs = null) : IDocumentLoader,IProgressDocumentLoader
+public sealed class MediaDocumentLoader(IDiskDialogs? diskDialogs = null, bool audioOnly = false) : IDocumentLoader,IProgressDocumentLoader
 {
     private IProgress<LoadProgress>? progress;
     IProgress<LoadProgress>? IProgressDocumentLoader.Progress {get=>progress;set=>progress=value;}
@@ -269,6 +269,7 @@ public sealed class MediaDocumentLoader(IDiskDialogs? diskDialogs = null) : IDoc
             var sink=progress;var reporter=new Progress<WavAnalysisProgress>(p=>sink?.Report(new(p.Stage,p.Fraction)));
             return await AudioSession.LoadAsync(path,reporter,cancellationToken);
         }
+        if(audioOnly)throw new InvalidDataException("Choose a WAV, FLAC, or a complete .wav.json recording report.");
         if (System.IO.Path.GetExtension(path).ToLowerInvariant() is ".dsk" or ".hfe")
             return await DiskLoader.LoadAsync(path,diskDialogs,cancellationToken);
         return await Task.Run<DocumentSession>(() =>

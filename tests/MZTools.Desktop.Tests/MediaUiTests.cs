@@ -116,8 +116,9 @@ public sealed class MediaUiTests
         var map=host.Window.GetVisualDescendants().OfType<RegionMap>().Single();
         tape.Selection.Clear();tape.Selection.Add(0);map.FitSelection();Dispatcher.UIThread.RunJobs();
         var region=tape.Snapshot!.Layout.Regions.First(r=>r.FileIndex==0&&r.Kind==QuickDiskRegionKind.Payload);
-        double x=(region.Start+region.Length/2d-tape.MapStart)/tape.MapLength*map.Bounds.Width;
-        var point=map.TranslatePoint(new Point(x,40),host.Window)!.Value;
+        double rowPosition=(region.Start+region.Length/2d)/tape.Snapshot.Layout.Length*8;
+        double x=110+(rowPosition-Math.Floor(rowPosition))*(Math.Max(600,map.Bounds.Width)-122);
+        var point=map.TranslatePoint(new Point(x,(Math.Floor(rowPosition)+1)*31+10),host.Window)!.Value;
         host.Window.MouseDown(point,MouseButton.Left,RawInputModifiers.None);host.Window.MouseUp(point,MouseButton.Left,RawInputModifiers.None);Dispatcher.UIThread.RunJobs();
         Assert.Equal(0,tape.SelectedRow!.Index);Assert.Contains(0,tape.Selection);Assert.True(tape.HasRegion);
         var primary=OperatingSystem.IsMacOS()?RawInputModifiers.Meta:RawInputModifiers.Control;

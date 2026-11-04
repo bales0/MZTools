@@ -23,6 +23,7 @@ public sealed partial class DiskWorkspace
     internal void OpenWpfDiskWindow(int index)
     {
         if(openingTool||index<2||index>=DiskTabs.Items.Count||TopLevel.GetTopLevel(this) is not Window owner)return;
+        if(index==2){if(observed is not null)observed.ViewIndex=1;DiskTabs.SelectedIndex=1;MapInspectorTabs.SelectedIndex=1;return;}
         openingTool=true;
         try
         {

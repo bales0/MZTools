@@ -1,9 +1,19 @@
 # MZTools
 
-The current multiplatform frontend follows the retained WPF application's appearance
-and workflows. See [the WPF parity changes and measured validation](docs/WPF_PARITY_2026-11-03.md).
-New developer archives are in `TestResults/WpfParity-2026-11-03/distribution`;
-the earlier October archives predate these UI changes.
+The multiplatform frontend is being checked against the retained WPF application.
+The [4 November UI audit](docs/WPF_PARITY_AUDIT_2026-11-04.md) records corrected
+QuickDisk/DSK maps, QuickDisk visual analysis and WAV/FLAC analysis, including
+specific remaining differences. Full WPF UI parity is not yet confirmed.
+The [subsequent UI fixes](docs/UI_FIXES_2026-11-04.md) address floating-detail crashes,
+waveform selection/detail zoom and stereo alignment in Deep Analyze.
+[Selected audio analysis](docs/SELECTED_AUDIO_ANALYSIS_2026-11-04.md) now opens an
+independent WPF-style preview immediately and decodes only its captured interval.
+[Payload-only analysis](docs/PAYLOAD_UNKNOWN_LENGTH_2026-11-04.md) treats a blank size
+as unknown and ignores stale size values when Unknown length is selected.
+Current Windows/Linux x64 developer archives are in
+`TestResults/DskParity-2026-11-04/distribution`; earlier archives predate this change.
+[DSK analyzer and visual inspector parity](docs/DSK_ANALYZER_PARITY_2026-11-04.md)
+restores the WPF map layout, layers, filters, structured selection details and embedded MFM view.
 
 MZTools is a utility for converting, inspecting and editing SHARP MZ QuickDisk and tape files.
 

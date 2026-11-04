@@ -39,6 +39,7 @@ public sealed partial class RecordWorkspace : UserControl
         RecordsTable.AddHandler(DragDrop.DropEvent, Drop);
         AddHandler(KeyDownEvent, RecordKey, RoutingStrategies.Tunnel);
         MediaMap.FileSelected += MapSelect;
+        MediaMap.SelectionCleared += () => { Model?.ActiveTape?.SetSelection([]); RestoreSelection(); };
         AttachedToVisualTree += (_, _) => BindSession();
         DetachedFromVisualTree += (_, _) => { if (observed is not null) observed.PropertyChanged -= SessionChanged; observed = null; };
     }

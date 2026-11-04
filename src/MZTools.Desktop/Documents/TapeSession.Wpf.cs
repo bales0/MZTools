@@ -28,7 +28,9 @@ public sealed partial class TapeSession
             long declared=Model.Records.Sum(r=>(long)r.Body.DataSize),trailing=Model.Records.Sum(r=>(long)(r.Body.TrailingData?.Length??0)),container=Model.ContainerTrailingData.Length;
             long qdf=QDFFileReader.HeaderSize+Model.Records.Sum(r=>(long)QDFFileReader.FileOverhead+r.Body.DataSize),mzq=8+Model.Records.Sum(r=>84L+r.Body.DataSize),qd=mzq+8;
             string detail=trailing>0||container>0?$" ({declared} declared + {trailing} record trailing + {container} container trailing)":"";
-            return $"Total {Model.Records.Count} files occupy {declared+trailing+container} bytes{detail}, est. {(float)qdf/819.36:F0}% QDF, {(float)mzq/614.71:F0}% MZQ or {(float)qd/614.55:F0}% QD.";
+            string qdType=Model.Format switch {TapeDocumentFormat.QdSharpLegacy=>"Sharp legacy logical",TapeDocumentFormat.QdHxc=>"HxC physical",TapeDocumentFormat.QdFlashFloppy=>"FlashFloppy physical",_=>""};
+            string prefix=qdType.Length>0?$"Quickdisk image type: {qdType} | Files: {Model.Records.Count} / {QuickDiskLimits.StandardDirectoryEntries}\n":"";
+            return prefix+$"Total {Model.Records.Count} files occupy {declared+trailing+container} bytes{detail}, est. {(float)qdf/819.36:F0}% QDF, {(float)mzq/614.71:F0}% MZQ or {(float)qd/614.55:F0}% QD.";
         }
     }
     // Same profile composition and byte-preserving clone/apply path as the WPF row handlers.

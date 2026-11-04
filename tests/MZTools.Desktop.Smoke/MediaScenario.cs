@@ -67,7 +67,16 @@ internal static class MediaScenario
             Capture("native-quickdisk.png");
             var tabs=window.GetVisualDescendants().OfType<TabControl>().Single(t=>t.Name=="RecordTabs");tabs.SelectedIndex=1;await Task.Delay(60);
             Capture("native-quickdisk-map.png");
-            var inspector=new QuickDiskVisualWindow(model);inspector.Show(window);await Task.Delay(100);Capture("native-quickdisk-inspector.png");inspector.Close();Check(!model.ActiveTape!.IsModified,"Native QuickDisk inspector preserves the clean saved document");
+            var inspector=new QuickDiskVisualWindow(model);inspector.Show(window);await Task.Delay(100);Capture("native-quickdisk-inspector.png");
+            var floating=inspector.GetVisualDescendants().OfType<CheckBox>().Single(c=>Equals(c.Content,"Floating selection details"));
+            var inspectorTabs=inspector.GetVisualDescendants().OfType<TabControl>().Single();inspectorTabs.SelectedIndex=1;await Task.Delay(30);var regionTable=inspector.GetVisualDescendants().OfType<TableView>().Single(t=>t.IsEffectivelyVisible);regionTable.SelectedItem=regionTable.ItemsSource!.Cast<object>().First();inspectorTabs.SelectedIndex=0;await Task.Delay(30);Check(floating.IsChecked==false&&!inspector.OwnedWindows.Any(),"Native first region selection leaves floating details closed by default");
+            for(int cycle=0;cycle<3;cycle++)
+            {
+                floating.IsChecked=true;await Task.Delay(30);var detail=inspector.OwnedWindows.Single();Check(detail.IsVisible,"Native floating detail opens, cycle "+cycle);
+                floating.IsChecked=false;await Task.Delay(20);floating.IsChecked=true;await Task.Delay(20);Check(detail.IsVisible,"Native floating detail hides and reopens, cycle "+cycle);
+                detail.Close();await Task.Delay(20);Check(floating.IsChecked==false&&!inspector.OwnedWindows.Any(),"Native closed detail can be recreated safely, cycle "+cycle);
+            }
+            floating.IsChecked=true;await Task.Delay(20);inspector.Close();Check(!model.ActiveTape!.IsModified,"Native QuickDisk inspector preserves the clean saved document");
             var activePath=model.ActiveTape!.Path;
             dialogs.Export=new(Path.Combine(directory,"export.lep"),"Lep",SelectedOnly:false);await Execute(model.ExportCommand);
             Check(File.Exists(dialogs.Export.Path)&&new FileInfo(dialogs.Export.Path).Length>0,"Native export uses the real LEP writer");

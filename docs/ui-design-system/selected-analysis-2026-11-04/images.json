@@ -1,0 +1,22 @@
+[
+  {
+    "name": "wpf.png",
+    "source": "TestResults/SelectedAnalysis-2026-11-04/wpf-reference/wpf-original-selected-analysis.png",
+    "sha256": "02d7796722f12a9abd21174b236881a44d6fcfe8b67e6a30e05c6605e8aa8b77"
+  },
+  {
+    "name": "avalonia-windows.png",
+    "source": "TestResults/SelectedAnalysis-2026-11-04/windows/screenshots/selected-analysis-layout.png",
+    "sha256": "66659f08e5f69c453cc87b8e07aed9dcc632a850a1118c116f0cce9546fa5d40"
+  },
+  {
+    "name": "avalonia-linux.png",
+    "source": "TestResults/SelectedAnalysis-2026-11-04/linux/screenshots/selected-analysis-layout.png",
+    "sha256": "9205808d7608915761297ce0c07365ad9a7392c074bc597123b4ea420b75d8cc"
+  },
+  {
+    "name": "selected-range-results.png",
+    "source": "TestResults/SelectedAnalysis-2026-11-04/windows/screenshots/selected-analysis-window.png",
+    "sha256": "f20bcfad0f677838571dd6b4644808dc82c43b2f9f68720d78db7586c4e41066"
+  }
+]

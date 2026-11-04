@@ -1,0 +1,149 @@
+[
+  {
+    "view": "map",
+    "platform": "WPF",
+    "name": "wpf-map.png",
+    "source": "TestResults/DskParity-2026-11-04/wpf-reference/wpf-original-dsk-map.png",
+    "sha256": "a497e307a54a69b762ef795399a7f8e7d543e7ea6e75879abe4569c381c83485"
+  },
+  {
+    "view": "map",
+    "platform": "Avalonia Windows",
+    "name": "avalonia-windows-map.png",
+    "source": "TestResults/DskParity-2026-11-04/windows/screenshots/avalonia-dsk-map.png",
+    "sha256": "9638440a988a23fb64480d8f2a6d8dd71a87d14dfb87b14668ef270a7aa08a7f"
+  },
+  {
+    "view": "map",
+    "platform": "Avalonia Linux",
+    "name": "avalonia-linux-map.png",
+    "source": "TestResults/DskParity-2026-11-04/linux/screenshots/avalonia-dsk-map.png",
+    "sha256": "1da2084666372e7a9343442637df4245626a83d8364b0c83ef9b9a6ffe516677"
+  },
+  {
+    "view": "surface",
+    "platform": "WPF",
+    "name": "wpf-surface.png",
+    "source": "TestResults/DskParity-2026-11-04/wpf-reference/wpf-original-dsk-surface.png",
+    "sha256": "bf18a8fabcbf4cd739f4917e0051b2cacd6eb1546165b738460a0dca3cdb0897"
+  },
+  {
+    "view": "surface",
+    "platform": "Avalonia Windows",
+    "name": "avalonia-windows-surface.png",
+    "source": "TestResults/DskParity-2026-11-04/windows/screenshots/avalonia-dsk-surface.png",
+    "sha256": "5d2df88a5c64c63a79aea565d2579e082b8d22a885e22b7ab1ce1d05f08965e2"
+  },
+  {
+    "view": "surface",
+    "platform": "Avalonia Linux",
+    "name": "avalonia-linux-surface.png",
+    "source": "TestResults/DskParity-2026-11-04/linux/screenshots/avalonia-dsk-surface.png",
+    "sha256": "b5d20ffd2cb4bd087b350dce5ba14a4f650236f3a11eb5d62c3f7bcb75239195"
+  },
+  {
+    "view": "track",
+    "platform": "WPF",
+    "name": "wpf-track.png",
+    "source": "TestResults/DskParity-2026-11-04/wpf-reference/wpf-original-dsk-track.png",
+    "sha256": "3758ff6eec62c4ad53a18e198ca12eb2cb5ff01af330ddf400be9dcd66ba1e31"
+  },
+  {
+    "view": "track",
+    "platform": "Avalonia Windows",
+    "name": "avalonia-windows-track.png",
+    "source": "TestResults/DskParity-2026-11-04/windows/screenshots/avalonia-dsk-track.png",
+    "sha256": "7d18e3cec209c1baac0bfac8c332944a2b2b3e765b12434d64073f42b4f08131"
+  },
+  {
+    "view": "track",
+    "platform": "Avalonia Linux",
+    "name": "avalonia-linux-track.png",
+    "source": "TestResults/DskParity-2026-11-04/linux/screenshots/avalonia-dsk-track.png",
+    "sha256": "2aedfab5ce21e1292cfa7279ed06847989793742eef476f2d6408bebab929bda"
+  },
+  {
+    "view": "issues",
+    "platform": "WPF",
+    "name": "wpf-issues.png",
+    "source": "TestResults/DskParity-2026-11-04/wpf-reference/wpf-original-dsk-issues.png",
+    "sha256": "f7e9c22d281408df7403c1d6513019ff293be77163b455f44e93702e1007e10e"
+  },
+  {
+    "view": "issues",
+    "platform": "Avalonia Windows",
+    "name": "avalonia-windows-issues.png",
+    "source": "TestResults/DskParity-2026-11-04/windows/screenshots/avalonia-dsk-issues.png",
+    "sha256": "4ed18ae35083d443eb565a50ed4b81bbf6a2a836ce870449ae260148592de620"
+  },
+  {
+    "view": "issues",
+    "platform": "Avalonia Linux",
+    "name": "avalonia-linux-issues.png",
+    "source": "TestResults/DskParity-2026-11-04/linux/screenshots/avalonia-dsk-issues.png",
+    "sha256": "31b2b213f7b60e5ac8f47032dda45ec6ccdd9c57297cb93d478a43337b251dae"
+  },
+  {
+    "view": "statistics",
+    "platform": "WPF",
+    "name": "wpf-statistics.png",
+    "source": "TestResults/DskParity-2026-11-04/wpf-reference/wpf-original-dsk-statistics.png",
+    "sha256": "f44b5669b85d8083efe3292602f6c37021274c5cb148d8577e0ba620b81c6744"
+  },
+  {
+    "view": "statistics",
+    "platform": "Avalonia Windows",
+    "name": "avalonia-windows-statistics.png",
+    "source": "TestResults/DskParity-2026-11-04/windows/screenshots/avalonia-dsk-statistics.png",
+    "sha256": "7492a2adeec4c702465ae6c2a62a3c23bc93e8b3ed626df640f36cbdb1d54711"
+  },
+  {
+    "view": "statistics",
+    "platform": "Avalonia Linux",
+    "name": "avalonia-linux-statistics.png",
+    "source": "TestResults/DskParity-2026-11-04/linux/screenshots/avalonia-dsk-statistics.png",
+    "sha256": "366f396257726cbe6c8b39dc9e6e83265a1280676aeeca31147d3d0e301a0c4b"
+  },
+  {
+    "view": "tracks",
+    "platform": "WPF",
+    "name": "wpf-tracks.png",
+    "source": "TestResults/DskParity-2026-11-04/wpf-reference/wpf-original-dsk-tracks.png",
+    "sha256": "124f17c6edf65ab66a17ccf9969a61aa467380a1a3f2bd848accf240992c0fcd"
+  },
+  {
+    "view": "tracks",
+    "platform": "Avalonia Windows",
+    "name": "avalonia-windows-tracks.png",
+    "source": "TestResults/DskParity-2026-11-04/windows/screenshots/avalonia-dsk-tracks.png",
+    "sha256": "0c7736956d81a38f830ef98df6185351d0736661ec8eebc02de2ebbcc992479d"
+  },
+  {
+    "view": "tracks",
+    "platform": "Avalonia Linux",
+    "name": "avalonia-linux-tracks.png",
+    "source": "TestResults/DskParity-2026-11-04/linux/screenshots/avalonia-dsk-tracks.png",
+    "sha256": "5b21e97454fca4eadc2149627486088b65404a54285fbec8342b453473c54464"
+  },
+  {
+    "view": "mfm",
+    "platform": "WPF",
+    "name": "wpf-mfm.png",
+    "source": "TestResults/DskParity-2026-11-04/wpf-reference/wpf-original-dsk-mfm.png",
+    "sha256": "b5744e19edd93578295bca892ab044332146ac3c92b9c57ebcc215bf7c241517"
+  },
+  {
+    "view": "mfm",
+    "platform": "Avalonia Windows",
+    "name": "avalonia-windows-mfm.png",
+    "source": "TestResults/DskParity-2026-11-04/windows/screenshots/avalonia-dsk-mfm.png",
+    "sha256": "609010c3ed17441fa9493901a224352a8bc81063770fa35b508513fdb60ef2d4"
+  },
+  {
+    "view": "mfm",
+    "platform": "Avalonia Linux",
+    "name": "avalonia-linux-mfm.png",
+    "source": "TestResults/DskParity-2026-11-04/linux/screenshots/avalonia-dsk-mfm.png",
+    "sha256": "b0d0bcb2b0ff37a14991499b4d8c102f6e509b8ed93f7e897634ccdffa70f76c"
+  }
+]
