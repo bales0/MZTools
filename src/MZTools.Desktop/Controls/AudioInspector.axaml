@@ -1,16 +1,34 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:MZTools.Desktop.ViewModels" x:Class="MZTools.Desktop.Controls.AudioInspector" x:DataType="vm:ShellViewModel">
- <ScrollViewer HorizontalScrollBarVisibility="Disabled"><StackPanel Spacing="10" Margin="0,0,8,0">
-  <TextBlock Text="Audio inspector" Classes="section" /><TextBlock Text="{Binding ActiveAudio.Summary}" Classes="muted" TextWrapping="Wrap" />
-  <TextBlock Text="{Binding ActiveAudio.Detail}" TextWrapping="Wrap" />
-  <Separator /><TextBlock Text="Preview transform · source PCM stays read-only" TextWrapping="Wrap" FontWeight="SemiBold" />
-  <StackPanel Spacing="8" IsEnabled="{Binding CanUseAudio}">
-   <TextBlock Text="Right shift · source frames" Classes="muted" /><TextBox Text="{Binding ActiveAudio.RightShift, Mode=TwoWay}" IsEnabled="{Binding ActiveAudio.CanAlign}" AutomationProperties.Name="Right channel shift in frames" />
-   <CheckBox Content="Invert right polarity" IsChecked="{Binding ActiveAudio.InvertRight, Mode=TwoWay}" IsEnabled="{Binding ActiveAudio.CanAlign}" /><CheckBox Content="Mix (L + R) / 2" IsChecked="{Binding ActiveAudio.Mix, Mode=TwoWay}" IsEnabled="{Binding ActiveAudio.CanAlign}" />
-   <WrapPanel><Button Content="Apply preview" Command="{Binding AudioPreviewCommand}" Margin="0,0,6,6" /><Button Content="Cancel edits" Command="{Binding AudioResetCommand}" /></WrapPanel>
-  </StackPanel>
-  <TextBlock Text="{Binding ActiveAudio.TransformDescription}" Classes="muted" TextWrapping="Wrap" />
-  <TextBlock Text="{Binding ActiveAudio.Validation}" Foreground="{DynamicResource F2.error}" TextWrapping="Wrap" />
-  <Separator /><TextBlock Text="Reference evidence" FontWeight="SemiBold" /><TextBlock Text="{Binding ActiveAudio.ReferenceEvidence}" TextWrapping="Wrap" Classes="muted" />
-  <Separator /><TextBlock Text="{Binding ActiveAudio.SelectionSummary}" TextWrapping="Wrap" />
- </StackPanel></ScrollViewer>
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" AllowAutoHide="False">
+    <StackPanel Spacing="6" Margin="0,0,5,0">
+      <TextBlock Text="Audio inspector" Classes="section" />
+      <TextBlock Text="{Binding ActiveAudio.Summary}" Classes="muted" TextWrapping="Wrap" />
+      <TextBlock Text="{Binding ActiveAudio.Detail}" TextWrapping="Wrap" />
+      <Separator />
+      <TextBlock Text="Stereo alignment" FontWeight="SemiBold" />
+      <StackPanel Spacing="5" IsEnabled="{Binding CanUseAudio}">
+        <TextBlock Text="Move R relative to L (source frames)" Classes="muted" />
+        <TextBox Text="{Binding ActiveAudio.RightShift, Mode=TwoWay}" IsEnabled="{Binding ActiveAudio.CanAlign}" AutomationProperties.Name="Right channel shift in frames" />
+        <WrapPanel>
+          <Button Content="−10" Command="{Binding AudioShiftRightMinusTenCommand}" Margin="0,0,4,4" ToolTip.Tip="Move right channel 10 frames earlier; keep zoom" />
+          <Button Content="−1" Command="{Binding AudioShiftRightMinusOneCommand}" Margin="0,0,4,4" ToolTip.Tip="Move right channel 1 frame earlier; keep zoom" />
+          <Button Content="+1" Command="{Binding AudioShiftRightPlusOneCommand}" Margin="0,0,4,4" ToolTip.Tip="Move right channel 1 frame later; keep zoom" />
+          <Button Content="+10" Command="{Binding AudioShiftRightPlusTenCommand}" Margin="0,0,4,4" ToolTip.Tip="Move right channel 10 frames later; keep zoom" />
+        </WrapPanel>
+        <CheckBox Content="Invert right polarity" IsChecked="{Binding ActiveAudio.InvertRight, Mode=TwoWay}" IsEnabled="{Binding ActiveAudio.CanAlign}" />
+        <CheckBox Content="Mix (L + R) / 2" IsChecked="{Binding ActiveAudio.Mix, Mode=TwoWay}" IsEnabled="{Binding ActiveAudio.CanAlign}" />
+        <WrapPanel>
+          <Button Content="Apply without zoom reset" Command="{Binding AudioPreviewKeepViewportCommand}" Margin="0,0,5,4" ToolTip.Tip="Apply alignment, preserve viewport and selection" />
+          <Button Content="Reset alignment" Command="{Binding AudioResetCommand}" Margin="0,0,0,4" />
+        </WrapPanel>
+      </StackPanel>
+      <TextBlock Text="{Binding ActiveAudio.TransformDescription}" Classes="muted" TextWrapping="Wrap" />
+      <TextBlock Text="{Binding ActiveAudio.Validation}" Foreground="{DynamicResource F2.error}" TextWrapping="Wrap" />
+      <Separator />
+      <TextBlock Text="Reference evidence" FontWeight="SemiBold" />
+      <TextBlock Text="{Binding ActiveAudio.ReferenceEvidence}" TextWrapping="Wrap" Classes="muted" />
+      <Separator />
+      <TextBlock Text="{Binding ActiveAudio.SelectionSummary}" TextWrapping="Wrap" />
+    </StackPanel>
+  </ScrollViewer>
 </UserControl>

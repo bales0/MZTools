@@ -111,7 +111,7 @@ public sealed partial class MainWindow : Window
     private void CycleFocus(object? sender, KeyEventArgs e)
     {
         if (e.Key != Key.F6) return;
-        Control[] regions = [MainMenu, OpenButton, DocumentTabs, Navigation, Model.ShowBatch ? BatchEditor.FocusRegion : Model.ShowAudio ? AudioEditor.WorkspaceFocusRegion : Model.ShowDisk ? DiskEditor.WorkspaceFocusRegion : Model.ShowMedia ? RecordEditor.WorkspaceFocusRegion : ModuleFilter,
+        Control[] regions = [CommandBar.Children.OfType<Button>().FirstOrDefault(b=>b.Name=="ToolsButton")??OpenButton, OpenButton, DocumentTabs, Navigation, Model.ShowBatch ? BatchEditor.FocusRegion : Model.ShowAudio ? AudioEditor.WorkspaceFocusRegion : Model.ShowDisk ? DiskEditor.WorkspaceFocusRegion : Model.ShowMedia ? RecordEditor.WorkspaceFocusRegion : ModuleFilter,
             Model.ShowAudio ? AudioEditor.InspectorFocusRegion : Model.ShowDisk ? DiskEditor.InspectorFocusRegion : Model.ShowMedia ? RecordEditor.InspectorFocusRegion : InspectorForm, CancelOperation];
         var visible = regions.Where(c => c.IsEffectivelyVisible && c.IsEffectivelyEnabled).ToArray();
         int current = Array.FindIndex(visible, c => c.IsKeyboardFocusWithin);
@@ -120,8 +120,10 @@ public sealed partial class MainWindow : Window
         {
             int index = (current + direction * offset + visible.Length * 2) % visible.Length;
             var region = visible[index];
-            if (region.Focus(NavigationMethod.Tab) || region.GetVisualDescendants().OfType<Control>()
-                    .Any(c => c.IsEffectivelyVisible && c.IsEffectivelyEnabled && c.Focusable && c.Focus(NavigationMethod.Tab))) break;
+            var targets = region is TextBox or ComboBox or TableView or Button
+                ? new[] { region }
+                : region.GetVisualDescendants().OfType<Control>().Where(c => c is TextBox or ComboBox or TableView or Button);
+            if (targets.Any(c => c.IsEffectivelyVisible && c.IsEffectivelyEnabled && c.Focusable && c.Focus(NavigationMethod.Tab))) break;
         }
         e.Handled = true;
     }

@@ -105,7 +105,7 @@ public sealed class DiskMap : Control
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
     {
         if(e.Delta.Y==0)return;
-        if(Mode>0)ZoomSurface(e.Delta.Y>0?1.5:1/1.5,e.GetPosition(this));
+        if(Mode>0)ZoomSurface(e.Delta.Y>0?1.2:1/1.2,e.GetPosition(this));
         else Zoom(e.Delta.Y>0?1.5:1/1.5,Math.Clamp((e.GetPosition(this).Y-24)/Math.Max(1,Bounds.Height-30),0,1));e.Handled=true;
     }
     protected override void OnPointerPressed(PointerPressedEventArgs e)

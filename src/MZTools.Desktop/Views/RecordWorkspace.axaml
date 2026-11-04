@@ -1,8 +1,9 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:MZTools.Desktop.ViewModels" xmlns:c="using:MZTools.Desktop.Controls"
+             xmlns:d="using:MZTools.Desktop.Documents" xmlns:vm="using:MZTools.Desktop.ViewModels" xmlns:c="using:MZTools.Desktop.Controls"
              x:Class="MZTools.Desktop.Views.RecordWorkspace" x:DataType="vm:ShellViewModel">
-  <Grid RowDefinitions="Auto,*" RowSpacing="12" MinHeight="380">
-    <WrapPanel Orientation="Horizontal">
+  <UserControl.Resources><c:TapeLoaderConverter x:Key="WpfLoaderLabel" /></UserControl.Resources>
+  <Grid RowDefinitions="Auto,*" RowSpacing="0">
+    <WrapPanel Orientation="Horizontal" IsVisible="False">
       <Button Content="Import…" Command="{Binding ImportCommand}" Margin="0,0,6,6" />
       <Button Content="Export…" Command="{Binding ExportCommand}" Margin="0,0,6,6" />
       <Button Content="Compression…" Command="{Binding CompressCommand}" Margin="0,0,6,6" />
@@ -14,15 +15,15 @@
     </WrapPanel>
     <Grid Grid.Row="1" x:Name="EditorGrid" ColumnDefinitions="*,16,272">
       <TabControl x:Name="RecordTabs" SelectedIndex="{Binding ActiveTape.ViewIndex, Mode=TwoWay}">
-        <TabItem Header="Records">
-          <Grid RowDefinitions="Auto,*" RowSpacing="12" Margin="0,12,0,0">
-            <TextBox x:Name="RecordFilter" Text="{Binding ActiveTape.Filter, Mode=TwoWay}" PlaceholderText="Filter records…" AutomationProperties.Name="Filter records" />
+        <TabItem Header="Files">
+          <Grid RowDefinitions="Auto,*" RowSpacing="0" Margin="0">
+            <TextBox IsVisible="False" x:Name="RecordFilter" Text="{Binding ActiveTape.Filter, Mode=TwoWay}" PlaceholderText="Filter records…" AutomationProperties.Name="Filter records" />
             <Border Grid.Row="1" Classes="panel" Padding="0" MinHeight="200">
               <Grid>
               <TableView x:Name="RecordsTable" ItemsSource="{Binding ActiveTape.Rows}" SelectionMode="Multiple" IsEnabled="{Binding !Documents.IsBusy}"
                          SelectionChanged="SelectionChanged" AutomationProperties.Name="Records" DragDrop.AllowDrop="True">
                 <TableView.ContextMenu>
-                  <ContextMenu>
+                  <ContextMenu><MenuItem Header="Add..." Command="{Binding ImportCommand}" /><MenuItem Header="Rename" Click="RenameInline" /><MenuItem Header="Hex view..." Click="ViewHex" />
                     <MenuItem Header="Copy records" Command="{Binding CopyRecordsCommand}" />
                     <MenuItem Header="Paste records…" Command="{Binding PasteRecordsCommand}" />
                     <MenuItem Header="Compression…" Command="{Binding CompressCommand}" />
@@ -32,14 +33,17 @@
                   </ContextMenu>
                 </TableView.ContextMenu>
                 <TableView.Columns>
-                  <TableViewColumn Header="#" Binding="{ReflectionBinding Number}" Width="44" />
-                  <TableViewColumn Header="Name" Binding="{ReflectionBinding Name}" Width="170" />
-                  <TableViewColumn Header="Type" Binding="{ReflectionBinding Type}" Width="60" />
-                  <TableViewColumn Header="Load" Binding="{ReflectionBinding Load}" Width="70" />
-                  <TableViewColumn Header="Execute" Binding="{ReflectionBinding Execute}" Width="70" />
-                  <TableViewColumn Header="Size" Binding="{ReflectionBinding Size}" Width="90" />
-                  <TableViewColumn Header="Tape profile" Binding="{ReflectionBinding Profile}" Width="170" />
-                  <TableViewColumn Header="Source compression" Binding="{ReflectionBinding Compression}" Width="180" />
+                  <TableViewColumn Header="Type" Binding="{ReflectionBinding TypeLabel}" Width="55" />
+                  <TableViewColumn Header="File name" Width="170"><TableViewColumn.CellTemplate><DataTemplate x:DataType="d:RecordRow"><TextBox IsReadOnly="{Binding !Editable}" Text="{Binding Name, Mode=OneWay}" LostFocus="CommitName" KeyDown="NameKey" Padding="4,1" BorderThickness="0" Background="Transparent" AutomationProperties.Name="File name" /></DataTemplate></TableViewColumn.CellTemplate></TableViewColumn>
+                  <TableViewColumn Header="Size" Binding="{ReflectionBinding SizeDecimal}" Width="55" />
+                  <TableViewColumn Header="Size(Hex)" Binding="{ReflectionBinding SizeHex}" Width="75" />
+                  <TableViewColumn Header="Trailing" Binding="{ReflectionBinding Trailing}" Width="65" />
+                  <TableViewColumn Header="Start" Binding="{ReflectionBinding StartLabel}" Width="70" />
+                  <TableViewColumn Header="Exec" Binding="{ReflectionBinding ExecLabel}" Width="70" />
+                  <TableViewColumn Header="Compression" Binding="{ReflectionBinding CompressionLabel}" Width="100" />
+                  <TableViewColumn Header="Description" Binding="{ReflectionBinding Description}" Width="*" />
+                  <TableViewColumn Header="Loader" Width="110"><TableViewColumn.CellTemplate><DataTemplate x:DataType="d:RecordRow"><ComboBox IsEnabled="{Binding Editable}" ItemsSource="{Binding Loaders}" SelectedItem="{Binding Loader, Mode=OneWay}" SelectionChanged="ChangeLoader" Padding="2,0" HorizontalAlignment="Stretch" AutomationProperties.Name="Tape loader"><ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{ReflectionBinding Converter={StaticResource WpfLoaderLabel}}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></DataTemplate></TableViewColumn.CellTemplate></TableViewColumn>
+                  <TableViewColumn Header="Speed" Width="75"><TableViewColumn.CellTemplate><DataTemplate x:DataType="d:RecordRow"><ComboBox IsEnabled="{Binding Editable}" ItemsSource="{Binding Speeds}" SelectedItem="{Binding Speed, Mode=OneWay}" SelectionChanged="ChangeSpeed" Padding="2,0" HorizontalAlignment="Stretch" AutomationProperties.Name="Tape speed" /></DataTemplate></TableViewColumn.CellTemplate></TableViewColumn>
                 </TableView.Columns>
               </TableView>
               <TextBlock Text="{Binding ActiveTape.EmptyMessage}" IsVisible="{Binding !ActiveTape.HasRows}" IsHitTestVisible="False" Margin="24,64,24,24" TextWrapping="Wrap" Classes="muted" />
@@ -47,7 +51,7 @@
             </Border>
           </Grid>
         </TabItem>
-        <TabItem Header="Map">
+        <TabItem Header="Disk Map">
           <ScrollViewer HorizontalScrollBarVisibility="Disabled">
             <StackPanel Spacing="12" Margin="0,12,0,0">
               <TextBlock Text="{Binding ActiveTape.MapSummary}" TextWrapping="Wrap" Classes="muted" />

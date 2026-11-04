@@ -33,9 +33,31 @@ public sealed class RecorderTests
     {
         var f=new Factory();await using var m=new RecorderModel(f);Assert.Equal(0,f.Created);Assert.False(m.CanStart);await m.EnumerateAsync();Assert.Equal(0,f.Opened);Assert.Null(m.Device);m.Device=m.Devices[0];Assert.True(m.CanStart);Assert.False(m.IsActive);
     }
+    [Fact]public async Task ExactFormatProbeClosesWithoutStartingInputOrCreatingAnArchive()
+    {
+        var factory=new Factory();await using var model=new RecorderModel(factory);await Select(model);
+        var requested=new AudioCaptureFormat(192000,2,AudioSampleRepresentation.Signed24,20);
+        Assert.DoesNotContain(requested,model.Formats);await model.ProbeFormatAsync(requested);
+        Assert.Empty(model.Error);Assert.Equal(1,factory.Opened);Assert.False(model.IsActive);Assert.Null(model.Live);Assert.Empty(model.Recordings);
+        Assert.Contains(requested,model.Formats);Assert.Equal(requested,model.Format);Assert.Contains("has not been started",model.Status);
+        var device=model.Device;model.Device=null;model.Device=device;Assert.DoesNotContain(requested,model.Formats);Assert.Equal(1,factory.Opened);
+    }
+    [AvaloniaFact]public async Task WpfDestinationFieldProtectsOpenSourcesAndStartsOnlyAnExplicitRecordAction()
+    {
+        using var files=new MZTools.Desktop.Tests.MediaDocumentTests();string blocked=files.FilePath("open-source.wav"),output=files.FilePath("new-recording.wav");File.WriteAllBytes(blocked,[1,2,3]);
+        var factory=new Factory(new(){FrameCount=4800,ChunkFramePattern=[480],ChunkInterval=TimeSpan.FromMilliseconds(5)});await using var model=new RecorderModel(factory);await Select(model);
+        var window=new RecorderWindow(model,new Navigation(),path=>path!=blocked);window.Show();
+        try
+        {
+            Dispatcher.UIThread.RunJobs();var destination=window.FindControl<TextBox>("RecorderDestination")!;var record=window.FindControl<Button>("RecordInput")!;
+            destination.Text=blocked;record.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));await Until(()=>model.Error.Length>0);Assert.Equal(0,factory.Opened);Assert.Equal(new byte[]{1,2,3},File.ReadAllBytes(blocked));
+            destination.Text=output;record.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));await Until(()=>model.Recordings.Count>0);await model.StopAsync();
+            Assert.Equal(1,factory.Opened);Assert.True(File.Exists(output));Assert.Empty(model.Error);Assert.Single(model.Recordings);Assert.True(model.Recordings[0].SinkFinalized);
+        }finally{await model.DisposeAsync();window.Close();Dispatcher.UIThread.RunJobs();}
+    }
     [Fact]public async Task MonitorUsesSharedSnapshotPipelineAndNoWriter()
     {
-        var f=new Factory();await using var m=new RecorderModel(f);await Select(m);await m.StartAsync();await Until(()=>m.IsActive);await Task.Delay(250,TestContext.Current.CancellationToken);await m.RefreshAsync();Assert.NotNull(m.Live);Assert.NotEmpty(m.Live.Spectrum);Assert.Empty(m.Recordings);m.ZoomWave(2);double zoom=m.WaveSeconds;m.ChannelMode=2;await m.RefreshAsync();Assert.Equal(zoom,m.WaveSeconds);await m.StopAsync();Assert.False(m.IsActive);Assert.Empty(m.Recordings);Assert.Equal(1,f.Opened);
+        var f=new Factory();await using var m=new RecorderModel(f);await Select(m);await m.StartAsync();await Until(()=>m.IsActive);await Task.Delay(250,TestContext.Current.CancellationToken);await m.RefreshAsync();Assert.NotNull(m.Live);Assert.NotEmpty(m.Live.Spectrum);Assert.Empty(m.Recordings);m.FitWave();await m.RefreshAsync();Assert.Equal(m.Live!.HistoryStartFrame,m.Live.WaveStartFrame);Assert.True(m.FollowLive);m.ZoomWave(2);double zoom=m.WaveSeconds;m.ChannelMode=2;await m.RefreshAsync();Assert.Equal(zoom,m.WaveSeconds);await m.StopAsync();Assert.False(m.IsActive);Assert.Empty(m.Recordings);Assert.Equal(1,f.Opened);
     }
     [Theory][InlineData(false)][InlineData(true)]public async Task FinalizedRecordingKeepsBitIdentityAndExplicitNativePolicy(bool native)
     {

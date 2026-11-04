@@ -1,0 +1,58 @@
+<Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Style Selector="Window">
+    <Setter Property="FontFamily" Value="Segoe UI, Arial, DejaVu Sans" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Background" Value="White" />
+    <Setter Property="Foreground" Value="Black" />
+  </Style>
+  <Style Selector="Button">
+    <Setter Property="MinHeight" Value="23" />
+    <Setter Property="Padding" Value="8,2" />
+    <Setter Property="CornerRadius" Value="0" />
+    <Setter Property="Foreground" Value="Black" />
+    <Setter Property="BorderBrush" Value="#707070" />
+    <Setter Property="Background" Value="#DDDDDD" />
+    <Setter Property="Template"><ControlTemplate><Border x:Name="WpfButtonBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"><ContentPresenter x:Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Padding="{TemplateBinding Padding}" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" RecognizesAccessKey="True" /></Border></ControlTemplate></Setter>
+  </Style>
+  <Style Selector="Button:pointerover"><Setter Property="Background" Value="#E5F1FB" /><Setter Property="BorderBrush" Value="#0078D7" /></Style>
+  <Style Selector="Button:pressed"><Setter Property="Background" Value="#CCE4F7" /><Setter Property="BorderBrush" Value="#005499" /></Style>
+  <Style Selector="Button:disabled"><Setter Property="Background" Value="#F0F0F0" /><Setter Property="BorderBrush" Value="#BFBFBF" /><Setter Property="Foreground" Value="#838383" /></Style>
+  <Style Selector="Button:focus-visible"><Setter Property="BorderBrush" Value="#0078D7" /></Style>
+  <Style Selector="Button.wpfToolbar"><Setter Property="Height" Value="28" /><Setter Property="MinWidth" Value="88" /><Setter Property="Margin" Value="0,0,6,0" /><Setter Property="Padding" Value="10,1" /></Style>
+  <Style Selector="Button.primary"><Setter Property="Background" Value="#EAEAEA" /><Setter Property="Foreground" Value="Black" /><Setter Property="BorderBrush" Value="#ACACAC" /></Style>
+  <Style Selector="Border.panel"><Setter Property="CornerRadius" Value="3" /><Setter Property="BorderBrush" Value="LightGray" /><Setter Property="Padding" Value="8" /></Style>
+  <Style Selector="TabItem">
+    <Setter Property="Foreground" Value="Black" /><Setter Property="Padding" Value="8,4" /><Setter Property="MinHeight" Value="24" />
+    <Setter Property="Template"><ControlTemplate><Border x:Name="WpfTabBorder" BorderBrush="#ACACAC" BorderThickness="1" Background="#F0F0F0" CornerRadius="3,3,0,0" Padding="{TemplateBinding Padding}"><ContentPresenter x:Name="PART_ContentPresenter" Content="{TemplateBinding Header}" ContentTemplate="{TemplateBinding HeaderTemplate}" RecognizesAccessKey="True" /></Border></ControlTemplate></Setter>
+  </Style>
+  <Style Selector="TabControl"><Setter Property="Padding" Value="0" /></Style>
+  <Style Selector="TabItem:selected /template/ Border#WpfTabBorder"><Setter Property="Background" Value="White" /><Setter Property="BorderThickness" Value="1,1,1,0" /></Style>
+  <Style Selector="TabItem:pointerover /template/ Border#WpfTabBorder"><Setter Property="BorderBrush" Value="#0078D7" /></Style>
+  <Style Selector="TextBox"><Setter Property="MinHeight" Value="23" /><Setter Property="Padding" Value="3,1" /><Setter Property="CornerRadius" Value="0" /><Setter Property="BorderThickness" Value="1" /></Style>
+  <Style Selector="ComboBox"><Setter Property="MinHeight" Value="23" /><Setter Property="Padding" Value="4,1" /><Setter Property="CornerRadius" Value="2" /></Style>
+  <Style Selector="NumericUpDown"><Setter Property="MinHeight" Value="23" /><Setter Property="Padding" Value="3,1" /></Style>
+  <Style Selector="CheckBox"><Setter Property="MinHeight" Value="22" /><Setter Property="Padding" Value="0" /></Style>
+  <Style Selector="TableView"><Setter Property="Background" Value="#F0F0F0" /><Setter Property="BorderBrush" Value="#ABADB3" /><Setter Property="BorderThickness" Value="1" /><Setter Property="Focusable" Value="True" /></Style>
+  <Style Selector="TableViewColumnHeader"><Setter Property="Background" Value="#F0F0F0" /><Setter Property="Foreground" Value="Black" /><Setter Property="FontSize" Value="12" /><Setter Property="MinHeight" Value="24" /></Style>
+  <Style Selector="TableViewRow"><Setter Property="MinHeight" Value="24" /><Setter Property="Foreground" Value="Black" /></Style>
+  <Style Selector="TableViewRow:selected"><Setter Property="Background" Value="#0078D7" /><Setter Property="Foreground" Value="White" /></Style>
+  <Style Selector="TableViewRow:selected /template/ Border#Border"><Setter Property="Background" Value="#0078D7" /><Setter Property="TextElement.Foreground" Value="White" /></Style>
+  <Style Selector="TableViewRow:selected TextBox"><Setter Property="Foreground" Value="White" /></Style>
+  <Style Selector="TableViewRow:selected TextBox:focus"><Setter Property="Foreground" Value="Black" /><Setter Property="Background" Value="White" /></Style>
+  <Style Selector="TableViewRow ComboBox"><Setter Property="Background" Value="#F0F0F0" /><Setter Property="Foreground" Value="Black" /></Style>
+  <Style Selector="CheckBox">
+    <Setter Property="Template"><ControlTemplate><DockPanel Background="Transparent"><Border Width="13" Height="13" BorderBrush="#707070" BorderThickness="1" Background="White" VerticalAlignment="Center"><Path x:Name="WpfCheckMark" Data="M1,5 L4,9 L10,1" Stroke="Black" StrokeThickness="2" /></Border><ContentPresenter x:Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Margin="6,0,0,0" VerticalAlignment="Center" RecognizesAccessKey="True" /></DockPanel></ControlTemplate></Setter>
+  </Style>
+  <Style Selector="CheckBox /template/ Path#WpfCheckMark"><Setter Property="IsVisible" Value="False" /></Style>
+  <Style Selector="CheckBox:checked /template/ Path#WpfCheckMark"><Setter Property="IsVisible" Value="True" /></Style>
+  <Style Selector="Expander">
+    <Setter Property="MinHeight" Value="0" /><Setter Property="Padding" Value="0" /><Setter Property="Margin" Value="0" />
+    <Setter Property="Template"><ControlTemplate><StackPanel><ToggleButton Classes="wpfExpander" IsChecked="{TemplateBinding IsExpanded, Mode=TwoWay}" Content="{TemplateBinding Header}" ContentTemplate="{TemplateBinding HeaderTemplate}" HorizontalContentAlignment="Left" /><ContentPresenter x:Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" IsVisible="{TemplateBinding IsExpanded}" Margin="4,2,0,0" /></StackPanel></ControlTemplate></Setter>
+  </Style>
+  <Style Selector="ToggleButton.wpfExpander">
+    <Setter Property="MinHeight" Value="23" /><Setter Property="Padding" Value="0" />
+    <Setter Property="Template"><ControlTemplate><DockPanel Background="Transparent"><Border Width="18" Height="18" CornerRadius="9" BorderBrush="#555555" BorderThickness="1" VerticalAlignment="Center"><TextBlock x:Name="WpfExpandArrow" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="14" /></Border><ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Margin="4,0,0,0" VerticalAlignment="Center" /></DockPanel></ControlTemplate></Setter>
+  </Style>
+  <Style Selector="ToggleButton.wpfExpander /template/ TextBlock#WpfExpandArrow"><Setter Property="Text" Value="⌄" /></Style>
+  <Style Selector="ToggleButton.wpfExpander:checked /template/ TextBlock#WpfExpandArrow"><Setter Property="Text" Value="⌃" /></Style>
+</Styles>

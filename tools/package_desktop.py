@@ -38,9 +38,12 @@ def package(rid,output,dotnet):
         shutil.copytree(publish,product,dirs_exist_ok=True);executable=product/('MZTools.Desktop.exe' if rid.startswith('win-') else 'MZTools.Desktop')
     if not executable.exists():raise RuntimeError('Publish did not produce the expected apphost')
     if not rid.startswith('win-'):executable.chmod(0o755)
-    for source in ('README.md','LICENSE','THIRD_PARTY_NOTICES.md','docs/MIGRATION_COMPLETION_2026-10-30.md','docs/RELEASE_CHECKLIST.md'):
+    for source in ('README.md','LICENSE','THIRD_PARTY_NOTICES.md','docs/MIGRATION_COMPLETION_2026-10-30.md','docs/RELEASE_CHECKLIST.md','docs/WPF_PARITY_2026-11-03.md'):
         path=ROOT/source
-        if path.exists():shutil.copyfile(path,product/path.name)
+        if path.exists():
+            shutil.copyfile(path,product/path.name)
+            if source.startswith('docs/'):
+                target=product/source;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(path,target)
     environment=os.environ.copy();environment['MZTOOLS_ASSETS_ROOT']=str(work/'build');environment['MZTOOLS_NOTICES_OUTPUT']=str(work/'notices')
     subprocess.run([sys.executable,str(ROOT/"tests/MZTools.Desktop.Smoke/collect_completion_notices.py")],cwd=ROOT,env=environment,check=True)
     notices=work/'notices'

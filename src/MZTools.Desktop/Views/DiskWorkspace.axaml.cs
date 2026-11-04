@@ -20,11 +20,11 @@ public sealed partial class DiskWorkspace : UserControl
     private PointerPressedEventArgs? press;private Point pressPoint;
     private sealed record IplReorder(DiskSession Source,long Revision,int[] Indices);
     private static readonly DataFormat<IplReorder> LocalFormat=DataFormat.CreateInProcessFormat<IplReorder>("MZTools.IplReorder");
-    internal Control WorkspaceFocusRegion=>DiskTabs.SelectedIndex==0?DiskFilter:DiskTabs.SelectedIndex==3?DiskHex:DiskTabs;
+    internal Control WorkspaceFocusRegion=>DiskTabs.SelectedIndex==0?DiskFiles:DiskTabs.SelectedIndex==3?DiskHex:DiskTabs;
     internal Control InspectorFocusRegion=>Inspector;
     public DiskWorkspace()
     {
-        InitializeComponent();DataContextChanged+=(_,_)=>BindSession();SizeChanged+=(_,_)=>Reflow();
+        InitializeComponent();ConfigureWpfDiskWindows();Map.MinHeight=100;DataContextChanged+=(_,_)=>BindSession();SizeChanged+=(_,_)=>Reflow();
         DetachedFromVisualTree+=(_,_)=>{if(observed is not null)observed.PropertyChanged-=Changed;observed=null;};
         AttachedToVisualTree+=(_,_)=>BindSession();
         Map.SectorSelected+=(row,mod)=>
@@ -45,6 +45,7 @@ public sealed partial class DiskWorkspace : UserControl
         if(syncing)return;
         if(observed!=Model?.ActiveDisk)
         {
+            CloseWpfDiskWindows();
             if(observed is not null)observed.PropertyChanged-=Changed;
             observed=Model?.ActiveDisk;if(observed is not null)observed.PropertyChanged+=Changed;
         }
@@ -82,7 +83,7 @@ public sealed partial class DiskWorkspace : UserControl
     }
     private void Reflow()
     {
-        MinHeight=DiskTabs.SelectedIndex==1?780:520;
+        MinHeight=0;
         bool show=Bounds.Width>=900&&Model?.InspectorVisible==true;DiskInspectorPanel.IsVisible=show;
         DiskGrid.ColumnDefinitions[1].Width=new GridLength(show?16:0);DiskGrid.ColumnDefinitions[2].Width=new GridLength(show?288:0);
     }

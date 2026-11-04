@@ -405,3 +405,6 @@ FodyWeavers.xsd
 
 # Regression sources must be present in clean checkouts; media remain local.
 !MZTool.Tests/*.cs
+!MZTool.Tests/WpfParityUiSmoke/
+!MZTool.Tests/WpfParityUiSmoke/*.cs
+!MZTool.Tests/WpfParityUiSmoke/*.csproj

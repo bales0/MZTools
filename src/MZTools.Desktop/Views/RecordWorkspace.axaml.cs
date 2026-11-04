@@ -23,12 +23,12 @@ public sealed partial class RecordWorkspace : UserControl
     private PointerPressedEventArgs? pressed;
     private Point pressPoint;
     private Window? detail;
-    internal Control WorkspaceFocusRegion => RecordTabs.SelectedIndex == 0 ? RecordFilter : RecordTabs.SelectedIndex == 1 ? MediaMap : RecordTabs;
+    internal Control WorkspaceFocusRegion => RecordTabs.SelectedIndex == 0 ? RecordsTable : RecordTabs.SelectedIndex == 1 ? MediaMap : RecordTabs;
     internal Control InspectorFocusRegion => RecordInspector;
 
     public RecordWorkspace()
     {
-        InitializeComponent();
+        InitializeComponent();ConfigureWpfRecordTabs();
         DataContextChanged += (_, _) => BindSession();
         SizeChanged += (_, _) => Reflow();
         RecordsTable.AddHandler(PointerPressedEvent, RememberPress, RoutingStrategies.Tunnel);
@@ -120,7 +120,7 @@ public sealed partial class RecordWorkspace : UserControl
         var command = e.Key == Key.Delete ? Model.DeleteRecordsCommand : e.KeyModifiers.HasFlag(primary) && e.Key == Key.C ? Model.CopyRecordsCommand
             : e.KeyModifiers.HasFlag(primary) && e.Key == Key.V ? Model.PasteRecordsCommand : null;
         if (e.Key is Key.F2 or Key.Enter && observed?.SelectedRow is not null &&
-            e.Source is Visual source && (source == RecordsTable || source.GetVisualAncestors().Contains(RecordsTable))) { ShowInspector((Window)TopLevel.GetTopLevel(this)!); e.Handled = true; return; }
+            e.Source is Visual source && (source == RecordsTable || source.GetVisualAncestors().Contains(RecordsTable))) { FocusInlineName(); e.Handled = true; return; }
         if (command?.CanExecute(null) == true) { command.Execute(null); e.Handled = true; }
     }
     private void RememberPress(object? sender, PointerPressedEventArgs e)

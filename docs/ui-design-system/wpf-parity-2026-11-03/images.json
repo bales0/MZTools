@@ -1,0 +1,392 @@
+[
+  {
+    "file": "windows-native-audio-compact.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-audio-compact.png",
+    "sha256": "53440dbf3f4e975ea9e3ae89ae8d141fa73c1196f51657169dc12ad3f733d0d5",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-audio-pulses.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-audio-pulses.png",
+    "sha256": "7a7c07ae378378ed1643eca6b35f5985bfd4e21f23b74a05ae11bbd26736d822",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-audio-records.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-audio-records.png",
+    "sha256": "b9a92bcff10b72778d73af8a719f3cbe56c9957fe35b23409c5729d165a760b5",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-audio-recovery.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-audio-recovery.png",
+    "sha256": "3ceb7e1a72c4c722b4ad66af817d9e9f04c73559cdc0fe33e43f4b070994ddc4",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-audio-spectrogram.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-audio-spectrogram.png",
+    "sha256": "8b8c06ae75c7bcd2ccde61ddc4de7ff70c3f9fd9c902cef431829b200ed54035",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-audio-spectrum.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-audio-spectrum.png",
+    "sha256": "7d39b18ac00e64f9cf65365f91690921c48ec96926055a736282ff0766fde4a2",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-disk-compact.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-disk-compact.png",
+    "sha256": "f4fc2c8ff9f668b1cc500e3570a1be978cafd3726a78fcde4fdf6bf32e78baf4",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-disk-files.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-disk-files.png",
+    "sha256": "5a033bc969b94ff8e68984a06d97a7405a733274159611a053259f83eb3bcf19",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-disk-inspector.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-disk-inspector.png",
+    "sha256": "1208366b8ff4b1bbf964accda8bcddad644313e092f75d953838f8ea171d0270",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-disk-map.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-disk-map.png",
+    "sha256": "0cd1beda0e78aa9fa3a1734dbbc582b6ef16800609a6a774b90c5a6e2cdf0e76",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-disk-repair.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-disk-repair.png",
+    "sha256": "5206dd55ecace78a821c708ca11e36bc5f38fdaeac8268723ec1501ce0b4550c",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-hfe-physical.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-hfe-physical.png",
+    "sha256": "f2bbf01a2bda35a9fbe333bb3d6c27baa41bdbdc1bff42beb66e38439452f1e8",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-layout-1366x768.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-layout-1366x768.png",
+    "sha256": "e59486fb4dc6aa4697224fc1742bb4ca14ca9209adefcc4fec1799329f5b0749",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-layout-1440x960.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-layout-1440x960.png",
+    "sha256": "669b331e5928d1675e7cd0ac5711a34e2d4bce662b27f4ba234fb83719f6c24e",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-layout-640x480.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-layout-640x480.png",
+    "sha256": "7ab67746b41b4a9e649f5872d78aca1841b8bb49b6766efd53b1f4d332e74939",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-layout-920x640.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-layout-920x640.png",
+    "sha256": "ceb0e9e48472a918953620e2a87b2504fcb86af126a9d7148a560eba4a6c11a1",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-media-compact.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-media-compact.png",
+    "sha256": "a38648f89757b51672401f375bbaf1d7c61cb521ed79216cfba27ee4985f4878",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-quickdisk-inspector.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-quickdisk-inspector.png",
+    "sha256": "4c21a168b8f93efce73cd3926d263518e91f57593b330a4a564b5e3b5ee61219",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-quickdisk-map.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-quickdisk-map.png",
+    "sha256": "c713ce321a08ac7ac44555b28afddd379e93d13b88df562b1d3223271247c1fd",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-quickdisk.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-quickdisk.png",
+    "sha256": "44c336a3b54bd4100e8a8b0ebaea4ea46472064933a0f43c755dad0115eb1052",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-recorder-alignment.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-recorder-alignment.png",
+    "sha256": "a6d525b393ae6bc9c1fed88e6849fc2b98668ebcf432041620728fde018b2226",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-recorder-compact.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-recorder-compact.png",
+    "sha256": "3f8de724b41a76e00790e01d3277598cc01843437ced7e5007c65a8002926cf5",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-recorder-history.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-recorder-history.png",
+    "sha256": "919cc2547b86eb9facc7bf1e744d1e6ec225bf491716e48f4d4e1220bf725c4c",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-recorder-pulses.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-recorder-pulses.png",
+    "sha256": "3fe50d80b2886c17ea89145a4ba5743d96c66b7db2345b9ac59aa09822c69fa4",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-recorder-signal.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-recorder-signal.png",
+    "sha256": "afd471ff17a1b6bf4db757d9cf68cdba638626df150413fdfb9a7243b7f75dc7",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "windows-native-tape.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-tape.png",
+    "sha256": "7c861f0b6601e853c97785d62f6c72f5f0a4783857621b93736fd5bd660f9582",
+    "kind": "windows native Avalonia"
+  },
+  {
+    "file": "linux-native-audio-compact.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-audio-compact.png",
+    "sha256": "4f4564c434a3017ed87b03660ae69dfa59db93313bb8300c82f9d8e8b7db6fed",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-audio-pulses.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-audio-pulses.png",
+    "sha256": "94456c6db9bd41a40792ae0c9b363034e6363051502995146326abec5ee842c8",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-audio-records.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-audio-records.png",
+    "sha256": "1b5893436fa65127a7d6e21a3afdba568be02476719ce64476388e4f1caef9f3",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-audio-recovery.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-audio-recovery.png",
+    "sha256": "2cf4efd1bda6d1284518346984283430c4dc85d0a638270306fecf93f8cedb52",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-audio-spectrogram.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-audio-spectrogram.png",
+    "sha256": "422f73257b86a8ce51fbb20dfd72664b9a4e6f110013af67189912a1d4221bff",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-audio-spectrum.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-audio-spectrum.png",
+    "sha256": "a946b3ab8f0705db8220252722548a60a9eb6237aa6f80660d57e21901929695",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-disk-compact.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-disk-compact.png",
+    "sha256": "37a4e392bcda2710c11d64c02c81399a8c6586de6c59ee77370233d94d5343f4",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-disk-files.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-disk-files.png",
+    "sha256": "8705fdbc6366f397b8435feca5d94abdb73e6be70b95608a2204b0d068e7990d",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-disk-inspector.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-disk-inspector.png",
+    "sha256": "66a9ed0cd71ebf116b2d8e8dac32efec98ab834a6c482858a956a9b28da83b20",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-disk-map.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-disk-map.png",
+    "sha256": "ac14e5813b86628d12134e15ee98203b734e85fbea345a3f0a5d12124eb39b36",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-disk-repair.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-disk-repair.png",
+    "sha256": "a0ae852f4f6f87f32a35dec7c4a51dc48f460f2419715036694d31ac274d654e",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-hfe-physical.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-hfe-physical.png",
+    "sha256": "e8223cb4e45ae9e2e5b3657cc2ee8403015236e0d5f4bb587169728292f7572d",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-layout-1366x768.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-layout-1366x768.png",
+    "sha256": "35b9699c2040eeb34ef83861ab5220c11564d552d824f40a0a1cbe8c303b07be",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-layout-1440x960.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-layout-1440x960.png",
+    "sha256": "5ca4887d40b35b62ee02394b27956113b9bd474dd33e1ca05cbedfeefddcad6c",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-layout-640x480.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-layout-640x480.png",
+    "sha256": "beefb6b214268f3654bdda9ac2f9f4a7d4523013fc2f8fd8af65ce4c61392c36",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-layout-920x640.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-layout-920x640.png",
+    "sha256": "cb13f6f3e31fcb7319c09642bd5f58fda3dd2e12eb2123b5d7b40234296ff726",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-media-compact.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-media-compact.png",
+    "sha256": "dd4871358095c11c53010170bb19c7e089565c75bce26862c54e21174eadd502",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-quickdisk-inspector.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-quickdisk-inspector.png",
+    "sha256": "8b3e20a2ffd9da16b4f109c81a20a94b72abe1d4f3a99b2de21e85328d2ed43d",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-quickdisk-map.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-quickdisk-map.png",
+    "sha256": "d20834653620aa30dfab86ffe800e0b49b1c6291b6ae98be95f5805fcb6c4cb4",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-quickdisk.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-quickdisk.png",
+    "sha256": "a5f915919a9a739ffd4b35091ca6d7ca7cbe6eecf19234f2fa2105734737508a",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-recorder-alignment.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-recorder-alignment.png",
+    "sha256": "c5956a33fd5c3cf04b6256090939ef46a7161d2ec4ab4b9e032465342c7a9ac1",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-recorder-compact.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-recorder-compact.png",
+    "sha256": "402bf7a5b428c735619a4e638689593e4d4e6d4f9af5218728a87a6c94786d5d",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-recorder-history.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-recorder-history.png",
+    "sha256": "69272a5a5d50c6232bb0930c99dbd6f550e226585de09e0c34c8d3fa7564c005",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-recorder-pulses.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-recorder-pulses.png",
+    "sha256": "e37281607c3c3fb4ecb9b1121a239ba2009adf10665845b32d117061d7f492fe",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-recorder-signal.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-recorder-signal.png",
+    "sha256": "d52613acf9d4397fc942e06e39720825ade8fc9b05fd0f71eae4c33d77caf4f3",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "linux-native-tape.png",
+    "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-tape.png",
+    "sha256": "e2b937de625ef72e06a17b7005f490e3c016df62e6561cf279892b06c1912d24",
+    "kind": "linux native Avalonia"
+  },
+  {
+    "file": "wpf-original-disk.png",
+    "source": "TestResults/WpfParity-2026-11-03/wpf-reference/wpf-original-disk.png",
+    "sha256": "eefeb15268824e487b6f7fbb8dba058977e4772d668629324423b1496e8ec317",
+    "kind": "Original WPF"
+  },
+  {
+    "file": "wpf-original-empty.png",
+    "source": "TestResults/WpfParity-2026-11-03/wpf-reference/wpf-original-empty.png",
+    "sha256": "49ab9834802acccbeb1d39cad6acc2078d54d50d5526e2903a58ed1555d1b324",
+    "kind": "Original WPF"
+  },
+  {
+    "file": "wpf-original-recorder-live.png",
+    "source": "TestResults/WpfParity-2026-11-03/wpf-reference/wpf-original-recorder-live.png",
+    "sha256": "e8a1a6c736207df9e1f9f77cbe22025a3d8d15b8ab5c963745b6601a73e9b5f1",
+    "kind": "Original WPF"
+  },
+  {
+    "file": "wpf-original-recorder.png",
+    "source": "TestResults/WpfParity-2026-11-03/wpf-reference/wpf-original-recorder.png",
+    "sha256": "0fdbc436657e01a818971d58ee1ce0f473130ce795f54d8cef3c35ae80e55a92",
+    "kind": "Original WPF"
+  },
+  {
+    "file": "wpf-original-tape.png",
+    "source": "TestResults/WpfParity-2026-11-03/wpf-reference/wpf-original-tape.png",
+    "sha256": "729674af3f96efedcc5ccacf65b8210ba17f2e065980883b0563acbe26d3b8d6",
+    "kind": "Original WPF"
+  },
+  {
+    "file": "detail-wpf-audio-independent.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/ui/wpf-audio-independent.png",
+    "sha256": "fa440e972c04ca493f439718b6f2b0869276821eb1963ba5886649c774f82702",
+    "kind": "Avalonia Skia headless detail"
+  },
+  {
+    "file": "detail-wpf-disk-1320x600.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/ui/wpf-disk-1320x600.png",
+    "sha256": "153b071c734faf27ff482e7908675776f80c3058eaf5110a0c93a11f407cb361",
+    "kind": "Avalonia Skia headless detail"
+  },
+  {
+    "file": "detail-wpf-disk-900x480.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/ui/wpf-disk-900x480.png",
+    "sha256": "3b723e2a434eda33dd9bdf049b61931ea9d2ef0786feddcecf9a39002ee3d315",
+    "kind": "Avalonia Skia headless detail"
+  },
+  {
+    "file": "detail-wpf-disk-inspector.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/ui/wpf-disk-inspector.png",
+    "sha256": "5935575477ad103997f727912373c30d196eab77ff5a00b168131ef81699d82a",
+    "kind": "Avalonia Skia headless detail"
+  },
+  {
+    "file": "detail-wpf-hex-browser.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/ui/wpf-hex-browser.png",
+    "sha256": "35abe36a896b525d7cecab6f2eeb2fe15ba9c338d4572ee92af7dfc1fe7d5a9b",
+    "kind": "Avalonia Skia headless detail"
+  },
+  {
+    "file": "detail-wpf-loader-speed.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/ui/wpf-loader-speed.png",
+    "sha256": "8c3dd1b6a86807d6d65c0722a4d058d7e457b4c8500fe1bcd9ed6c6d9ae9d03b",
+    "kind": "Avalonia Skia headless detail"
+  },
+  {
+    "file": "detail-wpf-quickdisk-inspector.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/ui/wpf-quickdisk-inspector.png",
+    "sha256": "9dbdbfb1d981976abfc33ec1a4005a6161e17d5a5b0c1b9153c40f717a1f24e7",
+    "kind": "Avalonia Skia headless detail"
+  },
+  {
+    "file": "detail-wpf-tape-inline.png",
+    "source": "TestResults/WpfParity-2026-11-03/windows/ui/wpf-tape-inline.png",
+    "sha256": "e83afed92446ea711cf884e065975db6d8591c792d7bfcf4452ee97da5846dd2",
+    "kind": "Avalonia Skia headless detail"
+  }
+]

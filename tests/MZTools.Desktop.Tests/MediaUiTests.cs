@@ -28,7 +28,7 @@ public sealed class MediaUiTests
             Files.Dialogs.CloseDecision = CloseDecision.Discard;
             Model = new(Files.Coordinator,_=>Task.CompletedTask,Files.Dialogs,
                 bytes=>{ Packet=bytes;return Task.CompletedTask; },()=>Task.FromResult(Packet));
-            Window=new(Model);Window.Show(); Dispatcher.UIThread.RunJobs();
+            Model.InspectorVisible=true;Window=new(Model);Window.Show(); Dispatcher.UIThread.RunJobs();
         }
         internal async Task<TapeSession> Open(bool quick=false)
         {
@@ -129,7 +129,7 @@ public sealed class MediaUiTests
         using var host=new Host();var tape=await host.Open();
         var input=host.Window.GetVisualDescendants().OfType<TextBox>().Single(t=>AutomationProperties.GetName(t)=="Record name");
         Assert.True(input.Focus());input.SelectAll();host.Window.KeyTextInput("NEW");host.Window.KeyTextInput(" NAME");Dispatcher.UIThread.RunJobs();
-        Assert.True(input.IsFocused);Assert.Equal("NEW NAME",tape.Name);Assert.Equal("FIRST",tape.Rows[0].Name);Assert.True(tape.HasDraft);
+        Assert.True(input.IsFocused,string.Join(";",host.Window.GetVisualDescendants().OfType<Control>().Where(c=>c.IsFocused).Select(c=>c.GetType().Name+":"+c.Name)));Assert.Equal("NEW NAME",tape.Name);Assert.Equal("FIRST",tape.Rows[0].Name);Assert.True(tape.HasDraft);
     }
     [AvaloniaFact] public async Task SaveAsConversionChangesModuleAndKeepsOriginalSource()
     {
@@ -159,9 +159,9 @@ public sealed class MediaUiTests
     [AvaloniaFact] public async Task F6ReachesActualInspectorAndContextMenuUsesSharedCommands()
     {
         using var host=new Host();await host.Open();
-        var filter=host.Window.GetVisualDescendants().OfType<TextBox>().Single(t=>t.Name=="RecordFilter");Assert.True(filter.Focus());
+        Assert.True(host.Table.Focus());
         host.Window.KeyPress(Key.F6,RawInputModifiers.None,PhysicalKey.F6,null);host.Window.KeyRelease(Key.F6,RawInputModifiers.None,PhysicalKey.F6,null);Dispatcher.UIThread.RunJobs();
-        var name=host.Window.GetVisualDescendants().OfType<TextBox>().Single(t=>AutomationProperties.GetName(t)=="Record name");Assert.True(name.IsFocused);
+        var name=host.Window.GetVisualDescendants().OfType<TextBox>().Single(t=>AutomationProperties.GetName(t)=="Record name");Assert.True(name.IsFocused,string.Join(";",host.Window.GetVisualDescendants().OfType<Control>().Where(c=>c.IsFocused).Select(c=>c.GetType().Name+":"+c.Name)));
         var menu=host.Table.ContextMenu!;menu.Open(host.Table);Dispatcher.UIThread.RunJobs();
         try { Assert.Same(host.Model.CopyRecordsCommand,menu.Items.OfType<MenuItem>().Single(i=>Equals(i.Header,"Copy records")).Command); }
         finally {menu.Close();}
@@ -170,7 +170,7 @@ public sealed class MediaUiTests
     {
         using var host=new Host();await host.Open();Assert.True(host.Table.ContainerFromIndex(0)!.Focus());
         host.Window.KeyPress(Key.Enter,RawInputModifiers.None,PhysicalKey.Enter,null);host.Window.KeyRelease(Key.Enter,RawInputModifiers.None,PhysicalKey.Enter,null);Dispatcher.UIThread.RunJobs();
-        var detail=Assert.Single(host.Window.OwnedWindows);Assert.Equal("Record inspector",detail.Title);Assert.IsType<RecordInspector>(detail.Content);detail.Close();
+        Assert.Empty(host.Window.OwnedWindows);Assert.Contains(host.Table.GetVisualDescendants().OfType<TextBox>(),t=>t.IsFocused&&AutomationProperties.GetName(t)=="File name");
     }
     [AvaloniaFact] public async Task DeleteCancelAndMoveCommandsRespectSelection()
     {
@@ -189,7 +189,7 @@ public sealed class MediaUiTests
         var tabs=host.Window.GetVisualDescendants().OfType<TabControl>().Single(t=>t.Name=="RecordTabs");tabs.SelectedIndex=1;Dispatcher.UIThread.RunJobs();Capture(host.Window,"unknown-host.png");
     }
     [AvaloniaTheory] [InlineData(false,1440,960,1.0)] [InlineData(true,1440,960,1.0)]
-    [InlineData(false,1366,768,1.0)] [InlineData(true,920,640,1.0)] [InlineData(false,640,480,1.0)]
+    [InlineData(false,1366,768,1.0)] [InlineData(true,920,640,1.0)] [InlineData(false,900,480,1.0)]
     [InlineData(false,1366,768,1.5)] [InlineData(true,1366,768,2.0)]
     public async Task ActualMediaLayoutsAndSkiaReviewFrames(bool quick,int width,int height,double scale)
     {

@@ -2,11 +2,12 @@
 import json
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import zipfile
 
 ROOT=Path(__file__).resolve().parents[1]
-RESULTS=ROOT/'TestResults/Completion'
+RESULTS=Path(sys.argv[1]).resolve() if len(sys.argv)>1 else ROOT/'TestResults/Completion'
 archive=RESULTS/'distribution/MZTools-win-x64.zip'
 owned=Path(tempfile.mkdtemp(prefix='extracted-win-',dir=RESULTS))
 with zipfile.ZipFile(archive) as file:file.extractall(owned)

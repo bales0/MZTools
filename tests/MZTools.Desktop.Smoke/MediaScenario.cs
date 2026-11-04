@@ -35,10 +35,10 @@ internal static class MediaScenario
         }
         void Capture(string name)
         {
-            window.UpdateLayout();double scale=window.RenderScaling;
-            using var bitmap=new RenderTargetBitmap(new PixelSize((int)Math.Ceiling(window.Bounds.Width*scale),(int)Math.Ceiling(window.Bounds.Height*scale)),new Vector(96*scale,96*scale));
-            bitmap.Render(window);bitmap.Save(Path.Combine(output,name),PngBitmapEncoderOptions.Default);
-            frames.Add(new {file=name,logicalWidth=window.Bounds.Width,logicalHeight=window.Bounds.Height,
+            var target=window.OwnedWindows.LastOrDefault(w=>w.IsVisible)??window;target.UpdateLayout();double scale=target.RenderScaling;
+            using var bitmap=new RenderTargetBitmap(new PixelSize((int)Math.Ceiling(target.Bounds.Width*scale),(int)Math.Ceiling(target.Bounds.Height*scale)),new Vector(96*scale,96*scale));
+            bitmap.Render(target);bitmap.Save(Path.Combine(output,name),PngBitmapEncoderOptions.Default);
+            frames.Add(new {file=name,logicalWidth=target.Bounds.Width,logicalHeight=target.Bounds.Height,
                 renderScaling=scale,pixelWidth=bitmap.PixelSize.Width,pixelHeight=bitmap.PixelSize.Height,
                 origin="Skia visual render of a real native window; not desktop screen capture"});
         }
@@ -67,6 +67,7 @@ internal static class MediaScenario
             Capture("native-quickdisk.png");
             var tabs=window.GetVisualDescendants().OfType<TabControl>().Single(t=>t.Name=="RecordTabs");tabs.SelectedIndex=1;await Task.Delay(60);
             Capture("native-quickdisk-map.png");
+            var inspector=new QuickDiskVisualWindow(model);inspector.Show(window);await Task.Delay(100);Capture("native-quickdisk-inspector.png");inspector.Close();Check(!model.ActiveTape!.IsModified,"Native QuickDisk inspector preserves the clean saved document");
             var activePath=model.ActiveTape!.Path;
             dialogs.Export=new(Path.Combine(directory,"export.lep"),"Lep",SelectedOnly:false);await Execute(model.ExportCommand);
             Check(File.Exists(dialogs.Export.Path)&&new FileInfo(dialogs.Export.Path).Length>0,"Native export uses the real LEP writer");

@@ -31,7 +31,7 @@ public sealed partial class AudioChart
         PropertyChanged+=(_,e)=>{if(e.Property==LiveSnapshotProperty||e.Property==LiveChannelProperty||e.Property==LiveAutoScaleProperty||e.Property==LiveGainProperty||e.Property==ComparisonProperty||e.Property==LiveSelectionStartProperty||e.Property==LiveSelectionEndProperty||e.Property==EdgeLeftProperty||e.Property==EdgeRightProperty||e.Property==EdgeRangeProperty||e.Property==ShowLiveReferenceProperty)InvalidateVisual();};
         AddHandler(PointerWheelChangedEvent,(_,e)=>
         {
-            if(LiveSnapshot is not { } s)return;double factor=e.Delta.Y>0?1.5:1/1.5,anchor=Math.Clamp((e.GetPosition(this).X-Plot.X)/Plot.Width,0,1);
+            if(LiveSnapshot is not { } s)return;double factor=e.Delta.Y>0?2:.5,anchor=Math.Clamp((e.GetPosition(this).X-Plot.X)/Plot.Width,0,1);
             if(Kind==AudioPlotKind.Spectrum){double max=liveFrequencyMax>liveFrequencyMin?liveFrequencyMax:s.Format.SampleRate/2.0,width=Math.Clamp((max-liveFrequencyMin)/factor,s.FrequencyResolutionHz,s.Format.SampleRate/2.0);liveFrequencyMin=Math.Clamp(liveFrequencyMin+(max-liveFrequencyMin-width)*anchor,0,s.Format.SampleRate/2.0-width);liveFrequencyMax=liveFrequencyMin+width;InvalidateVisual();}
             else LiveZoom?.Invoke(factor,anchor);e.Handled=true;
         },Avalonia.Interactivity.RoutingStrategies.Tunnel);
@@ -45,7 +45,7 @@ public sealed partial class AudioChart
             livePress=at;e.Handled=true;
         },Avalonia.Interactivity.RoutingStrategies.Tunnel);
         AddHandler(PointerReleasedEvent,(_,e)=>{if(livePress is not null){livePress=null;e.Pointer.Capture(null);e.Handled=true;}},Avalonia.Interactivity.RoutingStrategies.Tunnel);
-        AddHandler(KeyDownEvent,(_,e)=>{if(LiveSnapshot is null)return;if(e.Key is Key.Add or Key.OemPlus){LiveZoom?.Invoke(1.5,.5);e.Handled=true;}if(e.Key is Key.Subtract or Key.OemMinus){LiveZoom?.Invoke(1/1.5,.5);e.Handled=true;}},Avalonia.Interactivity.RoutingStrategies.Tunnel);
+        AddHandler(KeyDownEvent,(_,e)=>{if(LiveSnapshot is null)return;if(e.Key is Key.Add or Key.OemPlus){LiveZoom?.Invoke(2,.5);e.Handled=true;}if(e.Key is Key.Subtract or Key.OemMinus){LiveZoom?.Invoke(.5,.5);e.Handled=true;}},Avalonia.Interactivity.RoutingStrategies.Tunnel);
     }
     private void RenderLive(DrawingContext c,LiveSignalSnapshot s)
     {
@@ -59,7 +59,7 @@ public sealed partial class AudioChart
             using(c.PushClip(Plot))
             {
                 void Channel(bool r,string color)=>DrawSpectrumSeries(c,s.Spectrum,liveFrequencyMin,max,r,color);
-                Channel(right,right?"wave-r":"wave-l");if(both)Channel(true,"wave-r");
+                Channel(right,right?"live-wave-r":"live-wave-l");if(both)Channel(true,"live-wave-r");
             }
             Text(c,$"{liveFrequencyMin:0.##} Hz",Plot.X,Plot.Y);Text(c,$"{max:0.##} Hz",Plot.Right-110,Plot.Y);Text(c,"+20 dBFS",0,Plot.Y+14);Text(c,"−160",0,Plot.Bottom-12);return;
         }
@@ -71,7 +71,7 @@ public sealed partial class AudioChart
         {
             if(LiveSelectionStart is { } first&&LiveSelectionEnd is { } last&&last>first)c.DrawRectangle(Brush("selected"),null,new Rect(X(first),Plot.Y,Math.Max(0,X(last)-X(first)),Plot.Height));
             void Channel(bool r,string color)=>DrawWaveSeries(c,s.Waveform,X,Y,r,color);
-            Channel(right,right?"wave-r":"wave-l");if(both)Channel(true,"wave-r");
+            Channel(right,right?"live-wave-r":"live-wave-l");if(both)Channel(true,"live-wave-r");
         }
         Text(c,$"{1/scale:0.###}",0,Plot.Y);Text(c,"0",25,Plot.Y+Plot.Height/2);Text(c,$"{-1/scale:0.###}",0,Plot.Bottom-12);
         for(int i=0;i<=4;i++){long frame=s.WaveStartFrame+(long)((s.WaveEndFrame-s.WaveStartFrame)*i/4.0);Text(c,$"{frame/(double)s.Format.SampleRate:0.######} s",Math.Min(Plot.Right-90,Plot.X+Plot.Width*i/4),Plot.Bottom+6);}
@@ -122,8 +122,8 @@ public sealed partial class AudioChart
             double width=Math.Max(1,Plot.Width-400),first=Plot.X+360;
             bool signed=row.A<0||row.B<0;double origin=first+(signed?width/2:0),length=signed?width/2:width;
             c.DrawLine(new Pen(Brush("border")),new Point(origin,y),new Point(origin,y+height-1));
-            c.DrawRectangle(Brush("wave-l"),null,new Rect(origin+Math.Min(0,row.A)/scale*length,y+3,Math.Abs(row.A)/scale*length,4));
-            c.DrawRectangle(Brush("wave-r"),null,new Rect(origin+Math.Min(0,row.B)/scale*length,y+10,Math.Abs(row.B)/scale*length,4));
+            c.DrawRectangle(Brush("live-wave-l"),null,new Rect(origin+Math.Min(0,row.A)/scale*length,y+3,Math.Abs(row.A)/scale*length,4));
+            c.DrawRectangle(Brush("live-wave-r"),null,new Rect(origin+Math.Min(0,row.B)/scale*length,y+10,Math.Abs(row.B)/scale*length,4));
         }
     }
 
@@ -146,7 +146,7 @@ public sealed partial class AudioChart
             {
                 double middle=Plot.X+width;double value=Math.Clamp(s.Combined.DisplayPercent??0,-EdgeRange,EdgeRange)/Math.Max(1,EdgeRange);
                 c.DrawLine(new Pen(Brush("border"),2),new Point(Plot.X,y+45),new Point(Plot.Right,y+45));c.DrawLine(new Pen(Brush("muted")),new Point(middle,y+30),new Point(middle,y+60));
-                c.DrawLine(new Pen(Brush(index==0?"wave-l":"wave-r"),3),new Point(middle+value*width,y+28),new Point(middle+value*width,y+62));
+                c.DrawLine(new Pen(Brush(index==0?"live-wave-l":"live-wave-r"),3),new Point(middle+value*width,y+28),new Point(middle+value*width,y+62));
                 Text(c,$"−{EdgeRange:0.#}%",Plot.X,y+65);Text(c,"0",middle-4,y+65);Text(c,$"+{EdgeRange:0.#}%",Plot.Right-60,y+65);
                 Text(c,$"Rise {s.Rise.CurrentMicroseconds:0.###} µs · fall {s.Fall.CurrentMicroseconds:0.###} µs · zero [{s.ZeroStartFrame}, {s.ZeroEndFrame})",Plot.X,y+90);
                 Text(c,s.Message,Plot.X,y+108);
@@ -160,7 +160,7 @@ public sealed partial class AudioChart
         if(stereo is not {Assessable:true} s){Text(c,stereo?.Status??"No stereo measurement",Plot.X,Plot.Y+15);return;}
         var center=new Point(Plot.X+Plot.Width/3,Plot.Y+Plot.Height/2);double radius=Math.Min(Plot.Width/4,Plot.Height/2-20);
         c.DrawEllipse(null,new Pen(Brush("border"),2),center,radius,radius);
-        if(s.SignalPhaseDegrees is { } phase){double angle=phase*Math.PI/180;c.DrawLine(new Pen(Brush("wave-r"),3),center,new Point(center.X+Math.Cos(angle)*radius,center.Y-Math.Sin(angle)*radius));Text(c,$"R−L {phase:0.###}°",center.X-radius,center.Y+radius+4);}else Text(c,"Known qualifying tone required for phase",center.X-radius,center.Y);
+        if(s.SignalPhaseDegrees is { } phase){double angle=phase*Math.PI/180;c.DrawLine(new Pen(Brush("live-wave-r"),3),center,new Point(center.X+Math.Cos(angle)*radius,center.Y-Math.Sin(angle)*radius));Text(c,$"R−L {phase:0.###}°",center.X-radius,center.Y+radius+4);}else Text(c,"Known qualifying tone required for phase",center.X-radius,center.Y);
         Text(c,$"Coherence {s.Coherence:0.###}",Plot.X+Plot.Width*.65,Plot.Y+40);Text(c,$"Right delay {s.DelayMicroseconds:0.###} µs",Plot.X+Plot.Width*.65,Plot.Y+70);Text(c,$"R−L level {s.LevelDifferenceDb:0.###} dB",Plot.X+Plot.Width*.65,Plot.Y+100);
     }
 

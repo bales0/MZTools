@@ -65,10 +65,9 @@ public sealed class ReviewApp : App
                     renderScaling = scale, pixels = bitmap.PixelSize.ToString(), origin = "Skia visual render of a real native window; not desktop screen capture" });
             }
             window.Width = 1366; window.Height = 768; await Task.Delay(100);
-            var filter = window.FindControl<TextBox>("ModuleFilter")!;
-            filter.Text = "Recorder"; Check(window.Model.VisibleModules.Count == 1, "Native input binding filters table");
-            filter.Text = ""; window.Model.SelectedModule = window.Model.Modules[3];
-            Check(window.Model.Heading == "Audio analysis workspace", "Navigation and selection share context");
+            var toolbar=window.FindControl<WrapPanel>("CommandBar")!;
+            Check(toolbar.Children.OfType<Button>().Any(b=>Equals(b.Content,"Tools ▾")&&b.IsEffectivelyVisible), "WPF Tools toolbar is visible");
+            Check(!window.FindControl<ListBox>("Navigation")!.IsEffectivelyVisible, "WPF editor has no migration workspace sidebar");
             window.FindControl<Button>("OpenButton")!.Focus();
             window.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.F6 });
             Check(!window.FindControl<Button>("OpenButton")!.IsFocused, "F6 changes focus region");

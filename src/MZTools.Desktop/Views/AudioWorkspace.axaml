@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:MZTools.Desktop.ViewModels" xmlns:c="using:MZTools.Desktop.Controls" x:Class="MZTools.Desktop.Views.AudioWorkspace" x:DataType="vm:ShellViewModel">
  <Grid x:Name="AudioGrid" ColumnDefinitions="*,16,288" MinHeight="720">
-  <Grid RowDefinitions="Auto,220,Auto,*" RowSpacing="10">
+  <Grid RowDefinitions="Auto,190,Auto,*" RowSpacing="10">
    <WrapPanel>
     <Button Content="Select frames…" Command="{Binding AudioSelectFramesCommand}" Margin="0,0,6,6" /><Button Content="Measure selection" Command="{Binding AudioMeasureCommand}" Margin="0,0,6,6" /><Button Content="Deeper analysis…" Command="{Binding AudioRecoverCommand}" Margin="0,0,6,6" />
     <Button Content="Export WAV…" Command="{Binding AudioWaveExportCommand}" Margin="0,0,6,6" /><Button Content="Export programs…" Command="{Binding AudioProgramsExportCommand}" Margin="0,0,6,6" /><Button Content="Export report…" Command="{Binding AudioReportExportCommand}" Margin="0,0,6,6" />

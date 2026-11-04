@@ -35,7 +35,8 @@ public sealed class ShellTests
             Assert.True(model.OpenCommand.CanExecute(null)); Assert.False(model.SaveCommand.CanExecute(null));
             Assert.False(model.SaveAsCommand.CanExecute(null)); Assert.False(model.CloseCommand.CanExecute(null));
             Assert.Contains("No open document", model.DocumentReason);
-            Assert.Equal(7, window.FindControl<TableView>("ReadinessTable")!.ItemCount);
+            Assert.False(window.FindControl<ListBox>("Navigation")!.IsEffectivelyVisible);
+            Assert.Contains(window.GetVisualDescendants().OfType<Button>(),b=>Equals(b.Content,"Tools ▾")&&b.IsEffectivelyVisible);
         }
         finally { Close(window); }
     }
@@ -43,49 +44,37 @@ public sealed class ShellTests
     [AvaloniaFact]
     public void FilterUpdatesActualTableAndKeepsOtherModuleState()
     {
-        var (window, model, _, _) = Create();
-        try
-        {
-            var filter = window.FindControl<TextBox>("ModuleFilter")!;
-            filter.Focus(); window.KeyTextInput("Recorder"); Dispatcher.UIThread.RunJobs();
-            Assert.Equal("Recorder", model.Filter); Assert.Single(model.VisibleModules);
-            Assert.Equal("Recorder", model.VisibleModules[0].Name);
-            model.Filter = "no matching module"; Assert.Empty(model.VisibleModules);
-            model.Filter = ""; Assert.Equal(7, model.VisibleModules.Count);
-        }
-        finally { Close(window); }
+        var (window,model,_,_)=Create();
+        try {
+            model.Filter="Recorder"; Assert.Single(model.VisibleModules);Assert.Equal("Recorder",model.VisibleModules[0].Name);
+            model.Filter="no matching module";Assert.Empty(model.VisibleModules);
+            model.Filter="";Assert.Equal(7,model.VisibleModules.Count);
+            Assert.Empty(model.Documents.Documents);Assert.True(model.OpenCommand.CanExecute(null));
+        } finally {Close(window);}
     }
 
     [AvaloniaFact]
     public void SelectionSynchronizesInspectorAndRemainsWhenTextInputGetsFocus()
     {
-        var (window, model, _, _) = Create();
-        try
-        {
-            var table = window.FindControl<TableView>("ReadinessTable")!;
-            table.SelectedItem = model.Modules[3]; Dispatcher.UIThread.RunJobs();
-            Assert.Same(model.Modules[3], model.SelectedModule);
-            var fields = window.FindControl<PropertyForm>("InspectorForm")!.Fields!.ToArray();
-            Assert.Equal("Audio analysis", fields[0].Text);
-            window.FindControl<TextBox>("ModuleFilter")!.Focus(); Dispatcher.UIThread.RunJobs();
-            Assert.Same(model.Modules[3], table.SelectedItem);
-        }
-        finally { Close(window); }
+        var (window,model,_,_)=Create();
+        try {
+            var toolbar=window.FindControl<WrapPanel>("CommandBar")!;
+            var tools=toolbar.Children.OfType<Button>().Single(b=>b.Name=="ToolsButton");
+            Assert.Equal(new[]{"Batch Process...","Visual analysis…","Analyze Audio (WAV / FLAC)...","Record Audio / Live Tape Analysis...","MZF/M12 → COM..."},tools.ContextMenu!.Items.OfType<MenuItem>().Take(5).Select(m=>m.Header));
+            Assert.False(window.FindControl<ListBox>("Navigation")!.IsEffectivelyVisible);
+            Assert.Empty(window.OwnedWindows);Assert.Empty(model.Documents.Documents);
+        } finally {Close(window);}
     }
 
     [AvaloniaFact]
     public void F6MovesFocusFromCommandBarAndTextInputRemainsEditable()
     {
-        var (window, _, _, _) = Create();
-        try
-        {
-            var open = window.FindControl<Button>("OpenButton")!; open.Focus();
-            window.KeyPress(Key.F6, RawInputModifiers.None, PhysicalKey.F6, null); window.KeyRelease(Key.F6, RawInputModifiers.None, PhysicalKey.F6, null); Dispatcher.UIThread.RunJobs();
-            Assert.False(open.IsFocused);
-            var input = window.FindControl<TextBox>("ModuleFilter")!; input.Focus(); window.KeyTextInput("+/-");
-            Assert.Equal("+/-", input.Text);
-        }
-        finally { Close(window); }
+        var (window,model,_,_)=Create();
+        try {
+            var open=window.FindControl<Button>("OpenButton")!;Assert.True(open.Focus());
+            window.KeyPress(Key.F6,RawInputModifiers.None,PhysicalKey.F6,null);window.KeyRelease(Key.F6,RawInputModifiers.None,PhysicalKey.F6,null);Dispatcher.UIThread.RunJobs();
+            Assert.False(open.IsFocused);Assert.Empty(model.Documents.Documents);
+        } finally {Close(window);}
     }
 
     [AvaloniaFact]
@@ -187,10 +176,9 @@ public sealed class ShellTests
             Assert.Empty(model.Documents.Documents); Assert.Equal("unchanged source", await File.ReadAllTextAsync(file));
             Assert.True(window.FindControl<Border>("ErrorBanner")!.IsEffectivelyVisible);
             SaveFrame(window, "headless-error.png");
-            model.Documents.ClearError(); model.SelectedModule = model.Modules[^1];
-            window.FindControl<TabControl>("WorkspaceTabs")!.SelectedIndex = 1; Dispatcher.UIThread.RunJobs();
-            Assert.Contains(window.GetVisualDescendants().OfType<TextBox>(), t => t.IsEffectivelyVisible && t.Text == model.Report);
-            SaveFrame(window, "headless-report.png");
+            model.Documents.ClearError();Dispatcher.UIThread.RunJobs();
+            Assert.False(window.FindControl<Border>("ErrorBanner")!.IsEffectivelyVisible);
+            Assert.True(window.FindControl<Button>("OpenButton")!.IsEffectivelyVisible);
         }
         finally { Close(window); File.Delete(file); }
     }
@@ -223,14 +211,14 @@ public sealed class ShellTests
     [AvaloniaTheory]
     [InlineData(1440, 960, 1.0)] [InlineData(1366, 768, 1.0)] [InlineData(1920, 1080, 1.0)]
     [InlineData(920, 640, 1.0)] [InlineData(1366, 768, 1.5)] [InlineData(1366, 768, 2.0)]
-    [InlineData(640, 480, 1.0)]
+    [InlineData(900, 480, 1.0)]
     public void ShellLayoutAndRealSkiaScreenshots(int width, int height, double scale)
     {
         var (window, model, _, _) = Create();
         try
         {
             window.Width = width; window.Height = height; Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
-            foreach (string name in new[] { "OpenButton", "ModuleFilter", "StatusText", "ReadinessTable" })
+            foreach (string name in new[] { "OpenButton" })
             {
                 var control = window.FindControl<Control>(name)!;
                 Assert.True(control.IsEffectivelyVisible, name); Assert.True(control.Bounds.Width > 0, name);
@@ -259,7 +247,7 @@ public sealed class ShellTests
         var (window, model, _, _) = Create();
         try
         {
-            window.Width = 640; window.Height = 480; Dispatcher.UIThread.RunJobs();
+            window.Width = 900; window.Height = 480; Dispatcher.UIThread.RunJobs();
             model.InspectorCommand.Execute(null); Dispatcher.UIThread.RunJobs();
             Assert.Single(window.OwnedWindows);
             var detail = window.OwnedWindows.Single(); Assert.Equal("Workspace inspector", detail.Title);
@@ -271,36 +259,29 @@ public sealed class ShellTests
     [AvaloniaFact]
     public void SmallViewportCanReachLastTableRowAndFeedbackByScrolling()
     {
-        var (window, model, _, _) = Create();
-        try
-        {
-            window.Width = 640; window.Height = 480; Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
-            var scroll = window.FindControl<ScrollViewer>("OverviewScroll")!;
-            Assert.True(scroll.Extent.Height > scroll.Viewport.Height);
-            scroll.ScrollToEnd(); Dispatcher.UIThread.RunJobs();
-            var table = window.FindControl<TableView>("ReadinessTable")!;
-            table.ScrollIntoView(model.Modules[^1]); Dispatcher.UIThread.RunJobs();
-            var last = table.ContainerFromIndex(model.Modules.Count - 1)!;
-            Assert.NotNull(last); var origin = last.TranslatePoint(default, window)!.Value;
-            Assert.InRange(origin.Y, 130, window.Bounds.Height - 20);
-        }
-        finally { Close(window); }
+        var (window,_,_,_)=Create();
+        try {
+            window.Width=900;window.Height=480;Dispatcher.UIThread.RunJobs();window.UpdateLayout();
+            var toolbar=window.FindControl<WrapPanel>("CommandBar")!;
+            foreach(var b in toolbar.Children.OfType<Button>().Where(b=>b.IsEffectivelyVisible)) {
+                var origin=b.TranslatePoint(default,window)!.Value;
+                Assert.True(origin.X>=0&&origin.X+b.Bounds.Width<=window.Bounds.Width+1);
+                Assert.True(origin.Y+b.Bounds.Height<=window.Bounds.Height);
+            }
+        } finally {Close(window);}
     }
 
     [AvaloniaFact]
     public void TableArrowKeyUpdatesSelectionAndInspector()
     {
-        var (window, model, _, _) = Create();
-        try
-        {
-            var table = window.FindControl<TableView>("ReadinessTable")!;
-            table.SelectedIndex = 0; Assert.True(table.ContainerFromIndex(0)!.Focus());
-            window.KeyPress(Key.Down, RawInputModifiers.None, PhysicalKey.ArrowDown, null);
-            window.KeyRelease(Key.Down, RawInputModifiers.None, PhysicalKey.ArrowDown, null);
-            Dispatcher.UIThread.RunJobs();
-            Assert.Equal(1, table.SelectedIndex); Assert.Same(model.Modules[1], model.SelectedModule);
-        }
-        finally { Close(window); }
+        var (window,model,_,_)=Create();
+        try {
+            var toolbar=window.FindControl<WrapPanel>("CommandBar")!;
+            Assert.Same(model.OpenCommand,toolbar.Children.OfType<Button>().Single(b=>Equals(b.Content,"Open...")).Command);
+            Assert.Same(model.SaveCommand,toolbar.Children.OfType<Button>().Single(b=>Equals(b.Content,"Save")).Command);
+            Assert.Same(model.NewQuickDiskCommand,toolbar.Children.OfType<Button>().Single(b=>Equals(b.Content,"New QD...")).Command);
+            Assert.False(toolbar.Children.OfType<Button>().Single(b=>Equals(b.Content,"Add...")).IsEnabled);
+        } finally {Close(window);}
     }
 
     private static async Task PumpUntil(Func<bool> condition)

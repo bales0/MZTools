@@ -1,16 +1,26 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="using:MZTools.Desktop.ViewModels" xmlns:c="using:MZTools.Desktop.Controls" x:Class="MZTools.Desktop.Views.DiskWorkspace" x:DataType="vm:ShellViewModel">
- <Grid RowDefinitions="Auto,*" RowSpacing="12" MinHeight="420">
-  <WrapPanel IsEnabled="{Binding CanUseDisk}">
-   <Button Content="Import…" Command="{Binding DiskImportCommand}" Margin="0,0,6,6" /><Button Content="Export…" Command="{Binding DiskExportCommand}" Margin="0,0,6,6" />
-   <Button Content="Delete…" Command="{Binding DiskDeleteCommand}" Margin="0,0,6,6" /><Button Content="Copy files" Command="{Binding DiskCopyCommand}" Margin="0,0,6,6" /><Button Content="Paste files…" Command="{Binding DiskPasteCommand}" Margin="0,0,6,6" />
-   <ComboBox ItemsSource="{Binding DiskTools}" SelectedItem="{Binding DiskTool, Mode=TwoWay}" MinWidth="190" Margin="0,0,6,6" AutomationProperties.Name="Disk tool" />
-   <Button Content="Run tool…" Command="{Binding DiskToolCommand}" Margin="0,0,6,6" />
-  </WrapPanel>
+ <Grid RowDefinitions="Auto,*" RowSpacing="0">
+  <Border Padding="8" BorderBrush="LightGray" BorderThickness="1" CornerRadius="3" Margin="0,0,0,8"><WrapPanel IsEnabled="{Binding CanUseDisk}">
+   <Button Content="Disk ▾" Classes="wpfToolbar" Click="OpenWpfMenu"><Button.ContextMenu><ContextMenu>
+    <MenuItem Header="Convert Format..."><MenuItem Header="Container format..." Tag="Export converted container" Click="WpfDiskTool" /><MenuItem Header="Filesystem..." Tag="Convert filesystem" Click="WpfDiskTool" /></MenuItem><MenuItem Header="Format disk…" Tag="Format disk" Click="WpfDiskTool" /><MenuItem Header="Normalize Container..." Tag="Normalize container" Click="WpfDiskTool" /><MenuItem Header="Compare with..." Tag="Compare image" Click="WpfDiskTool" /><MenuItem Header="Batch Process..." Command="{Binding BatchPreviewCommand}" /><MenuItem Header="Repair Container…" Tag="Container repair" Click="WpfDiskTool" />
+   </ContextMenu></Button.ContextMenu></Button>
+   <Button Content="Filesystem ▾" Classes="wpfToolbar" Click="OpenWpfMenu"><Button.ContextMenu><ContextMenu>
+    <MenuItem Header="Copy from another disk..." Click="WpfCopyFromDisk" /><MenuItem Header="File Properties..." Click="WpfDiskProperties" /><MenuItem Header="Structure Inspector..." Click="WpfDiskStructure" /><MenuItem Header="Attach / Edit CP/M Layout..." Tag="CP/M layout" Click="WpfDiskTool" /><MenuItem Header="Defragment..." Tag="Defragment" Click="WpfDiskTool" /><MenuItem Header="Guided Repair..." Tag="Filesystem repair" Click="WpfDiskTool" /><Separator /><MenuItem Header="Copy to Tape..." Tag="Copy to Tape" Click="WpfDiskTool" /><MenuItem Header="Open CP/M block..." Tag="Open CP/M block" Click="WpfDiskTool" />
+   </ContextMenu></Button.ContextMenu></Button>
+   <Button Content="Boot / System ▾" Classes="wpfToolbar" Click="OpenWpfMenu"><Button.ContextMenu><ContextMenu>
+    <MenuItem Header="Bootstrap / IPLPRO..."><MenuItem Header="Export bootstrap..." Tag="Bootstrap export" Click="WpfDiskTool" /><MenuItem Header="Import bootstrap..." Tag="Bootstrap import" Click="WpfDiskTool" /><MenuItem Header="Export header..." Tag="Bootstrap header export" Click="WpfDiskTool" /><MenuItem Header="Import header..." Tag="Bootstrap header import" Click="WpfDiskTool" /><MenuItem Header="Metadata..." Tag="Bootstrap metadata" Click="WpfDiskTool" /><MenuItem Header="Clear bootstrap..." Tag="Bootstrap clear" Click="WpfDiskTool" /></MenuItem>
+    <MenuItem Header="Make Bootable / Install CP/M System..." Tag="Install boot/system" Click="WpfDiskTool" /><MenuItem Header="Boot / System profiles..." Tag="Manage profiles" Click="WpfDiskTool" />
+   </ContextMenu></Button.ContextMenu></Button>
+   <Button Content="Tools ▾" Classes="wpfToolbar" Click="OpenWpfMenu"><Button.ContextMenu><ContextMenu><MenuItem Header="Visual analysis…" Click="WpfDiskAnalysis" /><MenuItem Header="MZF/M12 → COM..." Tag="Import Native COM" Click="WpfDiskTool" />
+    <MenuItem Header="Sector / physical tools"><MenuItem Header="Physical Properties..." Tag="Physical properties" Click="WpfDiskTool" /><MenuItem Header="Export sectors..." Tag="Raw export" Click="WpfDiskTool" /><MenuItem Header="Import sectors..." Tag="Raw import" Click="WpfDiskTool" /><MenuItem Header="Export patch..." Tag="Export patch" Click="WpfDiskTool" /><MenuItem Header="Apply patch..." Tag="Apply patch" Click="WpfDiskTool" /></MenuItem>
+    <MenuItem Header="IPL programs"><MenuItem Header="Add programs..." Tag="IPL add programs" Click="WpfDiskTool" /><MenuItem Header="Rename / Compression..." Tag="IPL rename / compression" Click="WpfDiskTool" /><MenuItem Header="Move up" Tag="IPL move up" Click="WpfDiskTool" /><MenuItem Header="Move down" Tag="IPL move down" Click="WpfDiskTool" /><MenuItem Header="Delete programs..." Tag="IPL delete programs" Click="WpfDiskTool" /></MenuItem></ContextMenu></Button.ContextMenu></Button>
+   <Button Content="Open..." Classes="wpfToolbar" Command="{Binding OpenCommand}" /><Button Content="Add..." Classes="wpfToolbar" Command="{Binding DiskImportCommand}" /><Button Content="Export..." Classes="wpfToolbar" Command="{Binding DiskExportCommand}" /><Button Content="Delete" Classes="wpfToolbar" Command="{Binding DiskDeleteCommand}" /><Button Content="Save" Classes="wpfToolbar" Command="{Binding SaveCommand}" /><Button Content="Save As..." Classes="wpfToolbar" Command="{Binding SaveAsCommand}" /><Button Content="Close" Classes="wpfToolbar" Command="{Binding CloseCommand}" />
+  </WrapPanel></Border>
   <Grid Grid.Row="1" x:Name="DiskGrid" ColumnDefinitions="*,16,288">
    <TabControl x:Name="DiskTabs" SelectedIndex="{Binding ActiveDisk.ViewIndex, Mode=TwoWay}" IsEnabled="{Binding CanUseDisk}">
     <TabControl.ItemsPanel><ItemsPanelTemplate><WrapPanel Orientation="Horizontal" /></ItemsPanelTemplate></TabControl.ItemsPanel>
-    <TabItem Header="Files"><Grid RowDefinitions="Auto,*" RowSpacing="12" Margin="0,12,0,0">
-     <TextBox x:Name="DiskFilter" Text="{Binding ActiveDisk.Filter, Mode=TwoWay}" PlaceholderText="Filter disk files…" AutomationProperties.Name="Filter disk files" />
+    <TabItem Header="Files"><Grid RowDefinitions="Auto,*" RowSpacing="0" Margin="0">
+     <TextBox IsVisible="False" x:Name="DiskFilter" Text="{Binding ActiveDisk.Filter, Mode=TwoWay}" PlaceholderText="Filter disk files…" AutomationProperties.Name="Filter disk files" />
      <TableView Grid.Row="1" x:Name="DiskFiles" AutoScrollToSelectedItem="False" ItemsSource="{Binding ActiveDisk.Files}" SelectionMode="Multiple" AutomationProperties.Name="Disk files" DragDrop.AllowDrop="True">
       <TableView.Columns>
        <TableViewColumn Header="Name" Binding="{ReflectionBinding Name}" Width="2*" /><TableViewColumn Header="Bytes" Binding="{ReflectionBinding Bytes}" Width="85" />
@@ -19,7 +29,7 @@
       <TableView.ContextMenu><ContextMenu><MenuItem Header="Export…" Command="{Binding DiskExportCommand}" /><MenuItem Header="Copy files" Command="{Binding DiskCopyCommand}" /><MenuItem Header="Paste files…" Command="{Binding DiskPasteCommand}" /><Separator /><MenuItem Header="Delete…" Command="{Binding DiskDeleteCommand}" /></ContextMenu></TableView.ContextMenu>
      </TableView>
     </Grid></TabItem>
-    <TabItem Header="Map"><Grid RowDefinitions="Auto,Auto,280,Auto,220" RowSpacing="8" Margin="0,12,0,0">
+    <TabItem Header="Disk Map"><Grid RowDefinitions="Auto,Auto,2*,Auto,*" RowSpacing="8" Margin="0,12,0,0">
      <WrapPanel><Button Content="Zoom +" Click="ZoomIn" Margin="0,0,6,0" /><Button Content="Zoom −" Click="ZoomOut" Margin="0,0,6,0" /><Button Content="Fit all" Click="Fit" Margin="0,0,6,0" /><Button Content="Fit selection" Click="FitSelection" Margin="0,0,6,0" /><CheckBox Content="Sector-ID order" IsChecked="{Binding ActiveDisk.LogicalOrder, Mode=TwoWay}" /></WrapPanel>
      <ComboBox Grid.Row="1" x:Name="MapMode" SelectedIndex="{Binding ActiveDisk.MapMode, Mode=TwoWay}" SelectionChanged="MapModeChanged" AutomationProperties.Name="Disk map view"><ComboBoxItem Content="Track map" /><ComboBoxItem Content="Surface side 0" /><ComboBoxItem Content="Surface side 1" /></ComboBox>
      <c:DiskMap Grid.Row="2" x:Name="Map" Session="{Binding ActiveDisk}" />

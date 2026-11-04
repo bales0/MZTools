@@ -1,5 +1,10 @@
 # MZTools
 
+The current multiplatform frontend follows the retained WPF application's appearance
+and workflows. See [the WPF parity changes and measured validation](docs/WPF_PARITY_2026-11-03.md).
+New developer archives are in `TestResults/WpfParity-2026-11-03/distribution`;
+the earlier October archives predate these UI changes.
+
 MZTools is a utility for converting, inspecting and editing SHARP MZ QuickDisk and tape files.
 
 > **This project is based on the original [QDTool by Martin Lukasek](https://github.com/mlukasek/QDTool).**

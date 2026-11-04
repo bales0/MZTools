@@ -12,7 +12,7 @@ public interface IRecorderBackendFactory
 }
 
 /// <summary>UI adapter only. CaptureSession owns archive priority, buffers and finalization.</summary>
-public sealed class RecorderModel : Observable,IAsyncDisposable
+public sealed partial class RecorderModel : Observable,IAsyncDisposable
 {
     private readonly IRecorderBackendFactory factory;
     private readonly AudioRecorderViewModel recorder=new();
@@ -32,8 +32,8 @@ public sealed class RecorderModel : Observable,IAsyncDisposable
     public IReadOnlyList<string> Backends=>factory.Choices;
     public int BackendIndex {get=>backendIndex;set{if(!CanConfigure||value<0||value>=Backends.Count)return;if(Set(ref backendIndex,value)){Devices.Clear();Device=null;backend=null;}}}
     public ObservableCollection<AudioCaptureDevice> Devices {get;}=[];
-    public AudioCaptureDevice? Device {get=>device;set{if(!CanConfigure)return;if(Set(ref device,value)){Changed(nameof(Formats));Format=Formats.FirstOrDefault();}}}
-    public IReadOnlyList<AudioCaptureFormat> Formats=>Device?.AdvertisedFormats??[];
+    public AudioCaptureDevice? Device {get=>device;set{if(!CanConfigure)return;if(Set(ref device,value)){probedFormats.Clear();Changed(nameof(Formats));Format=Formats.FirstOrDefault();}}}
+    public IReadOnlyList<AudioCaptureFormat> Formats=>(Device?.AdvertisedFormats??[]).Concat(probedFormats).Distinct().ToArray();
     public AudioCaptureFormat? Format
     {
         get=>format;
@@ -81,7 +81,7 @@ public sealed class RecorderModel : Observable,IAsyncDisposable
     private int DisplayChannels=>recorder.Capture?.Stream?.ActualFormat.Channels??Format?.Channels??1;
     private int lastDisplayChannels;
     private CaptureSessionState lastState;
-    private bool autoScale=true;private double gain=1;
+    private bool autoScale;private double gain=1;
     public bool AutoScale {get=>autoScale;set=>Set(ref autoScale,value);}
     public double Gain {get=>gain;set{if(double.IsFinite(value)&&value>0&&value<=1000){Set(ref gain,value);AutoScale=false;}}}
     public bool FollowLive {get;set;}=true;
@@ -181,7 +181,7 @@ public sealed class RecorderModel : Observable,IAsyncDisposable
     {
         if(IsActive)throw new InvalidOperationException("Stop capture before changing inputs.");
         backend=factory.Create(BackendIndex,Raw,EngineConversion);var found=await backend.EnumerateDevicesAsync(ct);ct.ThrowIfCancellationRequested();
-        Devices.Clear();foreach(var d in found)Devices.Add(d);device=null;format=null;Changed(nameof(Device));Changed(nameof(Formats));Changed(nameof(Format));Status=$"{Devices.Count} inputs. Select a device and delivered format; enumeration does not start capture.";
+        probedFormats.Clear();Devices.Clear();foreach(var d in found)Devices.Add(d);device=null;format=null;Changed(nameof(Device));Changed(nameof(Formats));Changed(nameof(Format));Status=$"{Devices.Count} inputs. Select a device and delivered format; enumeration does not start capture.";
     });
     public Task StartAsync(string? destination=null,bool overwrite=false)=>RunAsync(async ct=>
     {
@@ -193,8 +193,14 @@ public sealed class RecorderModel : Observable,IAsyncDisposable
     public Task StopAsync()=>RunAsync(async _=>{await recorder.StopAsync();Status="Stopped and finalized. Inspect integrity and diagnostics before using output.";});
     public Task DiscardAsync()=>RunAsync(async _=>{await recorder.DiscardAsync();Status="Current run discarded; earlier recordings retained.";});
     public void Cancel()=>pending?.Cancel();
-    public void ResetClipping()=>recorder.ResetClippingHold();
-    public void FitWave(){FollowLive=true;WaveEndFrame=null;WaveSeconds=.1;Changed(nameof(FollowLive));}
+    public double ClipThreshold {get;set;}=100;
+    public void ResetClipping()
+    {
+        if(!double.IsFinite(ClipThreshold)||ClipThreshold<=0||ClipThreshold>100){ReportError("Clip threshold must be greater than 0 and at most 100 percent FS.");return;}
+        recorder.ResetClippingHold(ClipThreshold/100);
+    }
+    public string DiagnosticsSummary=>Processing+"\n\n"+Statistics+"\n\n"+RecordingDetails;
+    public void FitWave(){FollowLive=true;WaveEndFrame=null;WaveSeconds=2;Changed(nameof(FollowLive));}
     public void ZoomWave(double factor,double anchor=.5)
     {double old=WaveSeconds;WaveSeconds=Math.Clamp(WaveSeconds/factor,1.0/Math.Max(1,Live?.Format.SampleRate??48000),2);if(!FollowLive&&WaveEndFrame is { } end)WaveEndFrame=end-(long)((old-WaveSeconds)*(1-anchor)*(Live?.Format.SampleRate??48000));Changed(nameof(WaveSeconds));}
     public void PanWave(long frames)
@@ -236,7 +242,7 @@ public sealed class RecorderModel : Observable,IAsyncDisposable
         if(lastDisplayChannels!=DisplayChannels){lastDisplayChannels=DisplayChannels;ChannelMode=0;PulseChannel=0;Changed(nameof(Channels));Changed(nameof(PulseChannel));Changed(nameof(PulseMaximumChannel));}
         var history=recorder.Recordings;
         if(lastState!=recorder.State){lastState=recorder.State;if(lastState is CaptureSessionState.Completed or CaptureSessionState.Failed){var report=recorder.LatestReport;Status=$"{lastState} · {report?.Integrity} · {report?.Reason}. Inspect report and loss counters.";}}if(history.Count!=recordings.Count||history.LastOrDefault()!=recordings.LastOrDefault()){recordings=history;Changed(nameof(Recordings));}
-        foreach(var name in new[]{nameof(IsActive),nameof(CanConfigure),nameof(CanStart),nameof(CanMonitor),nameof(CanDiscard),nameof(CanStop),nameof(Statistics),nameof(Processing),nameof(PulseDistributions),nameof(PulseStreams),nameof(PulseDetails),nameof(AlignmentDetails),nameof(AlignmentChannels),nameof(CanSaveAlignment),nameof(PulseMaximumChannel),nameof(Stereo),nameof(StereoRows),nameof(PulseTiming),nameof(RecentPulses)})Changed(name);
+        foreach(var name in new[]{nameof(IsActive),nameof(CanConfigure),nameof(CanStart),nameof(CanMonitor),nameof(CanDiscard),nameof(CanStop),nameof(Statistics),nameof(DiagnosticsSummary),nameof(Processing),nameof(PulseDistributions),nameof(PulseStreams),nameof(PulseDetails),nameof(AlignmentDetails),nameof(AlignmentChannels),nameof(CanSaveAlignment),nameof(PulseMaximumChannel),nameof(Stereo),nameof(StereoRows),nameof(PulseTiming),nameof(RecentPulses)})Changed(name);
         if(SelectedRecording is null&&Recordings.Count>0)SelectedRecording=Recordings[^1];
     }
     public ValueTask DisposeAsync(){lock(disposalGate)return new(disposal??=DisposeCoreAsync());}

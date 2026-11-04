@@ -20,7 +20,7 @@ public sealed partial class AudioWorkspace : UserControl
     internal Control InspectorFocusRegion=>Inspector;
     public AudioWorkspace()
     {
-        InitializeComponent();
+        InitializeComponent();ConfigureWpfAudioLayout();
         DataContextChanged+=(_,_)=>BindSession();
         AttachedToVisualTree+=(_,_)=>BindSession();
         DetachedFromVisualTree+=(_,_)=>{debounce.Stop();if(observed is not null)observed.PropertyChanged-=Changed;observed=null;};
@@ -68,7 +68,7 @@ public sealed partial class AudioWorkspace : UserControl
     }
     private void Reflow()
     {
-        MinHeight=AudioTabs.SelectedIndex==1?1120:AudioTabs.SelectedIndex==4?950:800;
+        MinHeight=0;
         bool show=Bounds.Width>=900&&Model?.InspectorVisible==true;AudioInspectorPanel.IsVisible=show;
         AudioGrid.ColumnDefinitions[1].Width=new GridLength(show?16:0);AudioGrid.ColumnDefinitions[2].Width=new GridLength(show?288:0);
     }
@@ -78,18 +78,18 @@ public sealed partial class AudioWorkspace : UserControl
         inspectorWindow=new Window{Title="Audio inspector",Width=440,Height=760,Content=new AudioInspector{DataContext=Model,Margin=new Thickness(20)},WindowStartupLocation=WindowStartupLocation.CenterOwner};
         inspectorWindow.Closed+=(_,_)=>inspectorWindow=null;inspectorWindow.Show(owner);
     }
-    private void WaveZoomIn(object? sender,RoutedEventArgs e)=>Waveform.Zoom(1.5);
-    private void WaveZoomOut(object? sender,RoutedEventArgs e)=>Waveform.Zoom(1/1.5);
+    private void WaveZoomIn(object? sender,RoutedEventArgs e)=>Waveform.Zoom(2);
+    private void WaveZoomOut(object? sender,RoutedEventArgs e)=>Waveform.Zoom(.5);
     private void WaveFit(object? sender,RoutedEventArgs e)=>Waveform.Fit();
     private void WaveFitSelection(object? sender,RoutedEventArgs e)=>observed?.FitSelection();
     private void SelectedRecord(object? sender,RoutedEventArgs e){if(observed?.SelectedBlock is { } block){observed.SetSelection(observed.Blocks.Where(b=>b.Record==block.Record).Select(b=>(b.Start,b.End)));observed.FitSelection();}}
     private void PulseKindChanged(object? sender,SelectionChangedEventArgs e){if(PulseChart is not null)PulseChart.Kind=(AudioPlotKind)(1+Math.Max(0,PulseKind.SelectedIndex));}
     private void SpectralKindChanged(object? sender,SelectionChangedEventArgs e){if(SpectrumChart is not null)SpectrumChart.Kind=SpectralKind.SelectedIndex==1?AudioPlotKind.Spectrogram:AudioPlotKind.Spectrum;}
-    private void PulseZoomIn(object? sender,RoutedEventArgs e)=>PulseChart.Zoom(1.5);
-    private void PulseZoomOut(object? sender,RoutedEventArgs e)=>PulseChart.Zoom(1/1.5);
+    private void PulseZoomIn(object? sender,RoutedEventArgs e)=>PulseChart.Zoom(2);
+    private void PulseZoomOut(object? sender,RoutedEventArgs e)=>PulseChart.Zoom(.5);
     private void PulseFit(object? sender,RoutedEventArgs e)=>PulseChart.Fit();
-    private void SpectralZoomIn(object? sender,RoutedEventArgs e)=>SpectrumChart.Zoom(1.5);
-    private void SpectralZoomOut(object? sender,RoutedEventArgs e)=>SpectrumChart.Zoom(1/1.5);
+    private void SpectralZoomIn(object? sender,RoutedEventArgs e)=>SpectrumChart.Zoom(2);
+    private void SpectralZoomOut(object? sender,RoutedEventArgs e)=>SpectrumChart.Zoom(.5);
     private void SpectralFit(object? sender,RoutedEventArgs e)=>SpectrumChart.Fit();
     private void OpenGraph(object? sender,RoutedEventArgs e)=>ShowGraph(AudioPlotKind.Waveform);
     private void OpenPulseGraph(object? sender,RoutedEventArgs e)=>ShowGraph(PulseChart.Kind);
@@ -98,7 +98,7 @@ public sealed partial class AudioWorkspace : UserControl
     {
         if(observed is null||TopLevel.GetTopLevel(this) is not Window owner)return;
         var chart=new AudioChart{Session=observed,Kind=kind};var toolbar=new StackPanel{Orientation=Avalonia.Layout.Orientation.Horizontal,Spacing=8};
-        foreach(var (label,action) in new (string,Action)[]{("Zoom +",()=>chart.Zoom(1.5)),("Zoom −",()=>chart.Zoom(1/1.5)),("Fit",chart.Fit)})
+        foreach(var (label,action) in new (string,Action)[]{("Zoom +",()=>chart.Zoom(2)),("Zoom −",()=>chart.Zoom(.5)),("Fit",chart.Fit)})
         {var button=new Button{Content=label};button.Click+=(_,_)=>action();toolbar.Children.Add(button);}
         var grid=new Grid{RowDefinitions=new RowDefinitions("Auto,*"),RowSpacing=12,Margin=new Thickness(20)};grid.Children.Add(toolbar);Grid.SetRow(chart,1);grid.Children.Add(chart);
         var window=new Window{Title="Audio graph · "+kind,Width=1100,Height=680,Content=grid,WindowStartupLocation=WindowStartupLocation.CenterOwner};

@@ -17,20 +17,37 @@ public sealed partial class RecorderWindow : Window
     public RecorderWindow():this(new(new RecorderBackendFactory()),new DesktopRecorderNavigation(null)){}
     public RecorderWindow(RecorderModel model,IRecorderNavigation navigation,Func<string,bool>? destinationAllowed=null)
     {
-        InitializeComponent();Model=model;DataContext=model;this.navigation=navigation;this.destinationAllowed=destinationAllowed??(_=>true);
+        InitializeComponent();RecorderDestination.Text=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"Tape_"+DateTime.Now.ToString("yyyyMMdd_HHmmss")+".wav");Model=model;DataContext=model;this.navigation=navigation;this.destinationAllowed=destinationAllowed??(_=>true);
         LiveWave.LiveZoom+=(factor,anchor)=>model.ZoomWave(factor,anchor);LiveWave.LivePan+=model.PanWave;LiveWave.LiveSelected+=model.SelectFrames;
         LivePulses.LiveZoom+=(factor,anchor)=>model.ZoomPulse(factor,anchor);LivePulses.LivePan+=frames=>model.PanPulse(frames);
         refresh.Tick+=async(_,_)=>await model.RefreshAsync();Opened+=(_,_)=>refresh.Start();Closing+=CloseRecorder;Closed+=(_,_)=>refresh.Stop();
     }
     private async void Enumerate(object? sender,RoutedEventArgs e)=>await Model.EnumerateAsync();
+    private async void ProbeFormat(object? sender,RoutedEventArgs e)
+    {
+        try
+        {
+            var representations=new[]{AudioSampleRepresentation.Unsigned8,AudioSampleRepresentation.Signed16,AudioSampleRepresentation.Signed24,AudioSampleRepresentation.Signed32,AudioSampleRepresentation.Float32};
+            await Model.ProbeFormatAsync(new(int.Parse(RecorderProbeRate.Text??"",System.Globalization.CultureInfo.InvariantCulture),RecorderProbeChannels.SelectedIndex+1,representations[RecorderProbeEncoding.SelectedIndex],int.Parse(RecorderProbeBits.Text??"",System.Globalization.CultureInfo.InvariantCulture)));
+        }catch(Exception ex)when(ex is not OutOfMemoryException){Model.ReportError(ex.Message);}
+    }
     private async void Monitor(object? sender,RoutedEventArgs e)=>await Model.StartAsync();
+    private void ZoomLiveIn(object? sender,RoutedEventArgs e)=>Model.ZoomWave(2);
+    private void ZoomLiveOut(object? sender,RoutedEventArgs e)=>Model.ZoomWave(.5);
+    private async void BrowseRecording(object? sender,RoutedEventArgs e)
+    {
+        try{var path=await new DesktopDialogs(this).PickDiskOutputAsync("WAV destination",Path.GetFileName(RecorderDestination.Text)??"recording.wav");if(path is not null)RecorderDestination.Text=path;}
+        catch(Exception ex)when(ex is not OutOfMemoryException){Model.ReportError(ex.Message);}
+    }
     private async void Stop(object? sender,RoutedEventArgs e)=>await Model.StopAsync();
     private void CancelOperation(object? sender,RoutedEventArgs e)=>Model.Cancel();
     private async void Record(object? sender,RoutedEventArgs e)
     {
         try
         {
-            var dialogs=new DesktopDialogs(this);var path=await dialogs.PickDiskOutputAsync("Record WAV","recording.wav");if(path is null)return;
+            var dialogs=new DesktopDialogs(this);var path=RecorderDestination.Text;
+            if(string.IsNullOrWhiteSpace(path)){path=await dialogs.PickDiskOutputAsync("Record WAV","recording.wav");if(path is null)return;RecorderDestination.Text=path;}
+            path=Path.GetFullPath(path);
             if(!Path.GetExtension(path).Equals(".wav",StringComparison.OrdinalIgnoreCase))throw new IOException("Choose a .wav recording destination.");
             if(!destinationAllowed(path)||!destinationAllowed(path+".json"))throw new IOException("The destination belongs to an open document or source set.");
             bool exists=File.Exists(path)||File.Exists(path+".json");if(exists&&!await dialogs.ConfirmOverwriteAsync(path))return;await Model.StartAsync(path,exists);

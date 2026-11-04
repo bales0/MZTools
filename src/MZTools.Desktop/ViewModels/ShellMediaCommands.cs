@@ -2,6 +2,13 @@ using MZTools.Desktop.Documents;
 
 namespace MZTools.Desktop.ViewModels;
 
+// Optional capability: the real Avalonia dialog implements this; headless test adapters
+// can continue using the original default MZQ behavior until they exercise format choice.
+internal interface INewQuickDiskDialog
+{
+    Task<TapeDocumentFormat?> ChooseNewQuickDiskFormatAsync();
+}
+
 public sealed partial class ShellViewModel
 {
     public TapeSession? ActiveTape => Documents.Active as TapeSession;
@@ -28,7 +35,26 @@ public sealed partial class ShellViewModel
         AsyncCommand Operation(Func<CancellationToken, Task<bool>> work, Func<bool> allowed) => new(async () => { await Documents.ExecuteAsync(work); }, allowed);
         bool Selected() => ActiveTape is { } tape && (tape.Selection.Count != 0 || tape.SelectedRow is not null);
         NewTapeCommand = Operation(_ => { Documents.Add(TapeSession.New(false)); return Task.FromResult(true); }, () => !Documents.IsBusy);
-        NewQuickDiskCommand = Operation(_ => { Documents.Add(TapeSession.New(true)); return Task.FromResult(true); }, () => !Documents.IsBusy);
+        NewQuickDiskCommand = Operation(async ct =>
+        {
+            // Cancellation must not add a document or alter the active document.
+            TapeDocumentFormat? chosen = dialogs is INewQuickDiskDialog picker
+                ? await picker.ChooseNewQuickDiskFormatAsync()
+                : TapeDocumentFormat.Mzq; // explicit compatibility for existing test adapters
+            if (ct.IsCancellationRequested || chosen is null) return false;
+            if (chosen is not (TapeDocumentFormat.QdSharpLegacy or TapeDocumentFormat.QdHxc or
+                TapeDocumentFormat.QdFlashFloppy or TapeDocumentFormat.Mzq))
+                throw new InvalidDataException("Unsupported QuickDisk image type.");
+            var profile = chosen switch
+            {
+                TapeDocumentFormat.QdHxc => QuickDiskPhysicalProfile.Hxc,
+                TapeDocumentFormat.QdFlashFloppy => QuickDiskPhysicalProfile.FlashFloppy,
+                _ => null
+            };
+            var disk = new TapeDocument { Format = chosen.Value, QuickDiskProfile = profile, IsModified = true };
+            Documents.Add(new TapeSession(disk));
+            return true;
+        }, () => !Documents.IsBusy);
         ApplyMetadataCommand = Operation(_ => { ActiveTape!.ApplyMetadata(); return Task.FromResult(ActiveTape.Validation.Length == 0); }, () => CanEditMedia && Selected());
         MoveUpCommand = Operation(_ => { ActiveTape!.Move(-1); return Task.FromResult(true); }, () => CanMutateRecords && Selected());
         MoveDownCommand = Operation(_ => { ActiveTape!.Move(1); return Task.FromResult(true); }, () => CanMutateRecords && Selected());

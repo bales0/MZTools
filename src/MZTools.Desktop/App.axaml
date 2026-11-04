@@ -3,10 +3,12 @@
   <Application.Resources>
     <ResourceDictionary><ResourceDictionary.MergedDictionaries>
       <ResourceInclude Source="avares://MZTools.Desktop/Theme/Tokens.axaml" />
+      <ResourceInclude Source="avares://MZTools.Desktop/Theme/WpfResources.axaml" />
     </ResourceDictionary.MergedDictionaries></ResourceDictionary>
   </Application.Resources>
   <Application.Styles>
     <FluentTheme />
     <StyleInclude Source="avares://MZTools.Desktop/Theme/SharedStyles.axaml" />
+    <StyleInclude Source="avares://MZTools.Desktop/Theme/WpfStyles.axaml" />
   </Application.Styles>
 </Application>

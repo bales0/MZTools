@@ -39,7 +39,7 @@ public sealed partial class ShellViewModel : Observable
     public bool IsFilterEmpty => VisibleModules.Count == 0;
     private ModuleStatus? selectedModule;
     private string filter = "";
-    private bool inspectorVisible = true;
+    private bool inspectorVisible;
     public ModuleStatus? SelectedModule
     {
         get => selectedModule;
@@ -131,7 +131,7 @@ public sealed partial class ShellViewModel : Observable
         RefreshDiskCommands();
         RefreshAudioCommands();
         RefreshBatchCommands();
-        Changed(nameof(HasDocument)); Changed(nameof(DocumentReason)); Changed(nameof(ActiveTape)); Changed(nameof(ShowMedia)); Changed(nameof(Description)); Changed(nameof(Report));
+        Changed(nameof(WpfStatus)); Changed(nameof(HasDocument)); Changed(nameof(DocumentReason)); Changed(nameof(ActiveTape)); Changed(nameof(ShowMedia)); Changed(nameof(Description)); Changed(nameof(Report));
     }
     private void ApplyFilter()
     {

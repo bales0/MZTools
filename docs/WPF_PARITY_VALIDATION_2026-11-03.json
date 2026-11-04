@@ -1,0 +1,1403 @@
+{
+  "generatedUtc": "2026-11-03T22:11:47.172381+00:00",
+  "baseline": "a05ca28f21e883c7250682ffae320e137968f5f5",
+  "scope": "WPF-reference frontend change. Actual Windows/Linux x64; other RID execution, physical audio and signing UNTESTED. Gallery is not a claim of pixel identity of every dialog.",
+  "suites": {
+    "windows": {
+      "source": "TestResults/WpfParity-2026-11-03/windows/desktop-release.trx",
+      "sha256": "50e44a84f607947ecaf79507d5a184f2cf0d08d8b82e109cb94e3f628e64de13",
+      "passed": 255,
+      "failed": 0,
+      "skipped": 0
+    },
+    "linux": {
+      "source": "TestResults/WpfParity-2026-11-03/linux/desktop-release.trx",
+      "sha256": "198d47764b815f4cf689374a250a93489a8716d32b308a9901b55a7d90bb168a",
+      "passed": 263,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "native": {
+    "windows": {
+      "native-audio": {
+        "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-audio.json",
+        "sha256": "52464ecee694e2e362729569dbac5c1a85416e217873d5c5c1f193bb99db51d6",
+        "checks": [
+          {
+            "name": "Native F4 export creates actual decodable audio fixture",
+            "pass": true
+          },
+          {
+            "name": "Native WAV opens in read-only Audio workspace",
+            "pass": true
+          },
+          {
+            "name": "Native initial analysis recovers the actual MZF program",
+            "pass": true
+          },
+          {
+            "name": "Native record table selects exact Core block frames",
+            "pass": true
+          },
+          {
+            "name": "Native Measure uses existing pulse statistics",
+            "pass": true
+          },
+          {
+            "name": "Native FFT views retain method and exact-window provenance",
+            "pass": true
+          },
+          {
+            "name": "Native selected PCM export writes 900 actual PCM8 frames",
+            "pass": true
+          },
+          {
+            "name": "Native WAV export preserves original bytes and binding",
+            "pass": true
+          },
+          {
+            "name": "Native deeper analysis retains complete programs and checksum candidates",
+            "pass": true
+          },
+          {
+            "name": "Native recovery exposes actual consumed detector streams",
+            "pass": true
+          },
+          {
+            "name": "Native retained passes support evidence comparison",
+            "pass": true
+          },
+          {
+            "name": "Native recovered program transfers into F4 Tape document",
+            "pass": true
+          },
+          {
+            "name": "Native recovered program transfers into F4 QuickDisk document",
+            "pass": true
+          },
+          {
+            "name": "Native audio workflows keep all source media byte-identical",
+            "pass": true
+          },
+          {
+            "name": "Native audio document lifecycle closes all temporary drafts",
+            "pass": true
+          },
+          {
+            "name": "Native audio window closes after preview cancellation",
+            "pass": true
+          }
+        ]
+      },
+      "native-disk": {
+        "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-disk.json",
+        "sha256": "74f8ff8b04f4feb64eae218b4b842df600e7e343757716318b6bcdde3a52307e",
+        "checks": [
+          {
+            "name": "Native New disk creates a Core DSK document",
+            "pass": true
+          },
+          {
+            "name": "Native disk import inserts actual MZF data",
+            "pass": true
+          },
+          {
+            "name": "Native inspector applies filename metadata",
+            "pass": true
+          },
+          {
+            "name": "Native disk Save As writes and rebinds only after success",
+            "pass": true
+          },
+          {
+            "name": "Native DSK reopen reloads edited directory",
+            "pass": true
+          },
+          {
+            "name": "Native disk map shares session zoom state",
+            "pass": true
+          },
+          {
+            "name": "Native disk copy uses the common typed transfer codec",
+            "pass": true
+          },
+          {
+            "name": "Native cross-disk paste applies compatible CP/M transfer preview",
+            "pass": true
+          },
+          {
+            "name": "Native HFE creation and verified Save As complete",
+            "pass": true
+          },
+          {
+            "name": "Native Visual Inspector remains read-only and shares the Core snapshot",
+            "pass": true
+          },
+          {
+            "name": "Native physical view loads actual stored HFE cells",
+            "pass": true
+          },
+          {
+            "name": "Native damaged open requires explicit repair preview and Save As",
+            "pass": true
+          },
+          {
+            "name": "Native repaired copy commits to a new clean binding",
+            "pass": true
+          },
+          {
+            "name": "Native repair leaves damaged original byte-identical",
+            "pass": true
+          },
+          {
+            "name": "Native disk workflows keep imported source unchanged",
+            "pass": true
+          },
+          {
+            "name": "Native disk documents close through shared lifecycle",
+            "pass": true
+          },
+          {
+            "name": "Native disk window closes without leaked document ownership",
+            "pass": true
+          }
+        ]
+      },
+      "native-media": {
+        "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-media.json",
+        "sha256": "1bcaee6d8f87bdf91457e2689d10b4867c2a7edcd28bf218ca934050378a308c",
+        "checks": [
+          {
+            "name": "Native New Tape creates a real document",
+            "pass": true
+          },
+          {
+            "name": "Native import applies two actual MZF files",
+            "pass": true
+          },
+          {
+            "name": "Native metadata Apply updates the selected record",
+            "pass": true
+          },
+          {
+            "name": "Native Save As writes media and sidecar",
+            "pass": true
+          },
+          {
+            "name": "Native Save As rebinds clean document",
+            "pass": true
+          },
+          {
+            "name": "Native edits keep the imported source unchanged",
+            "pass": true
+          },
+          {
+            "name": "Native reopen reads the persisted edit",
+            "pass": true
+          },
+          {
+            "name": "Native codec transfer copies into a separate QuickDisk document",
+            "pass": true
+          },
+          {
+            "name": "Native transfer retains the selected record identity",
+            "pass": true
+          },
+          {
+            "name": "Native QuickDisk Save As writes a real QDF",
+            "pass": true
+          },
+          {
+            "name": "Native QuickDisk inspector preserves the clean saved document",
+            "pass": true
+          },
+          {
+            "name": "Native export uses the real LEP writer",
+            "pass": true
+          },
+          {
+            "name": "Native Export preserves document binding",
+            "pass": true
+          },
+          {
+            "name": "Native compact window keeps document commands reachable",
+            "pass": true
+          },
+          {
+            "name": "Native media window closes through the document coordinator",
+            "pass": true
+          }
+        ]
+      },
+      "native-recorder": {
+        "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-recorder.json",
+        "sha256": "1ffc372e3ebdcc3fa9575ac15e0929e91132ce4e55541044e2cb30c225f1f1b1",
+        "checks": [
+          {
+            "name": "Recorder construction does not open input",
+            "pass": true
+          },
+          {
+            "name": "Enumeration requires explicit device selection and does not start input",
+            "pass": true
+          },
+          {
+            "name": "Explicit format probe opens/closes without starting input or an archive",
+            "pass": true
+          },
+          {
+            "name": "Record explicitly opens exactly one selected synthetic input",
+            "pass": true
+          },
+          {
+            "name": "Live/offline graph family is reused by recorder views",
+            "pass": true
+          },
+          {
+            "name": "Archive remains complete through live UI refresh/zoom load",
+            "pass": true
+          },
+          {
+            "name": "WAV and manifest account for every source frame",
+            "pass": true
+          },
+          {
+            "name": "Recorded segment bytes match delivered PCM hashes",
+            "pass": true
+          },
+          {
+            "name": "Archive loss counters remain separate from preview drops",
+            "pass": true
+          },
+          {
+            "name": "Bounded snapshots contain spectrum, alignment and optional pulse measurements",
+            "pass": true
+          },
+          {
+            "name": "Live pulse streams remain individually identifiable",
+            "pass": true
+          },
+          {
+            "name": "A/B stores two explicit user measurements with passage provenance",
+            "pass": true
+          },
+          {
+            "name": "Comparison does not invent a calibrated mechanical angle",
+            "pass": true
+          },
+          {
+            "name": "Explicit saved-audio actions navigate through the complete recording manifest",
+            "pass": true
+          },
+          {
+            "name": "Compact recorder keeps archive controls reachable",
+            "pass": true
+          },
+          {
+            "name": "Recorder close waits for session disposal and leaves no live window",
+            "pass": true
+          }
+        ]
+      },
+      "native-smoke": {
+        "source": "TestResults/WpfParity-2026-11-03/windows/native-release/native-smoke.json",
+        "sha256": "c81971198a417735b41be2916c98967cb01a8fd414a03810c6f4536eb4afe433",
+        "checks": [
+          {
+            "name": "Native window is visible",
+            "pass": true
+          },
+          {
+            "name": "Startup does not open files or devices",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 1440x960",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 1366x768",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 920x640",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 640x480",
+            "pass": true
+          },
+          {
+            "name": "WPF Tools toolbar is visible",
+            "pass": true
+          },
+          {
+            "name": "WPF editor has no migration workspace sidebar",
+            "pass": true
+          },
+          {
+            "name": "F6 changes focus region",
+            "pass": true
+          },
+          {
+            "name": "Non-text/rich clipboard preserved; native text roundtrip UNTESTED for this run",
+            "pass": true
+          },
+          {
+            "name": "Explicit Open displayed a real platform picker window",
+            "pass": true
+          },
+          {
+            "name": "Cancel picker preserves empty document state without errors",
+            "pass": true
+          },
+          {
+            "name": "Explicit Save As picker can be cancelled without creating a file",
+            "pass": true
+          },
+          {
+            "name": "Save remains unavailable without document adapter",
+            "pass": true
+          },
+          {
+            "name": "Native close coordinator succeeds",
+            "pass": true
+          }
+        ]
+      }
+    },
+    "linux": {
+      "native-audio": {
+        "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-audio.json",
+        "sha256": "2c5f1b565c2dc541842d379e7a63ec117405e10402f7f40c8e930c49cb8afc61",
+        "checks": [
+          {
+            "name": "Native F4 export creates actual decodable audio fixture",
+            "pass": true
+          },
+          {
+            "name": "Native WAV opens in read-only Audio workspace",
+            "pass": true
+          },
+          {
+            "name": "Native initial analysis recovers the actual MZF program",
+            "pass": true
+          },
+          {
+            "name": "Native record table selects exact Core block frames",
+            "pass": true
+          },
+          {
+            "name": "Native Measure uses existing pulse statistics",
+            "pass": true
+          },
+          {
+            "name": "Native FFT views retain method and exact-window provenance",
+            "pass": true
+          },
+          {
+            "name": "Native selected PCM export writes 900 actual PCM8 frames",
+            "pass": true
+          },
+          {
+            "name": "Native WAV export preserves original bytes and binding",
+            "pass": true
+          },
+          {
+            "name": "Native deeper analysis retains complete programs and checksum candidates",
+            "pass": true
+          },
+          {
+            "name": "Native recovery exposes actual consumed detector streams",
+            "pass": true
+          },
+          {
+            "name": "Native retained passes support evidence comparison",
+            "pass": true
+          },
+          {
+            "name": "Native recovered program transfers into F4 Tape document",
+            "pass": true
+          },
+          {
+            "name": "Native recovered program transfers into F4 QuickDisk document",
+            "pass": true
+          },
+          {
+            "name": "Native audio workflows keep all source media byte-identical",
+            "pass": true
+          },
+          {
+            "name": "Native audio document lifecycle closes all temporary drafts",
+            "pass": true
+          },
+          {
+            "name": "Native audio window closes after preview cancellation",
+            "pass": true
+          }
+        ]
+      },
+      "native-disk": {
+        "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-disk.json",
+        "sha256": "b3a441697ecc8b83a14989bb671a6634b81787ea7b3941ed22ee098887d66ef3",
+        "checks": [
+          {
+            "name": "Native New disk creates a Core DSK document",
+            "pass": true
+          },
+          {
+            "name": "Native disk import inserts actual MZF data",
+            "pass": true
+          },
+          {
+            "name": "Native inspector applies filename metadata",
+            "pass": true
+          },
+          {
+            "name": "Native disk Save As writes and rebinds only after success",
+            "pass": true
+          },
+          {
+            "name": "Native DSK reopen reloads edited directory",
+            "pass": true
+          },
+          {
+            "name": "Native disk map shares session zoom state",
+            "pass": true
+          },
+          {
+            "name": "Native disk copy uses the common typed transfer codec",
+            "pass": true
+          },
+          {
+            "name": "Native cross-disk paste applies compatible CP/M transfer preview",
+            "pass": true
+          },
+          {
+            "name": "Native HFE creation and verified Save As complete",
+            "pass": true
+          },
+          {
+            "name": "Native Visual Inspector remains read-only and shares the Core snapshot",
+            "pass": true
+          },
+          {
+            "name": "Native physical view loads actual stored HFE cells",
+            "pass": true
+          },
+          {
+            "name": "Native damaged open requires explicit repair preview and Save As",
+            "pass": true
+          },
+          {
+            "name": "Native repaired copy commits to a new clean binding",
+            "pass": true
+          },
+          {
+            "name": "Native repair leaves damaged original byte-identical",
+            "pass": true
+          },
+          {
+            "name": "Native disk workflows keep imported source unchanged",
+            "pass": true
+          },
+          {
+            "name": "Native disk documents close through shared lifecycle",
+            "pass": true
+          },
+          {
+            "name": "Native disk window closes without leaked document ownership",
+            "pass": true
+          }
+        ]
+      },
+      "native-media": {
+        "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-media.json",
+        "sha256": "1466755610eee67dd2aadcfb37dbb44fd698ab7ac62285282f3cf14f361ae913",
+        "checks": [
+          {
+            "name": "Native New Tape creates a real document",
+            "pass": true
+          },
+          {
+            "name": "Native import applies two actual MZF files",
+            "pass": true
+          },
+          {
+            "name": "Native metadata Apply updates the selected record",
+            "pass": true
+          },
+          {
+            "name": "Native Save As writes media and sidecar",
+            "pass": true
+          },
+          {
+            "name": "Native Save As rebinds clean document",
+            "pass": true
+          },
+          {
+            "name": "Native edits keep the imported source unchanged",
+            "pass": true
+          },
+          {
+            "name": "Native reopen reads the persisted edit",
+            "pass": true
+          },
+          {
+            "name": "Native codec transfer copies into a separate QuickDisk document",
+            "pass": true
+          },
+          {
+            "name": "Native transfer retains the selected record identity",
+            "pass": true
+          },
+          {
+            "name": "Native QuickDisk Save As writes a real QDF",
+            "pass": true
+          },
+          {
+            "name": "Native QuickDisk inspector preserves the clean saved document",
+            "pass": true
+          },
+          {
+            "name": "Native export uses the real LEP writer",
+            "pass": true
+          },
+          {
+            "name": "Native Export preserves document binding",
+            "pass": true
+          },
+          {
+            "name": "Native compact window keeps document commands reachable",
+            "pass": true
+          },
+          {
+            "name": "Native media window closes through the document coordinator",
+            "pass": true
+          }
+        ]
+      },
+      "native-recorder": {
+        "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-recorder.json",
+        "sha256": "df3721b23c7cf5017a40534a87bdc4c4ab8503966e04991a2f686f1488e2522f",
+        "checks": [
+          {
+            "name": "Recorder construction does not open input",
+            "pass": true
+          },
+          {
+            "name": "Enumeration requires explicit device selection and does not start input",
+            "pass": true
+          },
+          {
+            "name": "Explicit format probe opens/closes without starting input or an archive",
+            "pass": true
+          },
+          {
+            "name": "Record explicitly opens exactly one selected synthetic input",
+            "pass": true
+          },
+          {
+            "name": "Live/offline graph family is reused by recorder views",
+            "pass": true
+          },
+          {
+            "name": "Archive remains complete through live UI refresh/zoom load",
+            "pass": true
+          },
+          {
+            "name": "WAV and manifest account for every source frame",
+            "pass": true
+          },
+          {
+            "name": "Recorded segment bytes match delivered PCM hashes",
+            "pass": true
+          },
+          {
+            "name": "Archive loss counters remain separate from preview drops",
+            "pass": true
+          },
+          {
+            "name": "Bounded snapshots contain spectrum, alignment and optional pulse measurements",
+            "pass": true
+          },
+          {
+            "name": "Live pulse streams remain individually identifiable",
+            "pass": true
+          },
+          {
+            "name": "A/B stores two explicit user measurements with passage provenance",
+            "pass": true
+          },
+          {
+            "name": "Comparison does not invent a calibrated mechanical angle",
+            "pass": true
+          },
+          {
+            "name": "Explicit saved-audio actions navigate through the complete recording manifest",
+            "pass": true
+          },
+          {
+            "name": "Compact recorder keeps archive controls reachable",
+            "pass": true
+          },
+          {
+            "name": "Recorder close waits for session disposal and leaves no live window",
+            "pass": true
+          }
+        ]
+      },
+      "native-smoke": {
+        "source": "TestResults/WpfParity-2026-11-03/linux/native-release/native-smoke.json",
+        "sha256": "d6696ba506e39134ca9c8a084827052be855c95ed2c5448a12c72b94d8906683",
+        "checks": [
+          {
+            "name": "Native window is visible",
+            "pass": true
+          },
+          {
+            "name": "Startup does not open files or devices",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 1440x960",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 1366x768",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 920x640",
+            "pass": true
+          },
+          {
+            "name": "Open reachable at 640x480",
+            "pass": true
+          },
+          {
+            "name": "WPF Tools toolbar is visible",
+            "pass": true
+          },
+          {
+            "name": "WPF editor has no migration workspace sidebar",
+            "pass": true
+          },
+          {
+            "name": "F6 changes focus region",
+            "pass": true
+          },
+          {
+            "name": "Non-text/rich clipboard preserved; native text roundtrip UNTESTED for this run",
+            "pass": true
+          },
+          {
+            "name": "Explicit Open displayed a real platform picker window",
+            "pass": true
+          },
+          {
+            "name": "Cancel picker preserves empty document state without errors",
+            "pass": true
+          },
+          {
+            "name": "Explicit Save As picker can be cancelled without creating a file",
+            "pass": true
+          },
+          {
+            "name": "Save remains unavailable without document adapter",
+            "pass": true
+          },
+          {
+            "name": "Native close coordinator succeeds",
+            "pass": true
+          }
+        ]
+      }
+    }
+  },
+  "wpfReference": {
+    "source": "TestResults/WpfParity-2026-11-03/wpf-reference/wpf-reference.json",
+    "sha256": "1f2381ae78d131a909a42304a3c1af8e82cee6eb56ef4204c89e2491994a65a8"
+  },
+  "archives": [
+    {
+      "rid": "win-x64",
+      "archive": "C:\\Dokumenty\\GitHub\\MZTools\\TestResults\\WpfParity-2026-11-03\\distribution\\MZTools-win-x64.zip",
+      "sha256": "f13c11466f1ae8027c1ff01fd3282f31bcfca9a3de3b54b5ca7b53790ddf21c2",
+      "files": 320,
+      "selfContained": true,
+      "signed": false,
+      "nativeHardwareTested": false
+    },
+    {
+      "rid": "win-arm64",
+      "archive": "C:\\Dokumenty\\GitHub\\MZTools\\TestResults\\WpfParity-2026-11-03\\distribution\\MZTools-win-arm64.zip",
+      "sha256": "a095fb5f263a79dcb792ae24ffa158170e8647a7fcca84559109ab7ad00176a5",
+      "files": 320,
+      "selfContained": true,
+      "signed": false,
+      "nativeHardwareTested": false
+    },
+    {
+      "rid": "linux-x64",
+      "archive": "C:\\Dokumenty\\GitHub\\MZTools\\TestResults\\WpfParity-2026-11-03\\distribution\\MZTools-linux-x64.tar.gz",
+      "sha256": "0f662e8f08ed38e9f1442b8a1e0693c40fc0fab47460a1c1f9685ab44a0be269",
+      "files": 298,
+      "selfContained": true,
+      "signed": false,
+      "nativeHardwareTested": false
+    },
+    {
+      "rid": "linux-arm64",
+      "archive": "C:\\Dokumenty\\GitHub\\MZTools\\TestResults\\WpfParity-2026-11-03\\distribution\\MZTools-linux-arm64.tar.gz",
+      "sha256": "4abe2490bb7d67a282a15e3696cd2f721cd60dcf341baf9a420d30701058fb3d",
+      "files": 298,
+      "selfContained": true,
+      "signed": false,
+      "nativeHardwareTested": false
+    },
+    {
+      "rid": "osx-x64",
+      "archive": "C:\\Dokumenty\\GitHub\\MZTools\\TestResults\\WpfParity-2026-11-03\\distribution\\MZTools-osx-x64.zip",
+      "sha256": "43cb1cdc9959a4e8440c34e8c5fc152702977220328b4f13f5c3cd4bb196d8ed",
+      "files": 300,
+      "selfContained": true,
+      "signed": false,
+      "nativeHardwareTested": false
+    },
+    {
+      "rid": "osx-arm64",
+      "archive": "C:\\Dokumenty\\GitHub\\MZTools\\TestResults\\WpfParity-2026-11-03\\distribution\\MZTools-osx-arm64.zip",
+      "sha256": "c8f14ac337d73634cbfb10dd7835d2fdfbb28648a7f1288eadd3e60f41e68260",
+      "files": 300,
+      "selfContained": true,
+      "signed": false,
+      "nativeHardwareTested": false
+    }
+  ],
+  "sourceHashes": {
+    ".gitignore": "d7bdf67ce5f89f9c034b1932ecb588b63722d2659c465a8e68461b3b70a35d24",
+    "README.md": "ddd524e93e9d04730bf8057aebb4eb319f92a0f1e0f5f597f3a09182ba14f563",
+    "docs/WPF_PARITY_2026-11-03.md": "8c5d5a66a799471cbd739247f25d576aa95ed492dbcc2414ef0a3604c73ed756",
+    "src/MZTools.Desktop/App.axaml": "74030bb9fa260d333272beffed3e09f5e1344531ccd25f01d788d6882da88933",
+    "src/MZTools.Desktop/App.axaml.cs": "66f6f3ea2b3e05706ee2d9440748a96a9c1e02dd535a5a7ae5784b2eb6ee2db1",
+    "src/MZTools.Desktop/MZTools.Desktop.csproj": "3d902f141e6304cc452e4d6a6c22376893fc5b0aded25236edbd32f1130054e3",
+    "src/MZTools.Desktop/Program.cs": "b25124a325699191e74a4743eb9d76d1703c91f7916460ba5121d201f03e50f0",
+    "src/MZTools.Desktop/Controls/AudioChart.cs": "45eb50d5e5d3e6d56eb6a978281be5cc8d6d04966021e42710cfa4d75b2c3cdc",
+    "src/MZTools.Desktop/Controls/AudioChart.Live.cs": "be277cda387e89cf1d7582b2a0368fb252f9e106aa60b1ca3d465dfda46cb6a8",
+    "src/MZTools.Desktop/Controls/AudioInspector.axaml": "62716957d0f378415b67734d9ce8709573c635b095466a6f9cc002d52c4ccdc8",
+    "src/MZTools.Desktop/Controls/AudioInspector.axaml.cs": "20d59a0b8166007e13e766af69fec5f3886ff0f38e797f7fdc26c533a7e7807f",
+    "src/MZTools.Desktop/Controls/DiskInspector.axaml": "ac2515ed22edbcd4fa80c32e7a41831a8c46d146aa246328f2420701055caaec",
+    "src/MZTools.Desktop/Controls/DiskInspector.axaml.cs": "92dd3f1ae1894e546d8fa57d667f3fba4d923abaeb02162144cec0ab36eb1065",
+    "src/MZTools.Desktop/Controls/DiskMap.cs": "f9e3f7c1bad227db2c481822c42724a201838929a30841b84183dd105dd63be6",
+    "src/MZTools.Desktop/Controls/DiskPhysicalPanel.axaml": "c6133b64f7f4f6fb0b1e73986499ea3233382ff5221d29ac6dce84a9e3fe6e01",
+    "src/MZTools.Desktop/Controls/DiskPhysicalPanel.axaml.cs": "a1f4e0afc97763c8ff19f1f321da57e619eb1ce9570af820a6f71d0f663d2a0b",
+    "src/MZTools.Desktop/Controls/DiskPhysicalPanel.WpfScrollBar.cs": "adca169d4aa19ca51114b483b5325f3f85e3f0567ec0af69ef26b89059364f0e",
+    "src/MZTools.Desktop/Controls/DiskTrackView.cs": "17dd037c3bcc7d98e689857d8177c65d0002fec0978ee94cfffb5fa72fe70de0",
+    "src/MZTools.Desktop/Controls/PropertyForm.axaml": "02a877ed075bc07e23e33d6746a36c036b9ff5ad80baf1f9ecc425775465b6f5",
+    "src/MZTools.Desktop/Controls/PropertyForm.axaml.cs": "239b65ee8837e05266a1be92e2085c09c1167fe9142e100c9babb8364205332c",
+    "src/MZTools.Desktop/Controls/QuickDiskForensicView.cs": "e3b03aa9f7b75d7d2d5ee1a9dc063ae5c04b2dcf61bca8517c971f830f8850c7",
+    "src/MZTools.Desktop/Controls/RecordInspector.axaml": "239edd0f5c71f25f33d3c4e6ec4b40cdddc1c35d8e7dc549a75124a5fc771382",
+    "src/MZTools.Desktop/Controls/RecordInspector.axaml.cs": "59d69624d44ec8ea3b49c86f685d8bd99bc9b82c830021b76e8483cc5c3f04b6",
+    "src/MZTools.Desktop/Controls/RegionMap.cs": "3ecf30ef81e0e148b2ddab0b9c9d859081e1484032e6c4fde2ff090d814e4648",
+    "src/MZTools.Desktop/Controls/ReportViewer.axaml": "8cfbc05238154e0a3d57264d86abe2e2f441191c19a62d29f6bc439eea50586b",
+    "src/MZTools.Desktop/Controls/ReportViewer.axaml.cs": "116a634c801792b526084859c661ee50391923921c38a27a6fb3c34b6cac5d23",
+    "src/MZTools.Desktop/Controls/TapeLoaderConverter.cs": "e9bf734c3dd2bded4c583813fc45aacf1bc4011f692018c4075d1ca6474143a8",
+    "src/MZTools.Desktop/Documents/AtomicDocumentStore.cs": "bece816669f4a172559e050e6cd404f9edebe2c02e5286ff63cb6fab9483d0fc",
+    "src/MZTools.Desktop/Documents/AudioOperations.cs": "f4db27e329fc5e2a3156a96a3c7352f827fab28070d871b2901491f8f9806c00",
+    "src/MZTools.Desktop/Documents/AudioRows.cs": "bfb595e8ffa041bbef6a044d8a0e75b32355f1b8566f83af3863dcf993a9ad94",
+    "src/MZTools.Desktop/Documents/AudioSession.Analysis.cs": "32a53471fd555543b94923bfd360902029528e209ec00335bdb1410a89024d00",
+    "src/MZTools.Desktop/Documents/AudioSession.cs": "33f6fd3a5bb255e8ec440d0d6cbf12a6e60ea3d2e19b5ffe1b4ae89f0f873359",
+    "src/MZTools.Desktop/Documents/AudioSession.Recovery.cs": "13a1effa38e5f017c9ee1a269ab73d0b3513aa8c8d1d81758c27c9c4f9a81114",
+    "src/MZTools.Desktop/Documents/AudioSession.WpfViewport.cs": "090725f7573bab9f2afdf793091e2fbc7eaed566747abed6c9276a68c0d4ffdf",
+    "src/MZTools.Desktop/Documents/BatchSession.cs": "79d97e2e788f09917dfce17eca1fd680b9f355dbdbaa2d0225b452a7cd4343c3",
+    "src/MZTools.Desktop/Documents/DiskDialogs.cs": "ebda8fd243d52f18215de4c968d6ef50c1f83a240a4e15c40bb06f08781b4fa5",
+    "src/MZTools.Desktop/Documents/DiskLoader.cs": "7894f911eedaa31ba2c2fc055e56650968224b452055e453cee41a3555d35fa6",
+    "src/MZTools.Desktop/Documents/DiskOperations.cs": "fd16a36678e1115528d41fcd66302a070fcd1d4744032c7e9259337f51628bea",
+    "src/MZTools.Desktop/Documents/DiskSession.cs": "98c531f5d1d0a1d663b994aa081c23418a8894a49351cee8e2c158c4285e61c1",
+    "src/MZTools.Desktop/Documents/DocumentCoordinator.cs": "c1151a5dd912de0ba7159782dcb96a17f3946dbe86475aa562e6b117bea2f34b",
+    "src/MZTools.Desktop/Documents/DocumentSavePlan.cs": "7fcdbe56ab3a8e93f0b2d7c23cd45ad8e0aa2854f6c1b1564ac306b5174fde99",
+    "src/MZTools.Desktop/Documents/DocumentSession.cs": "8d9754d836f197c8b932669994ae5f3674adffda63fc14c114247e157ac927d7",
+    "src/MZTools.Desktop/Documents/MediaOperations.cs": "ba95e7e16e46f619e2f0e8b63ae8c61c0abbb8e83796c1cb911664d4f2f17a17",
+    "src/MZTools.Desktop/Documents/TapeSession.cs": "4bd73555f4d405bceb2ec1f276c72456565f6f64993763324a344e9390aab8e2",
+    "src/MZTools.Desktop/Documents/TapeSession.Wpf.cs": "edf41c1e9548ded2aee9a1596ca4405d70fef507f1596725bac674ddfbe759bf",
+    "src/MZTools.Desktop/Platform/DesktopDialogs.cs": "bff6bdf7552b41dc0ee6df5cf0f4d7d167607fc0bf9344dbde52be968a302b37",
+    "src/MZTools.Desktop/Platform/DesktopDiskDialogs.cs": "21ca707c8b36bc3261d07ff1db36d631d9d8ba9778083f0876659dfbd991c700",
+    "src/MZTools.Desktop/Platform/DesktopMediaDialogs.cs": "0e5fab00b9e6fd657adb8db3594158003abb051a4c0c01752f08150b616a8848",
+    "src/MZTools.Desktop/Platform/DesktopPreferences.cs": "c2f9297dc75598d3536506a72bf6dbfa1888fe81ac8a55ce21754e463f1723b5",
+    "src/MZTools.Desktop/Platform/DesktopQuickDiskDialogs.cs": "45518c9d4bec10e01f0e0df204ccef66e8a3d9590f02e70d39a0f42867f8e554",
+    "src/MZTools.Desktop/Platform/DesktopRecorderNavigation.cs": "fc9ee86592be1cf1a8148083f101c036027ed4b301b3ec835e73f949c3bfd728",
+    "src/MZTools.Desktop/Platform/RecorderBackendFactory.cs": "c00be860c52f0ab4a7b573ada95b2df1f6f29ab16f5929010e60fd5bc5fe6158",
+    "src/MZTools.Desktop/Platform/RepairSourceProtection.cs": "ec2972fa5a955d6b88ea454d23ea641cd5a17d3d61a7158d13a80d20d782a93f",
+    "src/MZTools.Desktop/Theme/SharedStyles.axaml": "a876dee5fe79e878b92cae5bfe729d04f26c7b9f2250182aa960f6de7bafccdc",
+    "src/MZTools.Desktop/Theme/Tokens.axaml": "f4dd45adee9191710f39e81fe3608b4d806b564a9968f75d5f94cabce24683fb",
+    "src/MZTools.Desktop/Theme/WpfResources.axaml": "68454402990bec9ee566f3bebb422613cc1d0aab668f2459a573f042a881da9c",
+    "src/MZTools.Desktop/Theme/WpfStyles.axaml": "ac4bf9118f807522d100f7f0db3b44368922689f543c27e64b5c7e976f44860f",
+    "src/MZTools.Desktop/ViewModels/RecorderModel.cs": "5af3f68e9fc4c3d5c29f9b925107b58b3f499d1febc69983c22124f945d085a5",
+    "src/MZTools.Desktop/ViewModels/RecorderModel.WpfPresentation.cs": "9f118f65bf23710c99be9dca09947457dbe8b9c87b113537010b9cb11747f861",
+    "src/MZTools.Desktop/ViewModels/RecorderModel.WpfProbe.cs": "059385b0ebe2e25154469ed78fba0b63182d9e2e511cc006eb570cec4cf25dc0",
+    "src/MZTools.Desktop/ViewModels/ShellAudioCommands.cs": "1a4afa4d6200d702b837aa47a1d4bf54564da5a9d48f6d0289eee702e7c1ee63",
+    "src/MZTools.Desktop/ViewModels/ShellAudioRecovery.cs": "c08bc729be757ae2336187bbb921e0acc36b1930d54fd7dcd1118a340c398aa0",
+    "src/MZTools.Desktop/ViewModels/ShellAudioWpfParity.cs": "dd75c66e88db65b50dc0a0c8a7696f3a8393e6bb0ac961fe052531aadebc4f21",
+    "src/MZTools.Desktop/ViewModels/ShellBatchCommands.cs": "5cb6b291c8d488a3a1c7fd95d1f6fc72c49b0817a8dec566f3593e9f6034d923",
+    "src/MZTools.Desktop/ViewModels/ShellDiskCommands.cs": "9b9ce7c9377e1c1bc66844b42c2f985d3a36ace27f707e71fe5d9345b6855dcb",
+    "src/MZTools.Desktop/ViewModels/ShellDiskDetails.cs": "357cc559413c035cb64924c6fd495866e5aee9ee1a81ed26ee39453dc90f698d",
+    "src/MZTools.Desktop/ViewModels/ShellDiskWpfCopy.cs": "d66bebede417f1ebb63fb7d73067b1dbeca48836940e2183576125a8e01f7fe1",
+    "src/MZTools.Desktop/ViewModels/ShellMediaCommands.cs": "66fcc33705dd48cc1e991a0e60d7793187deeabdffadbf9f3362013eaff4207e",
+    "src/MZTools.Desktop/ViewModels/ShellNativeComTools.cs": "557af105329f98a1bcabee6a7863a6f5126a136d6d3c2704ada862db3e99e5a4",
+    "src/MZTools.Desktop/ViewModels/ShellViewModel.cs": "9851e147d2b8b9c8f085e6321a8efe149e3e74283c0dc30298657f5527f86e87",
+    "src/MZTools.Desktop/ViewModels/ShellWpfPresentation.cs": "1340de66f50416014158023549a232e5af2969efe0ea2bbbea2a167a90787368",
+    "src/MZTools.Desktop/Views/AnalysisWindow.cs": "b843610b6c2f94cb24d9d12e2e5acf6594c55d220ca399ba9b3a5dc563927087",
+    "src/MZTools.Desktop/Views/AudioWorkspace.axaml": "d4a68dbec9f314405de633ea7e1ec4ae97a9ecd4fb54a631c2676e9fb0f58b02",
+    "src/MZTools.Desktop/Views/AudioWorkspace.axaml.cs": "f1ec3b518c14897b9849f5700867424d6d6a404c767f7b44a403573ac32a5d5e",
+    "src/MZTools.Desktop/Views/AudioWorkspace.WpfLayout.cs": "5cbdc2aa6218af39488492e77e0333d5a5a3fd1f432bb402f514efee503f83c6",
+    "src/MZTools.Desktop/Views/AudioWorkspace.WpfScrollBar.cs": "6a71e988215d8cf45ceea56c080748454e0dcb196b341eeedd990d3c879d3d70",
+    "src/MZTools.Desktop/Views/BatchWorkspace.axaml": "100a14fe31df4a61f7dfeb80f3d3fb7aa0b7f672f47240dbac27dc8fdbad7999",
+    "src/MZTools.Desktop/Views/BatchWorkspace.axaml.cs": "491ba994a58e1bac1c3fc96c6e47f17054bb5da46e80d6422550692d87c100e6",
+    "src/MZTools.Desktop/Views/DiskVisualWindow.cs": "3d447964bb7e58de0b6fb9ac0e12fe068dff368a1273d23a357555ed8047b55d",
+    "src/MZTools.Desktop/Views/DiskWorkspace.axaml": "40be87e2f1980f2f06a46d76e531f44b7ecb70065b39581a74cc9d8752cef7d4",
+    "src/MZTools.Desktop/Views/DiskWorkspace.axaml.cs": "a106744663067d6b24ba25fc6c27451380347711a10088e2712d02eeb657467a",
+    "src/MZTools.Desktop/Views/DiskWorkspace.WpfMenus.cs": "c47fc03460c1900a3f4748433aa9d6595e481d5f99dca3322b0bfb73c85398ba",
+    "src/MZTools.Desktop/Views/DiskWorkspace.WpfSplitter.cs": "ca10b27baeb3345dc6e54be0fb6a064df5d737a0de9e3147115d46cb7073f966",
+    "src/MZTools.Desktop/Views/DiskWorkspace.WpfWindows.cs": "70d29254401874f72d0918e240812183d0745fceb7e40541362241c29641bc12",
+    "src/MZTools.Desktop/Views/HexViewWindow.cs": "0de6cef50aaa56e3983b2d97c807bcb337d3c461a9eb8e5d06f06f16f5ada404",
+    "src/MZTools.Desktop/Views/MainWindow.axaml": "761c297878e5002b027570559b3ca69d9a038c6d0ee2a55a9887e546ef87161a",
+    "src/MZTools.Desktop/Views/MainWindow.axaml.cs": "6fc506cba59ea2721e23e3194ac266bf5eebd47fd4b527af8d35e92177ec16bb",
+    "src/MZTools.Desktop/Views/MainWindow.Compact.cs": "648283d06c29f68c482bd4d6c4bd18b2870d3af39ae7eac1689675507ae8c440",
+    "src/MZTools.Desktop/Views/MainWindow.Tools.cs": "a40429d94023b1defa191a7f5e9c978f374ec07d5389ec1c8f4310cef226ee85",
+    "src/MZTools.Desktop/Views/MainWindow.Wpf.cs": "16377339c52c61d2739aeb1b87eae8a1def2d6a1d39199da265be03788f69c2d",
+    "src/MZTools.Desktop/Views/QuickDiskVisualWindow.cs": "fee8a81f7fca254ad7f0dedbb81bffd6bbc7fd15bf07ba3ce0c5b7123a317520",
+    "src/MZTools.Desktop/Views/RecorderWindow.axaml": "cd55fa676e35bbc5760e5c26b1b0150a9be0874afff94b50eb616deb7f9503eb",
+    "src/MZTools.Desktop/Views/RecorderWindow.axaml.cs": "e44870af47762c4a36957a953db6611001603c8aa5772624062ca710d66a4f71",
+    "src/MZTools.Desktop/Views/RecordWorkspace.axaml": "2943e1f288da6328702c09366f0f67266feced65c34fa36ac38cad590bd42667",
+    "src/MZTools.Desktop/Views/RecordWorkspace.axaml.cs": "7f9a3484595bad410583fa1e7db066471c5523717b36b2c5242b70ad66f39526",
+    "src/MZTools.Desktop/Views/RecordWorkspace.Forensics.cs": "87997c0c1500c581c38c9e67df95b1cf01e8ea7ce5eb4ce5f204199b2761594a",
+    "src/MZTools.Desktop/Views/RecordWorkspace.Wpf.cs": "b4cdf19979e79da34530d87ed964ba48a1be7657ebb87b49ccdbe0d09f9b1212",
+    "tests/MZTools.Desktop.Tests/AudioDocumentTests.cs": "b32eec90d1f79fdfc4c91c102e2beefb465b7a1211ac43767f307b16da73baca",
+    "tests/MZTools.Desktop.Tests/AudioPerformanceTests.cs": "f839d38580d953f388cf2c0e56d9d2c37809677a23d624629b9a512c71ec81c8",
+    "tests/MZTools.Desktop.Tests/AudioUiTests.cs": "924d62ad8ae028beb008c6269dd73dac857a04e06b6ca1ace477d72f7553b37c",
+    "tests/MZTools.Desktop.Tests/BatchDocumentTests.cs": "a27dfc95d7755ecbef44029d0e20d06ce49d87e0938624eafe573b3644af257a",
+    "tests/MZTools.Desktop.Tests/DiskDocumentTests.cs": "cadd4378acc6029571e6b9cce861c68caf354963a76e1897b780fa191895a24d",
+    "tests/MZTools.Desktop.Tests/DiskUiTests.cs": "37d2eea92a8fc5b20cdc2dd41c0ce9308bc0214224028123be16e73efdf91722",
+    "tests/MZTools.Desktop.Tests/DiskWorkflowTests.cs": "3266d504319db316b63337d8d7a7b16f23221e2eeaef6831213084292c9e93a0",
+    "tests/MZTools.Desktop.Tests/DocumentLifecycleTests.cs": "062fd0c173ae2882d1244cd873a5ee45cbadf522a16b29285a787e99645b272f",
+    "tests/MZTools.Desktop.Tests/HeadlessSetup.cs": "1b0030e90db1b9c7ae192b2a9e79d2928593228a96c3990fdf578d235844ac14",
+    "tests/MZTools.Desktop.Tests/MediaDocumentTests.cs": "6bdd48cfa7bcfc809dbb0c27d43ef159188dc80cb4781f5fa418f600441b29b4",
+    "tests/MZTools.Desktop.Tests/MediaUiTests.cs": "85043f86a5dc3245603d05ae58f1fb7aa0022916bbfb0d57963e6675fc1c55e0",
+    "tests/MZTools.Desktop.Tests/MZTools.Desktop.Tests.csproj": "533252f6552f6223ebb6af90849b3f38f855117a32dc11ad1f1e85a413477acb",
+    "tests/MZTools.Desktop.Tests/NativeFlacTests.cs": "b1f8dba72ec9c0fc8a0e14e0fb458756b0c749c7010ebcaaf6854bb9aad7e78d",
+    "tests/MZTools.Desktop.Tests/PortAudioNativeTests.cs": "8939ed298fc1084a6f5d28a19390cfa51014fc25296f0fc36657ea913d6d8dd4",
+    "tests/MZTools.Desktop.Tests/RecorderTests.cs": "30ccb5079e937f2b52a782bac894aa94a695ba675aaa2c0196af98b431a14978",
+    "tests/MZTools.Desktop.Tests/ShellTests.cs": "53528ce359ab6c9b94a2761aaa82d177d3d76248ba7fa2841886fea1dc7954c7",
+    "tests/MZTools.Desktop.Tests/WpfParityTests.cs": "6f86c1babfb2d0b99f246adc5e793f02f620fa136fac387705ba7e6b08af28ea",
+    "tests/MZTools.Desktop.Smoke/AudioScenario.cs": "ec04dae6a1227e072e08af06633599a617ec1d0c21d9b3a7484251aa941e16a8",
+    "tests/MZTools.Desktop.Smoke/collect_completion_notices.py": "7d87de81f364607d66b2392549fcc8e62ffb5c18dd6816a734f5dda0d22456bf",
+    "tests/MZTools.Desktop.Smoke/collect_notices.py": "b26a85a48a0d6b5a052624352cf33a8ca1c27ac107bd50c7e6a8ba57a38e72da",
+    "tests/MZTools.Desktop.Smoke/DiskScenario.cs": "0a7d7245e3997201070856095a07d1496deff67bf1155a400dbc820c5900d44b",
+    "tests/MZTools.Desktop.Smoke/MediaScenario.cs": "7b4d1b12ed84e87108db091376c950c03adba8899cd86f2de92adaa27090368e",
+    "tests/MZTools.Desktop.Smoke/MZTools.Desktop.Smoke.csproj": "b2e6b835cf682e43532047ef0f7d3f4d4915755210e3209782ccfc6330417281",
+    "tests/MZTools.Desktop.Smoke/Program.cs": "99e9a6518a230f6326b70deab53aeb19876dfc2eef6620359f41679923408792",
+    "tests/MZTools.Desktop.Smoke/RecorderScenario.cs": "fb14109fe16db223e6bf4cab9e25f379c272b17accbe7ae0fcca8df041a1a55a",
+    "tests/MZTools.Desktop.Smoke/summarize_f4.py": "79d39dc0a406bb5cfad145ca619c63666c72c7f002650ea000f7e2235f9a677d",
+    "tests/MZTools.Desktop.Smoke/summarize_f5.py": "1d96b184160192c884981ba52d1c25d470e2508c2254d8a33fda9a9b8ffd86a5",
+    "tests/MZTools.Desktop.Smoke/summarize_f6.py": "e11b1ebae924d1e548fa727b068982437dec7c9cc65cd23505c2aa5e4301014a",
+    "tests/MZTools.Desktop.Smoke/summarize_results.py": "3ad70ba669195486521f9b980bc3b34086f5db0b11ce017a10d5841ed00fb759",
+    "tests/MZTools.Desktop.Smoke/validate_f4.py": "618288668c129b3f18c47e633a4034804610ef062e4268914ad74ea428c502be",
+    "tests/MZTools.Desktop.Smoke/validate_f5.py": "c01671f4abdad8a3c26846fe062341f6cf79965e1ed4761a980a0900e5ed5f2e",
+    "tests/MZTools.Desktop.Smoke/validate_f6.py": "26ad02109b5013cf51d90441a5f9df186566d7b6401345a7b8099a7d4f590f9c",
+    "MZTool.Tests/WpfParityUiSmoke/Program.cs": "df4029eac6a6becab522536d85ce40a5ed47ce0dbd1dcbaf870b463f93ea402f",
+    "MZTool.Tests/WpfParityUiSmoke/Smoke.csproj": "1acc942487ba8fe8838abf962bac49a7fe77d151c15cbf971d953cfe6737c8e5",
+    "tools/package_desktop.py": "5b9d948e7caa43c5a49e871a7a0d2a09ea67e37a7f7ec8f7c324d95def378239",
+    "tools/validate_completion.py": "f9b32825f5c9b1458f4a7f98b4ceef6ac84edba1242ddb2b310382ccfcf937a4",
+    "tools/validate_wpf_parity.py": "222079afc7b5e1c2b496b35877f27c6ecd31babd6e84add697f737fbcd3be716",
+    "tools/verify_packaged_runtime.py": "3cf60f0fe77d015e9bd1b1a84902528e5df72d11ed03de967e9c9411130ef012"
+  },
+  "checks": [
+    {
+      "name": "Full windows desktop suite",
+      "pass": true
+    },
+    {
+      "name": "windows native-audio",
+      "pass": true
+    },
+    {
+      "name": "windows native-disk",
+      "pass": true
+    },
+    {
+      "name": "windows native-media",
+      "pass": true
+    },
+    {
+      "name": "windows native-recorder",
+      "pass": true
+    },
+    {
+      "name": "windows native-smoke",
+      "pass": true
+    },
+    {
+      "name": "windows five native scenarios",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-audio-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-audio-pulses.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-audio-records.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-audio-recovery.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-audio-spectrogram.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-audio-spectrum.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-disk-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-disk-files.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-disk-inspector.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-disk-map.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-disk-repair.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-hfe-physical.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-layout-1366x768.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-layout-1440x960.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-layout-640x480.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-layout-920x640.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-media-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-quickdisk-inspector.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-quickdisk-map.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-quickdisk.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-recorder-alignment.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-recorder-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-recorder-history.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-recorder-pulses.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-recorder-signal.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render windows-native-tape.png",
+      "pass": true
+    },
+    {
+      "name": "windows extracted apphost and native FLAC runtime",
+      "pass": true
+    },
+    {
+      "name": "Full linux desktop suite",
+      "pass": true
+    },
+    {
+      "name": "linux native-audio",
+      "pass": true
+    },
+    {
+      "name": "linux native-disk",
+      "pass": true
+    },
+    {
+      "name": "linux native-media",
+      "pass": true
+    },
+    {
+      "name": "linux native-recorder",
+      "pass": true
+    },
+    {
+      "name": "linux native-smoke",
+      "pass": true
+    },
+    {
+      "name": "linux five native scenarios",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-audio-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-audio-pulses.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-audio-records.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-audio-recovery.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-audio-spectrogram.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-audio-spectrum.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-disk-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-disk-files.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-disk-inspector.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-disk-map.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-disk-repair.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-hfe-physical.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-layout-1366x768.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-layout-1440x960.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-layout-640x480.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-layout-920x640.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-media-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-quickdisk-inspector.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-quickdisk-map.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-quickdisk.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-recorder-alignment.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-recorder-compact.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-recorder-history.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-recorder-pulses.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-recorder-signal.png",
+      "pass": true
+    },
+    {
+      "name": "Unmodified render linux-native-tape.png",
+      "pass": true
+    },
+    {
+      "name": "linux extracted apphost and native FLAC runtime",
+      "pass": true
+    },
+    {
+      "name": "Actual unchanged WPF frontend reference",
+      "pass": true
+    },
+    {
+      "name": "WPF reference intact wpf-original-disk.png",
+      "pass": true
+    },
+    {
+      "name": "WPF reference intact wpf-original-empty.png",
+      "pass": true
+    },
+    {
+      "name": "WPF reference intact wpf-original-recorder-live.png",
+      "pass": true
+    },
+    {
+      "name": "WPF reference intact wpf-original-recorder.png",
+      "pass": true
+    },
+    {
+      "name": "WPF reference intact wpf-original-tape.png",
+      "pass": true
+    },
+    {
+      "name": "Detail render intact wpf-audio-independent.png",
+      "pass": true
+    },
+    {
+      "name": "Detail render intact wpf-disk-1320x600.png",
+      "pass": true
+    },
+    {
+      "name": "Detail render intact wpf-disk-900x480.png",
+      "pass": true
+    },
+    {
+      "name": "Detail render intact wpf-disk-inspector.png",
+      "pass": true
+    },
+    {
+      "name": "Detail render intact wpf-hex-browser.png",
+      "pass": true
+    },
+    {
+      "name": "Detail render intact wpf-loader-speed.png",
+      "pass": true
+    },
+    {
+      "name": "Detail render intact wpf-quickdisk-inspector.png",
+      "pass": true
+    },
+    {
+      "name": "Detail render intact wpf-tape-inline.png",
+      "pass": true
+    },
+    {
+      "name": "Core/Capture pipeline unchanged",
+      "pass": true
+    },
+    {
+      "name": "WPF production reference unchanged",
+      "pass": true
+    },
+    {
+      "name": "Golden outputs unchanged",
+      "pass": true
+    },
+    {
+      "name": "win-x64 archive checksum",
+      "pass": true
+    },
+    {
+      "name": "win-x64 every archived file checksum",
+      "pass": true
+    },
+    {
+      "name": "win-x64 actual CPU apphost",
+      "pass": true
+    },
+    {
+      "name": "win-x64 conditional native dependencies",
+      "pass": true
+    },
+    {
+      "name": "win-x64 native original licence texts",
+      "pass": true
+    },
+    {
+      "name": "win-x64 native codec CPU",
+      "pass": true
+    },
+    {
+      "name": "win-arm64 archive checksum",
+      "pass": true
+    },
+    {
+      "name": "win-arm64 every archived file checksum",
+      "pass": true
+    },
+    {
+      "name": "win-arm64 actual CPU apphost",
+      "pass": true
+    },
+    {
+      "name": "win-arm64 conditional native dependencies",
+      "pass": true
+    },
+    {
+      "name": "win-arm64 native original licence texts",
+      "pass": true
+    },
+    {
+      "name": "win-arm64 native codec CPU",
+      "pass": true
+    },
+    {
+      "name": "linux-x64 archive checksum",
+      "pass": true
+    },
+    {
+      "name": "linux-x64 every archived file checksum",
+      "pass": true
+    },
+    {
+      "name": "linux-x64 executable permission",
+      "pass": true
+    },
+    {
+      "name": "linux-x64 actual CPU apphost",
+      "pass": true
+    },
+    {
+      "name": "linux-x64 conditional native dependencies",
+      "pass": true
+    },
+    {
+      "name": "linux-x64 native original licence texts",
+      "pass": true
+    },
+    {
+      "name": "linux-arm64 archive checksum",
+      "pass": true
+    },
+    {
+      "name": "linux-arm64 every archived file checksum",
+      "pass": true
+    },
+    {
+      "name": "linux-arm64 executable permission",
+      "pass": true
+    },
+    {
+      "name": "linux-arm64 actual CPU apphost",
+      "pass": true
+    },
+    {
+      "name": "linux-arm64 conditional native dependencies",
+      "pass": true
+    },
+    {
+      "name": "linux-arm64 native original licence texts",
+      "pass": true
+    },
+    {
+      "name": "osx-x64 archive checksum",
+      "pass": true
+    },
+    {
+      "name": "osx-x64 every archived file checksum",
+      "pass": true
+    },
+    {
+      "name": "osx-x64 executable permission",
+      "pass": true
+    },
+    {
+      "name": "osx-x64 actual CPU apphost",
+      "pass": true
+    },
+    {
+      "name": "osx-x64 conditional native dependencies",
+      "pass": true
+    },
+    {
+      "name": "osx-x64 native original licence texts",
+      "pass": true
+    },
+    {
+      "name": "osx-arm64 archive checksum",
+      "pass": true
+    },
+    {
+      "name": "osx-arm64 every archived file checksum",
+      "pass": true
+    },
+    {
+      "name": "osx-arm64 executable permission",
+      "pass": true
+    },
+    {
+      "name": "osx-arm64 actual CPU apphost",
+      "pass": true
+    },
+    {
+      "name": "osx-arm64 conditional native dependencies",
+      "pass": true
+    },
+    {
+      "name": "osx-arm64 native original licence texts",
+      "pass": true
+    }
+  ],
+  "failed": []
+}

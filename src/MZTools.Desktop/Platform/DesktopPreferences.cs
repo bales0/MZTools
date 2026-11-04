@@ -8,8 +8,8 @@ internal sealed class DesktopPreferences
 {
     private readonly string path;
     private string? fingerprint;
-    internal double Width {get;private set;}=1440;
-    internal double Height {get;private set;}=960;
+    internal double Width {get;private set;}=1320;
+    internal double Height {get;private set;}=600;
     internal string? LastFolder {get;private set;}
     internal string? Warning {get;private set;}
     private sealed record Data(int Schema,double Width,double Height,string? LastFolder);

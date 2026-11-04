@@ -6,9 +6,9 @@
 
         xmlns:v="using:MZTools.Desktop.Views"
 
-        x:DataType="vm:ShellViewModel" Title="MZTools · Avalonia" Width="1440" Height="960"
+        x:DataType="vm:ShellViewModel" Title="MZTools" Width="1320" Height="600"
 
-        MinWidth="640" MinHeight="480">
+        MinWidth="900" MinHeight="480">
 
   <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
 
@@ -237,15 +237,15 @@
         </Grid>
 
         <ScrollViewer Grid.Row="2" IsVisible="{Binding ShowBatch}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"><v:BatchWorkspace x:Name="BatchEditor" /></ScrollViewer>
-        <ScrollViewer Grid.Row="2" IsVisible="{Binding ShowAudio}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"><v:AudioWorkspace x:Name="AudioEditor" /></ScrollViewer>
+        <ScrollViewer Grid.Row="2" IsVisible="{Binding ShowAudio}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled"><v:AudioWorkspace x:Name="AudioEditor" /></ScrollViewer>
 
-        <ScrollViewer Grid.Row="2" IsVisible="{Binding ShowDisk}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="2" IsVisible="{Binding ShowDisk}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled">
 
           <v:DiskWorkspace x:Name="DiskEditor" />
 
         </ScrollViewer>
 
-        <ScrollViewer Grid.Row="2" IsVisible="{Binding ShowMedia}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="2" IsVisible="{Binding ShowMedia}" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Disabled">
 
           <v:RecordWorkspace x:Name="RecordEditor" />
 
@@ -255,11 +255,11 @@
 
     </Grid>
 
-    <Border Grid.Row="4" Background="{DynamicResource F2.surface}" BorderBrush="{DynamicResource F2.border}" BorderThickness="0,1,0,0" Padding="16,6">
+    <Border Grid.Row="4" Background="{DynamicResource F2.surface}" BorderBrush="LightGray" BorderThickness="1" CornerRadius="3" Margin="10,0,10,10" Padding="8">
 
       <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
 
-        <TextBlock x:Name="StatusText" Text="{Binding Documents.Status}" Classes="muted" TextWrapping="Wrap" VerticalAlignment="Center" />
+        <TextBlock x:Name="StatusText" Text="{Binding WpfStatus}" Classes="muted" TextWrapping="Wrap" VerticalAlignment="Center" />
 
         <ProgressBar Grid.Column="1" IsIndeterminate="{Binding !Documents.HasProgress}" Minimum="0" Maximum="1" Value="{Binding Documents.ProgressFraction}" IsVisible="{Binding Documents.IsBusy}" Width="100" Height="6" VerticalAlignment="Center" />
 

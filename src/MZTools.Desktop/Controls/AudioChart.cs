@@ -178,7 +178,7 @@ public sealed partial class AudioChart : Control
     public void Fit(){if(Session is not { } s)return;if(Kind is AudioPlotKind.Histogram or AudioPlotKind.Scatter)s.FitHistogram();else if(Kind==AudioPlotKind.Spectrum)s.FitFrequency();else s.Fit();}
     public void Zoom(double factor,double anchor=.5){if(Session is not { } s)return;if(Kind is AudioPlotKind.Histogram or AudioPlotKind.Scatter)s.ZoomHistogram(factor,anchor);else if(Kind==AudioPlotKind.Spectrum)s.ZoomFrequency(factor,anchor);else s.Zoom(factor,anchor);}
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
-    {if(Session is not { } s||e.Delta.Y==0)return;double factor=e.Delta.Y>0?1.5:1/1.5,anchor=Math.Clamp((e.GetPosition(this).X-Plot.X)/Plot.Width,0,1);if(Kind==AudioPlotKind.Spectrogram&&e.KeyModifiers.HasFlag(KeyModifiers.Shift))s.ZoomFrequency(factor);else Zoom(factor,anchor);e.Handled=true;}
+    {if(Session is not { } s||e.Delta.Y==0)return;double factor=e.Delta.Y>0?2:.5,anchor=Math.Clamp((e.GetPosition(this).X-Plot.X)/Plot.Width,0,1);if(Kind==AudioPlotKind.Spectrogram&&e.KeyModifiers.HasFlag(KeyModifiers.Shift))s.ZoomFrequency(factor);else Zoom(factor,anchor);e.Handled=true;}
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         if(Session is null||!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)return;Focus();press=e.GetPosition(this);pressStart=Session.ViewStart;pressEnd=Session.ViewEnd;pressAxis=Kind is AudioPlotKind.Histogram or AudioPlotKind.Scatter?Session.HistogramMin??Session.HistogramBounds().Min:Session.FrequencyMin;selecting=e.KeyModifiers.HasFlag(KeyModifiers.Shift)&&Kind is AudioPlotKind.Waveform or AudioPlotKind.Spectrogram;moved=false;e.Pointer.Capture(this);e.Handled=true;
@@ -212,7 +212,7 @@ public sealed partial class AudioChart : Control
     protected override void OnKeyDown(KeyEventArgs e)
     {
         if(Session is null)return;
-        if(e.Key is Key.Add or Key.OemPlus){Zoom(1.5);e.Handled=true;}else if(e.Key is Key.Subtract or Key.OemMinus){Zoom(1/1.5);e.Handled=true;}else if(e.Key==Key.Home){Fit();e.Handled=true;}
+        if(e.Key is Key.Add or Key.OemPlus){Zoom(2);e.Handled=true;}else if(e.Key is Key.Subtract or Key.OemMinus){Zoom(.5);e.Handled=true;}else if(e.Key==Key.Home){Fit();e.Handled=true;}
         else if(e.Key is Key.Left or Key.Right){int direction=e.Key==Key.Left?-1:1;if(Kind is AudioPlotKind.Histogram or AudioPlotKind.Scatter)Session.PanHistogram(direction*((Session.HistogramMax??Session.HistogramBounds().Max)-(Session.HistogramMin??Session.HistogramBounds().Min))/4);else if(Kind==AudioPlotKind.Spectrum)Session.PanFrequency(direction*(Session.FrequencyMax-Session.FrequencyMin)/4);else Session.Pan(direction*Math.Max(1,(Session.ViewEnd-Session.ViewStart)/4));e.Handled=true;}
         base.OnKeyDown(e);
     }

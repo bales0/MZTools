@@ -14,10 +14,10 @@ public sealed record FormatChoice(string Key, string Label, string Extension)
     };
 }
 
-public sealed class RecordRow
+public sealed partial class RecordRow
 {
     internal TapeRecord Record { get; }
-    internal RecordRow(TapeRecord record, int index) { Record = record; Index = index; }
+    internal RecordRow(TapeRecord record, int index, bool editable=true) { Record = record; Index = index; Editable=editable; }
     public int Index { get; }
     public int Number => Index + 1;
     public string Name => SharpMzEncoding.ConvertMzfNameToASCIIString(Record.Header.MzfFname);
@@ -34,7 +34,7 @@ public sealed class RecordRow
         string.Join("\n", Convert.ToHexString(Record.Body.MzfBody.AsSpan(0, Math.Min(4096, Record.Body.MzfBody.Length))).Chunk(32).Select(x => new string(x)));
 }
 
-public sealed class TapeSession : DocumentSession, IFileSetDocument
+public sealed partial class TapeSession : DocumentSession, IFileSetDocument
 {
     internal TapeDocument Model { get; }
     private Dictionary<string, string?> sourceHashes = new(AtomicFileTransaction.PathComparer);
@@ -135,7 +135,7 @@ public sealed class TapeSession : DocumentSession, IFileSetDocument
         int previous = SelectedRow?.Index ?? 0;
         var previousRecord = selected?.Record; bool hadDraft = HasDraft;
         refreshing = true;
-        rows = Model.Records.Select((r, i) => new RecordRow(r, i)).Where(r => (r.Name + " " + r.Profile).Contains(Filter, StringComparison.OrdinalIgnoreCase)).ToArray();
+        rows = Model.Records.Select((r, i) => new RecordRow(r, i, CanEdit)).Where(r => (r.Name + " " + r.Profile).Contains(Filter, StringComparison.OrdinalIgnoreCase)).ToArray();
         selected = rows.FirstOrDefault(r => r.Index == previous) ?? (previous >= 0 && previous < Model.Records.Count ? new RecordRow(Model.Records[previous],previous) : rows.FirstOrDefault());
         if (snapshotDirty)
         {
