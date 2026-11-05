@@ -185,7 +185,23 @@ public sealed class DiskSession : DocumentSession, IFileSetDocument
     public bool HasPropertiesDraft => SelectedFile is { } f && (FileName!=f.Name || User!=f.Entry.User.ToString(CultureInfo.InvariantCulture) || LoadAddress!=$"{f.Entry.LoadAddress:X4}" || ExecuteAddress!=$"{f.Entry.ExecuteAddress:X4}" || FileType!=$"{f.Entry.FileType:X2}" || FileReadOnly!=f.Entry.ReadOnly || System!=f.Entry.System || Archived!=f.Entry.Archived || Locked!=f.Entry.Locked);
     private DskHexEditSession? hexSession;
     private string hex="", originalHex="";
-    public string HexText { get=>hex; set {if(Set(ref hex,value)) DraftChanged();} }
+    private bool hexUnlocked;
+    internal bool HexIsSensitive=>hexSession?.IsSensitive==true;
+    public bool HexEditingUnlocked=>hexUnlocked&&CanEditHex;
+    internal void UnlockHexEditing(){if(!CanEditHex||hexSession is null)throw new InvalidOperationException("No editable hex buffer.");hexUnlocked=true;Changed(nameof(HexEditingUnlocked));}
+    public string HexAscii=>FormatHexCharacters(false);
+    public string HexSharpAscii=>FormatHexCharacters(true);
+    public string HexCharacters=>"ASCII\n"+HexAscii+"\n\nSHASCII (EU)\n"+HexSharpAscii;
+    private string FormatHexCharacters(bool sharp)
+    {
+        try
+        {
+            var bytes=DskHexEditService.ParseHex(HexText,hexSession?.OriginalBuffer.Length??SelectedSector?.Bytes??0);
+            return string.Join(Environment.NewLine,bytes.Chunk(16).Select(row=>new string(row.Select(b=>{byte c=sharp?SharpMzEncoding.FromSHASCII(b):b;return c is >=32 and <=126?(char)c:'.';}).ToArray())));
+        }catch(FormatException e){return e.Message;}
+    }
+    public string HexText { get=>hex; set {if(Set(ref hex,value)){DraftChanged();NotifyHexCharacters();}} }
+    private void NotifyHexCharacters(){Changed(nameof(HexCharacters));Changed(nameof(HexAscii));Changed(nameof(HexSharpAscii));}
     public string HexTitle => hexSession?.Title ?? "Select a sector, or open a CP/M allocation block.";
     public bool HasHexDraft => HexText!=originalHex;
     public bool HasDraft => HasPropertiesDraft || HasHexDraft;
@@ -225,7 +241,7 @@ public sealed class DiskSession : DocumentSession, IFileSetDocument
     internal DskHexEditPreview PrepareHex()
     { if(!CanEditHex || hexSession is null) throw new InvalidOperationException("No editable hex buffer.");return DskHexEditService.Preview(hexSession,DskHexEditService.ParseHex(HexText,hexSession.OriginalBuffer.Length)); }
     internal void OpenBlock(int block)
-    { if(HasDraft) throw new InvalidOperationException("Apply or Cancel disk edits first.");hexSession=DskHexEditService.OpenCpmBlock(Model,block);originalHex=hex=DskHexEditService.FormatHex(hexSession.OriginalBuffer);Changed(nameof(HexText));Changed(nameof(HexTitle));ViewIndex=3; }
+    { if(HasDraft) throw new InvalidOperationException("Apply or Cancel disk edits first.");hexUnlocked=false;Changed(nameof(HexEditingUnlocked));hexSession=DskHexEditService.OpenCpmBlock(Model,block);originalHex=hex=DskHexEditService.FormatHex(hexSession.OriginalBuffer);Changed(nameof(HexText));Changed(nameof(HexTitle));NotifyHexCharacters();ViewIndex=3; }
     public void ResetDraft()
     {
         var e=SelectedFile?.Entry;name=SelectedFile?.Name??"";user=(e?.User??0).ToString(CultureInfo.InvariantCulture);load=$"{e?.LoadAddress??0:X4}";exec=$"{e?.ExecuteAddress??0:X4}";type=$"{e?.FileType??0:X2}";
@@ -234,9 +250,10 @@ public sealed class DiskSession : DocumentSession, IFileSetDocument
     }
     private void ResetHex()
     {
+        hexUnlocked=false;Changed(nameof(HexEditingUnlocked));
         hexSession=projection is not null && SelectedSector is not null ? DskHexEditService.OpenSector(Model,SelectedSector.Sector.Address) : null;
         originalHex=hex=hexSession is not null ? DskHexEditService.FormatHex(hexSession.OriginalBuffer) : SelectedSector is not null ? DskHexEditService.FormatHex(SelectedSector.Sector.Data) : "";
-        Changed(nameof(HexText));Changed(nameof(HexTitle));DraftChanged();
+        Changed(nameof(HexText));Changed(nameof(HexTitle));NotifyHexCharacters();DraftChanged();
     }
     internal void SetError(string message) {Validation=message;Changed(nameof(Validation));}
     internal void SelectFileSectors()

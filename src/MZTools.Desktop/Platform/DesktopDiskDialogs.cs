@@ -9,7 +9,7 @@ public sealed partial class DesktopDialogs : IDiskDialogs
     public Task<bool> ConfirmDiskAsync(string title,string report)=>ConfirmPreviewAsync(title,report);
     public Task<DiskAnswer?> DiskFormAsync(string title,IReadOnlyList<DiskField> fields,string explanation="")
     {
-        var values=new Dictionary<string,Control>();var controls=new List<Control>();
+        var values=new Dictionary<string,Control>();var rows=new Dictionary<string,Control>();var controls=new List<Control>();
         if(explanation.Length!=0)controls.Add(new TextBlock {Text=explanation,TextWrapping=Avalonia.Media.TextWrapping.Wrap});
         foreach(var field in fields)
         {
@@ -23,9 +23,26 @@ public sealed partial class DesktopDialogs : IDiskDialogs
             }
             else input=field.Choices is { } choices?new ComboBox {ItemsSource=choices,SelectedItem=choices.Contains(field.Value)?field.Value:choices.FirstOrDefault()}:
                 new TextBox {Text=field.Value,AcceptsReturn=field.Multiline,MinHeight=field.Multiline?120:0};
-            values.Add(field.Key,input);controls.Add(Label(field.Label,input));
+            values.Add(field.Key,input);var row=Label(field.Label,input);rows.Add(field.Key,row);controls.Add(row);
         }
-        return FormAsync(title,controls,()=>new DiskAnswer(values.ToDictionary(p=>p.Key,p=>p.Value is ListBox list?System.Text.Json.JsonSerializer.Serialize(list.SelectedItems!.OfType<string>()):p.Value is ComboBox box?(string?)box.SelectedItem??"":((TextBox)p.Value).Text??"")));
+        if(title=="Disk format")DiskFormatForm.Attach(values,rows,controls);
+        if(title=="Batch process · preflight")BatchProcessForm.Attach(values,rows);
+        DiskAnswer ReadAnswer()
+        {
+            var answer=new DiskAnswer(values.ToDictionary(p=>p.Key,p=>p.Value is ListBox list?System.Text.Json.JsonSerializer.Serialize(list.SelectedItems!.OfType<string>()):p.Value is ComboBox box?(string?)box.SelectedItem??"":((TextBox)p.Value).Text??""));
+            if(title=="Disk format")
+            {
+                var profile=Enum.Parse<DskNewFormat>(answer["format"]);
+                _=DiskFormatForm.Capacity(profile,answer.Number("tracks"),answer.Number("sides"),answer.Number("sectors"),answer.Number("size"));
+                if(profile==DskNewFormat.CustomRaw)
+                {
+                    try{_=DskDocumentFactory.GetRawSectorIds(answer.Number("sectors"),1,Enum.Parse<DskDocumentFactory.RawSectorOrder>(answer["order"]),string.IsNullOrWhiteSpace(answer["ids"])?null:answer["ids"].Split(',').Select(int.Parse).ToArray());}
+                    catch(ArgumentException error){throw new FormatException(error.Message,error);}
+                }
+            }
+            return answer;
+        }
+        return FormAsync(title,controls,ReadAnswer);
     }
     public async Task<IReadOnlyList<string>> PickDiskFilesAsync(string title,bool multiple=false)
     {

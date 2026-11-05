@@ -11,7 +11,9 @@ independent WPF-style preview immediately and decodes only its captured interval
 [Payload-only analysis](docs/PAYLOAD_UNKNOWN_LENGTH_2026-11-04.md) treats a blank size
 as unknown and ignores stale size values when Unknown length is selected.
 Current Windows/Linux x64 developer archives are in
-`TestResults/DskParity-2026-11-04/distribution`; earlier archives predate this change.
+`TestResults/HexPresentation-2026-11-05/distribution`; earlier archives predate this change.
+[Hex presentation](docs/HEX_PRESENTATION_2026-11-05.md) aligns HEX, ASCII and SHASCII
+in a shared editor viewport and restores per-byte WPF colors in a single viewer.
 [DSK analyzer and visual inspector parity](docs/DSK_ANALYZER_PARITY_2026-11-04.md)
 restores the WPF map layout, layers, filters, structured selection details and embedded MFM view.
 

@@ -11,11 +11,20 @@ namespace MZTools;
 internal static class AtomicFileTransaction
 {
     internal static StringComparer PathComparer => OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
-    internal static string? Hash(string path)
+    internal static string? Hash(string path) => HashCancellable(path,CancellationToken.None);
+    internal static string? HashCancellable(string path,CancellationToken cancellation)
     {
+        cancellation.ThrowIfCancellationRequested();
         if (!File.Exists(path)) return null;
-        using var stream = File.OpenRead(path);
-        return Convert.ToHexString(SHA256.HashData(stream));
+        using var stream = new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.Read,65536,FileOptions.SequentialScan);
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        byte[] buffer=System.Buffers.ArrayPool<byte>.Shared.Rent(65536);
+        try
+        {
+            int count;while((count=stream.Read(buffer,0,65536))!=0){cancellation.ThrowIfCancellationRequested();hash.AppendData(buffer,0,count);}
+            cancellation.ThrowIfCancellationRequested();return Convert.ToHexString(hash.GetHashAndReset());
+        }
+        finally{System.Buffers.ArrayPool<byte>.Shared.Return(buffer);}
     }
 
     internal static void Write(IReadOnlyDictionary<string, byte[]> files,

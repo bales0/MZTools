@@ -9,18 +9,24 @@ namespace MZTools;
 
 internal static class AudioSignalAnalysisService
 {
-    internal static IPcmAudioStreamReader OpenReader(string path) => Path.GetExtension(path).ToLowerInvariant() switch
+    internal static IPcmAudioStreamReader OpenReader(string path,bool verifySegmentHashes=true,CancellationToken cancellation=default) => Path.GetExtension(path).ToLowerInvariant() switch
     {
         ".wav" => new WavPcmStreamReader(path), ".flac" => CorePlatformServices.OpenFlac(path),
-        ".json" when SegmentedPcmStreamReader.IsManifest(path) => new SegmentedPcmStreamReader(path),
+        ".json" when SegmentedPcmStreamReader.IsManifest(path) => new SegmentedPcmStreamReader(path,verifySegmentHashes,cancellation),
         _ => throw new ArgumentException("Select a WAV or FLAC file.")
     };
 
     internal static AudioSignalAnalysis Analyze(string path, IProgress<WavAnalysisProgress>? progress = null, CancellationToken token = default)
     {
         var original = new FileInfo(path); long length = original.Length; var modified = original.LastWriteTimeUtc;
+        Dictionary<string,AudioSourceStamp> stamps;
+        using(var identity=OpenReader(path,verifySegmentHashes:false,cancellation:token))
+        {
+            var paths=new[]{Path.GetFullPath(path)}.Concat(identity is SegmentedPcmStreamReader joined?joined.SourceFiles:[]);
+            stamps=paths.Distinct(AtomicFileTransaction.PathComparer).ToDictionary(p=>p,AudioSourceStamp.Capture,AtomicFileTransaction.PathComparer);
+        }
         var decoded = WavHeuristicAnalyzer.AnalyzeFile(path, progress, token, includeCandidates: true);
-        using var reader = OpenReader(path);
+        using var reader = OpenReader(path,cancellation:token);
         var f = reader.Format;
         var regions = new List<AudioSignalRegion>();
         var accumulators = new List<AudioBlockAccumulator>();
@@ -131,11 +137,11 @@ internal static class AudioSignalAnalysisService
         bool equal = best.Length == 2 && best[0].ValidRecords == best[1].ValidRecords && best[0].ValidChecksumCandidates == best[1].ValidChecksumCandidates && best[0].ChecksumCandidates == best[1].ChecksumCandidates && best[0].ClippingCount == best[1].ClippingCount && best[0].TimingErrorPercent == best[1].TimingErrorPercent && best[0].LeaderStabilityPercent == best[1].LeaderStabilityPercent;
         bool poor = issues.Any(i => i.Severity == DskIssueSeverity.Error) || channels.Any(c => c.ClippingPercent > 2);
         original.Refresh(); if (original.Length != length || original.LastWriteTimeUtc != modified) throw new IOException("The source changed during analysis. Analyze the file again.");
-        if(SegmentedPcmStreamReader.IsManifest(path)) { using var verified=new SegmentedPcmStreamReader(path); }
+        if(SegmentedPcmStreamReader.IsManifest(path)) { using var verified=new SegmentedPcmStreamReader(path,cancellation:token); }
         return new()
         {
             RecoveredRecords = decoded.Records.Select(r => r.DeepClone()).ToArray(),
-            Source = Path.GetFullPath(path), SourceLength = length, SourceModifiedUtc = modified, Format = reader.SourceFormat, SampleRate = f.SampleRate, BitsPerSample = f.BitsPerSample,
+            Source = Path.GetFullPath(path), SourceLength = length, SourceModifiedUtc = modified, SourceStamps=stamps, Format = reader.SourceFormat, SampleRate = f.SampleRate, BitsPerSample = f.BitsPerSample,
             ChannelCount = f.Channels, FrameCount = f.FrameCount, Channels = channels, Blocks = blocks, Regions = regions,
             DecodeAgreement = agreements, Issues = issues, Waveform = new(envelope.Finish(), f.FrameCount, f.Channels),
             Quality = poor ? "Poor" : issues.Count > 0 ? "Marginal" : "Good",

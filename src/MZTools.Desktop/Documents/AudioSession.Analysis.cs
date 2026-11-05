@@ -19,7 +19,17 @@ public sealed partial class AudioSession
     public bool FollowReference {get=>followReference;set{if(Set(ref followReference,value)&&value&&SelectedBlock is { } row)FollowBlockReference(row.Value);}}
     internal AudioPulseReference ReferenceAt(int index)=>references[index];
     internal AudioPulseReference? SelectedReference=>references.Count==0?null:references[Math.Clamp(ReferenceIndex,0,references.Count-1)];
-    public string ReferenceEvidence=>SelectedReference is { } r?$"{r.Name} · {r.Kind}\n{r.Source}\n{r.Evidence}\n{r.Derivation}":"No reference.";
+    public string ReferenceEvidence
+    {
+        get
+        {
+            if(SelectedReference is not{} reference)return "No reference.";
+            string catalog=reference.CatalogId is{} id?CatalogEvidence(PulseReferenceCatalog.Get(id)):"User-entered session reference; no historical provenance inferred.";
+            return $"{reference.Name} · {reference.Kind} · {reference.Machine}\n{reference.Stage}\n{reference.Source}\n{reference.Evidence}\n{reference.Derivation}\n{catalog}\n"+
+                string.Join(" · ",reference.Guides.Select(g=>$"{g.Group}: {g.Microseconds:0.###} µs ({g.Context})"));
+        }
+    }
+    private static string CatalogEvidence(PulseReferenceEntry entry)=>$"{entry.SoftwareVersion}\n{entry.Polarity}\n{entry.SupportedUsages}\n{entry.Limitations}";
     private bool shortHigh=true,shortLow=true,longHigh=true,longLow=true;
     public bool ShortHigh {get=>shortHigh;set{if(Set(ref shortHigh,value))UpdateReference();}}
     public bool ShortLow {get=>shortLow;set{if(Set(ref shortLow,value))UpdateReference();}}

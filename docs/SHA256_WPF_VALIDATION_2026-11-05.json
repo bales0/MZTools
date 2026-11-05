@@ -1,0 +1,379 @@
+{
+  "date": "2026-11-05",
+  "head": "d3dc601292101e4dd82bcc2022fa981301c75837",
+  "branch": "main",
+  "approval": "User explicitly approved stages A and B after G0 audit.",
+  "wpfProductionChanged": false,
+  "captureProductionChanged": false,
+  "committed": false,
+  "pushed": false,
+  "sourceManifestMatchesFinalFiles": true,
+  "sourceMismatches": [],
+  "desktop": {
+    "exitCode": 0,
+    "filter": "FullyQualifiedName!~AudioIntegrityBenchmarkTests",
+    "counters": {
+      "total": 310,
+      "executed": 310,
+      "passed": 310,
+      "failed": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "artifact": {
+      "path": "TestResults/Sha256Audit-2026-11-05/validation/desktop-complete.trx",
+      "bytes": 445359,
+      "sha256": "1d844a7c849c478137ca05d23a03a07ba57dba80398ed6ce35a16f2e9f2b6313"
+    },
+    "skipped": 0
+  },
+  "coreFull": {
+    "exitCode": 0,
+    "counters": {
+      "total": 412,
+      "executed": 411,
+      "passed": 411,
+      "failed": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "note": "The comprehensive suite preceded final cancellation-token propagation; affected audio/portability tests were rerun on final sources.",
+    "artifact": {
+      "path": "TestResults/Sha256Audit-2026-11-05/validation/core.trx",
+      "bytes": 583662,
+      "sha256": "a077f9986fc3957e4f1bb81f4d19a662e2af5d17048a3e7f83469e23e77acd35"
+    },
+    "skipped": 1
+  },
+  "coreAffectedFinal": {
+    "exitCode": 0,
+    "counters": {
+      "total": 83,
+      "executed": 83,
+      "passed": 83,
+      "failed": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "artifact": {
+      "path": "TestResults/Sha256Audit-2026-11-05/validation/core-audio-final.trx",
+      "bytes": 121895,
+      "sha256": "016934cbb7c682fd7f568690579e2bc7efc825693c871f0aefa15aa27d42c38b"
+    },
+    "skipped": 0
+  },
+  "native": {
+    "exitCode": 0,
+    "checks": 96,
+    "reports": [
+      {
+        "file": "native-audio.json",
+        "checks": 21,
+        "failures": [],
+        "hardwareTested": false
+      },
+      {
+        "file": "native-disk.json",
+        "checks": 23,
+        "failures": [],
+        "hardwareTested": false
+      },
+      {
+        "file": "native-media.json",
+        "checks": 25,
+        "failures": []
+      },
+      {
+        "file": "native-recorder.json",
+        "checks": 16,
+        "failures": [],
+        "hardwareTested": false
+      },
+      {
+        "file": "native-smoke.json",
+        "checks": 11,
+        "failures": [],
+        "nativePickerTested": false,
+        "hardwareTested": false,
+        "clipboardRoundtripTested": true
+      }
+    ]
+  },
+  "originalWpf": {
+    "exitCode": 0,
+    "artifact": {
+      "path": "TestResults/Sha256Audit-2026-11-05/wpf-reference/wpf-reference.json",
+      "bytes": 3569,
+      "sha256": "f1ef5f5da7133ccfb99d91d4383290b3d6eace60e2e2be35d71b0c816ee3bf43"
+    }
+  },
+  "benchmark": {
+    "fixtureSets": 6,
+    "minutesPerFixture": 30,
+    "cache": "warm",
+    "allFixtureAssertionsCompleted": true,
+    "generatedFixtureDirectoriesRemaining": [],
+    "finalRunnerExitCode": null,
+    "exitCodeLimitation": "Separate watcher confirmed process exit but did not recover its exit code; no code is inferred.",
+    "report": {
+      "path": "docs/SHA256_BENCHMARK_2026-11-05.json",
+      "bytes": 34738,
+      "sha256": "a0c04b2434fb808a0aa9dbc523886b95a864fb6c57dd32408ecd4bd6aab866ab"
+    },
+    "sourceManifest": {
+      "path": "TestResults/Sha256Audit-2026-11-05/results/final-sources.json",
+      "bytes": 31587,
+      "sha256": "85e4792c599a44e56b4c8bdb6588e3bb35768175113c8e398d515883e4b8bbbf"
+    }
+  },
+  "limitations": [
+    "Linux: Wsl/EnumerateDistros/Service/E_ACCESSDENIED",
+    "macOS/ARM not executed",
+    "Cold cache, slow media, network media, physical unplug not tested",
+    "Physical audio and real 10–30min recording not tested",
+    "One Core QD reference theory skipped: three full QD fixtures are missing",
+    "All special-dialog focus/keyboard combinations and complete WPF parity are not established",
+    "Metadata preview is not cryptographic integrity; transient restored-byte races remain outside the pre/post hash guarantee"
+  ],
+  "preExistingUserChanges": [
+    " D specification/CODEX_MZTools_POSTUPNA_MULTIPLATFORMNI_MIGRACE_AVALONIA_JEDNOTNE_UI_2026-10-29.md",
+    "?? specification/MZTools_Codex_zadani_SHA256_a_WPF_parita_2026-11-05.md"
+  ],
+  "changedFiles": [
+    {
+      "path": "src/MZTools.Core/AtomicFileTransaction.cs",
+      "bytes": 6806,
+      "sha256": "a0930f7c36f89ad4acd2184f82d41b570b3a7c9f40cbd8f3d5f4038f949b1aa0"
+    },
+    {
+      "path": "src/MZTools.Core/Media/AudioRangeInspection.cs",
+      "bytes": 10976,
+      "sha256": "76f1a5d4793316789d66a2a044de1f4a882067fa9a338cffe4824b4534b5f8b3"
+    },
+    {
+      "path": "src/MZTools.Core/Media/AudioSelectionWaveExporter.cs",
+      "bytes": 5012,
+      "sha256": "40be99d5652a8d192ff4af02d99ec501f726cce8508dc5e0b56b7806588b5c8a"
+    },
+    {
+      "path": "src/MZTools.Core/Media/AudioSignalAnalysis.cs",
+      "bytes": 23178,
+      "sha256": "735e61fdc986dc0da914ab924b50d036d9b669c4dec3c1a1a55b5424554701ac"
+    },
+    {
+      "path": "src/MZTools.Core/Media/AudioSignalAnalysisService.cs",
+      "bytes": 24359,
+      "sha256": "fe67b03421a54d3d730264dbb9c96ca93632c6ef05244e67f7476c848b274466"
+    },
+    {
+      "path": "src/MZTools.Core/Media/AudioSpectralAnalysis.cs",
+      "bytes": 6435,
+      "sha256": "8011d487b13e59739924c677c9ec5831e27dc03223088256d2aaa093ce151f53"
+    },
+    {
+      "path": "src/MZTools.Core/Media/SegmentedPcmStreamReader.cs",
+      "bytes": 6515,
+      "sha256": "c821e50b89e4f567cbe8e100144dcbad3be6f8aa058ba4bcd9f68677f296f3f2"
+    },
+    {
+      "path": "src/MZTools.Core/WavHeuristicAnalyzer.cs",
+      "bytes": 109187,
+      "sha256": "298b532f6d7a265b2b460e87dce6fb6fa7c5e0cec32c70e4fb35335b73a566cf"
+    },
+    {
+      "path": "src/MZTools.Desktop/Documents/AudioOperations.cs",
+      "bytes": 4533,
+      "sha256": "84950698050b270c0be885f6e158108b1b796ed7224b6993e2fe99a0f099a0ce"
+    },
+    {
+      "path": "src/MZTools.Desktop/Documents/AudioSession.Analysis.cs",
+      "bytes": 13725,
+      "sha256": "46f50fabf60822ffe7fb1c0175832938de34d61bbd25be868e8bc88de3578741"
+    },
+    {
+      "path": "src/MZTools.Desktop/Documents/AudioSession.Recovery.cs",
+      "bytes": 8250,
+      "sha256": "d99698737f74ccc099b8a84d02e627f6e8332ac4f455eba53dabd4fce9d51bab"
+    },
+    {
+      "path": "src/MZTools.Desktop/Documents/AudioSession.SelectedPreview.cs",
+      "bytes": 5327,
+      "sha256": "bc9fd7fc612ceaecff9d089f6d6a4f594176f7220e5ae5d891eceae57551d663"
+    },
+    {
+      "path": "src/MZTools.Desktop/Documents/AudioSession.WpfViewport.cs",
+      "bytes": 2479,
+      "sha256": "ddef208bc4e54e6aab97790aafef6c9732161de04478361dfe58cc73d877f202"
+    },
+    {
+      "path": "src/MZTools.Desktop/Documents/AudioSession.cs",
+      "bytes": 16051,
+      "sha256": "7d64ae0c8c3b35de49c5190b8c310feebefe15d6062b7f673dd91f3b2a707111"
+    },
+    {
+      "path": "src/MZTools.Desktop/Documents/DiskSession.cs",
+      "bytes": 27629,
+      "sha256": "50b6ffa75f23e18e56506e15e753bc8a4a68a51415647eceee2794d6c1b39a9c"
+    },
+    {
+      "path": "src/MZTools.Desktop/Documents/DocumentCoordinator.cs",
+      "bytes": 15020,
+      "sha256": "656f85c58382605bd16f62af3b2038b252b5053b7e3b3b5879bfa46b62eba3c1"
+    },
+    {
+      "path": "src/MZTools.Desktop/Platform/DesktopDialogs.cs",
+      "bytes": 4253,
+      "sha256": "8d91fd75a23b01468b4f68d889aec1521f1629823bc51e200dc128a5a0521242"
+    },
+    {
+      "path": "src/MZTools.Desktop/Platform/DesktopDiskDialogs.cs",
+      "bytes": 3716,
+      "sha256": "6b187d758b0c9c386d7b0098079d60e9949061e42f1a7571bd8f5896915a550f"
+    },
+    {
+      "path": "src/MZTools.Desktop/Platform/DesktopMediaDialogs.cs",
+      "bytes": 9941,
+      "sha256": "2217860aef2b5762ae79ff186ae3b9107b17ec549dee46f249a5bbb906eb4ec2"
+    },
+    {
+      "path": "src/MZTools.Desktop/ViewModels/ShellDiskCommands.cs",
+      "bytes": 24853,
+      "sha256": "e9b2d20961701a82c035a15a4296db976b1b1a98ab6cbba0180e0f8f2b6e67c9"
+    },
+    {
+      "path": "src/MZTools.Desktop/Views/BatchWorkspace.axaml",
+      "bytes": 2781,
+      "sha256": "dfc85815b1ad132af21e402fcab0975f0b9aff046c371fd14663095f2d2a2a99"
+    },
+    {
+      "path": "src/MZTools.Desktop/Views/DiskVisualWindow.cs",
+      "bytes": 34097,
+      "sha256": "aa8fc448b4349fbad27922450f2cfe87d5b5106fc9beb0d36d6be930c982b8d0"
+    },
+    {
+      "path": "src/MZTools.Desktop/Views/DiskWorkspace.WpfWindows.cs",
+      "bytes": 2539,
+      "sha256": "2c2366ac8eab90424182cbc4f48e346b915b8ba93d211dc0df1bcd0b22e34240"
+    },
+    {
+      "path": "src/MZTools.Desktop/Views/DiskWorkspace.axaml",
+      "bytes": 14365,
+      "sha256": "0c4e28791aa2e870491c3d33cda559a1ec26a694963cbe5aae94c8967f9531c5"
+    },
+    {
+      "path": "src/MZTools.Desktop/Views/DiskWorkspace.axaml.cs",
+      "bytes": 14893,
+      "sha256": "3e3a6b0d40a3d5ad91387becfbf0be8863017e3f3bffeecf9c332904a2495f59"
+    },
+    {
+      "path": "src/MZTools.Desktop/Views/HexViewWindow.cs",
+      "bytes": 3707,
+      "sha256": "4b9bfeb36b075d2c793993b3a061168c90517a2a6501416f2102770e791b0914"
+    },
+    {
+      "path": "src/MZTools.Desktop/Views/RecoveryWindow.cs",
+      "bytes": 30087,
+      "sha256": "4d74eaacd8b3f3d592eacb950a00a9c76c87e4dcb53e5f113a94ab0624b9341f"
+    },
+    {
+      "path": "tests/MZTools.Desktop.Tests/AudioDocumentTests.cs",
+      "bytes": 18671,
+      "sha256": "831d824b74c02ecb95580400b729254f57692c35a7ef7252a1285b50fd953712"
+    },
+    {
+      "path": "tests/MZTools.Desktop.Tests/DiskUiTests.cs",
+      "bytes": 14533,
+      "sha256": "a20f5b6171f4c592d866ec26de9663017a3265bae589d8bbb4434d45ab8319d0"
+    },
+    {
+      "path": "tests/MZTools.Desktop.Tests/SelectedAnalysisWindowTests.cs",
+      "bytes": 11215,
+      "sha256": "9d1ebb0ad6a52f17eb5d4f2cdfd91d890d69bb33d8086425b4bfc191fef1b7b6"
+    },
+    {
+      "path": "tests/MZTools.Desktop.Tests/WpfParityTests.cs",
+      "bytes": 12942,
+      "sha256": "3eefec1d92d44671843b4983d7e28ee67b08dd3148dfa1343eb9e86ac4f5ee65"
+    },
+    {
+      "path": "docs/SHA256_BENCHMARK_2026-11-05.json",
+      "bytes": 34738,
+      "sha256": "a0c04b2434fb808a0aa9dbc523886b95a864fb6c57dd32408ecd4bd6aab866ab"
+    },
+    {
+      "path": "docs/SHA256_WPF_PARITY_2026-11-05.md",
+      "bytes": 10278,
+      "sha256": "6297e1d478bb3bb3e1524bb90b8924b32bd0ebae530f3a21479f4d1f9d20745e"
+    },
+    {
+      "path": "docs/SHA256_WPF_VALIDATION_2026-11-05.json",
+      "selfHashOmitted": true
+    },
+    {
+      "path": "docs/WPF_PARITY_MATRIX_2026-11-05.md",
+      "bytes": 15984,
+      "sha256": "d8465bbada8eaf781656404b93299bb06a89b8f1c341ea52841f4b7c9f5225fc"
+    },
+    {
+      "path": "src/MZTools.Core/Media/AudioSourceStamp.cs",
+      "bytes": 754,
+      "sha256": "611aa1e4f124b2cebcdb3c77a17f2e98acb94fcf80dcdde19cc98c0b1d0979ea"
+    },
+    {
+      "path": "src/MZTools.Desktop/Platform/BatchProcessForm.cs",
+      "bytes": 1563,
+      "sha256": "3257db22f885cff9d2edc66068490b6d0aeda60a31ef5e66a715838dbdbc61d1"
+    },
+    {
+      "path": "src/MZTools.Desktop/Platform/DesktopWindowSizing.cs",
+      "bytes": 690,
+      "sha256": "180f7072bc1899405ec4fb53b683c16653c60fde6a7dd2031b95ea443695b43c"
+    },
+    {
+      "path": "src/MZTools.Desktop/Platform/DiskFormatForm.cs",
+      "bytes": 4216,
+      "sha256": "05c928d9842152b8c2d125a2c73739a6efdfdd613217b39589985e16d3ce4bb9"
+    },
+    {
+      "path": "tests/MZTools.Desktop.Tests/AudioIntegrityBenchmarkTests.cs",
+      "bytes": 7420,
+      "sha256": "e06aea9ad75af8cd89708240dda395c9134b2a8b266c4a2840ecebc85e1cf723"
+    },
+    {
+      "path": "tests/MZTools.Desktop.Tests/Sha256AndParityTests.cs",
+      "bytes": 22727,
+      "sha256": "cc0c3cb147cfc87119d834fd07db4c754f7b0dfbd4d56c527859ff9b953d2937"
+    }
+  ],
+  "manifestFile": "docs/SHA256_WPF_VALIDATION_2026-11-05.json"
+}

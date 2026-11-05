@@ -90,6 +90,21 @@ public sealed partial class ShellViewModel
         var names=keys.Select((key,i)=>(key,value:a["file"+i])).ToDictionary(p=>p.key,p=>p.value);
         return await AcceptDiskAsync(session,await Task.Run(()=>DiskOperations.Paste(session,packet,Enum.Parse<DiskCollisionPolicy>(a["collision"]),names),ct),ct);
     }
+    internal Task<bool> RenameDiskFileAsync(DiskSession session,string name)=>Documents.ExecuteAsync(async ct=>
+    {
+        if(!session.CanEditFileName||session.HasDraft)throw new InvalidOperationException("Apply or Cancel pending edits before renaming this file.");
+        if(string.IsNullOrWhiteSpace(name))throw new InvalidDataException("Enter a nonempty filename.");
+        if(name==session.SelectedFile?.Name)return true;
+        bool applied=false;long revision=session.Revision;
+        try
+        {
+            session.FileName=name;var candidate=await Task.Run(session.PrepareProperties,ct);
+            string report=new DskOperationPreview(session.Model.Serialize(),candidate.Serialize(),"Rename selected file.",session.Model).Report;
+            if(!await DiskDialogs!.ConfirmDiskAsync("Rename file preview",report))return false;
+            ct.ThrowIfCancellationRequested();session.ApplyProperties(candidate,revision);applied=true;return true;
+        }
+        finally{if(!applied)session.ResetDraft();}
+    });
     private void RefreshDiskCommands()
     {
         foreach(var c in new[]{NewDiskCommand,DiskImportCommand,DiskExportCommand,DiskDeleteCommand,DiskApplyPropertiesCommand,DiskApplyHexCommand,DiskCancelDraftCommand,DiskCopyCommand,DiskPasteCommand,DiskLoadTrackCommand,DiskToolCommand})c.Refresh();

@@ -27,10 +27,10 @@ internal static class AudioOperations
         {
             var result=await Task.Run(()=>
             {
-                session.VerifySources();var info=AudioSelectionWaveExporter.Export(session.Model,path,first,last,transform,mode,progress,ct);
+                session.VerifySources(ct);var info=AudioSelectionWaveExporter.Export(session.Model,path,first,last,transform,mode,progress,ct);
                 using var reader=AudioSignalAnalysisService.OpenReader(path);
                 if(reader.Format.FrameCount!=info.EndSample-info.StartSample||reader.Format.Channels!=info.Channels||reader.Format.BitsPerSample!=info.BitsPerSample||reader.Format.SampleRate!=info.SampleRate)throw new InvalidDataException("Staged WAV metadata differs from the selected PCM export.");
-                session.VerifySources();return info;
+                session.VerifySources(ct);return info;
             },ct);
             return new(directory,path,result);
         }

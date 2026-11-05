@@ -1,0 +1,1000 @@
+{
+  "date": "2026-11-05",
+  "head": "d3dc601292101e4dd82bcc2022fa981301c75837",
+  "configuration": "Debug",
+  "platform": "Windows x64",
+  "fixtureSeconds": 1800,
+  "cache": "warm",
+  "singleObservationPerOperation": true,
+  "physicalDiskIo": false,
+  "peakMemoryScope": "process-lifetime high-water working set, not per-operation peak",
+  "baselineTestExitCode": 0,
+  "finalTestRunnerExitCode": null,
+  "finalCompletionEvidence": "All six fixture results were written after their source and PCM assertions; benchmark process exited. The runner exit code could not be recovered by the separate process watcher.",
+  "comparisons": [
+    {
+      "file": "thirty-16-1.wav",
+      "fileBytes": 172800044,
+      "beforeOpenMilliseconds": 39492.2898,
+      "afterOpenMilliseconds": 40072.0107,
+      "beforeOpenLogicalReadBytes": 1555396784,
+      "afterOpenLogicalReadBytes": 1209862232,
+      "logicalReadReductionBytes": 345534552,
+      "logicalReadReductionPercent": 22.215202934352988,
+      "beforeTwentyPreviewMilliseconds": 12.0409,
+      "afterTwentyPreviewMilliseconds": 13.12,
+      "afterTwentyPreviewLogicalReadBytes": 2621440
+    },
+    {
+      "file": "thirty-16-2.wav",
+      "fileBytes": 345600044,
+      "beforeOpenMilliseconds": 67895.901,
+      "afterOpenMilliseconds": 68349.7351,
+      "beforeOpenLogicalReadBytes": 3110596784,
+      "afterOpenLogicalReadBytes": 2419462232,
+      "logicalReadReductionBytes": 691134552,
+      "logicalReadReductionPercent": 22.2187123562589,
+      "beforeTwentyPreviewMilliseconds": 10.3537,
+      "afterTwentyPreviewMilliseconds": 17.5041,
+      "afterTwentyPreviewLogicalReadBytes": 2621440
+    },
+    {
+      "file": "thirty-16-2.flac",
+      "fileBytes": 251250089,
+      "beforeOpenMilliseconds": 61777.0789,
+      "afterOpenMilliseconds": 61827.6355,
+      "beforeOpenLogicalReadBytes": 2261287271,
+      "afterOpenLogicalReadBytes": 1758799393,
+      "logicalReadReductionBytes": 502487878,
+      "logicalReadReductionPercent": 22.221319884659625,
+      "beforeTwentyPreviewMilliseconds": 15.9048,
+      "afterTwentyPreviewMilliseconds": 15.9119,
+      "afterTwentyPreviewLogicalReadBytes": 1016048
+    },
+    {
+      "file": "thirty-24-1.wav",
+      "fileBytes": 259200044,
+      "beforeOpenMilliseconds": 41351.5367,
+      "afterOpenMilliseconds": 40299.7409,
+      "beforeOpenLogicalReadBytes": 2332996784,
+      "afterOpenLogicalReadBytes": 1814662232,
+      "logicalReadReductionBytes": 518334552,
+      "logicalReadReductionPercent": 22.21754249962138,
+      "beforeTwentyPreviewMilliseconds": 9.3712,
+      "afterTwentyPreviewMilliseconds": 9.2803,
+      "afterTwentyPreviewLogicalReadBytes": 2621440
+    },
+    {
+      "file": "thirty-24-2.wav",
+      "fileBytes": 518400044,
+      "beforeOpenMilliseconds": 73588.0061,
+      "afterOpenMilliseconds": 72237.0912,
+      "beforeOpenLogicalReadBytes": 4665796784,
+      "afterOpenLogicalReadBytes": 3629062232,
+      "logicalReadReductionBytes": 1036734552,
+      "logicalReadReductionPercent": 22.219882262236133,
+      "beforeTwentyPreviewMilliseconds": 10.4568,
+      "afterTwentyPreviewMilliseconds": 13.4147,
+      "afterTwentyPreviewLogicalReadBytes": 2621440
+    },
+    {
+      "file": "thirty-24-2.flac",
+      "fileBytes": 252977418,
+      "beforeOpenMilliseconds": 62587.4655,
+      "afterOpenMilliseconds": 61403.2423,
+      "beforeOpenLogicalReadBytes": 2276833232,
+      "afterOpenLogicalReadBytes": 1770890696,
+      "logicalReadReductionBytes": 505942536,
+      "logicalReadReductionPercent": 22.221326045718925,
+      "beforeTwentyPreviewMilliseconds": 15.9549,
+      "afterTwentyPreviewMilliseconds": 18.2603,
+      "afterTwentyPreviewLogicalReadBytes": 1016048
+    }
+  ],
+  "baseline": {
+    "label": "baseline",
+    "platform": "Microsoft Windows 10.0.26300",
+    "framework": ".NET 10.0.11",
+    "logicalIoIsNotPhysicalDiskIo": true,
+    "results": [
+      {
+        "file": "thirty-16-1.wav",
+        "bytes": 172800044,
+        "bits": 16,
+        "channels": 1,
+        "seconds": 1800,
+        "cache": "warm: fixture generated/encoded and hashed before open",
+        "samples": [
+          {
+            "operation": "standalone SHA-256",
+            "milliseconds": 171.5221,
+            "cpuMilliseconds": 171.875,
+            "logicalReadBytes": 172800044,
+            "processLifetimePeakWorkingSetBytes": 45490176
+          },
+          {
+            "operation": "open through coordinator",
+            "milliseconds": 39492.2898,
+            "cpuMilliseconds": 40671.875,
+            "logicalReadBytes": 1555396784,
+            "processLifetimePeakWorkingSetBytes": 65531904
+          },
+          {
+            "operation": "20 zoom/pan",
+            "milliseconds": 12.0409,
+            "cpuMilliseconds": 15.625,
+            "logicalReadBytes": 2621440,
+            "processLifetimePeakWorkingSetBytes": 65605632
+          },
+          {
+            "operation": "histogram 10s",
+            "milliseconds": 70.64,
+            "cpuMilliseconds": 93.75,
+            "logicalReadBytes": 1048576,
+            "processLifetimePeakWorkingSetBytes": 70336512
+          },
+          {
+            "operation": "histogram 60s",
+            "milliseconds": 326.1383,
+            "cpuMilliseconds": 421.875,
+            "logicalReadBytes": 5832704,
+            "processLifetimePeakWorkingSetBytes": 75206656
+          },
+          {
+            "operation": "histogram 1800s",
+            "milliseconds": 9076.5244,
+            "cpuMilliseconds": 8968.75,
+            "logicalReadBytes": 172865536,
+            "processLifetimePeakWorkingSetBytes": 83398656
+          },
+          {
+            "operation": "stage WAV 10s",
+            "milliseconds": 432.9036,
+            "cpuMilliseconds": 406.25,
+            "logicalReadBytes": 346714200,
+            "processLifetimePeakWorkingSetBytes": 83398656
+          },
+          {
+            "operation": "stage WAV 1800s",
+            "milliseconds": 4515.3906,
+            "cpuMilliseconds": 4500,
+            "logicalReadBytes": 518531160,
+            "processLifetimePeakWorkingSetBytes": 83398656
+          }
+        ]
+      },
+      {
+        "file": "thirty-16-2.wav",
+        "bytes": 345600044,
+        "bits": 16,
+        "channels": 2,
+        "seconds": 1800,
+        "cache": "warm: fixture generated/encoded and hashed before open",
+        "samples": [
+          {
+            "operation": "standalone SHA-256",
+            "milliseconds": 338.451,
+            "cpuMilliseconds": 328.125,
+            "logicalReadBytes": 345600044,
+            "processLifetimePeakWorkingSetBytes": 87158784
+          },
+          {
+            "operation": "open through coordinator",
+            "milliseconds": 67895.901,
+            "cpuMilliseconds": 68656.25,
+            "logicalReadBytes": 3110596784,
+            "processLifetimePeakWorkingSetBytes": 95072256
+          },
+          {
+            "operation": "20 zoom/pan",
+            "milliseconds": 10.3537,
+            "cpuMilliseconds": 0,
+            "logicalReadBytes": 2621440,
+            "processLifetimePeakWorkingSetBytes": 95092736
+          },
+          {
+            "operation": "R +/-1 +/-10, invert, mix, reset",
+            "milliseconds": 6.6317,
+            "cpuMilliseconds": 15.625,
+            "logicalReadBytes": 917504,
+            "processLifetimePeakWorkingSetBytes": 97447936
+          },
+          {
+            "operation": "histogram 10s",
+            "milliseconds": 81.7941,
+            "cpuMilliseconds": 78.125,
+            "logicalReadBytes": 2031616,
+            "processLifetimePeakWorkingSetBytes": 101498880
+          },
+          {
+            "operation": "histogram 60s",
+            "milliseconds": 498.0621,
+            "cpuMilliseconds": 531.25,
+            "logicalReadBytes": 11599872,
+            "processLifetimePeakWorkingSetBytes": 105828352
+          },
+          {
+            "operation": "histogram 1800s",
+            "milliseconds": 14722.9487,
+            "cpuMilliseconds": 14625,
+            "logicalReadBytes": 345665536,
+            "processLifetimePeakWorkingSetBytes": 105828352
+          },
+          {
+            "operation": "stage WAV 10s",
+            "milliseconds": 743.0439,
+            "cpuMilliseconds": 734.375,
+            "logicalReadBytes": 693297240,
+            "processLifetimePeakWorkingSetBytes": 105828352
+          },
+          {
+            "operation": "stage WAV 1800s",
+            "milliseconds": 7091.7947,
+            "cpuMilliseconds": 7046.875,
+            "logicalReadBytes": 1036931160,
+            "processLifetimePeakWorkingSetBytes": 105828352
+          }
+        ]
+      },
+      {
+        "file": "thirty-16-2.flac",
+        "bytes": 251250089,
+        "bits": 16,
+        "channels": 2,
+        "seconds": 1800,
+        "cache": "warm: fixture generated/encoded and hashed before open",
+        "samples": [
+          {
+            "operation": "standalone SHA-256",
+            "milliseconds": 254.8088,
+            "cpuMilliseconds": 281.25,
+            "logicalReadBytes": 251250089,
+            "processLifetimePeakWorkingSetBytes": 105828352
+          },
+          {
+            "operation": "open through coordinator",
+            "milliseconds": 61777.0789,
+            "cpuMilliseconds": 62171.875,
+            "logicalReadBytes": 2261287271,
+            "processLifetimePeakWorkingSetBytes": 105828352
+          },
+          {
+            "operation": "20 zoom/pan",
+            "milliseconds": 15.9048,
+            "cpuMilliseconds": 31.25,
+            "logicalReadBytes": 1016048,
+            "processLifetimePeakWorkingSetBytes": 105828352
+          },
+          {
+            "operation": "R +/-1 +/-10, invert, mix, reset",
+            "milliseconds": 5.318,
+            "cpuMilliseconds": 15.625,
+            "logicalReadBytes": 315476,
+            "processLifetimePeakWorkingSetBytes": 105828352
+          },
+          {
+            "operation": "histogram 10s",
+            "milliseconds": 77.161,
+            "cpuMilliseconds": 78.125,
+            "logicalReadBytes": 1421324,
+            "processLifetimePeakWorkingSetBytes": 105828352
+          },
+          {
+            "operation": "histogram 60s",
+            "milliseconds": 451.7696,
+            "cpuMilliseconds": 437.5,
+            "logicalReadBytes": 8400900,
+            "processLifetimePeakWorkingSetBytes": 105828352
+          },
+          {
+            "operation": "histogram 1800s",
+            "milliseconds": 13137.5561,
+            "cpuMilliseconds": 13062.5,
+            "logicalReadBytes": 251262303,
+            "processLifetimePeakWorkingSetBytes": 105828352
+          },
+          {
+            "operation": "stage WAV 10s",
+            "milliseconds": 535.6596,
+            "cpuMilliseconds": 515.625,
+            "logicalReadBytes": 503987038,
+            "processLifetimePeakWorkingSetBytes": 105828352
+          },
+          {
+            "operation": "stage WAV 1800s",
+            "milliseconds": 5681.7561,
+            "cpuMilliseconds": 5609.375,
+            "logicalReadBytes": 753828017,
+            "processLifetimePeakWorkingSetBytes": 105828352
+          }
+        ]
+      },
+      {
+        "file": "thirty-24-1.wav",
+        "bytes": 259200044,
+        "bits": 24,
+        "channels": 1,
+        "seconds": 1800,
+        "cache": "warm: fixture generated/encoded and hashed before open",
+        "samples": [
+          {
+            "operation": "standalone SHA-256",
+            "milliseconds": 255.0124,
+            "cpuMilliseconds": 250,
+            "logicalReadBytes": 259200044,
+            "processLifetimePeakWorkingSetBytes": 105828352
+          },
+          {
+            "operation": "open through coordinator",
+            "milliseconds": 41351.5367,
+            "cpuMilliseconds": 42546.875,
+            "logicalReadBytes": 2332996784,
+            "processLifetimePeakWorkingSetBytes": 109330432
+          },
+          {
+            "operation": "20 zoom/pan",
+            "milliseconds": 9.3712,
+            "cpuMilliseconds": 15.625,
+            "logicalReadBytes": 2621440,
+            "processLifetimePeakWorkingSetBytes": 109424640
+          },
+          {
+            "operation": "histogram 10s",
+            "milliseconds": 57.4728,
+            "cpuMilliseconds": 62.5,
+            "logicalReadBytes": 1505536,
+            "processLifetimePeakWorkingSetBytes": 109498368
+          },
+          {
+            "operation": "histogram 60s",
+            "milliseconds": 345.0589,
+            "cpuMilliseconds": 359.375,
+            "logicalReadBytes": 8705536,
+            "processLifetimePeakWorkingSetBytes": 110366720
+          },
+          {
+            "operation": "histogram 1800s",
+            "milliseconds": 9564.6668,
+            "cpuMilliseconds": 9531.25,
+            "logicalReadBytes": 259265536,
+            "processLifetimePeakWorkingSetBytes": 110862336
+          },
+          {
+            "operation": "stage WAV 10s",
+            "milliseconds": 541.6226,
+            "cpuMilliseconds": 531.25,
+            "logicalReadBytes": 519971160,
+            "processLifetimePeakWorkingSetBytes": 110919680
+          },
+          {
+            "operation": "stage WAV 1800s",
+            "milliseconds": 5214.5823,
+            "cpuMilliseconds": 5156.25,
+            "logicalReadBytes": 777731160,
+            "processLifetimePeakWorkingSetBytes": 111951872
+          }
+        ]
+      },
+      {
+        "file": "thirty-24-2.wav",
+        "bytes": 518400044,
+        "bits": 24,
+        "channels": 2,
+        "seconds": 1800,
+        "cache": "warm: fixture generated/encoded and hashed before open",
+        "samples": [
+          {
+            "operation": "standalone SHA-256",
+            "milliseconds": 507.5242,
+            "cpuMilliseconds": 500,
+            "logicalReadBytes": 518400044,
+            "processLifetimePeakWorkingSetBytes": 115281920
+          },
+          {
+            "operation": "open through coordinator",
+            "milliseconds": 73588.0061,
+            "cpuMilliseconds": 74734.375,
+            "logicalReadBytes": 4665796784,
+            "processLifetimePeakWorkingSetBytes": 115363840
+          },
+          {
+            "operation": "20 zoom/pan",
+            "milliseconds": 10.4568,
+            "cpuMilliseconds": 31.25,
+            "logicalReadBytes": 2621440,
+            "processLifetimePeakWorkingSetBytes": 115363840
+          },
+          {
+            "operation": "R +/-1 +/-10, invert, mix, reset",
+            "milliseconds": 4.3152,
+            "cpuMilliseconds": 0,
+            "logicalReadBytes": 917504,
+            "processLifetimePeakWorkingSetBytes": 115363840
+          },
+          {
+            "operation": "histogram 10s",
+            "milliseconds": 88.9257,
+            "cpuMilliseconds": 78.125,
+            "logicalReadBytes": 2945536,
+            "processLifetimePeakWorkingSetBytes": 115904512
+          },
+          {
+            "operation": "histogram 60s",
+            "milliseconds": 548.0201,
+            "cpuMilliseconds": 562.5,
+            "logicalReadBytes": 17345536,
+            "processLifetimePeakWorkingSetBytes": 120442880
+          },
+          {
+            "operation": "histogram 1800s",
+            "milliseconds": 16134.6766,
+            "cpuMilliseconds": 16109.375,
+            "logicalReadBytes": 518465536,
+            "processLifetimePeakWorkingSetBytes": 125181952
+          },
+          {
+            "operation": "stage WAV 10s",
+            "milliseconds": 1080.4696,
+            "cpuMilliseconds": 1109.375,
+            "logicalReadBytes": 1039811160,
+            "processLifetimePeakWorkingSetBytes": 125181952
+          },
+          {
+            "operation": "stage WAV 1800s",
+            "milliseconds": 8590.7306,
+            "cpuMilliseconds": 8500,
+            "logicalReadBytes": 1555331160,
+            "processLifetimePeakWorkingSetBytes": 125181952
+          }
+        ]
+      },
+      {
+        "file": "thirty-24-2.flac",
+        "bytes": 252977418,
+        "bits": 24,
+        "channels": 2,
+        "seconds": 1800,
+        "cache": "warm: fixture generated/encoded and hashed before open",
+        "samples": [
+          {
+            "operation": "standalone SHA-256",
+            "milliseconds": 254.9872,
+            "cpuMilliseconds": 312.5,
+            "logicalReadBytes": 252977418,
+            "processLifetimePeakWorkingSetBytes": 125181952
+          },
+          {
+            "operation": "open through coordinator",
+            "milliseconds": 62587.4655,
+            "cpuMilliseconds": 63390.625,
+            "logicalReadBytes": 2276833232,
+            "processLifetimePeakWorkingSetBytes": 125181952
+          },
+          {
+            "operation": "20 zoom/pan",
+            "milliseconds": 15.9549,
+            "cpuMilliseconds": 15.625,
+            "logicalReadBytes": 1016048,
+            "processLifetimePeakWorkingSetBytes": 125181952
+          },
+          {
+            "operation": "R +/-1 +/-10, invert, mix, reset",
+            "milliseconds": 5.4333,
+            "cpuMilliseconds": 0,
+            "logicalReadBytes": 315476,
+            "processLifetimePeakWorkingSetBytes": 125181952
+          },
+          {
+            "operation": "histogram 10s",
+            "milliseconds": 74.7242,
+            "cpuMilliseconds": 78.125,
+            "logicalReadBytes": 1429508,
+            "processLifetimePeakWorkingSetBytes": 125181952
+          },
+          {
+            "operation": "histogram 60s",
+            "milliseconds": 463.309,
+            "cpuMilliseconds": 468.75,
+            "logicalReadBytes": 8458244,
+            "processLifetimePeakWorkingSetBytes": 125181952
+          },
+          {
+            "operation": "histogram 1800s",
+            "milliseconds": 13791.7386,
+            "cpuMilliseconds": 13640.625,
+            "logicalReadBytes": 252989632,
+            "processLifetimePeakWorkingSetBytes": 127594496
+          },
+          {
+            "operation": "stage WAV 10s",
+            "milliseconds": 561.3101,
+            "cpuMilliseconds": 546.875,
+            "logicalReadBytes": 507449880,
+            "processLifetimePeakWorkingSetBytes": 127594496
+          },
+          {
+            "operation": "stage WAV 1800s",
+            "milliseconds": 6278.5596,
+            "cpuMilliseconds": 6218.75,
+            "logicalReadBytes": 759010004,
+            "processLifetimePeakWorkingSetBytes": 127594496
+          }
+        ]
+      }
+    ]
+  },
+  "after": {
+    "label": "after",
+    "platform": "Microsoft Windows 10.0.26300",
+    "framework": ".NET 10.0.11",
+    "logicalIoIsNotPhysicalDiskIo": true,
+    "results": [
+      {
+        "file": "thirty-16-1.wav",
+        "bytes": 172800044,
+        "bits": 16,
+        "channels": 1,
+        "seconds": 1800,
+        "cache": "warm: fixture generated/encoded and hashed before open",
+        "samples": [
+          {
+            "operation": "standalone SHA-256",
+            "milliseconds": 107.4939,
+            "cpuMilliseconds": 109.375,
+            "logicalReadBytes": 172800044,
+            "processLifetimePeakWorkingSetBytes": 45506560
+          },
+          {
+            "operation": "open through coordinator",
+            "milliseconds": 40072.0107,
+            "cpuMilliseconds": 40843.75,
+            "logicalReadBytes": 1209862232,
+            "processLifetimePeakWorkingSetBytes": 65945600
+          },
+          {
+            "operation": "20 zoom/pan",
+            "milliseconds": 13.12,
+            "cpuMilliseconds": 15.625,
+            "logicalReadBytes": 2621440,
+            "processLifetimePeakWorkingSetBytes": 65949696
+          },
+          {
+            "operation": "histogram 10s",
+            "milliseconds": 74.1991,
+            "cpuMilliseconds": 78.125,
+            "logicalReadBytes": 1048576,
+            "processLifetimePeakWorkingSetBytes": 70774784
+          },
+          {
+            "operation": "histogram 60s",
+            "milliseconds": 333.3193,
+            "cpuMilliseconds": 406.25,
+            "logicalReadBytes": 5832704,
+            "processLifetimePeakWorkingSetBytes": 75526144
+          },
+          {
+            "operation": "histogram 1800s",
+            "milliseconds": 9317.8778,
+            "cpuMilliseconds": 9250,
+            "logicalReadBytes": 172865536,
+            "processLifetimePeakWorkingSetBytes": 83476480
+          },
+          {
+            "operation": "stage WAV 10s",
+            "milliseconds": 289.9294,
+            "cpuMilliseconds": 296.875,
+            "logicalReadBytes": 346714200,
+            "processLifetimePeakWorkingSetBytes": 83476480
+          },
+          {
+            "operation": "stage WAV 1800s",
+            "milliseconds": 4305.2271,
+            "cpuMilliseconds": 4312.5,
+            "logicalReadBytes": 518531160,
+            "processLifetimePeakWorkingSetBytes": 83476480
+          }
+        ]
+      },
+      {
+        "file": "thirty-16-2.wav",
+        "bytes": 345600044,
+        "bits": 16,
+        "channels": 2,
+        "seconds": 1800,
+        "cache": "warm: fixture generated/encoded and hashed before open",
+        "samples": [
+          {
+            "operation": "standalone SHA-256",
+            "milliseconds": 213.3456,
+            "cpuMilliseconds": 203.125,
+            "logicalReadBytes": 345600044,
+            "processLifetimePeakWorkingSetBytes": 87101440
+          },
+          {
+            "operation": "open through coordinator",
+            "milliseconds": 68349.7351,
+            "cpuMilliseconds": 69015.625,
+            "logicalReadBytes": 2419462232,
+            "processLifetimePeakWorkingSetBytes": 95154176
+          },
+          {
+            "operation": "20 zoom/pan",
+            "milliseconds": 17.5041,
+            "cpuMilliseconds": 15.625,
+            "logicalReadBytes": 2621440,
+            "processLifetimePeakWorkingSetBytes": 100417536
+          },
+          {
+            "operation": "R +/-1 +/-10, invert, mix, reset",
+            "milliseconds": 7.2083,
+            "cpuMilliseconds": 15.625,
+            "logicalReadBytes": 917504,
+            "processLifetimePeakWorkingSetBytes": 103006208
+          },
+          {
+            "operation": "histogram 10s",
+            "milliseconds": 87.472,
+            "cpuMilliseconds": 78.125,
+            "logicalReadBytes": 2031616,
+            "processLifetimePeakWorkingSetBytes": 107057152
+          },
+          {
+            "operation": "histogram 60s",
+            "milliseconds": 510.8236,
+            "cpuMilliseconds": 578.125,
+            "logicalReadBytes": 11599872,
+            "processLifetimePeakWorkingSetBytes": 110276608
+          },
+          {
+            "operation": "histogram 1800s",
+            "milliseconds": 14956.2624,
+            "cpuMilliseconds": 14921.875,
+            "logicalReadBytes": 345665536,
+            "processLifetimePeakWorkingSetBytes": 110276608
+          },
+          {
+            "operation": "stage WAV 10s",
+            "milliseconds": 474.9157,
+            "cpuMilliseconds": 453.125,
+            "logicalReadBytes": 693297240,
+            "processLifetimePeakWorkingSetBytes": 110276608
+          },
+          {
+            "operation": "stage WAV 1800s",
+            "milliseconds": 6944.2339,
+            "cpuMilliseconds": 6796.875,
+            "logicalReadBytes": 1036931160,
+            "processLifetimePeakWorkingSetBytes": 110276608
+          },
+          {
+            "operation": "20 overlapping preview requests",
+            "milliseconds": 2.8612,
+            "cpuMilliseconds": 0,
+            "logicalReadBytes": 131072,
+            "processLifetimePeakWorkingSetBytes": 110276608
+          },
+          {
+            "operation": "deeper analysis 10s (one detector/normal polarity)",
+            "milliseconds": 540.3196,
+            "cpuMilliseconds": 546.875,
+            "logicalReadBytes": 693231704,
+            "processLifetimePeakWorkingSetBytes": 110276608
+          },
+          {
+            "operation": "deeper analysis 60s (one detector/normal polarity)",
+            "milliseconds": 951.7052,
+            "cpuMilliseconds": 953.125,
+            "logicalReadBytes": 702799960,
+            "processLifetimePeakWorkingSetBytes": 110276608
+          },
+          {
+            "operation": "deeper analysis 1800s (one detector/normal polarity)",
+            "milliseconds": 15988.5855,
+            "cpuMilliseconds": 15765.625,
+            "logicalReadBytes": 1036865624,
+            "processLifetimePeakWorkingSetBytes": 110276608
+          },
+          {
+            "operation": "complete WAV export 10s",
+            "milliseconds": 714.5982,
+            "cpuMilliseconds": 687.5,
+            "logicalReadBytes": 1044657416,
+            "processLifetimePeakWorkingSetBytes": 110276608
+          },
+          {
+            "operation": "complete WAV export 1800s",
+            "milliseconds": 8614.843,
+            "cpuMilliseconds": 7750,
+            "logicalReadBytes": 2419331336,
+            "processLifetimePeakWorkingSetBytes": 110276608
+          }
+        ]
+      },
+      {
+        "file": "thirty-16-2.flac",
+        "bytes": 251250089,
+        "bits": 16,
+        "channels": 2,
+        "seconds": 1800,
+        "cache": "warm: fixture generated/encoded and hashed before open",
+        "samples": [
+          {
+            "operation": "standalone SHA-256",
+            "milliseconds": 157.208,
+            "cpuMilliseconds": 156.25,
+            "logicalReadBytes": 251250089,
+            "processLifetimePeakWorkingSetBytes": 110276608
+          },
+          {
+            "operation": "open through coordinator",
+            "milliseconds": 61827.6355,
+            "cpuMilliseconds": 62843.75,
+            "logicalReadBytes": 1758799393,
+            "processLifetimePeakWorkingSetBytes": 110276608
+          },
+          {
+            "operation": "20 zoom/pan",
+            "milliseconds": 15.9119,
+            "cpuMilliseconds": 15.625,
+            "logicalReadBytes": 1016048,
+            "processLifetimePeakWorkingSetBytes": 110276608
+          },
+          {
+            "operation": "R +/-1 +/-10, invert, mix, reset",
+            "milliseconds": 5.7002,
+            "cpuMilliseconds": 0,
+            "logicalReadBytes": 315476,
+            "processLifetimePeakWorkingSetBytes": 110276608
+          },
+          {
+            "operation": "histogram 10s",
+            "milliseconds": 76.9719,
+            "cpuMilliseconds": 78.125,
+            "logicalReadBytes": 1421324,
+            "processLifetimePeakWorkingSetBytes": 111517696
+          },
+          {
+            "operation": "histogram 60s",
+            "milliseconds": 479.6928,
+            "cpuMilliseconds": 484.375,
+            "logicalReadBytes": 8400900,
+            "processLifetimePeakWorkingSetBytes": 112463872
+          },
+          {
+            "operation": "histogram 1800s",
+            "milliseconds": 14201.3916,
+            "cpuMilliseconds": 14109.375,
+            "logicalReadBytes": 251262303,
+            "processLifetimePeakWorkingSetBytes": 112463872
+          },
+          {
+            "operation": "stage WAV 10s",
+            "milliseconds": 345.6232,
+            "cpuMilliseconds": 343.75,
+            "logicalReadBytes": 503987038,
+            "processLifetimePeakWorkingSetBytes": 113111040
+          },
+          {
+            "operation": "stage WAV 1800s",
+            "milliseconds": 5510.5266,
+            "cpuMilliseconds": 5453.125,
+            "logicalReadBytes": 753828017,
+            "processLifetimePeakWorkingSetBytes": 113184768
+          }
+        ]
+      },
+      {
+        "file": "thirty-24-1.wav",
+        "bytes": 259200044,
+        "bits": 24,
+        "channels": 1,
+        "seconds": 1800,
+        "cache": "warm: fixture generated/encoded and hashed before open",
+        "samples": [
+          {
+            "operation": "standalone SHA-256",
+            "milliseconds": 153.0434,
+            "cpuMilliseconds": 156.25,
+            "logicalReadBytes": 259200044,
+            "processLifetimePeakWorkingSetBytes": 113184768
+          },
+          {
+            "operation": "open through coordinator",
+            "milliseconds": 40299.7409,
+            "cpuMilliseconds": 40843.75,
+            "logicalReadBytes": 1814662232,
+            "processLifetimePeakWorkingSetBytes": 116027392
+          },
+          {
+            "operation": "20 zoom/pan",
+            "milliseconds": 9.2803,
+            "cpuMilliseconds": 31.25,
+            "logicalReadBytes": 2621440,
+            "processLifetimePeakWorkingSetBytes": 116027392
+          },
+          {
+            "operation": "histogram 10s",
+            "milliseconds": 57.2472,
+            "cpuMilliseconds": 62.5,
+            "logicalReadBytes": 1505536,
+            "processLifetimePeakWorkingSetBytes": 116027392
+          },
+          {
+            "operation": "histogram 60s",
+            "milliseconds": 340.75,
+            "cpuMilliseconds": 343.75,
+            "logicalReadBytes": 8705536,
+            "processLifetimePeakWorkingSetBytes": 116027392
+          },
+          {
+            "operation": "histogram 1800s",
+            "milliseconds": 9597.5236,
+            "cpuMilliseconds": 9578.125,
+            "logicalReadBytes": 259265536,
+            "processLifetimePeakWorkingSetBytes": 116027392
+          },
+          {
+            "operation": "stage WAV 10s",
+            "milliseconds": 352.3866,
+            "cpuMilliseconds": 359.375,
+            "logicalReadBytes": 519971160,
+            "processLifetimePeakWorkingSetBytes": 116027392
+          },
+          {
+            "operation": "stage WAV 1800s",
+            "milliseconds": 5089.9994,
+            "cpuMilliseconds": 5062.5,
+            "logicalReadBytes": 777731160,
+            "processLifetimePeakWorkingSetBytes": 116027392
+          }
+        ]
+      },
+      {
+        "file": "thirty-24-2.wav",
+        "bytes": 518400044,
+        "bits": 24,
+        "channels": 2,
+        "seconds": 1800,
+        "cache": "warm: fixture generated/encoded and hashed before open",
+        "samples": [
+          {
+            "operation": "standalone SHA-256",
+            "milliseconds": 320.4678,
+            "cpuMilliseconds": 328.125,
+            "logicalReadBytes": 518400044,
+            "processLifetimePeakWorkingSetBytes": 116674560
+          },
+          {
+            "operation": "open through coordinator",
+            "milliseconds": 72237.0912,
+            "cpuMilliseconds": 72687.5,
+            "logicalReadBytes": 3629062232,
+            "processLifetimePeakWorkingSetBytes": 116793344
+          },
+          {
+            "operation": "20 zoom/pan",
+            "milliseconds": 13.4147,
+            "cpuMilliseconds": 15.625,
+            "logicalReadBytes": 2621440,
+            "processLifetimePeakWorkingSetBytes": 116793344
+          },
+          {
+            "operation": "R +/-1 +/-10, invert, mix, reset",
+            "milliseconds": 5.043,
+            "cpuMilliseconds": 0,
+            "logicalReadBytes": 917504,
+            "processLifetimePeakWorkingSetBytes": 117882880
+          },
+          {
+            "operation": "histogram 10s",
+            "milliseconds": 95.214,
+            "cpuMilliseconds": 93.75,
+            "logicalReadBytes": 2945536,
+            "processLifetimePeakWorkingSetBytes": 122077184
+          },
+          {
+            "operation": "histogram 60s",
+            "milliseconds": 536.7426,
+            "cpuMilliseconds": 515.625,
+            "logicalReadBytes": 17345536,
+            "processLifetimePeakWorkingSetBytes": 126853120
+          },
+          {
+            "operation": "histogram 1800s",
+            "milliseconds": 15799.2559,
+            "cpuMilliseconds": 15734.375,
+            "logicalReadBytes": 518465536,
+            "processLifetimePeakWorkingSetBytes": 133591040
+          },
+          {
+            "operation": "stage WAV 10s",
+            "milliseconds": 691.4511,
+            "cpuMilliseconds": 687.5,
+            "logicalReadBytes": 1039811160,
+            "processLifetimePeakWorkingSetBytes": 133599232
+          },
+          {
+            "operation": "stage WAV 1800s",
+            "milliseconds": 8243.4207,
+            "cpuMilliseconds": 8203.125,
+            "logicalReadBytes": 1555331160,
+            "processLifetimePeakWorkingSetBytes": 133599232
+          }
+        ]
+      },
+      {
+        "file": "thirty-24-2.flac",
+        "bytes": 252977418,
+        "bits": 24,
+        "channels": 2,
+        "seconds": 1800,
+        "cache": "warm: fixture generated/encoded and hashed before open",
+        "samples": [
+          {
+            "operation": "standalone SHA-256",
+            "milliseconds": 153.4681,
+            "cpuMilliseconds": 140.625,
+            "logicalReadBytes": 252977418,
+            "processLifetimePeakWorkingSetBytes": 133599232
+          },
+          {
+            "operation": "open through coordinator",
+            "milliseconds": 61403.2423,
+            "cpuMilliseconds": 61921.875,
+            "logicalReadBytes": 1770890696,
+            "processLifetimePeakWorkingSetBytes": 141996032
+          },
+          {
+            "operation": "20 zoom/pan",
+            "milliseconds": 18.2603,
+            "cpuMilliseconds": 15.625,
+            "logicalReadBytes": 1016048,
+            "processLifetimePeakWorkingSetBytes": 143282176
+          },
+          {
+            "operation": "R +/-1 +/-10, invert, mix, reset",
+            "milliseconds": 6.1647,
+            "cpuMilliseconds": 0,
+            "logicalReadBytes": 315476,
+            "processLifetimePeakWorkingSetBytes": 146055168
+          },
+          {
+            "operation": "histogram 10s",
+            "milliseconds": 82.8401,
+            "cpuMilliseconds": 62.5,
+            "logicalReadBytes": 1429508,
+            "processLifetimePeakWorkingSetBytes": 150032384
+          },
+          {
+            "operation": "histogram 60s",
+            "milliseconds": 445.2618,
+            "cpuMilliseconds": 437.5,
+            "logicalReadBytes": 8458244,
+            "processLifetimePeakWorkingSetBytes": 155103232
+          },
+          {
+            "operation": "histogram 1800s",
+            "milliseconds": 13333.5946,
+            "cpuMilliseconds": 13296.875,
+            "logicalReadBytes": 252989632,
+            "processLifetimePeakWorkingSetBytes": 160202752
+          },
+          {
+            "operation": "stage WAV 10s",
+            "milliseconds": 343.2719,
+            "cpuMilliseconds": 343.75,
+            "logicalReadBytes": 507449880,
+            "processLifetimePeakWorkingSetBytes": 160202752
+          },
+          {
+            "operation": "stage WAV 1800s",
+            "milliseconds": 5976.9641,
+            "cpuMilliseconds": 5921.875,
+            "logicalReadBytes": 759010004,
+            "processLifetimePeakWorkingSetBytes": 160202752
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -111,10 +111,10 @@ public sealed partial class DiskVisualWindow : Window
             var menu=element.ContextMenu??new ContextMenu();element.ContextMenu=menu;
             var raw=new MenuItem{Header="Export / Import Selected Sectors…"};menu.Items.Add(raw);
             var export=new MenuItem{Header="Export selected sectors…"};raw.Items.Add(export);export.Click+=async(_,_)=>await ExportSectors();
-            var import=new MenuItem{Header="Import selected sectors…"};raw.Items.Add(import);import.Click+=(_,_)=>{if(Session.HasProjection){this.model.DiskTool="Raw import";if(this.model.DiskToolCommand.CanExecute(null))this.model.DiskToolCommand.Execute(null);}};
+            var import=new MenuItem{Header="Import selected sectors…"};ToolTip.SetShowOnDisabled(import,true);raw.Items.Add(import);import.Click+=(_,_)=>{if(Session.HasProjection){this.model.DiskTool="Raw import";if(this.model.DiskToolCommand.CanExecute(null))this.model.DiskToolCommand.Execute(null);}};
             var hexItem=new MenuItem{Header="Open Hex…"};menu.Items.Add(hexItem);hexItem.Click+=(_,_)=>OpenHex();
             var owner=new MenuItem{Header="Select owner file"};menu.Items.Add(owner);owner.Click+=(_,_)=>OwnerMenu(owner);
-            menu.Opened+=(_,_)=>{raw.IsEnabled=selectionKeys.Count>0;import.IsEnabled=Session.CanEditHex;hexItem.IsEnabled=selected!=null;owner.IsEnabled=CurrentSector()?.Owners.Count>0;};
+            menu.Opened+=(_,_)=>{raw.IsEnabled=selectionKeys.Count>0;import.IsEnabled=Session.CanEditHex&&!Session.HasDraft&&!this.model.Documents.IsBusy;ToolTip.SetTip(import,Session.HasProjection?Session.CanEditHex?"Import selected sector bytes with Core validation and preview. Apply or Cancel pending edits first.":"Import is unavailable: this image is read-only or write-protected.":"Import is unavailable: no safe decoded filesystem projection exists for this physical image.");hexItem.IsEnabled=selected!=null;owner.IsEnabled=CurrentSector()?.Owners.Count>0;};
         }
         Opened+=(_,_)=>RefreshFloatingAndMfm();
         Session.PropertyChanged+=EditorChanged;

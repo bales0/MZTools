@@ -1,0 +1,118 @@
+{
+  "tests": {
+    "windows": {
+      "trx": "TestResults/HexPresentation-2026-11-05/windows/full/alesb_ACERNOTEBOOK_2026-11-05_18_53_00_net10.0.trx",
+      "counters": {
+        "total": "318",
+        "executed": "317",
+        "passed": "317",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "skippedOptInBenchmarks": [
+        "MZTools.Desktop.Tests.AudioIntegrityBenchmarkTests.ThirtyMinuteMediaOperations"
+      ],
+      "hexCases": [
+        "MZTools.Desktop.Tests.HexPresentationTests.RecordViewerHasOneViewWithActualPerByteWpfColorsAndAllSourceBytes",
+        "MZTools.Desktop.Tests.HexPresentationTests.PartialRowsKeepHexAsciiAndSharpAsciiAtFixedWidths(length: 1)",
+        "MZTools.Desktop.Tests.HexPresentationTests.PartialRowsKeepHexAsciiAndSharpAsciiAtFixedWidths(length: 16)",
+        "MZTools.Desktop.Tests.HexPresentationTests.PartialRowsKeepHexAsciiAndSharpAsciiAtFixedWidths(length: 17)",
+        "MZTools.Desktop.Tests.HexPresentationTests.PartialRowsKeepHexAsciiAndSharpAsciiAtFixedWidths(length: 33)",
+        "MZTools.Desktop.Tests.HexPresentationTests.HexEditorAlignsEveryRowAndSharesScrollingAcrossTheThreeRepresentations",
+        "MZTools.Desktop.Tests.HexPresentationTests.PartialRowsKeepHexAsciiAndSharpAsciiAtFixedWidths(length: 15)"
+      ]
+    },
+    "linux": {
+      "trx": "TestResults/HexPresentation-2026-11-05/linux/full/_AcerNotebook_2026-11-05_18_53_24_net10.0.trx",
+      "counters": {
+        "total": "326",
+        "executed": "325",
+        "passed": "325",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "skippedOptInBenchmarks": [
+        "MZTools.Desktop.Tests.AudioIntegrityBenchmarkTests.ThirtyMinuteMediaOperations"
+      ],
+      "hexCases": [
+        "MZTools.Desktop.Tests.HexPresentationTests.PartialRowsKeepHexAsciiAndSharpAsciiAtFixedWidths(length: 1)",
+        "MZTools.Desktop.Tests.HexPresentationTests.HexEditorAlignsEveryRowAndSharesScrollingAcrossTheThreeRepresentations",
+        "MZTools.Desktop.Tests.HexPresentationTests.RecordViewerHasOneViewWithActualPerByteWpfColorsAndAllSourceBytes",
+        "MZTools.Desktop.Tests.HexPresentationTests.PartialRowsKeepHexAsciiAndSharpAsciiAtFixedWidths(length: 16)",
+        "MZTools.Desktop.Tests.HexPresentationTests.PartialRowsKeepHexAsciiAndSharpAsciiAtFixedWidths(length: 33)",
+        "MZTools.Desktop.Tests.HexPresentationTests.PartialRowsKeepHexAsciiAndSharpAsciiAtFixedWidths(length: 15)",
+        "MZTools.Desktop.Tests.HexPresentationTests.PartialRowsKeepHexAsciiAndSharpAsciiAtFixedWidths(length: 17)"
+      ]
+    }
+  },
+  "native": {
+    "windows": {
+      "native-audio.json": 21,
+      "native-disk.json": 24,
+      "native-media.json": 27,
+      "native-recorder.json": 16,
+      "native-smoke.json": 11
+    },
+    "linux": {
+      "native-audio.json": 21,
+      "native-disk.json": 24,
+      "native-media.json": 27,
+      "native-recorder.json": 16,
+      "native-smoke.json": 11
+    }
+  },
+  "packages": {
+    "MZTools-win-x64.zip": {
+      "sha256": "af4d2b5f632f3b1424d502f93e9c92fefed0bd37e36001a7c5114ee74baf8794",
+      "verifiedFiles": 374
+    },
+    "MZTools-linux-x64.tar.gz": {
+      "sha256": "8aa05289be18131d5bb44659c79feca50a672309caed4849592e8e0abbcdaa26",
+      "verifiedFiles": 352
+    }
+  },
+  "windowsRuntime": {
+    "runtime": "win-x64",
+    "framework": ".NET 10.0.11",
+    "flac": "libsndfile-1.2.2",
+    "captureStarted": false
+  },
+  "linuxRuntime": {
+    "runtime": "linux-x64",
+    "framework": ".NET 10.0.11",
+    "flac": "libsndfile-1.2.2",
+    "captureStarted": false
+  },
+  "passedTests": 642,
+  "nativeChecks": 198,
+  "unmodifiedGalleryImagesVerified": true,
+  "sameWpfHexFixtureVerified": true,
+  "hexSourceHashes": {
+    "src\\MZTools.Desktop\\Views\\HexViewWindow.cs": "d2ec547b34df378a629dedfdbf915b16ed2ac196152a5ee34ecc4ce2b258d656",
+    "src\\MZTools.Desktop\\Views\\DiskWorkspace.axaml": "eeeae3d88f4370f18ad1565f26825c4c2383989c261b3cd038269b5b3cdd60bd",
+    "src\\MZTools.Desktop\\Documents\\DiskSession.cs": "994cdf30c7c09a066850b9266c64fdc4ffb5a7a280f793d687b8e3720cbdb80b",
+    "tests\\MZTools.Desktop.Tests\\HexPresentationTests.cs": "59813d2ed73ad8536a9f4b0e6acd71dcb31ad5d8bde85bd61104af4f07c50021"
+  }
+}

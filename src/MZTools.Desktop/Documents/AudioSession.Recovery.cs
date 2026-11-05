@@ -57,9 +57,9 @@ public sealed partial class AudioSession
         RequireSingleInterval();
         long selection=selectionGeneration,settings=settingsGeneration;long first=SelectionStart,last=SelectionEnd;
         using var linked=CancellationTokenSource.CreateLinkedTokenSource(ct,lifetime.Token);
-        var result=await Task.Run(()=>{VerifySources();var recovered=WavHeuristicAnalyzer.AnalyzeRange(Model.Source,first,last,expectedLength,progress,linked.Token,options);VerifySources();return recovered;},linked.Token);
+        var result=await Task.Run(()=>{VerifySources(linked.Token);var recovered=WavHeuristicAnalyzer.AnalyzeRange(Model.Source,first,last,expectedLength,progress,linked.Token,options);VerifySources(linked.Token);return recovered;},linked.Token);
         if(disposed||selection!=selectionGeneration||settings!=settingsGeneration)return false;
-        Recovery=result;AppliedTransform=options.Transform;ClearSpectral();settingsDirty=false;pendingRecovery=result.Records.Count>0;RefreshRecoveryRows();InvalidateView();
+        Recovery=result;selectedRecoveryTransform=options.Transform;selectedRecoveryMeasurement=null;AppliedTransform=options.Transform;ClearSpectral();settingsDirty=false;pendingRecovery=result.Records.Count>0;RefreshRecoveryRows();InvalidateView();
         foreach(var p in new[]{nameof(HasDraft),nameof(Title),nameof(TransformDescription),nameof(RecoverySummary),nameof(Diagnostics),nameof(RejectedHeaders),nameof(Failures)})Changed(p);return true;
     }
     private void RefreshRecoveryRows()

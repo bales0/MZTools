@@ -1,0 +1,68 @@
+[
+  {
+    "name": "původní-wpf.png",
+    "label": "Původní WPF",
+    "source": "TestResults/HexPresentation-2026-11-05/wpf-reference/wpf-original-hex-viewer.png",
+    "sha256": "47cbaf2116ad82a4e477cb38a3b59bffcc2b5b28abccf1660ed37595fae00b5e"
+  },
+  {
+    "name": "avalonia-windows.png",
+    "label": "Avalonia Windows",
+    "source": "TestResults/HexPresentation-2026-11-05/windows/screenshots/hex-viewer-colored.png",
+    "sha256": "ec9aa7b26799530048f8b37a3ba7197f773aed2518c951447ee0cacf09b56c39"
+  },
+  {
+    "name": "avalonia-linux.png",
+    "label": "Avalonia Linux",
+    "source": "TestResults/HexPresentation-2026-11-05/linux/screenshots/hex-viewer-colored.png",
+    "sha256": "31ddcb22817da14a90263e66bde665f4c560e17bc6d5dc91f7036a0dfc238bf5"
+  },
+  {
+    "name": "windows.png",
+    "label": "Windows",
+    "source": "TestResults/HexPresentation-2026-11-05/windows/screenshots/hex-editor-aligned.png",
+    "sha256": "c618310230cb784f5d129818fe6631b01d7a68514c5a61ae88038fef5320b558"
+  },
+  {
+    "name": "linux.png",
+    "label": "Linux",
+    "source": "TestResults/HexPresentation-2026-11-05/linux/screenshots/hex-editor-aligned.png",
+    "sha256": "3f843376bac02cf811c8b170201cf6846114d57bee17c162aecac73e4632d906"
+  },
+  {
+    "name": "windows-scroll.png",
+    "label": "Windows scroll",
+    "source": "TestResults/HexPresentation-2026-11-05/windows/screenshots/hex-editor-scrolled.png",
+    "sha256": "fe60215d19b6993f3d29fe3caf0452ed1b202c6c2910de6af8f1dfa9677aaeb4"
+  },
+  {
+    "name": "linux-scroll.png",
+    "label": "Linux scroll",
+    "source": "TestResults/HexPresentation-2026-11-05/linux/screenshots/hex-editor-scrolled.png",
+    "sha256": "c81eab8334b6a55e74d7ac62be21f72762bafb7675b4132da5006e141896a52b"
+  },
+  {
+    "name": "windows-native-viewer.png",
+    "label": "Windows native viewer",
+    "source": "TestResults/HexPresentation-2026-11-05/windows/native/native-hex-viewer.png",
+    "sha256": "faecba5a65e66b8d60b389c1d41d89986f8e27dc6ff190f830b11745e21fee9f"
+  },
+  {
+    "name": "linux-native-viewer.png",
+    "label": "Linux native viewer",
+    "source": "TestResults/HexPresentation-2026-11-05/linux/native/native-hex-viewer.png",
+    "sha256": "7a4e19336b1be4f50cb733864a66ce79e05f5927b49b21aecdb4dc3e0ce5a791"
+  },
+  {
+    "name": "windows-native-editor.png",
+    "label": "Windows native editor",
+    "source": "TestResults/HexPresentation-2026-11-05/windows/native/native-hex-editor.png",
+    "sha256": "8a4343a920564fb616d49128fa542b7a19a031c97167d96bcf243f0742dc29d5"
+  },
+  {
+    "name": "linux-native-editor.png",
+    "label": "Linux native editor",
+    "source": "TestResults/HexPresentation-2026-11-05/linux/native/native-hex-editor.png",
+    "sha256": "f5bc2dbea8acec151460145e5f5a701879168ec5231a8cd1d4f16c628e4e3bad"
+  }
+]

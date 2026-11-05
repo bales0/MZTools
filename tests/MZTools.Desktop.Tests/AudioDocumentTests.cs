@@ -38,7 +38,7 @@ public sealed class AudioDocumentTests : IDisposable
         var s=await Open();var original=File.ReadAllBytes(s.Path!);s.SetSelection([(100,300)]);
         string staged;using(var stage=await AudioOperations.StageWaveAsync(s,null,TestContext.Current.CancellationToken,channels))
         {
-            staged=stage.Path;Archive("wave-"+channels.Replace('/','_')+".wav",File.ReadAllBytes(staged));using var r=AudioSignalAnalysisService.OpenReader(staged);Assert.Equal(200,r.Format.FrameCount);Assert.Equal(count,r.Format.Channels);Assert.Equal(48000u,r.Format.SampleRate);Assert.Equal(16,r.Format.BitsPerSample);
+            staged=stage.Path;Archive("wave-"+channels.Replace('/','_')+".wav",File.ReadAllBytes(staged));using var r=AudioSignalAnalysisService.OpenReader(staged,cancellation:TestContext.Current.CancellationToken);Assert.Equal(200,r.Format.FrameCount);Assert.Equal(count,r.Format.Channels);Assert.Equal(48000u,r.Format.SampleRate);Assert.Equal(16,r.Format.BitsPerSample);
             if(channels=="Stereo")Assert.Equal(original.AsSpan(44+100*4,200*4).ToArray(),File.ReadAllBytes(staged).AsSpan(44).ToArray());
             if(channels is "Left / mono" or "Right")
             {var actual=File.ReadAllBytes(staged).AsSpan(44).ToArray();int c=channels=="Right"?1:0;for(int i=0;i<200;i++)Assert.Equal(BitConverter.ToInt16(original,44+(100+i)*4+c*2),BitConverter.ToInt16(actual,i*2));}

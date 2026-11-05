@@ -75,7 +75,7 @@ internal static class AudioRangeInspection
     {
         if (!double.IsFinite(thresholdScale) || thresholdScale < .1 || thresholdScale > 4) throw new ArgumentException("Measurement Schmitt scale must be 0.1–4.");
         VerifySource(source);
-        using var reader = AudioSignalAnalysisService.OpenReader(source.Source);
+        using var reader = AudioSignalAnalysisService.OpenReader(source.Source,verifySegmentHashes:false,cancellation:token);
         (start, end) = transform.Bounds(reader.Format, start, end);
         preprocessingStart = Math.Min(preprocessingStart ?? start, start);
         int count = transform.Mix ? 1 : reader.Format.Channels;
@@ -114,7 +114,7 @@ internal static class AudioRangeInspection
             channel + 1, inverted, detector.ToString(), measurement, start, end, false, 0, 0, false,
             metrics.Distributions, metrics.Scatter, metrics.ScatterPairs, metrics.Drift,
             new(0, 0, 0, null, null), metrics.GlobalScale, metrics.GlobalScale is > 0 ? (1 / metrics.GlobalScale.Value - 1) * 100 : null, metrics.Outliers) { ClassificationScale = scale, PulseSource = engine.Source, OmittedMeasurementSpans = metrics.Omitted };
-        var analysis = new AudioSignalAnalysis { Source = source.Source, SourceLength = source.SourceLength, SourceModifiedUtc = source.SourceModifiedUtc,
+        var analysis = new AudioSignalAnalysis { Source = source.Source, SourceLength = source.SourceLength, SourceModifiedUtc = source.SourceModifiedUtc, SourceStamps=source.SourceStamps,
             Format = source.Format, SampleRate = source.SampleRate, BitsPerSample = source.BitsPerSample, ChannelCount = (ushort)count,
             FrameCount = source.FrameCount, Blocks = [block], Issues = findings.Items.Concat(metrics.Issues).ToArray(),
             Regions = [new AudioSignalRegion("Unassigned audio", start, end, null, null, "Selected PCM interval; no program association inferred.") { SampleRate = source.SampleRate }],
@@ -123,9 +123,10 @@ internal static class AudioRangeInspection
     }
     internal static void VerifySource(AudioSignalAnalysis source)
     {
+        foreach(var pair in source.SourceStamps)pair.Value.Verify(pair.Key);
         var file = new FileInfo(source.Source);
         if (file.Length != source.SourceLength || file.LastWriteTimeUtc != source.SourceModifiedUtc) throw new IOException("The source changed since analysis. Analyze it again.");
-        if(SegmentedPcmStreamReader.IsManifest(source.Source)) { using var verified=new SegmentedPcmStreamReader(source.Source); }
+        if(SegmentedPcmStreamReader.IsManifest(source.Source)) { using var metadata=new SegmentedPcmStreamReader(source.Source,verifyContent:source.SourceStamps.Count==0); }
     }
 }
 

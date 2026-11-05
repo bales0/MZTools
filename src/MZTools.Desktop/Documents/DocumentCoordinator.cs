@@ -88,17 +88,21 @@ public sealed class DocumentCoordinator : Observable
         var existing = documents.FirstOrDefault(d => d.Path is not null && PathIdentity.Same(d.Path, path));
         if (existing is not null) { Active = existing; return true; }
         Status = "Opening " + System.IO.Path.GetFileName(path) + "…";
-        var before = await AtomicDocumentStore.FingerprintAsync(path, ct) ?? throw new FileNotFoundException("File was not found.", path);
+        // The media audio loader already hashes the complete source set before and after analysis.
+        // Reuse that verified fingerprint instead of hashing large media twice again here.
+        bool audioIntegrity=loader is MediaDocumentLoader&&AudioSession.IsSource(path);
+        string? before = audioIntegrity?null:await AtomicDocumentStore.FingerprintAsync(path, ct) ?? throw new FileNotFoundException("File was not found.", path);
         if(loader is IProgressDocumentLoader progressLoader)
         {long generation=operationGeneration;progressLoader.Progress=new Progress<LoadProgress>(p=>ReportProgress(p.Stage,p.Fraction,generation));}
         var document = await loader.LoadAsync(path, ct);
         try
         {
-        if (await AtomicDocumentStore.FingerprintAsync(path, ct) != before)
+        if(audioIntegrity)before=(document as AudioSession)?.SourceHashes[path]??throw new IOException("The audio loader did not supply a verified source fingerprint.");
+        else if (await AtomicDocumentStore.FingerprintAsync(path, ct) != before)
             throw new IOException("The source changed while opening. Please open it again.");
         ct.ThrowIfCancellationRequested();
         var readOnly = (File.GetAttributes(path) & FileAttributes.ReadOnly) != 0;
-        document.Loaded(path, before, readOnly);
+        document.Loaded(path, before!, readOnly);
         documents.Add(document); Active = document; Status = "Opened " + document.Title;
         return true;
         }

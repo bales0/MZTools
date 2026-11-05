@@ -106,6 +106,7 @@ internal sealed class AudioSignalAnalysis
     public string PulseCatalogVersion => PulseReferenceCatalog.Version;
     public long SourceLength { get; init; }
     public DateTime SourceModifiedUtc { get; init; }
+    internal IReadOnlyDictionary<string,AudioSourceStamp> SourceStamps {get;set;}=new Dictionary<string,AudioSourceStamp>();
     public string Format { get; init; } = "";
     public string Layer => "Captured / measured PCM";
     public uint SampleRate { get; init; }
@@ -167,7 +168,7 @@ internal sealed record WaveformRenderModel(IReadOnlyList<WaveformBucket> Buckets
     }
     internal static WaveformRenderModel ReadRange(string path, long start, long end, int maximumBuckets, CancellationToken token)
     {
-        using var reader = AudioSignalAnalysisService.OpenReader(path);
+        using var reader = AudioSignalAnalysisService.OpenReader(path,cancellation:token);
         start = Math.Clamp(start, 0, reader.Format.FrameCount);
         end = Math.Clamp(end, start, reader.Format.FrameCount);
         var builder = new WaveformEnvelopeBuilder(start, end, maximumBuckets);

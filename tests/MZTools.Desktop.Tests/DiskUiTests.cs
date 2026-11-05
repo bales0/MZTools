@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Headless.XUnit;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -61,8 +62,9 @@ public sealed class DiskUiTests
     [AvaloniaFact]public async Task ActualHexTypingDraftCancelAndCoreApply()
     {
         using var host=new Host();var s=await host.Open();s.SelectedSector=s.Sectors.First(x=>(x.Sector.Role&DskSectorRole.Free)!=0);host.Tabs.SelectedIndex=3;Dispatcher.UIThread.RunJobs();
-        var hexWindow=host.Window.OwnedWindows.Single(w=>w.Title=="Sector Hex Editor");var input=hexWindow.GetVisualDescendants().OfType<TextBox>().Single(t=>t.Name=="DiskHex");Assert.True(input.Focus());input.SelectAll();hexWindow.KeyTextInput("00");Dispatcher.UIThread.RunJobs();Assert.True(s.HasHexDraft);
-        host.Files.Shell.DiskApplyHexCommand.Execute(null);await Until(()=>!host.Files.Coordinator.IsBusy);Assert.NotNull(host.Files.Coordinator.Error);Assert.True(s.HasHexDraft);
+        var hexWindow=host.Window.OwnedWindows.Single(w=>w.Title=="Sector Hex Editor");var input=hexWindow.GetVisualDescendants().OfType<TextBox>().Single(t=>t.Name=="DiskHex");Assert.True(input.Focus());input.CaretIndex=0;hexWindow.KeyTextInput("00");Dispatcher.UIThread.RunJobs();Assert.False(s.HasHexDraft);
+        hexWindow.GetVisualDescendants().OfType<Button>().Single(b=>Equals(b.Content,"Unlock HEX editing…")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();Assert.True(s.HexEditingUnlocked);input.Focus();input.CaretIndex=0;int length=input.Text!.Length;hexWindow.KeyTextInput("00");Dispatcher.UIThread.RunJobs();Assert.True(s.HasHexDraft);Assert.Equal(length,input.Text.Length);host.Files.Dialogs.Accept=false;
+        host.Files.Shell.DiskApplyHexCommand.Execute(null);await Until(()=>!host.Files.Coordinator.IsBusy);Assert.Null(host.Files.Coordinator.Error);Assert.True(s.HasHexDraft);host.Files.Dialogs.Accept=true;
         host.Files.Shell.DiskCancelDraftCommand.Execute(null);await Until(()=>!host.Files.Coordinator.IsBusy);Assert.False(s.HasDraft);
         var bytes=s.SelectedSector!.Sector.Data.ToArray();bytes[0]^=1;s.HexText=DskHexEditService.FormatHex(bytes);host.Files.Shell.DiskApplyHexCommand.Execute(null);await Until(()=>!host.Files.Coordinator.IsBusy);Assert.Null(host.Files.Coordinator.Error);Assert.False(s.HasDraft);
         Capture(host.Window,"disk-hex.png");

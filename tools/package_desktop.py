@@ -38,7 +38,7 @@ def package(rid,output,dotnet):
         shutil.copytree(publish,product,dirs_exist_ok=True);executable=product/('MZTools.Desktop.exe' if rid.startswith('win-') else 'MZTools.Desktop')
     if not executable.exists():raise RuntimeError('Publish did not produce the expected apphost')
     if not rid.startswith('win-'):executable.chmod(0o755)
-    for source in ('README.md','LICENSE','THIRD_PARTY_NOTICES.md','docs/MIGRATION_COMPLETION_2026-10-30.md','docs/RELEASE_CHECKLIST.md','docs/WPF_PARITY_2026-11-03.md','docs/WPF_PARITY_AUDIT_2026-11-04.md','docs/UI_FIXES_2026-11-04.md','docs/SELECTED_AUDIO_ANALYSIS_2026-11-04.md','docs/PAYLOAD_UNKNOWN_LENGTH_2026-11-04.md','docs/DSK_ANALYZER_PARITY_2026-11-04.md'):
+    for source in ('README.md','LICENSE','THIRD_PARTY_NOTICES.md','docs/MIGRATION_COMPLETION_2026-10-30.md','docs/RELEASE_CHECKLIST.md','docs/WPF_PARITY_2026-11-03.md','docs/WPF_PARITY_AUDIT_2026-11-04.md','docs/UI_FIXES_2026-11-04.md','docs/SELECTED_AUDIO_ANALYSIS_2026-11-04.md','docs/PAYLOAD_UNKNOWN_LENGTH_2026-11-04.md','docs/DSK_ANALYZER_PARITY_2026-11-04.md','docs/HEX_PRESENTATION_2026-11-05.md'):
         path=ROOT/source
         if path.exists():
             shutil.copyfile(path,product/path.name)
@@ -48,6 +48,8 @@ def package(rid,output,dotnet):
     if comparison.exists():shutil.copytree(comparison,product/'docs/ui-design-system/selected-analysis-2026-11-04')
     dsk_comparison=ROOT/'docs/ui-design-system/dsk-parity-2026-11-04'
     if dsk_comparison.exists():shutil.copytree(dsk_comparison,product/'docs/ui-design-system/dsk-parity-2026-11-04')
+    hex_comparison=ROOT/'docs/ui-design-system/hex-presentation-2026-11-05'
+    if hex_comparison.exists():shutil.copytree(hex_comparison,product/'docs/ui-design-system/hex-presentation-2026-11-05')
     environment=os.environ.copy();environment['MZTOOLS_ASSETS_ROOT']=str(work/'build');environment['MZTOOLS_NOTICES_OUTPUT']=str(work/'notices')
     subprocess.run([sys.executable,str(ROOT/"tests/MZTools.Desktop.Smoke/collect_completion_notices.py")],cwd=ROOT,env=environment,check=True)
     notices=work/'notices'

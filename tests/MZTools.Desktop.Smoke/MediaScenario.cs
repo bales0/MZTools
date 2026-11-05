@@ -56,6 +56,9 @@ internal static class MediaScenario
             Check(model.ActiveTape.Path==dialogs.Save.Path&&!model.ActiveTape.IsModified,"Native Save As rebinds clean document");
             Check(File.ReadAllBytes(first).AsSpan().SequenceEqual(bytes),"Native edits keep the imported source unchanged");
             Capture("native-tape.png");
+            var hexAction=table.ContextMenu!.Items.OfType<MenuItem>().Single(m=>Equals(m.Header,"Hex view..."));hexAction.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));await Task.Delay(100);
+            var hexWindow=window.OwnedWindows.Single(w=>w.Title=="Hex Browser");Check(!hexWindow.GetVisualDescendants().OfType<TabControl>().Any(),"Native hex viewer presents the complete record and derived QDF header without tabs");
+            var hexTable=hexWindow.GetVisualDescendants().OfType<TableView>().Single(t=>t.Name=="HexDumpTable");Check(hexTable.Columns.Select(c=>c.Header?.ToString()).SequenceEqual(new[]{"Region","Offset","Hex","ASCII","SHASCII (EU)"}),"Native hex viewer exposes fixed data, ASCII and Sharp ASCII columns");Capture("native-hex-viewer.png");hexWindow.Close();
             await Execute(model.CloseCommand);dialogs.OpenPath=dialogs.Save.Path;await Execute(model.OpenCommand);
             Check(model.ActiveTape!.Rows[1].Name=="NATIVE EDIT","Native reopen reads the persisted edit");
             table.SelectedItem=model.ActiveTape.Rows[1];await Task.Delay(60);await Execute(model.CopyRecordsCommand);

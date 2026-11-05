@@ -17,7 +17,7 @@ internal static class AudioSelectionWaveExporter
         string target = Path.GetFullPath(destination);
         if (string.Equals(target, Path.GetFullPath(source.Source), StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("Choose a different output file; the source recording cannot be overwritten.");
-        using var reader = AudioSignalAnalysisService.OpenReader(source.Source);
+        using var reader = AudioSignalAnalysisService.OpenReader(source.Source,cancellation:token);
         if(reader is SegmentedPcmStreamReader joined && joined.SourceFiles.Any(p=>string.Equals(p,target,StringComparison.OrdinalIgnoreCase)))
             throw new ArgumentException("Choose a different output file; source recording segments cannot be overwritten.");
         if (channelMode is < 0 or > 2) throw new ArgumentException("Select Left, Right, stereo or Average.");

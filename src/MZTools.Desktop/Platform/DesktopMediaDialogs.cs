@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Layout;
+using Avalonia.Layout;
+using Avalonia.LogicalTree;
 using Avalonia.Platform.Storage;
 using MZTools.Desktop.Documents;
 
@@ -103,12 +104,13 @@ public sealed partial class DesktopDialogs : IMediaDialogs
         var dialog = new Window { Title = title, Width = 560, Height = 620, MinWidth = 420, MinHeight = 380, WindowStartupLocation = WindowStartupLocation.CenterOwner };
         var stack = new StackPanel { Spacing = 14 }; foreach (var field in fields) stack.Children.Add(field);
         var error = new TextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap }; stack.Children.Add(error);
-        var apply = new Button { Content = "Continue" }; var cancel = new Button { Content = "Cancel", IsCancel = true };
+        var apply = new Button { Content = "Continue", IsDefault=title=="Disk format" }; var cancel = new Button { Content = "Cancel", IsCancel = true };
         apply.Click += (_, _) => { try { result = read(); dialog.Close(); } catch (Exception e) when (e is FormatException or InvalidOperationException or OverflowException) { error.Text = e.Message; } };
         cancel.Click += (_, _) => dialog.Close();
         var dock = new DockPanel { Margin = new Thickness(20) };
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right, Children = { apply, cancel } };
         DockPanel.SetDock(buttons, Dock.Bottom); dock.Children.Add(buttons); dock.Children.Add(new ScrollViewer { Content = stack, Margin = new Thickness(0,0,0,16) });
-        dialog.Content = dock; dialog.Opened += (_, _) => cancel.Focus(); await dialog.ShowDialog(owner); return result;
+        DesktopWindowSizing.FitToWorkingArea(dialog);
+        dialog.Content = dock; dialog.Opened += (_, _) => {if(title=="Disk format")stack.GetLogicalDescendants().OfType<ComboBox>().FirstOrDefault()?.Focus();else cancel.Focus();}; await dialog.ShowDialog(owner); return result;
     }
 }

@@ -102,7 +102,7 @@ public sealed class SelectedAnalysisWindowTests
             child.Session.ShowRange(200,300);child.Session.Pan(long.MaxValue/4);Assert.Equal(999,child.Session.ViewEnd);child.Session.Fit();Assert.Equal(111,child.Session.ViewStart);Assert.Equal(999,child.Session.ViewEnd);
             var tabs=child.GetVisualDescendants().OfType<TabControl>().Single(t=>t.Name=="SelectedAnalysisTabs");
             Assert.Equal(new[]{"Visual analysis","Programs","Block candidates","Scan passes","Messages","Problems","Candidates / Recovery","Pass comparison"},tabs.Items.OfType<TabItem>().Select(t=>t.Header));
-            var visual=child.GetVisualDescendants().OfType<TabControl>().Single(t=>t.Name=="SelectedAnalysisVisualTabs");Assert.Equal(new[]{"Waveform","Histogram"},visual.Items.OfType<TabItem>().Select(t=>t.Header));
+            var visual=child.GetVisualDescendants().OfType<TabControl>().Single(t=>t.Name=="SelectedAnalysisVisualTabs");Assert.Equal(new[]{"Waveform","Histogram","Scatter","Drift"},visual.Items.OfType<TabItem>().Select(t=>t.Header));
             Assert.Equal("Selected audio — deeper analysis / recovery preview",child.Title);Assert.Empty(child.Session.Programs);Capture(child,"selected-analysis-layout.png");
         }
         finally{child.Close();await Idle(child.Model.Documents);}

@@ -41,6 +41,9 @@ internal static class DiskScenario
             dialogs.Inputs=[path];await Execute(model.DiskImportCommand);Check(model.ActiveDisk!.Files.Count==1,"Native disk import inserts actual MZF data");
             var disk=model.ActiveDisk;Files().SelectedItem=disk.Files[0];await Task.Delay(80);disk.FileName="NATIVE";await Execute(model.DiskApplyPropertiesCommand);Check(disk.Files[0].Name=="NATIVE","Native inspector applies filename metadata");
             string saved=Path.Combine(root,"native.dsk");dialogs.Save=new(saved,"Dsk",false);await Execute(model.SaveAsCommand);Check(File.Exists(saved)&&disk.Path==saved&&!disk.IsModified,"Native disk Save As writes and rebinds only after success");Capture("native-disk-files.png");
+            disk.SelectedSector=disk.Sectors[0];disk.ViewIndex=3;await Task.Delay(100);var hexWindow=window.OwnedWindows.Single(w=>w.Title=="Sector Hex Editor");
+            var hexBoxes=new[]{"DiskHex","DiskHexAscii","DiskHexSharpAscii"}.Select(name=>hexWindow.GetVisualDescendants().OfType<TextBox>().Single(t=>t.Name==name)).ToArray();
+            Check(hexBoxes.Select(b=>b.TranslatePoint(default,hexWindow)!.Value.Y).Distinct().Count()==1&&hexBoxes.All(b=>b.LineHeight==18&&b.FontFamily.Equals(hexBoxes[0].FontFamily)),"Native hex editor aligns HEX, ASCII and SHASCII on identical line metrics");Capture("native-hex-editor.png");hexWindow.Close();
             await Execute(model.CloseCommand);dialogs.Open=saved;await Execute(model.OpenCommand);disk=model.ActiveDisk!;Check(disk.Files.Single().Name=="NATIVE","Native DSK reopen reloads edited directory");
             Tabs().SelectedIndex=1;await Task.Delay(80);var map=window.GetVisualDescendants().OfType<DiskMap>().Single();map.Zoom(4);Check(disk.MapZoom>1,"Native disk map shares session zoom state");Capture("native-disk-map.png");
             map.Fit();byte[] visualBefore=File.ReadAllBytes(disk.Path!);var visual=new DiskVisualWindow(model);visual.Show(window);await Task.Delay(100);

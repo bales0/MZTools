@@ -242,7 +242,7 @@ namespace MZTools
             bool includeCandidates = false, bool enableDiagnostics = false)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
-            using IPcmAudioStreamReader reader = AudioSignalAnalysisService.OpenReader(filePath);
+            using IPcmAudioStreamReader reader = AudioSignalAnalysisService.OpenReader(filePath,cancellation:cancellationToken);
             var candidates = new List<SharpBlockCandidate>();
             var headerDiagnostics = new AudioHeaderDiagnostics();
             var diagnostics = enableDiagnostics ? new AudioRecoveryDiagnostics() : null;
@@ -384,7 +384,7 @@ namespace MZTools
             IProgress<WavAnalysisProgress>? progress = null, CancellationToken token = default, AudioRecoveryOptions? options = null)
         {
             token.ThrowIfCancellationRequested();
-            using var reader = AudioSignalAnalysisService.OpenReader(path);
+            using var reader = AudioSignalAnalysisService.OpenReader(path,cancellation:token);
             if (start < 0 || end <= start || end > reader.Format.FrameCount) throw new ArgumentOutOfRangeException(nameof(start), "Choose a nonempty interval inside the recording.");
             if (expectedLength.HasValue && (expectedLength < 1 || expectedLength > ushort.MaxValue)) throw new ArgumentOutOfRangeException(nameof(expectedLength), "Expected payload length must be 1–65535 bytes, or blank.");
             var info = new FileInfo(path); long originalLength = info.Length; var originalModified = info.LastWriteTimeUtc;

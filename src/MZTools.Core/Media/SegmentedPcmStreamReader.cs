@@ -4,23 +4,24 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Threading;
 
 namespace MZTools;
 
-/// <summary>One continuous PCM timeline backed by the verified segments of a completed recorder run.</summary>
+/// <summary>One continuous PCM timeline. Strict opens verify all segment bytes.
+/// Metadata-only preview callers retain an analysis snapshot and must verify content separately before export.</summary>
 internal sealed class SegmentedPcmStreamReader : IPcmAudioStreamReader
 {
     private sealed record Part(string Path,long First,long Frames,long Bytes,DateTime Modified,string Hash);
     private readonly List<Part> parts=[];
     private bool disposed;
-    private static readonly object cacheGate=new();
-    private static readonly Dictionary<(string Path,long Bytes,DateTime Modified,string Hash),bool> verified=[];
     internal static bool IsManifest(string path)=>path.EndsWith(".wav.json",StringComparison.OrdinalIgnoreCase);
     public PcmAudioFormat Format { get; }
     public string SourceFormat=>$"WAV segments ({parts.Count} files)";
     internal IReadOnlyList<string> SourceFiles=>parts.Select(p=>p.Path).ToArray();
-    internal SegmentedPcmStreamReader(string manifest)
+    internal SegmentedPcmStreamReader(string manifest,bool verifyContent=true,CancellationToken cancellation=default)
     {
+        cancellation.ThrowIfCancellationRequested();
         manifest=Path.GetFullPath(manifest);
         if(!IsManifest(manifest)) throw new ArgumentException("Select a recorder .wav.json report.");
         using var document=JsonDocument.Parse(File.ReadAllBytes(manifest));
@@ -47,24 +48,21 @@ internal sealed class SegmentedPcmStreamReader : IPcmAudioStreamReader
             var file=new FileInfo(path); string hash=item.GetProperty("fileSha256").GetString()??"";
             if(file.Length!=item.GetProperty("fileBytes").GetInt64()||hash.Length!=64) throw new InvalidDataException("Recording segment size/hash is invalid: "+path);
             var part=new Part(path,first,frames,file.Length,file.LastWriteTimeUtc,hash);
-            VerifyHash(part); parts.Add(part); total=checked(total+frames); index++;
+            cancellation.ThrowIfCancellationRequested();
+            if(verifyContent)VerifyHash(part,cancellation); parts.Add(part); total=checked(total+frames); index++;
         }
         if(format==null||total!=recording.GetProperty("savedFrames").GetInt64()||format.Value.Channels!=output.GetProperty("channels").GetInt32()||format.Value.SampleRate!=output.GetProperty("sampleRate").GetInt64()||format.Value.BitsPerSample!=output.GetProperty("bitsPerSample").GetInt32())
             throw new InvalidDataException("Recording report does not describe one complete compatible PCM stream.");
         Format=format.Value with { DataOffset=0,DataLength=checked(total*format.Value.BlockAlign) };
     }
-    private static void VerifyHash(Part part)
+    private static void VerifyHash(Part part,CancellationToken cancellation)
     {
-        var key=(part.Path,part.Bytes,part.Modified,part.Hash);
-        lock(cacheGate)
-        {
-            if(verified.ContainsKey(key)) return;
-            using var file=File.OpenRead(part.Path);
-            if(!string.Equals(Convert.ToHexString(SHA256.HashData(file)),part.Hash,StringComparison.OrdinalIgnoreCase))
-                throw new InvalidDataException("Recording segment changed (SHA-256 mismatch): "+part.Path);
-            if(verified.Count>=128) verified.Clear();
-            verified[key]=true;
-        }
+        // Metadata is not a cryptographic cache key. Strict opens always verify bytes.
+        if(!string.Equals(AtomicFileTransaction.HashCancellable(part.Path,cancellation),part.Hash,StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("Recording segment changed (SHA-256 mismatch): "+part.Path);
+        var file=new FileInfo(part.Path);
+        if(file.Length!=part.Bytes||file.LastWriteTimeUtc!=part.Modified)
+            throw new IOException("Recording segment changed while verifying: "+part.Path);
     }
     public void ReadFrames(Action<long,int,int> consume)=>ReadFrames(0,Format.FrameCount,consume);
     public void ReadFrames(long firstFrame,long frameCount,Action<long,int,int> consume)

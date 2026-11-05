@@ -38,6 +38,7 @@ public sealed class RecoveryWindow : Window
     public RecoveryWindow(AudioSession source,long first,long last)
     {
         Title="Selected audio — deeper analysis / recovery preview";Width=1200;Height=900;MinWidth=850;MinHeight=650;
+        DesktopWindowSizing.FitToWorkingArea(this);
         Session=source.CreateSelectedPreview(first,last);
         var dialogs=new DesktopDialogs(this){AudioOnly=true};
         Model=new ShellViewModel(new(new MediaDocumentLoader(dialogs,true),dialogs,new()),async text=>{if(Clipboard is{} clipboard)await clipboard.SetTextAsync(text);},dialogs);
@@ -113,7 +114,9 @@ public sealed class RecoveryWindow : Window
         measurementChannel.SelectionChanged+=(_,_)=>RefreshHistogram();measurementPolarity.SelectionChanged+=(_,_)=>RefreshHistogram();
         DockPanel.SetDock(measurement,Dock.Top);visual.Children.Add(measurement);
         var visualTabs=new TabControl{Name="SelectedAnalysisVisualTabs"};visual.Children.Add(visualTabs);visualTabs.Items.Add(new TabItem{Header="Waveform",Content=waveform});
-        visualTabs.Items.Add(new TabItem{Header="Histogram",Content=Histogram()});tabs.Items.Add(new TabItem{Header="Visual analysis",Content=visual});
+        visualTabs.Items.Add(new TabItem{Header="Histogram",Content=Histogram()});
+        visualTabs.Items.Add(new TabItem{Header="Scatter",Content=new AudioChart{Session=Session,Kind=AudioPlotKind.Scatter}});
+        visualTabs.Items.Add(new TabItem{Header="Drift",Content=new AudioChart{Session=Session,Kind=AudioPlotKind.Drift}});tabs.Items.Add(new TabItem{Header="Visual analysis",Content=visual});
         // Reuse the complete existing result editors and commands, with this window's
         // independent DataContext. No result from the parent analysis is imported.
         var editors=new AudioWorkspace{DataContext=Model};editors.BindSession();
@@ -132,6 +135,7 @@ public sealed class RecoveryWindow : Window
             if(e.PropertyName is nameof(AudioSession.SelectedCandidate) or nameof(AudioSession.SelectedProgram))UpdateOutputs();
             if(e.PropertyName is nameof(AudioSession.RightShift) or nameof(AudioSession.InvertRight) or nameof(AudioSession.Mix))
             {SyncMilliseconds();QueuePreview();}
+            if(e.PropertyName==nameof(AudioSession.DisplayWaveform))RefreshHistogram();
             if(e.PropertyName==nameof(AudioSession.RecoverySummary))
             {
                 messages.ItemsSource=(Session.Recovery?.Failures.Select(f=>new Message("Unresolved",f.Reason,f.StartSample/(double)Session.Model.SampleRate,f.EndSample/(double)Session.Model.SampleRate))??[])
@@ -149,6 +153,8 @@ public sealed class RecoveryWindow : Window
         }
         Model.Documents.PropertyChanged+=(_,e)=>{if(e.PropertyName==nameof(DocumentCoordinator.IsBusy)){Settings();alignment.IsEnabled=Session.CanAlign&&!Model.Documents.IsBusy;}};
         foreach(var check in inputs.Values.OfType<CheckBox>())check.IsCheckedChanged+=(_,_)=>{Settings();RefreshHistogram();};((ComboBox)inputs["scope"]).SelectionChanged+=(_,_)=>Settings();Settings();SyncMilliseconds();UpdateScope();RefreshHistogram();
+        foreach(var input in inputs.Values.OfType<TextBox>())input.TextChanged+=(_,_)=>RefreshHistogram();
+        foreach(var input in inputs.Values.OfType<ComboBox>())input.SelectionChanged+=(_,_)=>RefreshHistogram();
         previewTimer.Tick+=(_,_)=>
         {
             previewTimer.Stop();if(closing||Model.Documents.IsBusy)return;
@@ -200,7 +206,7 @@ public sealed class RecoveryWindow : Window
         {
             if(Session.PreviewStart!=first||Session.PreviewEnd!=last)Session.SetPreviewBounds(first,last);
             UpdateScope();bool applied=await Session.ApplyTransformKeepingViewportAsync(request.Token);
-            if(applied&&!closing&&!Model.Documents.IsBusy&&previewWork==request)Model.Documents.ClearError();
+            if(applied&&!closing&&!Model.Documents.IsBusy&&previewWork==request){Model.Documents.ClearError();RefreshHistogram();}
         }
         catch(OperationCanceledException) { }
         catch(Exception error)when(error is not OutOfMemoryException)
@@ -231,7 +237,7 @@ public sealed class RecoveryWindow : Window
             bool polarity=measurementPolarity.IsEnabled?measurementPolarity.SelectedIndex==1:streams.FirstOrDefault()?.Block.Inverted??false;
             if(!measurementPolarity.IsEnabled)measurementPolarity.SelectedIndex=polarity?1:0;
             var selected=streams.FirstOrDefault(m=>m.Block.Channel==channel&&m.Block.Inverted==polarity);Session.UseSelectedRecoveryMeasurement(selected);
-            measurement.Text=(completedSettings!=SettingsKey()?"OUTDATED — settings changed; run Deep analysis again. ":"")+$"{pass.Test} · {detector} · {pass.AudioTransform}\n[{result.StartSample:N0}, {result.EndSample:N0}) · channel {channel} · {(polarity?"inverted":"normal")} · {selected?.Block.Distributions.Sum(d=>d.Count)??0:N0} measured pulse halves. One consumed stream is shown; repeated passes are not added.";
+            measurement.Text=(completedSettings!=SettingsKey()||!Session.SelectedRecoveryMatchesPreview?"OUTDATED — settings changed; run Deep analysis again. ":"")+$"{pass.Test} · {detector} · {pass.AudioTransform}\n[{result.StartSample:N0}, {result.EndSample:N0}) · channel {channel} · {(polarity?"inverted":"normal")} · {selected?.Block.Distributions.Sum(d=>d.Count)??0:N0} measured pulse halves. One consumed stream is shown; repeated passes are not added.";
         }
         finally{refreshingHistogram=false;}
     }
@@ -257,6 +263,7 @@ public sealed class RecoveryWindow : Window
         var references=new WrapPanel();top.Children.Add(references);var reference=new ComboBox{MinWidth=180};reference.Bind(ItemsControl.ItemsSourceProperty,new Binding("ActiveAudio.ReferenceNames"));reference.Bind(ComboBox.SelectedIndexProperty,new Binding("ActiveAudio.ReferenceIndex"){Mode=BindingMode.TwoWay});references.Children.Add(reference);
         var overlay=new CheckBox{Content="Show reference",Margin=new Thickness(6)};overlay.Bind(CheckBox.IsCheckedProperty,new Binding("ActiveAudio.ShowReference"){Mode=BindingMode.TwoWay});references.Children.Add(overlay);references.Children.Add(new Button{Content="User reference…",Command=Model.AudioReferenceCommand});
 
+        var provenance=new TextBlock{TextWrapping=Avalonia.Media.TextWrapping.Wrap,Margin=new Thickness(5)};provenance.Bind(TextBlock.TextProperty,new Binding("ActiveAudio.ReferenceEvidence"));top.Children.Add(provenance);
         var stats=Table(Session.Distributions,("Group","Group",120),("Count","Count",100),("Mean µs","Mean",100),("Median µs","Median",100),("Stddev µs","StdDev",100),("Reference µs","Reference",100));stats.Height=110;stats.Bind(ItemsControl.ItemsSourceProperty,new Binding("ActiveAudio.Distributions"));top.Children.Add(new Expander{Header="Pulse statistics",Content=stats});panel.Children.Add(chart);return panel;
     }
     private ComboBox BoundCombo(string items,string selected,double width){var control=new ComboBox{Width=width};control.Bind(ItemsControl.ItemsSourceProperty,new Binding(items));control.Bind(ComboBox.SelectedItemProperty,new Binding(selected){Mode=BindingMode.TwoWay});return control;}

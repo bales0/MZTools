@@ -25,7 +25,7 @@ internal static class AudioSpectralAnalysis
     {if(n is <256 or >32768||(n&(n-1))!=0)throw new ArgumentOutOfRangeException(nameof(n),"FFT N must be a power of two, 256–32768.");}
     internal static AudioSpectrum Spectrum(AudioSignalAnalysis source,long start,long end,AudioPcmTransform transform,int n,CancellationToken ct)
     {
-        Validate(n);AudioRangeInspection.VerifySource(source);using var reader=AudioSignalAnalysisService.OpenReader(source.Source);
+        Validate(n);AudioRangeInspection.VerifySource(source);using var reader=AudioSignalAnalysisService.OpenReader(source.Source,verifySegmentHashes:source.SourceStamps.Count==0,cancellation:ct);
         (start,end)=transform.Bounds(reader.Format,start,end);long first=Math.Max(start,end-n);
         if(end-first<n)return new(first,end,source.SampleRate,n,[],null,null);
         int channels=transform.Mix?1:reader.Format.Channels;var data=Enumerable.Range(0,channels).Select(_=>new double[n]).ToArray();int index=0;
@@ -38,7 +38,7 @@ internal static class AudioSpectralAnalysis
         IProgress<WavAnalysisProgress>? progress,CancellationToken ct,int maximumColumns=128,int maximumFrequencyBins=1024)
     {
         Validate(n);if(maximumColumns is <1 or >256||maximumFrequencyBins is <1 or >2048)throw new ArgumentOutOfRangeException(nameof(maximumColumns));
-        AudioRangeInspection.VerifySource(source);using var reader=AudioSignalAnalysisService.OpenReader(source.Source);(start,end)=transform.Bounds(reader.Format,start,end);
+        AudioRangeInspection.VerifySource(source);using var reader=AudioSignalAnalysisService.OpenReader(source.Source,verifySegmentHashes:source.SourceStamps.Count==0,cancellation:ct);(start,end)=transform.Bounds(reader.Format,start,end);
         int hop=n/2,channels=transform.Mix?1:reader.Format.Channels;long windows=end-start<n?0:1+(end-start-n)/hop;
         long perColumn=Math.Max(1,(windows+maximumColumns-1)/maximumColumns);int frequencyGroup=(n/2+1+maximumFrequencyBins-1)/maximumFrequencyBins,bins=(n/2+1+frequencyGroup-1)/frequencyGroup;
         var columns=new List<AudioSpectralColumn>();var data=Enumerable.Range(0,channels).Select(_=>new double[n]).ToArray();var spectral=new SpectralAnalysis();int filled=0;long processed=0,lastEnd=start;
@@ -60,7 +60,7 @@ internal static class AudioSpectralAnalysis
     internal static (long Start,long End,bool Triggered) Trigger(AudioSignalAnalysis source,long start,long end,AudioPcmTransform transform,int channel,double level,bool rising,CancellationToken ct)
     {
         if(channel<0||channel>=source.ChannelCount||end<=start)throw new ArgumentOutOfRangeException(nameof(channel));
-        AudioRangeInspection.VerifySource(source);using var reader=AudioSignalAnalysisService.OpenReader(source.Source);
+        AudioRangeInspection.VerifySource(source);using var reader=AudioSignalAnalysisService.OpenReader(source.Source,verifySegmentHashes:source.SourceStamps.Count==0,cancellation:ct);
         (start,end)=transform.Bounds(reader.Format,start,end);
         int requested=checked((int)Math.Min(end-start,source.SampleRate*2L));var full=transform.Bounds(reader.Format,0,reader.Format.FrameCount);long scanEnd=Math.Min(full.End,end+requested/2L),first=Math.Max(full.Start,scanEnd-2L*requested);int count=checked((int)(scanEnd-first));var data=new double[count];int index=0;
         transform.Visit(reader,first,scanEnd,(_,left,right)=>{ct.ThrowIfCancellationRequested();data[index++]=(channel==1?right:left)/8388608.0;},ct);

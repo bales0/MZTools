@@ -57,6 +57,7 @@ public sealed partial class DesktopDialogs(Window owner) : IDocumentDialogs
         var body = new DockPanel { Margin = new Thickness(24) }; DockPanel.SetDock(buttons, Dock.Bottom);
         body.Children.Add(buttons); body.Children.Add(new ScrollViewer { Margin = new Thickness(0,0,0,20),
             Content = new TextBox { Text = message, IsReadOnly = true, AcceptsReturn = true, TextWrapping = Avalonia.Media.TextWrapping.Wrap, BorderThickness = new Thickness(0) } });
+        DesktopWindowSizing.FitToWorkingArea(dialog);
         dialog.Content = body;
         dialog.Opened += (_, _) => cancel?.Focus();
         await dialog.ShowDialog(owner);

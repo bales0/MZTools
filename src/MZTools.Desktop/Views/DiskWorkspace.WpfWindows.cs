@@ -38,6 +38,7 @@ public sealed partial class DiskWorkspace
                 WindowStartupLocation=WindowStartupLocation.CenterOwner,
                 Content=new Border{Padding=new Thickness(10),Child=content}
             };
+            MZTools.Desktop.Platform.DesktopWindowSizing.FitToWorkingArea(window);
             toolWindows.Add(index,window);
             window.Closed+=(_,_)=>
             {

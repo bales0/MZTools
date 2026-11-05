@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -16,6 +17,7 @@ public sealed partial class DiskWorkspace : UserControl
     private ShellViewModel? Model=>DataContext as ShellViewModel;
     private DiskSession? observed;
     private bool syncing;
+    private string? renamingKey;
     private Window? detail,physicalDetail;
     private PointerPressedEventArgs? press;private Point pressPoint;
     private sealed record IplReorder(DiskSession Source,long Revision,int[] Indices);
@@ -24,7 +26,7 @@ public sealed partial class DiskWorkspace : UserControl
     internal Control InspectorFocusRegion=>Inspector;
     public DiskWorkspace()
     {
-        InitializeComponent();ConfigureWpfDiskWindows();ConfigureWpfMap();Map.MinHeight=100;DataContextChanged+=(_,_)=>BindSession();SizeChanged+=(_,_)=>Reflow();
+        InitializeComponent();ConfigureFileNameCells();ConfigureWpfDiskWindows();ConfigureWpfMap();Map.MinHeight=100;DataContextChanged+=(_,_)=>BindSession();SizeChanged+=(_,_)=>Reflow();
         DetachedFromVisualTree+=(_,_)=>{if(observed is not null)observed.PropertyChanged-=Changed;observed=null;};
         AttachedToVisualTree+=(_,_)=>BindSession();
         Map.SectorSelected+=(row,mod)=>
@@ -37,6 +39,8 @@ public sealed partial class DiskWorkspace : UserControl
         DiskFiles.DoubleTapped+=(_,_)=>{if(TopLevel.GetTopLevel(this) is Window owner)ShowInspector(owner);};
         DiskSectors.DoubleTapped+=(_,_)=>{if(observed is not null)observed.ViewIndex=3;};
         AddHandler(KeyDownEvent,Keys,RoutingStrategies.Tunnel);
+        DiskHex.AddHandler(TextInputEvent,(_,e)=>{e.Handled=true;if(observed?.HexEditingUnlocked==true&&FixedHexInput.TryOverwrite(DiskHex.Text??"",DiskHex.CaretIndex,e.Text??"",out string output,out int next)){observed.HexText=output;DiskHex.CaretIndex=next;}},RoutingStrategies.Tunnel);
+        DiskHex.AddHandler(KeyDownEvent,HexKeys,RoutingStrategies.Tunnel);
         DiskFiles.AddHandler(PointerPressedEvent,RememberPress,RoutingStrategies.Tunnel);DiskFiles.PointerMoved+=DragMove;DiskFiles.PointerReleased+=(_,_)=>press=null;
         DiskFiles.AddHandler(DragDrop.DragOverEvent,DragOver);DiskFiles.AddHandler(DragDrop.DropEvent,Drop);
     }
@@ -45,6 +49,7 @@ public sealed partial class DiskWorkspace : UserControl
         if(syncing)return;
         if(observed!=Model?.ActiveDisk)
         {
+            renamingKey=null;ConfigureFileNameCells();
             CloseWpfDiskWindows();
             if(observed is not null)observed.PropertyChanged-=Changed;
             observed=Model?.ActiveDisk;if(observed is not null)observed.PropertyChanged+=Changed;
@@ -62,7 +67,9 @@ public sealed partial class DiskWorkspace : UserControl
         if(syncing||observed is null)return;
         if(observed.HasDraft){Dispatcher.UIThread.Post(RestoreSelection);return;}
         observed.FileSelection.Clear();observed.FileSelection.AddRange(DiskFiles.SelectedItems!.OfType<DiskFileRow>().Select(f=>f.Key));
-        observed.SelectedFile=DiskFiles.SelectedItem as DiskFileRow;Map.InvalidateVisual();
+        observed.SelectedFile=DiskFiles.SelectedItem as DiskFileRow;
+        if(renamingKey is not null&&observed.SelectedFile?.Key!=renamingKey){renamingKey=null;ConfigureFileNameCells();}
+        Map.InvalidateVisual();
     }
     private void SectorSelectionChanged(object? sender,SelectionChangedEventArgs e)
     {
@@ -111,11 +118,62 @@ public sealed partial class DiskWorkspace : UserControl
         if(row.Item.LeftAddress is { } address)observed.SelectedSector=observed.Sectors.FirstOrDefault(s=>s.Sector.Address==address);
         observed.SetError(row.Detail);Map.InvalidateVisual();
     }
+    private async void UnlockHex(object? sender,RoutedEventArgs e)
+    {
+        if(observed is not{} session||Model?.DiskDialogs is not{} dialogs)return;
+        if(session.HexIsSensitive&&!await dialogs.ConfirmDiskAsync("Unlock sensitive HEX buffer","Boot/system or filesystem metadata edits can damage files or prevent booting. Unlock this fixed-size buffer?"))return;
+        if(observed!=session)return;
+        try{session.UnlockHexEditing();DiskHex.Focus();}catch(InvalidOperationException error){Model.Documents.ReportError(error.Message);}
+    }
+    private async void HexKeys(object? sender,KeyEventArgs e)
+    {
+        if(observed?.HexEditingUnlocked!=true)return;
+        var primary=OperatingSystem.IsMacOS()?KeyModifiers.Meta:KeyModifiers.Control;
+        if(e.Key is Key.Delete or Key.Space or Key.Enter or Key.Insert){e.Handled=true;return;}
+        if(e.Key==Key.Back||(e.Key is Key.Left or Key.Right&&e.KeyModifiers==KeyModifiers.None))
+        {DiskHex.CaretIndex=FixedHexInput.Move(DiskHex.Text??"",DiskHex.CaretIndex,e.Key==Key.Right?1:-1);e.Handled=true;}
+        else if(e.KeyModifiers.HasFlag(primary)&&e.Key==Key.V)
+        {
+            e.Handled=true;var session=observed;string text=DiskHex.Text??"";int caret=DiskHex.CaretIndex;
+            try
+            {
+                string? pasted=TopLevel.GetTopLevel(this)?.Clipboard is{} clipboard?await clipboard.TryGetTextAsync():null;
+                if(session!=observed||text!=DiskHex.Text)return;
+                if(pasted is not null&&FixedHexInput.TryPaste(text,caret,pasted,out string output,out int next)){session.HexText=output;DiskHex.CaretIndex=next;}
+                else Model?.Documents.ReportError("Paste rejected: complete HEX bytes must fit in the remaining buffer.");
+            }catch(Exception error)when(error is not OutOfMemoryException){Model?.Documents.ReportError(error.Message);}
+        }
+    }
+    private void ConfigureFileNameCells()
+    {
+        DiskFiles.Columns[0].CellTemplate=new Avalonia.Controls.Templates.FuncDataTemplate<DiskFileRow>((row,_)=>
+        {
+            if(row is null)return new TextBlock();
+            if(row.Key!=renamingKey)return new TextBlock{Text=row.Name};
+            var input=new TextBox{Text=row.Name,Name="DiskInlineRename"};
+            input.AttachedToVisualTree+=(_,_)=>Dispatcher.UIThread.Post(()=>{input.Focus();input.SelectAll();});
+            input.KeyDown+=async(_,e)=>
+            {
+                if(e.Key==Key.Escape){renamingKey=null;ConfigureFileNameCells();DiskFiles.Focus();e.Handled=true;}
+                else if(e.Key==Key.Enter&&observed is{} session&&Model is{} model)
+                {
+                    e.Handled=true;if(session.SelectedFile?.Key!=row.Key){renamingKey=null;ConfigureFileNameCells();return;}
+                    input.IsEnabled=false;bool accepted=await model.RenameDiskFileAsync(session,input.Text??"");input.IsEnabled=true;
+                    if(accepted){renamingKey=null;ConfigureFileNameCells();DiskFiles.Focus();}else{input.Focus();input.SelectAll();}
+                }
+            };return input;
+        });
+    }
     private void Keys(object? sender,KeyEventArgs e)
     {
         if(Model is null||e.Source is TextBox||e.Source is Visual v&&v.GetVisualAncestors().OfType<TextBox>().Any())return;
         var primary=OperatingSystem.IsMacOS()?KeyModifiers.Meta:KeyModifiers.Control;
-        if(e.Key is Key.F2 or Key.Enter&&e.Source is Visual source&&(source==DiskFiles||source.GetVisualAncestors().Contains(DiskFiles))){ShowInspector((Window)TopLevel.GetTopLevel(this)!);e.Handled=true;return;}
+        if(e.Key is Key.F2 or Key.Enter&&e.Source is Visual source&&(source==DiskFiles||source.GetVisualAncestors().Contains(DiskFiles)))
+        {
+            if(e.Key==Key.F2){if(observed is{CanEditFileName:true,HasDraft:false}&&!Model.Documents.IsBusy){renamingKey=observed.SelectedFile!.Key;ConfigureFileNameCells();}}
+            else ShowInspector((Window)TopLevel.GetTopLevel(this)!);
+            e.Handled=true;return;
+        }
         var command=e.Key==Key.Delete?Model.DiskDeleteCommand:e.KeyModifiers.HasFlag(primary)&&e.Key==Key.C?Model.DiskCopyCommand:e.KeyModifiers.HasFlag(primary)&&e.Key==Key.V?Model.DiskPasteCommand:null;
         if(command?.CanExecute(null)==true){command.Execute(null);e.Handled=true;}
     }

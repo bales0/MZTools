@@ -97,22 +97,29 @@ public sealed partial class AudioSession : DocumentSession,IFileSetDocument
         if(Blocks.Count>0){selectedBlock=Blocks[0];MeasuredBlock=selectedBlock.Value;NotifyMeasurement();if(FollowReference)FollowBlockReference(selectedBlock.Value);}
     }
     protected override void OnLoaded()=>IsReadOnly=true;
+    internal static bool IsSource(string path)=>System.IO.Path.GetExtension(path).ToLowerInvariant() is ".wav" or ".flac"||SegmentedPcmStreamReader.IsManifest(path);
     internal static async Task<AudioSession> LoadAsync(string path,IProgress<WavAnalysisProgress>? progress,CancellationToken ct)
     {
         if(System.IO.Path.GetExtension(path).Equals(".flac",StringComparison.OrdinalIgnoreCase))MZTools.Platform.Audio.NativeAudioCodecs.Configure();
         return await Task.Run(()=>
         {
-            using var reader=AudioSignalAnalysisService.OpenReader(path);
+            using var reader=AudioSignalAnalysisService.OpenReader(path,verifySegmentHashes:false,cancellation:ct);
             if(reader.Format.FrameCount<=0)throw new InvalidDataException("The recording contains no audio frames.");
             var paths=new[]{System.IO.Path.GetFullPath(path)}.Concat(reader is SegmentedPcmStreamReader joined?joined.SourceFiles:[]).Distinct(AtomicFileTransaction.PathComparer).ToArray();
-            var hashes=paths.ToDictionary(p=>p,p=>AtomicFileTransaction.Hash(p)??throw new FileNotFoundException("Audio source is missing.",p),AtomicFileTransaction.PathComparer);
+            progress?.Report(new("Verifying source SHA-256",0,0,reader.Format.FrameCount,0));
+            var stamps=paths.ToDictionary(p=>p,AudioSourceStamp.Capture,AtomicFileTransaction.PathComparer);
+            var hashes=paths.ToDictionary(p=>p,p=>AtomicFileTransaction.HashCancellable(p,ct)??throw new FileNotFoundException("Audio source is missing.",p),AtomicFileTransaction.PathComparer);
             var model=AudioSignalAnalysisService.Analyze(path,progress,ct);ct.ThrowIfCancellationRequested();
-            foreach(var pair in hashes)if(AtomicFileTransaction.Hash(pair.Key)!=pair.Value)throw new IOException("The source set changed while analyzing.");
+            progress?.Report(new("Verifying source after analysis",0,0,reader.Format.FrameCount,0));
+            foreach(var pair in hashes)if(AtomicFileTransaction.HashCancellable(pair.Key,ct)!=pair.Value)throw new IOException("The source set changed while analyzing.");
+            foreach(var pair in stamps)pair.Value.Verify(pair.Key);
+            model.SourceStamps=stamps;
             return new AudioSession(model,hashes.ToDictionary(p=>p.Key,p=>(string?)p.Value,AtomicFileTransaction.PathComparer));
         },ct);
     }
-    internal void VerifySources()
-    {foreach(var pair in sources)if(AtomicFileTransaction.Hash(pair.Key)!=pair.Value)throw new IOException("An audio source or recording segment changed. Reopen it before export.");}
+    internal void VerifySources()=>VerifySources(CancellationToken.None);
+    internal void VerifySources(CancellationToken cancellation)
+    {foreach(var pair in sources)if(AtomicFileTransaction.HashCancellable(pair.Key,cancellation)!=pair.Value)throw new IOException("An audio source or recording segment changed. Reopen it before export.");}
     public void SetSelection(IEnumerable<(long Start,long End)> intervals)
     {
         var requested=intervals.Select(r=>previewBounds is null?r:(Start:Math.Max(PreviewStart,r.Start),End:Math.Min(PreviewEnd,r.End))).ToArray();if(requested.Any(r=>r.Start<0||r.End>Model.FrameCount||r.End<=r.Start))throw new ArgumentOutOfRangeException(nameof(intervals),"Frame intervals must be nonempty and within the recording.");
@@ -162,7 +169,7 @@ public sealed partial class AudioSession : DocumentSession,IFileSetDocument
             {
                 AudioRangeInspection.VerifySource(Model);
                 if(transform==new AudioPcmTransform() && end-start>Model.FrameCount/65536.0*maximumBuckets)return Model.Waveform;
-                using var reader=AudioSignalAnalysisService.OpenReader(Model.Source);var bounds=transform.Bounds(reader.Format,start,end);var builder=new WaveformEnvelopeBuilder(bounds.Start,bounds.End,maximumBuckets);
+                using var reader=AudioSignalAnalysisService.OpenReader(Model.Source,verifySegmentHashes:false,cancellation:request.Token);var bounds=transform.Bounds(reader.Format,start,end);var builder=new WaveformEnvelopeBuilder(bounds.Start,bounds.End,maximumBuckets);
                 transform.Visit(reader,bounds.Start,bounds.End,(frame,l,r)=>builder.Add(frame,l,r),request.Token);
                 AudioRangeInspection.VerifySource(Model);return new WaveformRenderModel(builder.Finish(),Model.FrameCount,(ushort)(transform.Mix?1:Model.ChannelCount));
             },request.Token);
@@ -175,7 +182,7 @@ public sealed partial class AudioSession : DocumentSession,IFileSetDocument
     }
     public void ResetDraft()
     {
-        shift="0";invertRight=mix=false;AppliedTransform=new();DisplayWaveform=Model.Waveform;DisplayedTransform=new();ClearSpectral();settingsDirty=false;settingsGeneration++;
+        shift="0";invertRight=mix=false;AppliedTransform=new();DisplayWaveform=Model.Waveform;DisplayedTransform=new();if(previewBounds is not null)RefreshSelectedOverlays();ClearSpectral();settingsDirty=false;settingsGeneration++;
         foreach(var p in new[]{nameof(RightShift),nameof(InvertRight),nameof(Mix),nameof(HasDraft),nameof(Title)})Changed(p);InvalidateView();
     }
     internal void SetError(string message){Validation=message;Changed(nameof(Validation));}
