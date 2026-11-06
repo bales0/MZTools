@@ -19,6 +19,7 @@
     <ProjectReference Include="../MZTools.Platform.Audio/MZTools.Platform.Audio.csproj" />
     <ProjectReference Include="../../MZTools.Capture.Windows/MZTools.Capture.Windows.csproj" Condition="'$(TargetFramework)' == 'net10.0-windows'" />
     <InternalsVisibleTo Include="MZTools.Desktop.Tests" />
+    <InternalsVisibleTo Include="MZTools.Desktop.Smoke" />
     <None Include="../../LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Include="../../THIRD_PARTY_NOTICES.md" Link="THIRD_PARTY_NOTICES.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <None Include="../../docs/third-party/avalonia-f9/**/*" Link="docs/third-party/avalonia-f9/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

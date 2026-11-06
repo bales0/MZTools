@@ -1,0 +1,105 @@
+<!doctype html><html lang="cs"><meta charset="utf-8"><title>MZTools: Batch / HEX comparison</title><style>body{font:16px system-ui;margin:24px;background:#f5f5f5;color:#111}section{margin:28px 0}.views{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}figure{margin:0;background:white;padding:8px}img{max-width:100%;height:auto}figcaption{font-weight:600;margin-bottom:8px}summary{cursor:pointer}code{overflow-wrap:anywhere}</style><h1>Batch / HEX: WPF, Windows, Linux</h1><p>6. 11. 2026. Original unretouched renders. Open each image for its original resolution. WPF and Windows native use 150% scaling on this machine; exact native dimensions/scales are in native-batch.json. Linux native uses its recorded platform scale. These are application renders, not desktop captures.</p><p>Identical MZF fixture SHA-256: <code>4FA75EB59C34B7961A41DF7305C0635627C07080E87413CE1027A2738D619C7F</code>. RAM / cursor images are labeled headless Skia. WPF has no reference for the newly requested RAM address feature.</p><p>Measured state comparison: 3,726 configurations x 7 controls, enabled + visible; zero differences on Windows and Linux. <a href="state-comparison.json">Comparison</a>. Pixel equality is not claimed.</p>
+<section><details open><summary>Initial Batch</summary><div class="views">
+<figure><figcaption>wpf</figcaption><a target="_blank" href="wpf--wpf-original-batch-empty.png"><img loading="lazy" src="wpf--wpf-original-batch-empty.png" alt="Initial Batch wpf"></a></figure>
+<figure><figcaption>windows</figcaption><a target="_blank" href="windows--native-batch-empty.png"><img loading="lazy" src="windows--native-batch-empty.png" alt="Initial Batch windows"></a></figure>
+<figure><figcaption>linux</figcaption><a target="_blank" href="linux--native-batch-empty.png"><img loading="lazy" src="linux--native-batch-empty.png" alt="Initial Batch linux"></a></figure>
+</div></details></section>
+<section><details open><summary>Operation: TestIntegrity</summary><div class="views">
+<figure><figcaption>wpf</figcaption><a target="_blank" href="wpf--wpf-original-batch-operation-TestIntegrity.png"><img loading="lazy" src="wpf--wpf-original-batch-operation-TestIntegrity.png" alt="Operation: TestIntegrity wpf"></a></figure>
+<figure><figcaption>windows</figcaption><a target="_blank" href="windows--native-batch-operation-TestIntegrity.png"><img loading="lazy" src="windows--native-batch-operation-TestIntegrity.png" alt="Operation: TestIntegrity windows"></a></figure>
+<figure><figcaption>linux</figcaption><a target="_blank" href="linux--native-batch-operation-TestIntegrity.png"><img loading="lazy" src="linux--native-batch-operation-TestIntegrity.png" alt="Operation: TestIntegrity linux"></a></figure>
+</div></details></section>
+<section><details open><summary>Operation: ConvertFormat</summary><div class="views">
+<figure><figcaption>wpf</figcaption><a target="_blank" href="wpf--wpf-original-batch-operation-ConvertFormat.png"><img loading="lazy" src="wpf--wpf-original-batch-operation-ConvertFormat.png" alt="Operation: ConvertFormat wpf"></a></figure>
+<figure><figcaption>windows</figcaption><a target="_blank" href="windows--native-batch-operation-ConvertFormat.png"><img loading="lazy" src="windows--native-batch-operation-ConvertFormat.png" alt="Operation: ConvertFormat windows"></a></figure>
+<figure><figcaption>linux</figcaption><a target="_blank" href="linux--native-batch-operation-ConvertFormat.png"><img loading="lazy" src="linux--native-batch-operation-ConvertFormat.png" alt="Operation: ConvertFormat linux"></a></figure>
+</div></details></section>
+<section><details open><summary>Operation: InstallBootSystem</summary><div class="views">
+<figure><figcaption>wpf</figcaption><a target="_blank" href="wpf--wpf-original-batch-operation-InstallBootSystem.png"><img loading="lazy" src="wpf--wpf-original-batch-operation-InstallBootSystem.png" alt="Operation: InstallBootSystem wpf"></a></figure>
+<figure><figcaption>windows</figcaption><a target="_blank" href="windows--native-batch-operation-InstallBootSystem.png"><img loading="lazy" src="windows--native-batch-operation-InstallBootSystem.png" alt="Operation: InstallBootSystem windows"></a></figure>
+<figure><figcaption>linux</figcaption><a target="_blank" href="linux--native-batch-operation-InstallBootSystem.png"><img loading="lazy" src="linux--native-batch-operation-InstallBootSystem.png" alt="Operation: InstallBootSystem linux"></a></figure>
+</div></details></section>
+<section><details open><summary>Operation: ExtractAll</summary><div class="views">
+<figure><figcaption>wpf</figcaption><a target="_blank" href="wpf--wpf-original-batch-operation-ExtractAll.png"><img loading="lazy" src="wpf--wpf-original-batch-operation-ExtractAll.png" alt="Operation: ExtractAll wpf"></a></figure>
+<figure><figcaption>windows</figcaption><a target="_blank" href="windows--native-batch-operation-ExtractAll.png"><img loading="lazy" src="windows--native-batch-operation-ExtractAll.png" alt="Operation: ExtractAll windows"></a></figure>
+<figure><figcaption>linux</figcaption><a target="_blank" href="linux--native-batch-operation-ExtractAll.png"><img loading="lazy" src="linux--native-batch-operation-ExtractAll.png" alt="Operation: ExtractAll linux"></a></figure>
+</div></details></section>
+<section><details open><summary>Operation: Defragment</summary><div class="views">
+<figure><figcaption>wpf</figcaption><a target="_blank" href="wpf--wpf-original-batch-operation-Defragment.png"><img loading="lazy" src="wpf--wpf-original-batch-operation-Defragment.png" alt="Operation: Defragment wpf"></a></figure>
+<figure><figcaption>windows</figcaption><a target="_blank" href="windows--native-batch-operation-Defragment.png"><img loading="lazy" src="windows--native-batch-operation-Defragment.png" alt="Operation: Defragment windows"></a></figure>
+<figure><figcaption>linux</figcaption><a target="_blank" href="linux--native-batch-operation-Defragment.png"><img loading="lazy" src="linux--native-batch-operation-Defragment.png" alt="Operation: Defragment linux"></a></figure>
+</div></details></section>
+<section><details open><summary>Operation: SafeRepair</summary><div class="views">
+<figure><figcaption>wpf</figcaption><a target="_blank" href="wpf--wpf-original-batch-operation-SafeRepair.png"><img loading="lazy" src="wpf--wpf-original-batch-operation-SafeRepair.png" alt="Operation: SafeRepair wpf"></a></figure>
+<figure><figcaption>windows</figcaption><a target="_blank" href="windows--native-batch-operation-SafeRepair.png"><img loading="lazy" src="windows--native-batch-operation-SafeRepair.png" alt="Operation: SafeRepair windows"></a></figure>
+<figure><figcaption>linux</figcaption><a target="_blank" href="linux--native-batch-operation-SafeRepair.png"><img loading="lazy" src="linux--native-batch-operation-SafeRepair.png" alt="Operation: SafeRepair linux"></a></figure>
+</div></details></section>
+<section><details open><summary>Operation: AnalyzeMzfCompatibility</summary><div class="views">
+<figure><figcaption>wpf</figcaption><a target="_blank" href="wpf--wpf-original-batch-operation-AnalyzeMzfCompatibility.png"><img loading="lazy" src="wpf--wpf-original-batch-operation-AnalyzeMzfCompatibility.png" alt="Operation: AnalyzeMzfCompatibility wpf"></a></figure>
+<figure><figcaption>windows</figcaption><a target="_blank" href="windows--native-batch-operation-AnalyzeMzfCompatibility.png"><img loading="lazy" src="windows--native-batch-operation-AnalyzeMzfCompatibility.png" alt="Operation: AnalyzeMzfCompatibility windows"></a></figure>
+<figure><figcaption>linux</figcaption><a target="_blank" href="linux--native-batch-operation-AnalyzeMzfCompatibility.png"><img loading="lazy" src="linux--native-batch-operation-AnalyzeMzfCompatibility.png" alt="Operation: AnalyzeMzfCompatibility linux"></a></figure>
+</div></details></section>
+<section><details open><summary>Operation: CompressPrograms</summary><div class="views">
+<figure><figcaption>wpf</figcaption><a target="_blank" href="wpf--wpf-original-batch-operation-CompressPrograms.png"><img loading="lazy" src="wpf--wpf-original-batch-operation-CompressPrograms.png" alt="Operation: CompressPrograms wpf"></a></figure>
+<figure><figcaption>windows</figcaption><a target="_blank" href="windows--native-batch-operation-CompressPrograms.png"><img loading="lazy" src="windows--native-batch-operation-CompressPrograms.png" alt="Operation: CompressPrograms windows"></a></figure>
+<figure><figcaption>linux</figcaption><a target="_blank" href="linux--native-batch-operation-CompressPrograms.png"><img loading="lazy" src="linux--native-batch-operation-CompressPrograms.png" alt="Operation: CompressPrograms linux"></a></figure>
+</div></details></section>
+<section><details open><summary>Operation: DecompressPrograms</summary><div class="views">
+<figure><figcaption>wpf</figcaption><a target="_blank" href="wpf--wpf-original-batch-operation-DecompressPrograms.png"><img loading="lazy" src="wpf--wpf-original-batch-operation-DecompressPrograms.png" alt="Operation: DecompressPrograms wpf"></a></figure>
+<figure><figcaption>windows</figcaption><a target="_blank" href="windows--native-batch-operation-DecompressPrograms.png"><img loading="lazy" src="windows--native-batch-operation-DecompressPrograms.png" alt="Operation: DecompressPrograms windows"></a></figure>
+<figure><figcaption>linux</figcaption><a target="_blank" href="linux--native-batch-operation-DecompressPrograms.png"><img loading="lazy" src="linux--native-batch-operation-DecompressPrograms.png" alt="Operation: DecompressPrograms linux"></a></figure>
+</div></details></section>
+<section><details open><summary>Details: Contents</summary><div class="views">
+<figure><figcaption>wpf</figcaption><a target="_blank" href="wpf--wpf-original-batch-details-0.png"><img loading="lazy" src="wpf--wpf-original-batch-details-0.png" alt="Details: Contents wpf"></a></figure>
+<figure><figcaption>windows</figcaption><a target="_blank" href="windows--native-batch-details-0.png"><img loading="lazy" src="windows--native-batch-details-0.png" alt="Details: Contents windows"></a></figure>
+<figure><figcaption>linux</figcaption><a target="_blank" href="linux--native-batch-details-0.png"><img loading="lazy" src="linux--native-batch-details-0.png" alt="Details: Contents linux"></a></figure>
+</div></details></section>
+<section><details open><summary>Details: Properties</summary><div class="views">
+<figure><figcaption>wpf</figcaption><a target="_blank" href="wpf--wpf-original-batch-details-1.png"><img loading="lazy" src="wpf--wpf-original-batch-details-1.png" alt="Details: Properties wpf"></a></figure>
+<figure><figcaption>windows</figcaption><a target="_blank" href="windows--native-batch-details-1.png"><img loading="lazy" src="windows--native-batch-details-1.png" alt="Details: Properties windows"></a></figure>
+<figure><figcaption>linux</figcaption><a target="_blank" href="linux--native-batch-details-1.png"><img loading="lazy" src="linux--native-batch-details-1.png" alt="Details: Properties linux"></a></figure>
+</div></details></section>
+<section><details open><summary>Details: Messages</summary><div class="views">
+<figure><figcaption>wpf</figcaption><a target="_blank" href="wpf--wpf-original-batch-details-2.png"><img loading="lazy" src="wpf--wpf-original-batch-details-2.png" alt="Details: Messages wpf"></a></figure>
+<figure><figcaption>windows</figcaption><a target="_blank" href="windows--native-batch-details-2.png"><img loading="lazy" src="windows--native-batch-details-2.png" alt="Details: Messages windows"></a></figure>
+<figure><figcaption>linux</figcaption><a target="_blank" href="linux--native-batch-details-2.png"><img loading="lazy" src="linux--native-batch-details-2.png" alt="Details: Messages linux"></a></figure>
+</div></details></section>
+<section><details open><summary>Details: Integrity checks</summary><div class="views">
+<figure><figcaption>wpf</figcaption><a target="_blank" href="wpf--wpf-original-batch-details-3.png"><img loading="lazy" src="wpf--wpf-original-batch-details-3.png" alt="Details: Integrity checks wpf"></a></figure>
+<figure><figcaption>windows</figcaption><a target="_blank" href="windows--native-batch-details-3.png"><img loading="lazy" src="windows--native-batch-details-3.png" alt="Details: Integrity checks windows"></a></figure>
+<figure><figcaption>linux</figcaption><a target="_blank" href="linux--native-batch-details-3.png"><img loading="lazy" src="linux--native-batch-details-3.png" alt="Details: Integrity checks linux"></a></figure>
+</div></details></section>
+<section><details open><summary>Details: Technical details</summary><div class="views">
+<figure><figcaption>wpf</figcaption><a target="_blank" href="wpf--wpf-original-batch-details-4.png"><img loading="lazy" src="wpf--wpf-original-batch-details-4.png" alt="Details: Technical details wpf"></a></figure>
+<figure><figcaption>windows</figcaption><a target="_blank" href="windows--native-batch-details-4.png"><img loading="lazy" src="windows--native-batch-details-4.png" alt="Details: Technical details windows"></a></figure>
+<figure><figcaption>linux</figcaption><a target="_blank" href="linux--native-batch-details-4.png"><img loading="lazy" src="linux--native-batch-details-4.png" alt="Details: Technical details linux"></a></figure>
+</div></details></section>
+<section><details open><summary>Viewport 1440 x 960</summary><div class="views">
+<figure><figcaption>wpf</figcaption><p>No corresponding reference.</p></figure>
+<figure><figcaption>windows</figcaption><a target="_blank" href="windows--native-batch-1440x960.png"><img loading="lazy" src="windows--native-batch-1440x960.png" alt="Viewport 1440 x 960 windows"></a></figure>
+<figure><figcaption>linux</figcaption><a target="_blank" href="linux--native-batch-1440x960.png"><img loading="lazy" src="linux--native-batch-1440x960.png" alt="Viewport 1440 x 960 linux"></a></figure>
+</div></details></section>
+<section><details open><summary>Viewport 1366 x 768</summary><div class="views">
+<figure><figcaption>wpf</figcaption><p>No corresponding reference.</p></figure>
+<figure><figcaption>windows</figcaption><a target="_blank" href="windows--native-batch-1366x768.png"><img loading="lazy" src="windows--native-batch-1366x768.png" alt="Viewport 1366 x 768 windows"></a></figure>
+<figure><figcaption>linux</figcaption><a target="_blank" href="linux--native-batch-1366x768.png"><img loading="lazy" src="linux--native-batch-1366x768.png" alt="Viewport 1366 x 768 linux"></a></figure>
+</div></details></section>
+<section><details open><summary>Viewport 920 x 640</summary><div class="views">
+<figure><figcaption>wpf</figcaption><p>No corresponding reference.</p></figure>
+<figure><figcaption>windows</figcaption><a target="_blank" href="windows--native-batch-920x640.png"><img loading="lazy" src="windows--native-batch-920x640.png" alt="Viewport 920 x 640 windows"></a></figure>
+<figure><figcaption>linux</figcaption><a target="_blank" href="linux--native-batch-920x640.png"><img loading="lazy" src="linux--native-batch-920x640.png" alt="Viewport 920 x 640 linux"></a></figure>
+</div></details></section>
+<section><details open><summary>Viewport 640 x 480</summary><div class="views">
+<figure><figcaption>wpf</figcaption><p>No corresponding reference.</p></figure>
+<figure><figcaption>windows</figcaption><a target="_blank" href="windows--native-batch-640x480.png"><img loading="lazy" src="windows--native-batch-640x480.png" alt="Viewport 640 x 480 windows"></a></figure>
+<figure><figcaption>linux</figcaption><a target="_blank" href="linux--native-batch-640x480.png"><img loading="lazy" src="linux--native-batch-640x480.png" alt="Viewport 640 x 480 linux"></a></figure>
+</div></details></section>
+<section><h2>hex-ram-cursor.png</h2><div class="views">
+<figure><figcaption>windows-headless</figcaption><a href="windows-headless--hex-ram-cursor.png"><img loading="lazy" src="windows-headless--hex-ram-cursor.png"></a></figure>
+<figure><figcaption>linux-headless</figcaption><a href="linux-headless--hex-ram-cursor.png"><img loading="lazy" src="linux-headless--hex-ram-cursor.png"></a></figure>
+</div></section>
+<section><h2>hex-editor-cursor-addresses.png</h2><div class="views">
+<figure><figcaption>windows-headless</figcaption><a href="windows-headless--hex-editor-cursor-addresses.png"><img loading="lazy" src="windows-headless--hex-editor-cursor-addresses.png"></a></figure>
+<figure><figcaption>linux-headless</figcaption><a href="linux-headless--hex-editor-cursor-addresses.png"><img loading="lazy" src="linux-headless--hex-editor-cursor-addresses.png"></a></figure>
+</div></section>
+<p>Window metrics / DPI: <a href="wpf-reference.json">WPF</a>, <a href="windows-native-batch.json">Windows</a>, <a href="linux-native-batch.json">Linux</a>.</p><p><a href="images-sha256.json">Original image SHA-256 manifest</a></p></html>

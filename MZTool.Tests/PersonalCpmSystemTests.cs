@@ -12,7 +12,7 @@ public sealed class PersonalCpmReferenceFactAttribute : FactAttribute
 
 public sealed class PersonalCpmSystemTests
 {
-    internal static string FullReference => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../MZTool.Tests/DSK/mz-2z047v10a.DSK"));
+    internal static string FullReference => TestMediaPaths.Resolve("DSK", "mz-2z047v10a.DSK");
     internal static string MinimalReference => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../_SFD800/CPMv080/P-CPM80_MZ-2Z047_320K_MINIMAL_BOOTABLE.dsk"));
     private static DskDocument Source() => DskDocument.Open(FullReference);
     private static DskDocument Reopen(DskDocument doc) { doc.MarkModified(); return DskDocument.Open(doc.Serialize()); }

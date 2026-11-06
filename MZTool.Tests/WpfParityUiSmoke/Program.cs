@@ -10,6 +10,8 @@ using MZTools;
 
 internal static class Program
 {
+    static IEnumerable<DependencyObject> Visuals(DependencyObject parent)
+    {for(int i=0;i<VisualTreeHelper.GetChildrenCount(parent);i++){var child=VisualTreeHelper.GetChild(parent,i);yield return child;foreach(var descendant in Visuals(child))yield return descendant;}}
     static T Field<T>(object target,string name)=>(T)target.GetType().GetField(name,BindingFlags.Instance|BindingFlags.NonPublic)!.GetValue(target)!;
     static object? Call(object target,string name,params object?[] args)=>target.GetType().GetMethod(name,BindingFlags.Instance|BindingFlags.NonPublic)!.Invoke(target,args);
     [STAThread]static int Main(string[] args)
@@ -32,6 +34,20 @@ internal static class Program
                 var main=(MainWindow)app.MainWindow;await Capture(main,"wpf-original-empty.png");
                 byte[] bytes=new byte[640];bytes[0]=1;System.Text.Encoding.ASCII.GetBytes("RENAMED").CopyTo(bytes,1);bytes[17]=13;BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(18),512);BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(20),0x4000);BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(22),0x4000);for(int i=24;i<128;i++)bytes[i]=(byte)i;for(int i=128;i<bytes.Length;i++)bytes[i]=(byte)(i%7);
                 string path=Path.Combine(output,"reference.mzf");File.WriteAllBytes(path,bytes);var document=Field<TapeDocument>(main,"document");document.Records.Add(new MZTFileReader().ReadStandaloneMzf(path));document.Format=TapeDocumentFormat.Mzf;document.FilePath=path;document.IsModified=false;Call(main,"RefreshGrid");await Capture(main,"wpf-original-tape.png");
+                var batchReference=new BatchProcessDialog(main);batchReference.Show();await Capture(batchReference,"wpf-original-batch-empty.png");
+                var operationBox=Visuals(batchReference).OfType<System.Windows.Controls.ComboBox>().Single(c=>c.Name=="BatchOperation");
+                foreach(var choice in operationBox.Items.OfType<System.Windows.Controls.ComboBoxItem>()){operationBox.SelectedItem=choice;await Capture(batchReference,"wpf-original-batch-operation-"+choice.Tag+".png");}
+                var stateMatrix=new List<object>();var targetBox=Visuals(batchReference).OfType<System.Windows.Controls.ComboBox>().Single(c=>c.Name=="ConversionTarget");var extractBox=Visuals(batchReference).OfType<System.Windows.Controls.ComboBox>().Single(c=>c.Name=="ExtractFormat");
+                FrameworkElement Parameter(string name)=>name switch{"BootSource"=>Visuals(batchReference).OfType<System.Windows.Controls.TextBox>().Single(c=>c.Parent is System.Windows.Controls.Grid g&&g.Children.OfType<System.Windows.Controls.TextBlock>().Any(t=>t.Text=="Boot source / profile")),"OutputFolder"=>Visuals(batchReference).OfType<System.Windows.Controls.TextBox>().Single(c=>c.Parent is System.Windows.Controls.Grid g&&g.Children.OfType<System.Windows.Controls.TextBlock>().Any(t=>t.Text=="Output folder")),_=>Visuals(batchReference).OfType<FrameworkElement>().Single(c=>c.Name==name)};
+                var matrixControls=new[]{"ConversionTarget","ExtractFormat","AudioSampleRate","UseHeuristicAnalysis","BatchCompression","BootSource","OutputFolder","SelectedFilesMode","InputFolderMode"}.ToDictionary(name=>name,Parameter);
+                foreach(var choice in operationBox.Items.OfType<System.Windows.Controls.ComboBoxItem>())foreach(string mode in new[]{"SelectedFilesMode","InputFolderMode"})foreach(string targetValue in targetBox.Items.Cast<string>().Distinct())foreach(string extractValue in extractBox.Items.Cast<string>())
+                {
+                    operationBox.SelectedItem=choice;((System.Windows.Controls.RadioButton)matrixControls[mode]).IsChecked=true;targetBox.SelectedItem=targetValue;extractBox.SelectedItem=extractValue;
+                    stateMatrix.Add(new{operation=choice.Tag.ToString(),mode,target=targetValue,extract=extractValue,controls=new[]{"ConversionTarget","ExtractFormat","AudioSampleRate","UseHeuristicAnalysis","BatchCompression","BootSource","OutputFolder"}.Select(name=>{var c=matrixControls[name];return new{name,enabled=c.IsEnabled,visible=c.IsVisible};}).ToArray()});
+                }
+                File.WriteAllText(Path.Combine(output,"wpf-batch-state-matrix.json"),JsonSerializer.Serialize(stateMatrix));
+                batchReference.Close();
+                var batchRow=BatchProcessService.Preview([path],new(BatchOperation.TestIntegrity,output)).Rows[0];var batchDetails=new BatchFileDetailsDialog(main,batchRow);batchDetails.Show();await Capture(batchDetails,"wpf-original-batch-details.png");var batchTabs=Visuals(batchDetails).OfType<System.Windows.Controls.TabControl>().Single(t=>t.Name=="BatchDetailTabs");for(int i=0;i<5;i++){batchTabs.SelectedIndex=i;await Capture(batchDetails,"wpf-original-batch-details-"+i+".png");}batchDetails.Close();
                 var colorBytes=new byte[164];Array.Copy(bytes,colorBytes,128);Array.Clear(colorBytes,1,16);System.Text.Encoding.ASCII.GetBytes("COLORED").CopyTo(colorBytes,1);BinaryPrimitives.WriteUInt16LittleEndian(colorBytes.AsSpan(18),33);for(int i=128;i<161;i++)colorBytes[i]=(byte)(i%7);colorBytes[161]=0x91;colorBytes[162]=0x80;colorBytes[163]=0x0D;string colorPath=Path.Combine(output,"hex-colors.mzf");File.WriteAllBytes(colorPath,colorBytes);
                 var colorRecord=new MZTFileReader().ReadStandaloneMzf(colorPath);var hexReference=new HexBrowser();hexReference.ShowHexDump(colorRecord,true);hexReference.Show();await Capture(hexReference,"wpf-original-hex-viewer.png");hexReference.Close();
                 document.Records.Clear();document.Format=TapeDocumentFormat.QdFlashFloppy;document.QuickDiskProfile=QuickDiskPhysicalProfile.FlashFloppy;document.IsModified=true;document.FilePath=null;Call(main,"RefreshGrid");Field<System.Windows.Controls.TabControl>(main,"tapeViews").SelectedIndex=1;

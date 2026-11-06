@@ -11,9 +11,12 @@
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
     <ProjectReference Include="../../src/MZTools.Core/MZTools.Core.csproj" />
+    <ProjectReference Include="../../src/MZTools.Platform.Audio/MZTools.Platform.Audio.csproj" />
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="../../MZTool.Tests/BatchProcessTests.cs" Link="Regression/BatchProcessTests.cs" />
+    <Compile Include="../../MZTool.Tests/PersonalCpmSystemTests.cs" Link="Regression/PersonalCpmSystemTests.cs" />
     <Compile Include="../../MZTool.Tests/AudioReferenceBaselineTests.cs" Link="Regression/AudioReferenceBaselineTests.cs" />
     <Compile Include="../../MZTool.Tests/BootstrapRawRangeTests.cs" Link="Regression/BootstrapRawRangeTests.cs" />
     <Compile Include="../../MZTool.Tests/BundledBootSystemTests.cs" Link="Regression/BundledBootSystemTests.cs" />

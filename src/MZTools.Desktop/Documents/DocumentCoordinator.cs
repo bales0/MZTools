@@ -42,6 +42,8 @@ public sealed class DocumentCoordinator : Observable
     {if(!IsBusy||generation!=operationGeneration)return;HasProgress=true;ProgressFraction=double.IsFinite(fraction)?Math.Clamp(fraction,0,1):0;Status=stage+" · "+ProgressFraction.ToString("P0");}
     internal IProgress<WavAnalysisProgress> AudioProgress()
     {long generation=operationGeneration;return new Progress<WavAnalysisProgress>(p=>ReportProgress(p.Stage,p.Fraction,generation));}
+    internal IProgress<BatchProgress> BatchProgress()
+    {long generation=operationGeneration;return new Progress<BatchProgress>(p=>ReportProgress($"{p.Stage}: {p.Completed}/{p.Total} — {System.IO.Path.GetFileName(p.Input)}",p.Total==0?0:p.Completed/(double)p.Total,generation));}
     public bool IsBusy { get => busy; private set => Set(ref busy, value); }
     public string? Error { get => error; private set { Set(ref error, value); Changed(nameof(HasError)); } }
     public bool HasError => Error is not null;
@@ -49,6 +51,19 @@ public sealed class DocumentCoordinator : Observable
     public void ClearError() => Error = null;
     public void ReportError(string message) => Error = message;
     public void Cancel() => operation?.Cancel();
+    internal Task WaitForIdleAsync()
+    {
+        if(!IsBusy)return Task.CompletedTask;
+        var done=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        System.ComponentModel.PropertyChangedEventHandler? handler=null;
+        handler=(_,e)=>{if(e.PropertyName==nameof(IsBusy)&&!IsBusy){PropertyChanged-=handler;done.TrySetResult();}};
+        PropertyChanged+=handler;if(!IsBusy){PropertyChanged-=handler;done.TrySetResult();}return done.Task;
+    }
+    internal void ReplaceBatch(BatchPreview preview)
+    {
+        foreach(var previous in documents.OfType<BatchSession>().ToArray()){documents.Remove(previous);previous.Dispose();}
+        Add(new BatchSession(preview));
+    }
     internal Task<bool> ExecuteAsync(Func<CancellationToken, Task<bool>> action) => RunAsync(async ct =>
     {
         Status = "Working…"; bool result = await action(ct);

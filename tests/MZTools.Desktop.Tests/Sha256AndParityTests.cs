@@ -161,13 +161,13 @@ public sealed class Sha256AndParityTests
             var disk=Assert.IsType<DiskSession>(coordinator.Active);Assert.Equal(160,disk.Model.Image.Tracks.Count(t=>t is not null));Assert.Null(coordinator.Error);
         }finally{foreach(var dialog in owner.OwnedWindows.ToArray())dialog.Close();owner.Close();Dispatcher.UIThread.RunJobs();}
     }
-    [AvaloniaFact] public async Task HexBrowserRendersDerivedQdfHeaderAndCompleteRecord()
+    [AvaloniaFact] public async Task MzfHexBrowserContainsOnlyItsHeaderDataAndTrailingBytes()
     {
         using var files=new MediaDocumentTests();File.WriteAllBytes(files.FilePath("hex-parity.mzf"),MediaDocumentTests.Mzf("SHASCII",32).Concat(new byte[]{0x91,0x80,0x0D}).ToArray());var tape=await files.Open("hex-parity.mzf");var window=new HexViewWindow(tape.Rows[0]);window.Show();
         try
         {
             Dispatcher.UIThread.RunJobs();Capture(window,"hex-record.png");Assert.Empty(window.GetVisualDescendants().OfType<TabControl>());
-            var table=window.GetVisualDescendants().OfType<TableView>().Single();var rows=table.ItemsSource!.Cast<HexViewWindow.Row>().Where(r=>r.IsQdf).ToArray();Assert.Equal(70,rows.Sum(r=>r.Count));Assert.Equal(0,rows[0].Offset);Assert.Equal(64,rows[^1].Offset);Assert.True(SharpQdFrameCodec.HasValidCrc(rows[0].Bytes));
+            var table=window.GetVisualDescendants().OfType<TableView>().Single();var rows=table.ItemsSource!.Cast<HexViewWindow.Row>().ToArray();Assert.DoesNotContain(rows,r=>r.IsQdf);Assert.Equal(128,rows.Where(r=>r.Section=="MZF header").Sum(r=>r.Count));Assert.Equal(new[]{"MZF header","Data","Trailing"},rows.Select(r=>r.Section).Distinct());
         }finally{window.Close();Dispatcher.UIThread.RunJobs();}
     }
     private static async Task Idle(DocumentCoordinator coordinator)
@@ -201,11 +201,10 @@ public sealed class Sha256AndParityTests
     }
     [AvaloniaFact] public void BatchParametersFollowOperationAndInputMode()
     {
-        var values=new Dictionary<string,Control>();
-        foreach(var(key,choices,selected)in new[]{("operation",Enum.GetNames<BatchOperation>(),"Analyze"),("input",new[]{"Choose files","Scan folder"},"Choose files"),("target",new[]{"DSK","Wav"},"DSK"),("replace",new[]{"No","Yes"},"No")})values[key]=new ComboBox{ItemsSource=choices,SelectedItem=selected};
+        var values=BatchProcessForm.Fields().ToDictionary(f=>f.Key,f=>f.Choices is{} choices?(Control)new ComboBox{ItemsSource=choices,SelectedItem=f.Value}:new TextBox{Text=f.Value});
         var rows=new[]{"folder","recursive","extensions","output","template","replace","backup","target","auxiliary","extract","heuristic","rate"}.ToDictionary(k=>k,k=>(Control)new StackPanel());
         BatchProcessForm.Attach(values,rows);Assert.False(rows["folder"].IsVisible);Assert.False(rows["target"].IsVisible);Assert.False(rows["output"].IsVisible);
-        ((ComboBox)values["operation"]).SelectedItem="ConvertFormat";((ComboBox)values["target"]).SelectedItem="Wav";((ComboBox)values["replace"]).SelectedItem="Yes";Assert.True(rows["target"].IsVisible);Assert.True(rows["rate"].IsVisible);Assert.True(rows["backup"].IsVisible);
+        ((ComboBox)values["operation"]).SelectedItem="ConvertFormat";((ComboBox)values["target"]).SelectedItem="WAV";((ComboBox)values["replace"]).SelectedItem="Yes";Assert.True(rows["target"].IsVisible);Assert.True(rows["rate"].IsVisible);Assert.True(rows["backup"].IsVisible);
         ((ComboBox)values["input"]).SelectedItem="Scan folder";Assert.True(rows["recursive"].IsVisible);
         ((ComboBox)values["operation"]).SelectedItem="ExtractAll";Assert.True(rows["extract"].IsVisible);Assert.False(rows["replace"].IsVisible);Assert.Equal("No",((ComboBox)values["replace"]).SelectedItem);
     }

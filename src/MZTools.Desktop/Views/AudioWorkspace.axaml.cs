@@ -17,6 +17,10 @@ public sealed partial class AudioWorkspace : UserControl
     private Window? inspectorWindow;
     internal Control WorkspaceFocusRegion=>AudioTabs.SelectedIndex==0?AudioBlocks:AudioTabs;
     internal Control InspectorFocusRegion=>Inspector;
+    private void OpenCandidateHex(object? sender,RoutedEventArgs e)
+    {
+        if(observed?.SelectedCandidate is{} candidate&&TopLevel.GetTopLevel(this) is Window owner)new HexViewWindow(candidate.Value.Data).Show(owner);
+    }
     public AudioWorkspace()
     {
         InitializeComponent();ConfigureWpfAudioLayout();ConfigureWpfAudioWindows();

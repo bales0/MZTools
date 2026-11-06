@@ -39,8 +39,9 @@ public sealed partial class DiskWorkspace : UserControl
         DiskFiles.DoubleTapped+=(_,_)=>{if(TopLevel.GetTopLevel(this) is Window owner)ShowInspector(owner);};
         DiskSectors.DoubleTapped+=(_,_)=>{if(observed is not null)observed.ViewIndex=3;};
         AddHandler(KeyDownEvent,Keys,RoutingStrategies.Tunnel);
-        DiskHex.AddHandler(TextInputEvent,(_,e)=>{e.Handled=true;if(observed?.HexEditingUnlocked==true&&FixedHexInput.TryOverwrite(DiskHex.Text??"",DiskHex.CaretIndex,e.Text??"",out string output,out int next)){observed.HexText=output;DiskHex.CaretIndex=next;}},RoutingStrategies.Tunnel);
+        DiskHex.AddHandler(TextInputEvent,(_,e)=>{e.Handled=true;if(observed?.HexEditingUnlocked==true&&FixedHexInput.TryOverwrite(DiskHex.Text??"",HexEditPoint,e.Text??"",out string output,out int next)){observed.HexText=output;DiskHex.CaretIndex=next;DiskHex.SelectionStart=DiskHex.SelectionEnd=next;}},RoutingStrategies.Tunnel);
         DiskHex.AddHandler(KeyDownEvent,HexKeys,RoutingStrategies.Tunnel);
+        _=new HexEditorCursor(DiskHex,DiskHexAscii,DiskHexSharpAscii,DiskHexPosition,index=>observed?.HexCursorAddress(index)??"No byte buffer");
         DiskFiles.AddHandler(PointerPressedEvent,RememberPress,RoutingStrategies.Tunnel);DiskFiles.PointerMoved+=DragMove;DiskFiles.PointerReleased+=(_,_)=>press=null;
         DiskFiles.AddHandler(DragDrop.DragOverEvent,DragOver);DiskFiles.AddHandler(DragDrop.DropEvent,Drop);
     }
@@ -131,19 +132,20 @@ public sealed partial class DiskWorkspace : UserControl
         var primary=OperatingSystem.IsMacOS()?KeyModifiers.Meta:KeyModifiers.Control;
         if(e.Key is Key.Delete or Key.Space or Key.Enter or Key.Insert){e.Handled=true;return;}
         if(e.Key==Key.Back||(e.Key is Key.Left or Key.Right&&e.KeyModifiers==KeyModifiers.None))
-        {DiskHex.CaretIndex=FixedHexInput.Move(DiskHex.Text??"",DiskHex.CaretIndex,e.Key==Key.Right?1:-1);e.Handled=true;}
+        {DiskHex.CaretIndex=FixedHexInput.Move(DiskHex.Text??"",HexEditPoint,e.Key==Key.Right?1:-1);DiskHex.SelectionStart=DiskHex.SelectionEnd=DiskHex.CaretIndex;e.Handled=true;}
         else if(e.KeyModifiers.HasFlag(primary)&&e.Key==Key.V)
         {
-            e.Handled=true;var session=observed;string text=DiskHex.Text??"";int caret=DiskHex.CaretIndex;
+            e.Handled=true;var session=observed;string text=DiskHex.Text??"";int caret=HexEditPoint;
             try
             {
                 string? pasted=TopLevel.GetTopLevel(this)?.Clipboard is{} clipboard?await clipboard.TryGetTextAsync():null;
                 if(session!=observed||text!=DiskHex.Text)return;
-                if(pasted is not null&&FixedHexInput.TryPaste(text,caret,pasted,out string output,out int next)){session.HexText=output;DiskHex.CaretIndex=next;}
+                if(pasted is not null&&FixedHexInput.TryPaste(text,caret,pasted,out string output,out int next)){session.HexText=output;DiskHex.CaretIndex=next;DiskHex.SelectionStart=DiskHex.SelectionEnd=next;}
                 else Model?.Documents.ReportError("Paste rejected: complete HEX bytes must fit in the remaining buffer.");
             }catch(Exception error)when(error is not OutOfMemoryException){Model?.Documents.ReportError(error.Message);}
         }
     }
+    private int HexEditPoint=>DiskHex.SelectionStart!=DiskHex.SelectionEnd?Math.Min(DiskHex.SelectionStart,DiskHex.SelectionEnd):DiskHex.CaretIndex;
     private void ConfigureFileNameCells()
     {
         DiskFiles.Columns[0].CellTemplate=new Avalonia.Controls.Templates.FuncDataTemplate<DiskFileRow>((row,_)=>

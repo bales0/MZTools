@@ -1,0 +1,14 @@
+{
+  "windows": {
+    "configurations": 3726,
+    "controlsPerConfiguration": 7,
+    "differences": 0,
+    "fixtureSha256": "4FA75EB59C34B7961A41DF7305C0635627C07080E87413CE1027A2738D619C7F"
+  },
+  "linux": {
+    "configurations": 3726,
+    "controlsPerConfiguration": 7,
+    "differences": 0,
+    "fixtureSha256": "4FA75EB59C34B7961A41DF7305C0635627C07080E87413CE1027A2738D619C7F"
+  }
+}

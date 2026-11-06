@@ -65,7 +65,7 @@ public sealed class QuickDiskVisualWindow:Window
         Closed+=(_,_)=>detailWindow?.Close();
         void Button(string title,Action action){var button=new Button{Content=title,Margin=new Thickness(4),Padding=new Thickness(8,3)};button.Click+=(_,_)=>action();toolbar.Children.Add(button);}
         Button("Fit",spiral.Fit);Button("Selected regions",()=>{showMfm.IsChecked=true;graph.FitSelection();});Button("Zoom +",()=>spiral.ZoomBy(2));Button("Zoom −",()=>spiral.ZoomBy(.5));
-        Button("Hex selected region…",()=>{if(Session.SelectedRegion is{} r)new HexViewWindow(Session.Snapshot!.Layout.GetBlockBytes(r)).Show(this);});
+        Button("Hex selected region…",()=>{if(Session.SelectedRegion is{} r)HexViewWindow.Region(Session,r).Show(this);});
         Button("Export report…",async()=>
         {
             var snapshot=Session.Snapshot!;
@@ -122,7 +122,7 @@ public sealed class QuickDiskVisualWindow:Window
         };
         foreach(Control control in new Control[]{spiral,graph,regions})
         {
-            var hex=new MenuItem{Header="Hex selected region…"};hex.Click+=(_,_)=>{if(Session.SelectedRegion is{} region)new HexViewWindow(Session.Snapshot!.Layout.GetBlockBytes(region)).Show(this);};
+            var hex=new MenuItem{Header="Hex selected region…"};hex.Click+=(_,_)=>{if(Session.SelectedRegion is{} region)HexViewWindow.Region(Session,region).Show(this);};
             var export=new MenuItem{Header="Export selected region…"};export.Click+=async(_,_)=>await ExportSelected();control.ContextMenu=new ContextMenu{ItemsSource=new[]{hex,export}};
         }
         foreach(var table in new[]{regions,files})table.DoubleTapped+=(_,_)=>{showMfm.IsChecked=true;graph.FitSelection();tabs.SelectedIndex=0;};

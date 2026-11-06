@@ -1,0 +1,250 @@
+{
+  "wpf--wpf-original-batch-details-0.png": {
+    "source": "TestResults/BatchHex-2026-11-06/wpf-reference/wpf-original-batch-details-0.png",
+    "sha256": "684ea24f7bd19c679ecee16cf774677e9ee4dd85e141711202810d0d166942cb"
+  },
+  "wpf--wpf-original-batch-details-1.png": {
+    "source": "TestResults/BatchHex-2026-11-06/wpf-reference/wpf-original-batch-details-1.png",
+    "sha256": "827ef9b3d88e9d68bfdcd28cc0c442762b2e7bd4951cd596948258b7dbab9b75"
+  },
+  "wpf--wpf-original-batch-details-2.png": {
+    "source": "TestResults/BatchHex-2026-11-06/wpf-reference/wpf-original-batch-details-2.png",
+    "sha256": "c5d919005a0caacb7423694d153f580fbeca45f088f67513e4d49161df328030"
+  },
+  "wpf--wpf-original-batch-details-3.png": {
+    "source": "TestResults/BatchHex-2026-11-06/wpf-reference/wpf-original-batch-details-3.png",
+    "sha256": "339273e91dec46c70ad5e6ab7bf4e4db0506c55551d3de35c62d661e83cc5f79"
+  },
+  "wpf--wpf-original-batch-details-4.png": {
+    "source": "TestResults/BatchHex-2026-11-06/wpf-reference/wpf-original-batch-details-4.png",
+    "sha256": "36d71652cecd42eb23e493c851658bd40ba63845a1e4fcff19d1cd26c0e23e36"
+  },
+  "wpf--wpf-original-batch-details.png": {
+    "source": "TestResults/BatchHex-2026-11-06/wpf-reference/wpf-original-batch-details.png",
+    "sha256": "339273e91dec46c70ad5e6ab7bf4e4db0506c55551d3de35c62d661e83cc5f79"
+  },
+  "wpf--wpf-original-batch-empty.png": {
+    "source": "TestResults/BatchHex-2026-11-06/wpf-reference/wpf-original-batch-empty.png",
+    "sha256": "003cb531402ceae97c0ab45c678183e338f56ef1d9741b90448d20920b637d42"
+  },
+  "wpf--wpf-original-batch-operation-AnalyzeMzfCompatibility.png": {
+    "source": "TestResults/BatchHex-2026-11-06/wpf-reference/wpf-original-batch-operation-AnalyzeMzfCompatibility.png",
+    "sha256": "01a78d290c6e8817f2c19d79ceec9aea4db1becb0b5711f100eef6f3cdc65aae"
+  },
+  "wpf--wpf-original-batch-operation-CompressPrograms.png": {
+    "source": "TestResults/BatchHex-2026-11-06/wpf-reference/wpf-original-batch-operation-CompressPrograms.png",
+    "sha256": "801a3cbeaaacf6252281fb5e8863c464fff52b0ebe4f3f237045552bef1c95a8"
+  },
+  "wpf--wpf-original-batch-operation-ConvertFormat.png": {
+    "source": "TestResults/BatchHex-2026-11-06/wpf-reference/wpf-original-batch-operation-ConvertFormat.png",
+    "sha256": "339466cb7f197d6a48eb3f478c63684050a8c4dec7c7f13aed48fe36fa3ffbb5"
+  },
+  "wpf--wpf-original-batch-operation-DecompressPrograms.png": {
+    "source": "TestResults/BatchHex-2026-11-06/wpf-reference/wpf-original-batch-operation-DecompressPrograms.png",
+    "sha256": "4222c3d3f52aa16938fe36e97fbe7a5d4a5a2bb650a651dd65bb6d13be2a4d20"
+  },
+  "wpf--wpf-original-batch-operation-Defragment.png": {
+    "source": "TestResults/BatchHex-2026-11-06/wpf-reference/wpf-original-batch-operation-Defragment.png",
+    "sha256": "66ee0d1df68cf4136bd5c83707079ed78379c5885730a9d86d0e625100dc6ea4"
+  },
+  "wpf--wpf-original-batch-operation-ExtractAll.png": {
+    "source": "TestResults/BatchHex-2026-11-06/wpf-reference/wpf-original-batch-operation-ExtractAll.png",
+    "sha256": "b3302c67392c429a59210ffb6f830b5ccb50ed1f413b84b326d19496a09e3e52"
+  },
+  "wpf--wpf-original-batch-operation-InstallBootSystem.png": {
+    "source": "TestResults/BatchHex-2026-11-06/wpf-reference/wpf-original-batch-operation-InstallBootSystem.png",
+    "sha256": "804679d381ae1f07e19864533b8f112dd7ba09f2c3f066d6015f50a5a33fb027"
+  },
+  "wpf--wpf-original-batch-operation-SafeRepair.png": {
+    "source": "TestResults/BatchHex-2026-11-06/wpf-reference/wpf-original-batch-operation-SafeRepair.png",
+    "sha256": "0b7e9fbb801591e6b3ba21921102aac3cc8ac1a8ebadc4353d6655f0a1519b67"
+  },
+  "wpf--wpf-original-batch-operation-TestIntegrity.png": {
+    "source": "TestResults/BatchHex-2026-11-06/wpf-reference/wpf-original-batch-operation-TestIntegrity.png",
+    "sha256": "003cb531402ceae97c0ab45c678183e338f56ef1d9741b90448d20920b637d42"
+  },
+  "windows--native-batch-1366x768.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/native/native-batch-1366x768.png",
+    "sha256": "c855ef825bab9dd99db2eebe515534cd2e029b407aa1f45aabb76f83000f7a0d"
+  },
+  "windows--native-batch-1440x960.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/native/native-batch-1440x960.png",
+    "sha256": "6f22f4188ea4b1e2d01bcf5897747942154164de08a38d2f02ac8b5480aa8977"
+  },
+  "windows--native-batch-640x480.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/native/native-batch-640x480.png",
+    "sha256": "e2f88455a41fe296201ad4acaac223aa83664e724e44e660b06b6c097fd760c9"
+  },
+  "windows--native-batch-920x640.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/native/native-batch-920x640.png",
+    "sha256": "fd0830c9e01c74a52234f3dbf8543075eb6920845464fed7c7c02237d193f543"
+  },
+  "windows--native-batch-details-0.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/native/native-batch-details-0.png",
+    "sha256": "d2fec98812fdd4a433b606df7b53fd45cf4969cba39ed098cf7a8cc2a3951d0c"
+  },
+  "windows--native-batch-details-1.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/native/native-batch-details-1.png",
+    "sha256": "75ee4cfa700bbe0163fbf1fa8e28ca2df89fe84320cb37848d9d0b5da5936fe0"
+  },
+  "windows--native-batch-details-2.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/native/native-batch-details-2.png",
+    "sha256": "d60ce8dfa88faa3153b1566f5f6b33627287a49d65fa063ca335ff1d2c4dca3c"
+  },
+  "windows--native-batch-details-3.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/native/native-batch-details-3.png",
+    "sha256": "1fd0f4e07050f918ed9809f533238e8512a9133a73aae837eff4a424be23208c"
+  },
+  "windows--native-batch-details-4.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/native/native-batch-details-4.png",
+    "sha256": "53fec9db8f7637c9b345bf08c8db68515a165ee724d0cbb22d0d1898b817b016"
+  },
+  "windows--native-batch-empty.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/native/native-batch-empty.png",
+    "sha256": "c167dfe7e096be2e4ea0404ef772303b845a362fed6bf41071cdc666e7fb9401"
+  },
+  "windows--native-batch-operation-Analyze.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/native/native-batch-operation-Analyze.png",
+    "sha256": "dd9e2579b41b70752f28aa981644cb64c4143147eb8e5966f253ca383dd2ae58"
+  },
+  "windows--native-batch-operation-AnalyzeMzfCompatibility.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/native/native-batch-operation-AnalyzeMzfCompatibility.png",
+    "sha256": "6d6d66fa80b0ec09bb09110e6842964cc42c57a7fd7921f0e4a404e9c107e799"
+  },
+  "windows--native-batch-operation-CompressPrograms.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/native/native-batch-operation-CompressPrograms.png",
+    "sha256": "d13fcf32e7a9a14f4966bbf83201e724a9a5385b5448f1fff5dfb6ff890ee028"
+  },
+  "windows--native-batch-operation-ConvertFormat.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/native/native-batch-operation-ConvertFormat.png",
+    "sha256": "69fe3c4c7c15e33666cb1761c3b4a1391e8d62d3877b816c2b5fc7b93102d1b7"
+  },
+  "windows--native-batch-operation-DecompressPrograms.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/native/native-batch-operation-DecompressPrograms.png",
+    "sha256": "9219dbda7142387fd8a3c9ea7275a73b7d48ccd213ef875b3234ce6f434d1e3a"
+  },
+  "windows--native-batch-operation-Defragment.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/native/native-batch-operation-Defragment.png",
+    "sha256": "a9013dde90ddc80180e9a9d8accc462315cc17f156b48cbcca07b381356eff40"
+  },
+  "windows--native-batch-operation-ExtractAll.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/native/native-batch-operation-ExtractAll.png",
+    "sha256": "3f9cc36a833b3a3616c422ebae73097cca824302cbc7de3aeff4b2efe21317e6"
+  },
+  "windows--native-batch-operation-InstallBootSystem.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/native/native-batch-operation-InstallBootSystem.png",
+    "sha256": "6729cf387310691afd33e4afe2d916558cb8a27addb30cc479f53ecc83da3a36"
+  },
+  "windows--native-batch-operation-SafeRepair.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/native/native-batch-operation-SafeRepair.png",
+    "sha256": "a9535993c3d6bd45a0174b734bbeae931c6f89bfe010f192ad39dae8eb5be64f"
+  },
+  "windows--native-batch-operation-TestIntegrity.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/native/native-batch-operation-TestIntegrity.png",
+    "sha256": "c167dfe7e096be2e4ea0404ef772303b845a362fed6bf41071cdc666e7fb9401"
+  },
+  "windows--native-batch-preview.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/native/native-batch-preview.png",
+    "sha256": "676d0f1885adf25ae319808f51fa774d1a2bc3af46bc7b77fe5e6e56645ab9a4"
+  },
+  "linux--native-batch-1366x768.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/native/native-batch-1366x768.png",
+    "sha256": "fc1397f4898ca3616acbec087dd1f802550fb05fedac6fbfa5b7e2d9db646288"
+  },
+  "linux--native-batch-1440x960.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/native/native-batch-1440x960.png",
+    "sha256": "e2be60ffa92cdab3b8d9003fc5e61b982cd0a140df99d6123a69159e283f57bf"
+  },
+  "linux--native-batch-640x480.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/native/native-batch-640x480.png",
+    "sha256": "fb3b6a23aedfc8f284146a169ca297aeebd7a76ed96a293e4966febe9a7455d0"
+  },
+  "linux--native-batch-920x640.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/native/native-batch-920x640.png",
+    "sha256": "2574c2080a0ffa94954aa29ad310fc0fc85f0ee9d0a0970d5b20ec96ced8f9a7"
+  },
+  "linux--native-batch-details-0.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/native/native-batch-details-0.png",
+    "sha256": "0aea2c61b57afaaaa00cbaac14e62917e6ca697f90f66b31efb419b3ffca3c6b"
+  },
+  "linux--native-batch-details-1.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/native/native-batch-details-1.png",
+    "sha256": "095d4c55e8f39f7d6ff6931b4b8ab68b50994cf2a2b6b980f9554aa2e87a35a4"
+  },
+  "linux--native-batch-details-2.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/native/native-batch-details-2.png",
+    "sha256": "5b116ad09395468725f2a806248196196de83ef458dfc78a3b8daf6655ce0c30"
+  },
+  "linux--native-batch-details-3.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/native/native-batch-details-3.png",
+    "sha256": "e2d2c31413cbe1a818b50604ce59fd478d2254cac2766193016f3f423f756a0f"
+  },
+  "linux--native-batch-details-4.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/native/native-batch-details-4.png",
+    "sha256": "945025644fb4c23ca1933aa962be597f37547234536d88ba3c1db38a81de02ff"
+  },
+  "linux--native-batch-empty.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/native/native-batch-empty.png",
+    "sha256": "9802ebfd3a298bf568efd718bccd2494fb64801bcee653b3ef9700ee0e2019a1"
+  },
+  "linux--native-batch-operation-Analyze.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/native/native-batch-operation-Analyze.png",
+    "sha256": "17bae26fca3b418308ea1a1f46b9d944cdef789188f7aad8d5a439b0c4b4d813"
+  },
+  "linux--native-batch-operation-AnalyzeMzfCompatibility.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/native/native-batch-operation-AnalyzeMzfCompatibility.png",
+    "sha256": "7fb2712281063894386fad0b7ea40b15ff8007e82c58d28ec19c8612ad52d259"
+  },
+  "linux--native-batch-operation-CompressPrograms.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/native/native-batch-operation-CompressPrograms.png",
+    "sha256": "a122773e01ee31c93cbd48904995d3ddc2c90d10217ccf5ee7d3d1370736e81e"
+  },
+  "linux--native-batch-operation-ConvertFormat.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/native/native-batch-operation-ConvertFormat.png",
+    "sha256": "04df754b144338d94740b39e1af6ea35557ba376ca9358698fe4c48624c04c65"
+  },
+  "linux--native-batch-operation-DecompressPrograms.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/native/native-batch-operation-DecompressPrograms.png",
+    "sha256": "340c8f2c6efe1ff6deb8145f73f4e7a6a2e79bca451bbbe795b1dee61b933ec2"
+  },
+  "linux--native-batch-operation-Defragment.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/native/native-batch-operation-Defragment.png",
+    "sha256": "24b99c58f273d9c250f7b276eb46a62e1545e4ca7cb73e251b3aa7eb418b9d4f"
+  },
+  "linux--native-batch-operation-ExtractAll.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/native/native-batch-operation-ExtractAll.png",
+    "sha256": "835710835d92f350871942155ab3bb535e48e5c1c1a050c4d90a79c70799862c"
+  },
+  "linux--native-batch-operation-InstallBootSystem.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/native/native-batch-operation-InstallBootSystem.png",
+    "sha256": "b6511736f65bc6cf571ec79f58e17db4005fc37f0c596ef40553dfadabca9154"
+  },
+  "linux--native-batch-operation-SafeRepair.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/native/native-batch-operation-SafeRepair.png",
+    "sha256": "c0f74b8e658c7cf2e6f7f7ef7819ea1aedecc588eb7930531cbfc8c1395176ef"
+  },
+  "linux--native-batch-operation-TestIntegrity.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/native/native-batch-operation-TestIntegrity.png",
+    "sha256": "9802ebfd3a298bf568efd718bccd2494fb64801bcee653b3ef9700ee0e2019a1"
+  },
+  "linux--native-batch-preview.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/native/native-batch-preview.png",
+    "sha256": "528ed9303fc12c5855dc7697846f7a357333d3ccaf8eb13e32ba69aba47aa8e3"
+  },
+  "windows-headless--hex-ram-cursor.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/screenshots/hex-ram-cursor.png",
+    "sha256": "418f0affedcfe8e8208802e02b48f0c42c3f0829daa70e77207d244de9b80742"
+  },
+  "windows-headless--hex-editor-cursor-addresses.png": {
+    "source": "TestResults/BatchHex-2026-11-06/windows/screenshots/hex-editor-cursor-addresses.png",
+    "sha256": "6bc3a20cd242a9aceb07018180117804e8448f43ffd34877e88e4ab82b1039a8"
+  },
+  "linux-headless--hex-ram-cursor.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/screenshots/hex-ram-cursor.png",
+    "sha256": "4590644d7ef1b9eb8f7cd620f83d474e9411a69385f1ab4a35bf2bfc8d125c01"
+  },
+  "linux-headless--hex-editor-cursor-addresses.png": {
+    "source": "TestResults/BatchHex-2026-11-06/linux/screenshots/hex-editor-cursor-addresses.png",
+    "sha256": "bef7eb282c8362388ca939956fffa1241997f82df4536efd47d4b3710dfc5425"
+  }
+}

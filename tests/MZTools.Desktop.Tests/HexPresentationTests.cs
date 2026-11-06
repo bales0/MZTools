@@ -38,7 +38,7 @@ public sealed class HexPresentationTests
     }
     [AvaloniaFact]public async Task RecordViewerHasOneViewWithActualPerByteWpfColorsAndAllSourceBytes()
     {
-        using var files=new MediaDocumentTests();byte[] bytes=MediaDocumentTests.Mzf("COLORED",33).Concat(new byte[]{0x91,0x80,0x0D}).ToArray();File.WriteAllBytes(files.FilePath("colors.mzf"),bytes);var tape=await files.Open("colors.mzf");var window=new HexViewWindow(tape.Rows[0]);window.Show();
+        using var files=new MediaDocumentTests();byte[] bytes=MediaDocumentTests.Mzf("COLORED",33).Concat(new byte[]{0x91,0x80,0x0D}).ToArray();File.WriteAllBytes(files.FilePath("colors.mzf"),bytes);var tape=await files.Open("colors.mzf");var window=new HexViewWindow(tape.Rows[0],true);window.Show();
         try
         {
             Pump(window);Assert.Empty(window.GetVisualDescendants().OfType<TabControl>());var table=Named<TableView>(window,"HexDumpTable");var rows=table.ItemsSource!.Cast<HexViewWindow.Row>().ToArray();
@@ -51,6 +51,20 @@ public sealed class HexPresentationTests
             window.Width=650;Pump(window);Assert.True(table.Columns.Sum(c=>c.Width.Value)>table.Bounds.Width);Capture(window,"hex-viewer-narrow.png");
         }
         finally{window.Close();Pump(window);}
+    }
+    [AvaloniaTheory][InlineData("Mzf")][InlineData("M12")][InlineData("Mzt")][InlineData("Qdf")]
+    public async Task ActualRecordHexUsesTheOpenedContainerAndNeverAddsQdfToMzf(string format)
+    {
+        using var files=new MediaDocumentTests();var shell=new MZTools.Desktop.ViewModels.ShellViewModel(files.Coordinator,_=>Task.CompletedTask,files.Dialogs);var initial=await files.Open();var target=Enum.Parse<TapeDocumentFormat>(format);string name="context"+TapeSavePolicy.Extension(target);
+        byte[] source=TapeDocumentIO.Serialize(initial.Model,target,true);File.WriteAllBytes(files.FilePath(name),source);var tape=await files.Open(name);Assert.Equal(format,tape.Format);Assert.Same(tape,shell.ActiveTape);var owner=new MainWindow(shell);owner.Show();
+        try
+        {
+            Pump(owner);var table=Named<TableView>(owner,"RecordsTable");table.SelectedItem=tape.Rows[0];Pump(owner);table.ContextMenu!.Items.OfType<MenuItem>().Single(i=>Equals(i.Header,"Hex view...")).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));Pump(owner);
+            var hex=Assert.Single(owner.OwnedWindows);var rows=Named<TableView>(hex,"HexDumpTable").ItemsSource!.Cast<HexViewWindow.Row>().ToArray();Assert.Equal(format=="Qdf",rows.Any(r=>r.IsQdf));
+            if(format!="Qdf"){Assert.Equal(128,rows.Where(r=>r.Section=="MZF header").Sum(r=>r.Count));Assert.DoesNotContain(hex.GetVisualDescendants().OfType<TextBlock>(),t=>t.Inlines?.OfType<Run>().Any(run=>run.Text?.Contains("QDF")==true)==true);}
+            Assert.Equal(source,File.ReadAllBytes(tape.Path!));Assert.False(tape.IsModified);Capture(hex,"hex-context-"+format+".png");hex.Close();
+        }
+        finally{owner.Close();Pump(owner);}
     }
     [AvaloniaFact]public async Task HexEditorAlignsEveryRowAndSharesScrollingAcrossTheThreeRepresentations()
     {

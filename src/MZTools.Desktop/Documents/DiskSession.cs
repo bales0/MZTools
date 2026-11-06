@@ -191,17 +191,24 @@ public sealed class DiskSession : DocumentSession, IFileSetDocument
     internal void UnlockHexEditing(){if(!CanEditHex||hexSession is null)throw new InvalidOperationException("No editable hex buffer.");hexUnlocked=true;Changed(nameof(HexEditingUnlocked));}
     public string HexAscii=>FormatHexCharacters(false);
     public string HexSharpAscii=>FormatHexCharacters(true);
+    public string HexOffsets=>string.Join(Environment.NewLine,Enumerable.Range(0,((hexSession?.OriginalBuffer.Length??SelectedSector?.Bytes??0)+15)/16).Select(row=>$"{row*16:X8} / {SourceHexOffset(row*16)}"));
+    private string SourceHexOffset(int offset)
+    {
+        var segment=hexSession?.Segments.FirstOrDefault(s=>offset>=s.BufferOffset&&offset<s.BufferOffset+s.Length);
+        return segment is null?"—":$"{segment.FileOffset+offset-segment.BufferOffset:X8}";
+    }
+    internal string HexCursorAddress(int offset)=>$"Buffer 0x{offset:X8} · DSK offset 0x{SourceHexOffset(offset)} · RAM —";
     public string HexCharacters=>"ASCII\n"+HexAscii+"\n\nSHASCII (EU)\n"+HexSharpAscii;
     private string FormatHexCharacters(bool sharp)
     {
         try
         {
             var bytes=DskHexEditService.ParseHex(HexText,hexSession?.OriginalBuffer.Length??SelectedSector?.Bytes??0);
-            return string.Join(Environment.NewLine,bytes.Chunk(16).Select(row=>new string(row.Select(b=>{byte c=sharp?SharpMzEncoding.FromSHASCII(b):b;return c is >=32 and <=126?(char)c:'.';}).ToArray())));
+            return string.Join(Environment.NewLine,bytes.Chunk(16).Select(row=>new string(row.Select(b=>MZTools.Desktop.Controls.HexPositions.Character(b,sharp)).ToArray())));
         }catch(FormatException e){return e.Message;}
     }
     public string HexText { get=>hex; set {if(Set(ref hex,value)){DraftChanged();NotifyHexCharacters();}} }
-    private void NotifyHexCharacters(){Changed(nameof(HexCharacters));Changed(nameof(HexAscii));Changed(nameof(HexSharpAscii));}
+    private void NotifyHexCharacters(){Changed(nameof(HexCharacters));Changed(nameof(HexAscii));Changed(nameof(HexSharpAscii));Changed(nameof(HexOffsets));}
     public string HexTitle => hexSession?.Title ?? "Select a sector, or open a CP/M allocation block.";
     public bool HasHexDraft => HexText!=originalHex;
     public bool HasDraft => HasPropertiesDraft || HasHexDraft;
@@ -241,7 +248,7 @@ public sealed class DiskSession : DocumentSession, IFileSetDocument
     internal DskHexEditPreview PrepareHex()
     { if(!CanEditHex || hexSession is null) throw new InvalidOperationException("No editable hex buffer.");return DskHexEditService.Preview(hexSession,DskHexEditService.ParseHex(HexText,hexSession.OriginalBuffer.Length)); }
     internal void OpenBlock(int block)
-    { if(HasDraft) throw new InvalidOperationException("Apply or Cancel disk edits first.");hexUnlocked=false;Changed(nameof(HexEditingUnlocked));hexSession=DskHexEditService.OpenCpmBlock(Model,block);originalHex=hex=DskHexEditService.FormatHex(hexSession.OriginalBuffer);Changed(nameof(HexText));Changed(nameof(HexTitle));NotifyHexCharacters();ViewIndex=3; }
+    { if(HasDraft) throw new InvalidOperationException("Apply or Cancel disk edits first.");hexUnlocked=false;Changed(nameof(HexEditingUnlocked));hexSession=DskHexEditService.OpenCpmBlock(Model,block);originalHex=hex=MZTools.Desktop.Controls.HexPositions.Format(hexSession.OriginalBuffer);Changed(nameof(HexText));Changed(nameof(HexTitle));NotifyHexCharacters();ViewIndex=3; }
     public void ResetDraft()
     {
         var e=SelectedFile?.Entry;name=SelectedFile?.Name??"";user=(e?.User??0).ToString(CultureInfo.InvariantCulture);load=$"{e?.LoadAddress??0:X4}";exec=$"{e?.ExecuteAddress??0:X4}";type=$"{e?.FileType??0:X2}";
@@ -252,7 +259,7 @@ public sealed class DiskSession : DocumentSession, IFileSetDocument
     {
         hexUnlocked=false;Changed(nameof(HexEditingUnlocked));
         hexSession=projection is not null && SelectedSector is not null ? DskHexEditService.OpenSector(Model,SelectedSector.Sector.Address) : null;
-        originalHex=hex=hexSession is not null ? DskHexEditService.FormatHex(hexSession.OriginalBuffer) : SelectedSector is not null ? DskHexEditService.FormatHex(SelectedSector.Sector.Data) : "";
+        originalHex=hex=hexSession is not null ? MZTools.Desktop.Controls.HexPositions.Format(hexSession.OriginalBuffer) : SelectedSector is not null ? MZTools.Desktop.Controls.HexPositions.Format(SelectedSector.Sector.Data) : "";
         Changed(nameof(HexText));Changed(nameof(HexTitle));NotifyHexCharacters();DraftChanged();
     }
     internal void SetError(string message) {Validation=message;Changed(nameof(Validation));}

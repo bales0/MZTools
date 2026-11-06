@@ -28,7 +28,9 @@ public sealed class BatchSession : DocumentSession,IFileSetDocument
     public string Summary=>Preview.Summary;
     private string report="";
     public string Report=>report;
-    public bool CanExecute=>!Preview.Cancelled&&(!Preview.Options.StrictPreflight||!Preview.BlocksStrict)&&Preview.Rows.Any(r=>r.Result is "Will modify" or "Will analyze");
+    private bool invalidated;
+    internal void Invalidate(){invalidated=true;Changed(nameof(CanExecute));}
+    public bool CanExecute=>!invalidated&&!Preview.Cancelled&&(!Preview.Options.StrictPreflight||!Preview.BlocksStrict)&&Preview.Rows.Any(r=>r.Result is "Will modify" or "Will analyze");
     internal void Refresh(){report=BatchProcessService.Report(Preview,"txt");int index=selected is null?-1:Rows.ToList().IndexOf(selected);Rows=Preview.Rows.Select(r=>new BatchRowView(r)).ToArray();Changed(nameof(Rows));Selected=index>=0&&index<Rows.Count?Rows[index]:Rows.FirstOrDefault();foreach(var name in new[]{nameof(Summary),nameof(Report),nameof(CanExecute)})Changed(name);}
     internal void VerifySources(){foreach(var pair in sources)if(AtomicFileTransaction.Hash(pair.Key)!=pair.Value)throw new IOException("Batch source or dependency changed after preview: "+pair.Key);}
     public override Task WriteAsync(Stream destination,CancellationToken cancellationToken)=>throw new NotSupportedException(SaveDisabledReason);

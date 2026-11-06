@@ -1,0 +1,244 @@
+{
+  "exit": 0,
+  "frames": [
+    {
+      "file": "wpf-original-empty.png",
+      "logicalWidth": 1320,
+      "logicalHeight": 600,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-tape.png",
+      "logicalWidth": 1320,
+      "logicalHeight": 600,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-batch-empty.png",
+      "logicalWidth": 1120,
+      "logicalHeight": 800,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-batch-operation-TestIntegrity.png",
+      "logicalWidth": 1120,
+      "logicalHeight": 800,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-batch-operation-ConvertFormat.png",
+      "logicalWidth": 1120,
+      "logicalHeight": 800,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-batch-operation-InstallBootSystem.png",
+      "logicalWidth": 1120,
+      "logicalHeight": 800,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-batch-operation-ExtractAll.png",
+      "logicalWidth": 1120,
+      "logicalHeight": 800,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-batch-operation-Defragment.png",
+      "logicalWidth": 1120,
+      "logicalHeight": 800,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-batch-operation-SafeRepair.png",
+      "logicalWidth": 1120,
+      "logicalHeight": 800,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-batch-operation-AnalyzeMzfCompatibility.png",
+      "logicalWidth": 1120,
+      "logicalHeight": 800,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-batch-operation-CompressPrograms.png",
+      "logicalWidth": 1120,
+      "logicalHeight": 800,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-batch-operation-DecompressPrograms.png",
+      "logicalWidth": 1120,
+      "logicalHeight": 800,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-batch-details.png",
+      "logicalWidth": 1120,
+      "logicalHeight": 700,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-batch-details-0.png",
+      "logicalWidth": 1120,
+      "logicalHeight": 700,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-batch-details-1.png",
+      "logicalWidth": 1120,
+      "logicalHeight": 700,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-batch-details-2.png",
+      "logicalWidth": 1120,
+      "logicalHeight": 700,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-batch-details-3.png",
+      "logicalWidth": 1120,
+      "logicalHeight": 700,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-batch-details-4.png",
+      "logicalWidth": 1120,
+      "logicalHeight": 700,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-hex-viewer.png",
+      "logicalWidth": 800,
+      "logicalHeight": 450,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-quickdisk-map.png",
+      "logicalWidth": 1320,
+      "logicalHeight": 600,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-quickdisk-visual.png",
+      "logicalWidth": 1150,
+      "logicalHeight": 780,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-audio-waveform.png",
+      "logicalWidth": 1200,
+      "logicalHeight": 850,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-audio-flac.png",
+      "logicalWidth": 1200,
+      "logicalHeight": 850,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-selected-analysis.png",
+      "logicalWidth": 1200,
+      "logicalHeight": 900,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-disk.png",
+      "logicalWidth": 1320,
+      "logicalHeight": 600,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-dsk-map.png",
+      "logicalWidth": 1320,
+      "logicalHeight": 600,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-dsk-surface.png",
+      "logicalWidth": 1250,
+      "logicalHeight": 850,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-dsk-track.png",
+      "logicalWidth": 1250,
+      "logicalHeight": 850,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-dsk-issues.png",
+      "logicalWidth": 1250,
+      "logicalHeight": 850,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-dsk-statistics.png",
+      "logicalWidth": 1250,
+      "logicalHeight": 850,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-dsk-tracks.png",
+      "logicalWidth": 1250,
+      "logicalHeight": 850,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-dsk-mfm.png",
+      "logicalWidth": 1250,
+      "logicalHeight": 850,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-recorder.png",
+      "logicalWidth": 1220,
+      "logicalHeight": 900,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    },
+    {
+      "file": "wpf-original-recorder-live.png",
+      "logicalWidth": 1220,
+      "logicalHeight": 900,
+      "scale": 1.5,
+      "origin": "Unmodified render of the retained WPF frontend"
+    }
+  ],
+  "hardwareTested": false
+}

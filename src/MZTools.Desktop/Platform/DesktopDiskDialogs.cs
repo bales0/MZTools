@@ -49,6 +49,12 @@ public sealed partial class DesktopDialogs : IDiskDialogs
         var files=await owner.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {Title=title,AllowMultiple=multiple});
         return files.Select(f=>f.TryGetLocalPath()??throw new NotSupportedException("A local file is required.")).ToArray();
     }
+    public async Task<IReadOnlyList<string>> PickBatchFilesAsync(string title,string extensions)
+    {
+        var patterns=extensions.Split(',',StringSplitOptions.RemoveEmptyEntries).Select(extension=>"*"+extension).ToArray();
+        var files=await owner.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions{Title=title,AllowMultiple=true,FileTypeFilter=[new("Supported batch inputs"){Patterns=patterns},FilePickerFileTypes.All]});
+        return files.Select(f=>f.TryGetLocalPath()??throw new NotSupportedException("A local file is required.")).ToArray();
+    }
     public async Task<string?> PickDiskOutputAsync(string title,string suggestedName)
     {
         var file=await owner.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions {Title=title,SuggestedFileName=suggestedName,ShowOverwritePrompt=false});

@@ -33,7 +33,7 @@ public sealed partial class MainWindow
         var menu=new ContextMenu();tools.ContextMenu=menu;tools.Click+=(_,_)=>menu.Open(tools);
         void Tool(string label,ICommand? command=null,EventHandler<RoutedEventArgs>? click=null)
         {var item=new MenuItem{Header=label,Command=command};if(click is not null)item.Click+=click;menu.Items.Add(item);}
-        Tool("Batch Process...",click:async(_,_)=>{var batch=new AnalysisWindow(true);batch.Show(this);await batch.PrepareBatchAsync();});
+        Tool("Batch Process...",click:(_,_)=>new BatchProcessWindow().Show(this));
         wpfVisual=new MenuItem{Header="Visual analysis…"};wpfVisual.Click+=(_,_)=>OpenWpfVisualAnalysis();menu.Items.Add(wpfVisual);
         Tool("Analyze Audio (WAV / FLAC)...",click:async(_,_)=>await OpenAudioForAnalysisAsync());
         Tool("Record Audio / Live Tape Analysis...",Model.RecorderCommand);

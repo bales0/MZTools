@@ -36,7 +36,7 @@ public sealed class WpfParityTests
         try
         {
             Dispatcher.UIThread.RunJobs();Assert.Empty(window.GetVisualDescendants().OfType<TabControl>());var table=window.GetVisualDescendants().OfType<TableView>().Single();
-            var rows=table.ItemsSource!.Cast<HexViewWindow.Row>().Where(r=>!r.IsQdf).ToArray();Assert.Equal(bytes,rows.SelectMany(r=>r.Bytes.AsSpan(r.Offset,r.Count).ToArray()));Assert.Equal("Trailing",rows[^1].Section);Assert.Contains(table.Columns,c=>Equals(c.Header,"SHASCII (EU)"));
+            var rows=table.ItemsSource!.Cast<HexViewWindow.Row>().Where(r=>!r.IsQdf).ToArray();Assert.Equal(bytes,rows.SelectMany(r=>r.Bytes.AsSpan(r.Offset,r.Count).ToArray()));Assert.Equal("Trailing",rows[^1].Section);Assert.Contains(table.Columns,c=>Equals(c.Header,"MZASCII"));
             var last=table.ItemsSource!.Cast<object>().Last();Assert.EndsWith("FA FB FC",(string)last.GetType().GetProperty("Hex")!.GetValue(last)!);
             Assert.Equal(bytes,File.ReadAllBytes(tape.Path!));Assert.False(tape.IsModified);Capture(window,"wpf-hex-browser.png");
         }finally{window.Close();Dispatcher.UIThread.RunJobs();}

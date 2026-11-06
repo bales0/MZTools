@@ -1,0 +1,652 @@
+{
+  "checks": [
+    {
+      "name": "Batch opens without a modal form and defaults to Info / test integrity",
+      "pass": true
+    },
+    {
+      "name": "Batch Add files is reachable",
+      "pass": true
+    },
+    {
+      "name": "Batch Add files opens a real picker and cancels",
+      "pass": true
+    },
+    {
+      "name": "Batch input folder is reachable",
+      "pass": true
+    },
+    {
+      "name": "Batch input folder opens a real picker and cancels",
+      "pass": true
+    },
+    {
+      "name": "Batch boot/profile is reachable",
+      "pass": true
+    },
+    {
+      "name": "Batch boot/profile opens a real picker and cancels",
+      "pass": true
+    },
+    {
+      "name": "Batch output folder is reachable",
+      "pass": true
+    },
+    {
+      "name": "Batch output folder opens a real picker and cancels",
+      "pass": true
+    },
+    {
+      "name": "Repeated Add deduplicates selected paths",
+      "pass": true
+    },
+    {
+      "name": "Native Preview populates the same window from Core",
+      "pass": true
+    },
+    {
+      "name": "Batch report Save is reachable",
+      "pass": true
+    },
+    {
+      "name": "Batch report Save opens a real picker and cancels",
+      "pass": true
+    },
+    {
+      "name": "Selected details exposes all five WPF tabs",
+      "pass": true
+    },
+    {
+      "name": "Changing settings invalidates the prepared snapshot",
+      "pass": true
+    },
+    {
+      "name": "Preview creates no user output",
+      "pass": true
+    },
+    {
+      "name": "Native explicit Execute completes prepared extraction",
+      "pass": true
+    },
+    {
+      "name": "Batch keeps source bytes unchanged",
+      "pass": true
+    },
+    {
+      "name": "Reopened extracted MZF is byte exact",
+      "pass": true
+    },
+    {
+      "name": "Footer reachable at 1440x960",
+      "pass": true
+    },
+    {
+      "name": "Footer reachable at 1366x768",
+      "pass": true
+    },
+    {
+      "name": "Footer reachable at 920x640",
+      "pass": true
+    },
+    {
+      "name": "Footer reachable at 640x480",
+      "pass": true
+    },
+    {
+      "name": "Native Batch closes after cleanup",
+      "pass": true
+    }
+  ],
+  "frames": [
+    {
+      "file": "native-batch-empty.png",
+      "width": 1120,
+      "height": 800,
+      "scale": 1.5,
+      "origin": "Unmodified Skia render of a native window"
+    },
+    {
+      "file": "native-batch-operation-TestIntegrity.png",
+      "width": 1120,
+      "height": 800,
+      "scale": 1.5,
+      "origin": "Unmodified Skia render of a native window"
+    },
+    {
+      "file": "native-batch-operation-ConvertFormat.png",
+      "width": 1120,
+      "height": 800,
+      "scale": 1.5,
+      "origin": "Unmodified Skia render of a native window"
+    },
+    {
+      "file": "native-batch-operation-InstallBootSystem.png",
+      "width": 1120,
+      "height": 800,
+      "scale": 1.5,
+      "origin": "Unmodified Skia render of a native window"
+    },
+    {
+      "file": "native-batch-operation-ExtractAll.png",
+      "width": 1120,
+      "height": 800,
+      "scale": 1.5,
+      "origin": "Unmodified Skia render of a native window"
+    },
+    {
+      "file": "native-batch-operation-Defragment.png",
+      "width": 1120,
+      "height": 800,
+      "scale": 1.5,
+      "origin": "Unmodified Skia render of a native window"
+    },
+    {
+      "file": "native-batch-operation-SafeRepair.png",
+      "width": 1120,
+      "height": 800,
+      "scale": 1.5,
+      "origin": "Unmodified Skia render of a native window"
+    },
+    {
+      "file": "native-batch-operation-AnalyzeMzfCompatibility.png",
+      "width": 1120,
+      "height": 800,
+      "scale": 1.5,
+      "origin": "Unmodified Skia render of a native window"
+    },
+    {
+      "file": "native-batch-operation-CompressPrograms.png",
+      "width": 1120,
+      "height": 800,
+      "scale": 1.5,
+      "origin": "Unmodified Skia render of a native window"
+    },
+    {
+      "file": "native-batch-operation-DecompressPrograms.png",
+      "width": 1120,
+      "height": 800,
+      "scale": 1.5,
+      "origin": "Unmodified Skia render of a native window"
+    },
+    {
+      "file": "native-batch-operation-Analyze.png",
+      "width": 1120,
+      "height": 800,
+      "scale": 1.5,
+      "origin": "Unmodified Skia render of a native window"
+    },
+    {
+      "file": "native-batch-preview.png",
+      "width": 1120,
+      "height": 800,
+      "scale": 1.5,
+      "origin": "Unmodified Skia render of a native window"
+    },
+    {
+      "file": "native-batch-details-0.png",
+      "width": 1120,
+      "height": 700,
+      "scale": 1.5,
+      "origin": "Unmodified Skia render of a native window"
+    },
+    {
+      "file": "native-batch-details-1.png",
+      "width": 1120,
+      "height": 700,
+      "scale": 1.5,
+      "origin": "Unmodified Skia render of a native window"
+    },
+    {
+      "file": "native-batch-details-2.png",
+      "width": 1120,
+      "height": 700,
+      "scale": 1.5,
+      "origin": "Unmodified Skia render of a native window"
+    },
+    {
+      "file": "native-batch-details-3.png",
+      "width": 1120,
+      "height": 700,
+      "scale": 1.5,
+      "origin": "Unmodified Skia render of a native window"
+    },
+    {
+      "file": "native-batch-details-4.png",
+      "width": 1120,
+      "height": 700,
+      "scale": 1.5,
+      "origin": "Unmodified Skia render of a native window"
+    },
+    {
+      "file": "native-batch-1440x960.png",
+      "width": 1440,
+      "height": 940,
+      "scale": 1.5,
+      "origin": "Unmodified Skia render of a native window"
+    },
+    {
+      "file": "native-batch-1366x768.png",
+      "width": 1366,
+      "height": 768,
+      "scale": 1.5,
+      "origin": "Unmodified Skia render of a native window"
+    },
+    {
+      "file": "native-batch-920x640.png",
+      "width": 920,
+      "height": 640,
+      "scale": 1.5,
+      "origin": "Unmodified Skia render of a native window"
+    },
+    {
+      "file": "native-batch-640x480.png",
+      "width": 640,
+      "height": 480,
+      "scale": 1.5,
+      "origin": "Unmodified Skia render of a native window"
+    }
+  ],
+  "states": [
+    {
+      "operation": "TestIntegrity",
+      "controls": [
+        {
+          "name": "ConversionTarget",
+          "enabled": false,
+          "visible": false
+        },
+        {
+          "name": "ExtractFormat",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "BatchCompression",
+          "enabled": true,
+          "visible": false
+        },
+        {
+          "name": "AudioSampleRate",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "UseHeuristicAnalysis",
+          "enabled": true,
+          "visible": true
+        },
+        {
+          "name": "BootSource",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "OutputFolder",
+          "enabled": false,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "operation": "ConvertFormat",
+      "controls": [
+        {
+          "name": "ConversionTarget",
+          "enabled": true,
+          "visible": true
+        },
+        {
+          "name": "ExtractFormat",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "BatchCompression",
+          "enabled": true,
+          "visible": false
+        },
+        {
+          "name": "AudioSampleRate",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "UseHeuristicAnalysis",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "BootSource",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "OutputFolder",
+          "enabled": true,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "operation": "InstallBootSystem",
+      "controls": [
+        {
+          "name": "ConversionTarget",
+          "enabled": false,
+          "visible": false
+        },
+        {
+          "name": "ExtractFormat",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "BatchCompression",
+          "enabled": true,
+          "visible": false
+        },
+        {
+          "name": "AudioSampleRate",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "UseHeuristicAnalysis",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "BootSource",
+          "enabled": true,
+          "visible": true
+        },
+        {
+          "name": "OutputFolder",
+          "enabled": true,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "operation": "ExtractAll",
+      "controls": [
+        {
+          "name": "ConversionTarget",
+          "enabled": false,
+          "visible": false
+        },
+        {
+          "name": "ExtractFormat",
+          "enabled": true,
+          "visible": true
+        },
+        {
+          "name": "BatchCompression",
+          "enabled": true,
+          "visible": false
+        },
+        {
+          "name": "AudioSampleRate",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "UseHeuristicAnalysis",
+          "enabled": true,
+          "visible": true
+        },
+        {
+          "name": "BootSource",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "OutputFolder",
+          "enabled": true,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "operation": "Defragment",
+      "controls": [
+        {
+          "name": "ConversionTarget",
+          "enabled": false,
+          "visible": false
+        },
+        {
+          "name": "ExtractFormat",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "BatchCompression",
+          "enabled": true,
+          "visible": false
+        },
+        {
+          "name": "AudioSampleRate",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "UseHeuristicAnalysis",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "BootSource",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "OutputFolder",
+          "enabled": true,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "operation": "SafeRepair",
+      "controls": [
+        {
+          "name": "ConversionTarget",
+          "enabled": false,
+          "visible": false
+        },
+        {
+          "name": "ExtractFormat",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "BatchCompression",
+          "enabled": true,
+          "visible": false
+        },
+        {
+          "name": "AudioSampleRate",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "UseHeuristicAnalysis",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "BootSource",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "OutputFolder",
+          "enabled": true,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "operation": "AnalyzeMzfCompatibility",
+      "controls": [
+        {
+          "name": "ConversionTarget",
+          "enabled": false,
+          "visible": false
+        },
+        {
+          "name": "ExtractFormat",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "BatchCompression",
+          "enabled": true,
+          "visible": false
+        },
+        {
+          "name": "AudioSampleRate",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "UseHeuristicAnalysis",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "BootSource",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "OutputFolder",
+          "enabled": false,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "operation": "CompressPrograms",
+      "controls": [
+        {
+          "name": "ConversionTarget",
+          "enabled": false,
+          "visible": false
+        },
+        {
+          "name": "ExtractFormat",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "BatchCompression",
+          "enabled": true,
+          "visible": true
+        },
+        {
+          "name": "AudioSampleRate",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "UseHeuristicAnalysis",
+          "enabled": true,
+          "visible": true
+        },
+        {
+          "name": "BootSource",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "OutputFolder",
+          "enabled": true,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "operation": "DecompressPrograms",
+      "controls": [
+        {
+          "name": "ConversionTarget",
+          "enabled": false,
+          "visible": false
+        },
+        {
+          "name": "ExtractFormat",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "BatchCompression",
+          "enabled": true,
+          "visible": false
+        },
+        {
+          "name": "AudioSampleRate",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "UseHeuristicAnalysis",
+          "enabled": true,
+          "visible": true
+        },
+        {
+          "name": "BootSource",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "OutputFolder",
+          "enabled": true,
+          "visible": true
+        }
+      ]
+    },
+    {
+      "operation": "Analyze",
+      "controls": [
+        {
+          "name": "ConversionTarget",
+          "enabled": false,
+          "visible": false
+        },
+        {
+          "name": "ExtractFormat",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "BatchCompression",
+          "enabled": true,
+          "visible": false
+        },
+        {
+          "name": "AudioSampleRate",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "UseHeuristicAnalysis",
+          "enabled": true,
+          "visible": true
+        },
+        {
+          "name": "BootSource",
+          "enabled": false,
+          "visible": true
+        },
+        {
+          "name": "OutputFolder",
+          "enabled": false,
+          "visible": true
+        }
+      ]
+    }
+  ],
+  "fixtureSha256": "4FA75EB59C34B7961A41DF7305C0635627C07080E87413CE1027A2738D619C7F"
+}

@@ -10,6 +10,7 @@ public interface IDiskDialogs
 {
     Task<DiskAnswer?> DiskFormAsync(string title,IReadOnlyList<DiskField> fields,string explanation="");
     Task<IReadOnlyList<string>> PickDiskFilesAsync(string title,bool multiple=false);
+    Task<IReadOnlyList<string>> PickBatchFilesAsync(string title,string extensions)=>PickDiskFilesAsync(title,true);
     Task<string?> PickDiskOutputAsync(string title,string suggestedName);
     Task<bool> ConfirmDiskAsync(string title,string report);
 }

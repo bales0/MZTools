@@ -20,7 +20,7 @@ public sealed partial class RecordWorkspace
     private void MapHex(object? sender, RoutedEventArgs e)
     {
         if (Model?.ActiveTape is not { Snapshot: { } snapshot, SelectedRegion: { } region } || TopLevel.GetTopLevel(this) is not Window owner) return;
-        new HexViewWindow(snapshot.Layout.GetBlockBytes(region)).Show(owner);
+        HexViewWindow.Region(Model.ActiveTape,region).Show(owner);
     }
     private async void MapCopy(object? sender, RoutedEventArgs e)
     {

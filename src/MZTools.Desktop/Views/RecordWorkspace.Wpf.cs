@@ -24,7 +24,7 @@ public sealed partial class RecordWorkspace
     private void OpenWpfHex()
     {
         if(observed?.SelectedRow is not{} row||TopLevel.GetTopLevel(this) is not Window owner)return;
-        new HexViewWindow(row).Show(owner);
+        new HexViewWindow(row,observed.Model.Format==TapeDocumentFormat.Qdf).Show(owner);
     }
     private void RenameInline(object? sender,RoutedEventArgs e)=>FocusInlineName();
     private void ViewHex(object? sender,RoutedEventArgs e){OpenWpfHex();}

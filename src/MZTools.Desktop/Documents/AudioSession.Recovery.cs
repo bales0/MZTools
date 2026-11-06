@@ -19,9 +19,10 @@ public sealed partial class AudioSession
     public AudioCandidateRow? SelectedCandidate
     {
         get=>selectedCandidate;
-        set{if(Set(ref selectedCandidate,value)){if(value is not null)SelectEvidence(value.Start,value.End);Changed(nameof(Detail));Changed(nameof(CandidateHex));}}
+        set{if(Set(ref selectedCandidate,value)){if(value is not null)SelectEvidence(value.Start,value.End);Changed(nameof(Detail));Changed(nameof(CandidateHex));Changed(nameof(CandidateEvidence));}}
     }
     public string CandidateHex=>SelectedCandidate?.Hex??"Select a recovery candidate. Hex inspection does not change validity or invent a header.";
+    public string CandidateEvidence=>SelectedCandidate is{} c?c.Status+"\n"+c.Value.BoundaryEvidence:"Select a recovery candidate. No RAM address is assumed for unpaired raw bytes.";
     public AudioPassRow? SelectedPass
     {
         get=>selectedPass;
@@ -68,7 +69,7 @@ public sealed partial class AudioSession
         {
         Programs=AvailableRecords.Select((r,i)=>new RecordRow(r,i)).ToArray();Candidates=Recovery?.Candidates.Select((c,i)=>new AudioCandidateRow(c,i)).ToArray()??[];Passes=Recovery?.Passes.Select((p,i)=>new AudioPassRow(p,i)).ToArray()??[];
         selectedProgram=Programs.FirstOrDefault();selectedCandidate=null;selectedPass=null;PassComparison=null;compareLeft=0;compareRight=Passes.Count>1?1:0;
-        foreach(var p in new[]{nameof(Programs),nameof(Candidates),nameof(Passes),nameof(SelectedProgram),nameof(SelectedCandidate),nameof(SelectedPass),nameof(CandidateHex),nameof(PassNames),nameof(CompareLeft),nameof(CompareRight),nameof(PassDifferences),nameof(PassComparisonSummary)})Changed(p);
+        foreach(var p in new[]{nameof(Programs),nameof(Candidates),nameof(Passes),nameof(SelectedProgram),nameof(SelectedCandidate),nameof(SelectedPass),nameof(CandidateHex),nameof(CandidateEvidence),nameof(PassNames),nameof(CompareLeft),nameof(CompareRight),nameof(PassDifferences),nameof(PassComparisonSummary)})Changed(p);
         }finally{refreshingRecoveryRows=false;}Changed(nameof(SelectedProgram));
     }
     internal async Task ComparePassesAsync(CancellationToken ct)

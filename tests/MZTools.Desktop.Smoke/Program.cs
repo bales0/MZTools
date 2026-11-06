@@ -117,6 +117,7 @@ public sealed class ReviewApp : App
             }
             var close = window.Model.Documents.CloseAllAsync(); Check(await close, "Native close coordinator succeeds");
             await MediaScenario.Run(Program.Output);
+            await BatchScenario.Run(Program.Output);
             await DiskScenario.Run(Program.Output);
             await AudioScenario.Run(Program.Output);
             await RecorderScenario.Run(Program.Output);

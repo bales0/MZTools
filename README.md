@@ -11,7 +11,13 @@ independent WPF-style preview immediately and decodes only its captured interval
 [Payload-only analysis](docs/PAYLOAD_UNKNOWN_LENGTH_2026-11-04.md) treats a blank size
 as unknown and ignores stale size values when Unknown length is selected.
 Current Windows/Linux x64 developer archives are in
-`TestResults/HexPresentation-2026-11-05/distribution`; earlier archives predate this change.
+`TestResults/BatchHex-2026-11-06/distribution`; earlier archives predate this change.
+[Persistent Batch workflow and shared hex navigation](docs/BATCH_HEX_IMPLEMENTATION_2026-11-06.md)
+add one WPF-style Batch window, five detail tabs, RAM addresses for program payloads
+and a common byte position in HEX, ASCII and MZASCII.
+[Batch fixes and validation](docs/BATCH_PARITY_AUDIT_2026-11-06.md) cover extraction
+formats, Core-driven filters, audio options, separate loss/replacement consent and cancellation.
+MZF/M12/MZT hex views show their record only; derived QDF fields appear only in QDF context.
 [Hex presentation](docs/HEX_PRESENTATION_2026-11-05.md) aligns HEX, ASCII and SHASCII
 in a shared editor viewport and restores per-byte WPF colors in a single viewer.
 [DSK analyzer and visual inspector parity](docs/DSK_ANALYZER_PARITY_2026-11-04.md)

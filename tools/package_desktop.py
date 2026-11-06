@@ -44,6 +44,18 @@ def package(rid,output,dotnet):
             shutil.copyfile(path,product/path.name)
             if source.startswith('docs/'):
                 target=product/source;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(path,target)
+    audit=ROOT/'docs/BATCH_PARITY_AUDIT_2026-11-06.md'
+    if audit.exists():
+        shutil.copyfile(audit,product/audit.name)
+        (product/'docs').mkdir(exist_ok=True)
+        shutil.copyfile(audit,product/'docs'/audit.name)
+    current_audit=ROOT/'docs/BATCH_HEX_IMPLEMENTATION_2026-11-06.md'
+    if current_audit.exists():
+        shutil.copyfile(current_audit,product/current_audit.name)
+        (product/'docs').mkdir(exist_ok=True)
+        shutil.copyfile(current_audit,product/'docs'/current_audit.name)
+    batch_comparison=ROOT/'docs/ui-design-system/batch-hex-2026-11-06'
+    if batch_comparison.exists():shutil.copytree(batch_comparison,product/'docs/ui-design-system/batch-hex-2026-11-06')
     comparison=ROOT/'docs/ui-design-system/selected-analysis-2026-11-04'
     if comparison.exists():shutil.copytree(comparison,product/'docs/ui-design-system/selected-analysis-2026-11-04')
     dsk_comparison=ROOT/'docs/ui-design-system/dsk-parity-2026-11-04'
