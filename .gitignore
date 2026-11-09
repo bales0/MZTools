@@ -397,7 +397,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-/.vscode
+/.vscode/*
+!/.vscode/tasks.json
+!/.vscode/launch.json
 .gitattributes
 .gitignore
 # /MZTools.Tests

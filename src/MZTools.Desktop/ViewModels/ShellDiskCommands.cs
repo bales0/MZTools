@@ -37,7 +37,7 @@ public sealed partial class ShellViewModel
             DiskSession session;
             if(options.Format is DskNewFormat.IplSingle or DskNewFormat.IplMulti)
             {
-                var paths=await dialogs.PickDiskFilesAsync("Choose IPL programs (MZF/M12/MZT)",true);if(paths.Count==0)return false;
+                var paths=await dialogs.PickDiskFilesAsync(FilePickerPurpose.ImportIplPrograms,"Choose IPL programs (MZF/M12/MZT)",true);if(paths.Count==0)return false;
                 var inputs=await Task.Run(()=>DiskOperations.ReadIplFiles(paths,ct),ct);
                 var model=await Task.Run(()=>DiskFormatService.SetNewContainer(DiskOperations.BuildIpl(inputs,options.Format==DskNewFormat.IplSingle),options.HfeVersion),ct);
                 if(!await dialogs.ConfirmDiskAsync("New IPL preview",$"Build {inputs.Length} programs in {options.Format}. Core validates memory ranges and disk capacity."))return false;
@@ -46,7 +46,7 @@ public sealed partial class ShellViewModel
             else session=await Task.Run(()=>DiskSession.New(options),ct);
             Documents.Add(session);return true;
         });},()=>!Documents.IsBusy&&dialogs is not null);
-        DiskImportCommand=Op(async(s,ct)=>{if(s.CanEditIpl)return await EditIplAsync(s,"IPL add programs",ct);var paths=await dialogs!.PickDiskFilesAsync("Import MZF or binary files",true);if(paths.Count==0)return false;return await AcceptDiskAsync(s,await Task.Run(()=>DiskOperations.Import(s,paths,ct),ct),ct);},()=>dialogs is not null&&(ActiveDisk?.CanEdit==true||ActiveDisk?.CanEditIpl==true)&&ActiveDisk.HasDraft==false);
+        DiskImportCommand=Op(async(s,ct)=>{if(s.CanEditIpl)return await EditIplAsync(s,"IPL add programs",ct);var paths=await dialogs!.PickDiskFilesAsync(Platform.FilePickerPolicy.DiskImportPurpose(s),"Import MZF or binary files",true);if(paths.Count==0)return false;return await AcceptDiskAsync(s,await Task.Run(()=>DiskOperations.Import(s,paths,ct),ct),ct);},()=>dialogs is not null&&(ActiveDisk?.CanEdit==true||ActiveDisk?.CanEditIpl==true)&&ActiveDisk.HasDraft==false);
         DiskDeleteCommand=Op(async(s,ct)=>s.CanEditIpl?await EditIplAsync(s,"IPL delete programs",ct):await AcceptDiskAsync(s,await Task.Run(()=>DiskOperations.Delete(s),ct),ct),()=>dialogs is not null&&(ActiveDisk?.CanDeleteFiles==true||ActiveDisk?.CanEditIpl==true)&&ActiveDisk.SelectedFile is not null&&!ActiveDisk.HasDraft);
         DiskExportCommand=Op(async(s,ct)=>
         {
@@ -123,8 +123,8 @@ public sealed partial class ShellViewModel
         var path=await DiskDialogs.PickDiskOutputAsync(title,name);if(path is null)return false;
         await Documents.WriteExportAsync(new Dictionary<string,byte[]>{[path]=bytes},ct);return true;
     }
-    private async Task<string?> InputFileAsync(string title)
-    {var paths=await DiskDialogs!.PickDiskFilesAsync(title);return paths.FirstOrDefault();}
+    private async Task<string?> InputFileAsync(FilePickerPurpose purpose,string title)
+    {var paths=await DiskDialogs!.PickDiskFilesAsync(purpose,title);return paths.FirstOrDefault();}
     internal async Task<bool> RunDiskToolAsync(DiskSession s,string tool,CancellationToken ct)
     {
         var d=DiskDialogs??throw new InvalidOperationException("Disk dialogs are unavailable.");
@@ -168,7 +168,7 @@ public sealed partial class ShellViewModel
             }
             case "Compare image":
             {
-                var path=await InputFileAsync(tool);if(path is null)return false;byte[] right=await File.ReadAllBytesAsync(path,ct);
+                var path=await InputFileAsync(FilePickerPurpose.CompareDisk,tool);if(path is null)return false;byte[] right=await File.ReadAllBytesAsync(path,ct);
                 var report=await Task.Run(()=>DskCompareService.CompareMedia(s.SerializeContainer(),right),ct);
                 DskComparison? comparison=null;
                 if(s.HasProjection){try{comparison=DskCompareService.Compare(s.Model,DskDocument.Open(right));}catch(InvalidDataException){/* Physical comparison report remains available without a projection. */}}
@@ -199,24 +199,24 @@ public sealed partial class ShellViewModel
                 var a=await d.DiskFormAsync(tool,[new("order","Range order","Physical",Enum.GetNames<DskRawOrder>())],$"{addresses.Length} selected sectors. Raw data uses exact Core ranges and order.");if(a is null)return false;
                 var order=Enum.Parse<DskRawOrder>(a["order"]);
                 if(tool=="Raw export")return await WriteDiskExportAsync(tool,"sectors.bin",DskRawRangeService.Export(s.Model,addresses,order),"Export selected decoded/stored sector bytes.",ct);
-                var path=await InputFileAsync(tool);if(path is null)return false;byte[] data=await File.ReadAllBytesAsync(path,ct);
+                var path=await InputFileAsync(FilePickerPurpose.RawSectorImport,tool);if(path is null)return false;byte[] data=await File.ReadAllBytesAsync(path,ct);
                 return await AcceptDiskAsync(s,DiskOperations.Preview(s,c=>DskHexEditService.Apply(c,DskRawRangeService.PreviewImport(c,addresses,order,data),true),"Replace the selected raw sector range. Core validates exact length and filesystem impact.",true),ct);
             }
             case "Apply patch":
             {
-                var path=await InputFileAsync(tool);if(path is null)return false;var patch=DskPatchService.Read(path);
+                var path=await InputFileAsync(FilePickerPurpose.ApplyDiskPatch,tool);if(path is null)return false;var patch=DskPatchService.Read(path);
                 return await AcceptDiskAsync(s,DiskOperations.Preview(s,c=>DskPatchService.Apply(c,DskPatchService.Preview(c,patch)),"Apply the source-hash-bound patch.",true),ct);
             }
             case "Export patch":
             {
-                var path=await InputFileAsync("Choose baseline DSK for patch");if(path is null)return false;var patch=DskPatchService.Export(await File.ReadAllBytesAsync(path,ct),s.Model.Serialize());
+                var path=await InputFileAsync(FilePickerPurpose.PatchBaseline,"Choose baseline DSK for patch");if(path is null)return false;var patch=DskPatchService.Export(await File.ReadAllBytesAsync(path,ct),s.Model.Serialize());
                 return await WriteDiskExportAsync(tool,"changes.json",System.Text.Encoding.UTF8.GetBytes(DskPatchService.ToJson(patch)),"Export baseline-to-current patch, including source and target hashes.",ct);
             }
             case "Physical properties":return await EditPhysicalAsync(s,ct);
             case "Bootstrap header export":return await WriteDiskExportAsync(tool,"bootstrap-header.bin",BootstrapService.Export(s.Model),"Export the 256 decoded native bootstrap header bytes.",ct);
             case "Bootstrap header import":
             {
-                var path=await InputFileAsync(tool);if(path is null)return false;var data=await File.ReadAllBytesAsync(path,ct);
+                var path=await InputFileAsync(FilePickerPurpose.BootstrapImport,tool);if(path is null)return false;var data=await File.ReadAllBytesAsync(path,ct);
                 var preview=BootstrapService.PreviewHeader(s.Model,data);
                 return await AcceptDiskAsync(s,DiskOperations.Preview(s,c=>DskHexEditService.Apply(c,preview,true),preview.Report,true),ct);
             }
@@ -228,7 +228,7 @@ public sealed partial class ShellViewModel
             case "Bootstrap export":return await WriteDiskExportAsync(tool,"bootstrap.bin",BootstrapService.ExportBootstrap(s.Model),"Export the decoded native bootstrap track.",ct);
             case "Bootstrap import":
             {
-                var path=await InputFileAsync(tool);if(path is null)return false;var data=await File.ReadAllBytesAsync(path,ct);
+                var path=await InputFileAsync(FilePickerPurpose.BootstrapImport,tool);if(path is null)return false;var data=await File.ReadAllBytesAsync(path,ct);
                 return await AcceptDiskAsync(s,DiskOperations.Preview(s,c=>DskHexEditService.Apply(c,BootstrapService.PreviewBootstrap(c,data),true),"Replace the validated native bootstrap track.",true),ct);
             }
             case "Bootstrap metadata":

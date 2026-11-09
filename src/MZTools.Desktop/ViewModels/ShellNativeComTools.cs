@@ -16,7 +16,7 @@ public sealed partial class ShellViewModel
             await Documents.ExecuteAsync(async ct =>
             {
                 if (disk.CanEditIpl) return await EditIplAsync(disk, "IPL add programs", ct);
-                var paths = await DiskDialogs.PickDiskFilesAsync("Import files to DSK / HFE", true);
+                var paths = await DiskDialogs.PickDiskFilesAsync(Platform.FilePickerPolicy.DiskImportPurpose(disk),"Import files to DSK / HFE", true);
                 if (paths.Count == 0) return false;
 
                 bool nativeSource = paths.Count == 1 && IsComSource(paths[0]);

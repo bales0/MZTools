@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using Avalonia;
@@ -19,9 +19,11 @@ namespace MZTools.Desktop.Smoke;
 internal static class Program
 {
     internal static string Output = "";
+    internal static bool PickersOnly;
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.Length == 2 && args[0] == "--pickers") { PickersOnly = true; args = args[1..]; }
         if (args.Length != 1) { Console.Error.WriteLine("Usage: MZTools.Desktop.Smoke <output-directory>"); return 2; }
         Output = Path.GetFullPath(args[0]); Directory.CreateDirectory(Output);Environment.SetEnvironmentVariable("MZTOOLS_SETTINGS_ROOT",Path.Combine(Output,"preferences"));
         return AppBuilder.Configure<ReviewApp>().UsePlatformDetect().StartWithClassicDesktopLifetime([]);
@@ -34,7 +36,7 @@ public sealed class ReviewApp : App
     {
         base.OnFrameworkInitializationCompleted();
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop && desktop.MainWindow is MainWindow window)
-            window.Opened += async (_, _) => await Review(window, desktop);
+            window.Opened += async (_, _) => { if (Program.PickersOnly) await PickerScenario.Run(window,desktop); else await Review(window, desktop); };
     }
 
     private static async Task Review(MainWindow window, IClassicDesktopStyleApplicationLifetime desktop)

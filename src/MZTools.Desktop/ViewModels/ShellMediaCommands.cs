@@ -68,7 +68,7 @@ public sealed partial class ShellViewModel
         }, () => dialogs is not null && CanMutateRecords && Selected());
         ImportCommand = Operation(async ct =>
         {
-            var tape = ActiveTape!; var paths = await dialogs!.PickImportAsync(); if (paths.Count == 0) return false;
+            var tape = ActiveTape!; var paths = await dialogs!.PickImportAsync(tape); if (paths.Count == 0) return false;
             var preview = await MediaOperations.ImportAsync(tape, paths, ct);
             if (!await dialogs.ConfirmPreviewAsync("Import preview", preview.Report)) return false;
             return ApplyPreview(tape, preview);

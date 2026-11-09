@@ -9,7 +9,7 @@ public sealed partial class ShellViewModel
         if(ActiveDisk is not{} target||DiskDialogs is null||!target.CanEdit||target.HasDraft)return false;
         return await Documents.ExecuteAsync(async ct=>
         {
-            var paths=await DiskDialogs.PickDiskFilesAsync("Copy from another disk...");
+            var paths=await DiskDialogs.PickDiskFilesAsync(FilePickerPurpose.CopyFromDisk,"Copy from another disk...");
             if(paths.Count==0)return false;
             string path=paths[0];string? fingerprint=AtomicFileTransaction.Hash(path);
             var source=await Task.Run(()=>DskDocument.Open(path),ct);

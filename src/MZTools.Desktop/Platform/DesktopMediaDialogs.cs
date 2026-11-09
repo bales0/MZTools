@@ -33,10 +33,10 @@ public sealed partial class DesktopDialogs : IMediaDialogs
         return file is null ? null : options with { Path = file.TryGetLocalPath() ?? throw new NotSupportedException("A local destination path is required.") };
     }
     public Task<bool> ConfirmLossAsync(string message) => ConfirmPreviewAsync("Output changes", message);
-    public async Task<IReadOnlyList<string>> PickImportAsync()
+    public async Task<IReadOnlyList<string>> PickImportAsync(TapeSession target)
     {
-        var files = await owner.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { Title = "Import records or WAV/LEP/L16", AllowMultiple = true });
-        return files.Select(f => f.TryGetLocalPath() ?? throw new NotSupportedException("A local path is required.")).ToArray();
+        var files = await OpenInputPickerAsync(FilePickerPolicy.Options(FilePickerPurpose.ImportTapeRecords, "Import records or WAV/LEP/L16", true, target));
+        return files;
     }
     public Task<bool> ConfirmPreviewAsync(string title, string report) => ConfirmAsync(title, report, ("Continue", true), ("Cancel", false));
     public async Task<CompressionChoice?> ChooseCompressionAsync()

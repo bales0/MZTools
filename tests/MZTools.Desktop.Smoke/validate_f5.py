@@ -1,6 +1,7 @@
 """Verify F5 evidence, codec boundaries, frozen design inventory and review links."""
 import hashlib
 from html.parser import HTMLParser
+from build_paths import assets_path
 import json
 from pathlib import Path
 import subprocess
@@ -41,7 +42,7 @@ def main():
     for paths in [('MZTools.Capture','MZTools.Capture.Windows'),('boot','MZTool.Tests/ReferenceGolden')]:check('Unchanged production/goldens '+str(paths),subprocess.run(['git','diff','--quiet','--',*paths],cwd=REPO).returncode==0)
     items=json.loads((REPO/'TestResults/F5/wpf-evaluated-items.json').read_text(encoding='utf-8-sig'))['Items']
     check('WPF Compile/Page excludes new frontend and test artifacts',not any(i['Identity'].replace('\\','/').lower().startswith(('src/','tests/','testresults/')) for values in items.values() for i in values))
-    assets=json.loads((REPO/'src/MZTools.Desktop/obj/project.assets.json').read_text(encoding='utf-8-sig'))
+    assets=json.loads(assets_path('src/MZTools.Desktop').read_text(encoding='utf-8-sig'))
     check('Desktop has no WPF or Windows Capture/NAudio dependency',not any('NAudio' in name or 'MZTools.Capture.Windows' in name or name.startswith('MZTools/') for name in assets['libraries']))
     for name in ('desktop-audit','tests-audit'):
         audit=json.loads((REPO/'TestResults/F5'/(name+'.json')).read_text(encoding='utf-8-sig'))

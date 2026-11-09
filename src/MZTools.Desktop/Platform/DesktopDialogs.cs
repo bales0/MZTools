@@ -9,12 +9,25 @@ namespace MZTools.Desktop.Platform;
 public sealed partial class DesktopDialogs(Window owner) : IDocumentDialogs
 {
     public bool AudioOnly {get;init;}
+    internal Func<FilePickerOpenOptions, Task<IReadOnlyList<string>>>? InputPicker {get;init;}
+    internal async Task<IReadOnlyList<string>> OpenInputPickerAsync(FilePickerOpenOptions options)
+    {
+        IReadOnlyList<string> paths;
+        if (InputPicker is { } picker) paths = await picker(options);
+        else
+        {
+            var files = await owner.StorageProvider.OpenFilePickerAsync(options);
+            paths = files.Select(f => f.TryGetLocalPath() ?? throw new NotSupportedException("A local input path is required.")).ToArray();
+        }
+        FilePickerPolicy.Validate(options, paths);
+        return paths;
+    }
     public async Task<string?> OpenAsync()
     {
-        var files = await owner.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-        { Title = AudioOnly?"Open audio / recording":"Open media", AllowMultiple = false, FileTypeFilter=AudioOnly?[new FilePickerFileType("Audio captures / complete recordings (*.wav;*.flac;*.wav.json)"){Patterns=["*.wav","*.flac","*.wav.json"]}]:null });
-        return files.Count == 0 ? null : files[0].TryGetLocalPath()
-            ?? throw new NotSupportedException("This provider did not return a local path.");
+        var options = FilePickerPolicy.Options(AudioOnly ? FilePickerPurpose.OpenAudio : FilePickerPurpose.OpenMedia,
+            AudioOnly ? "Open audio / recording" : "Open media");
+        var files = await OpenInputPickerAsync(options);
+        return files.FirstOrDefault();
     }
 
     public async Task<string?> SaveAsAsync(DocumentSession document)

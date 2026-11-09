@@ -14,6 +14,7 @@ internal sealed class DiskTestDialogs : IDocumentDialogs,IMediaDialogs,IDiskDial
     internal List<string> Reports {get;}=[];
     internal List<string> Confirmations {get;}=[];
     internal Func<string,bool>? Confirm {get;set;}
+    internal FilePickerPurpose? LastPickerPurpose {get;private set;}
     internal string? BatchFilter {get;private set;}
     public Task<string?> OpenAsync()=>Task.FromResult(OpenPath);
     public Task<string?> SaveAsAsync(DocumentSession document)=>Task.FromResult(Save?.Path);
@@ -23,11 +24,11 @@ internal sealed class DiskTestDialogs : IDocumentDialogs,IMediaDialogs,IDiskDial
     public Task<CloseDecision> ConfirmCloseAsync(DocumentSession document)=>Task.FromResult(Close);
     public Task<DiskAnswer?> DiskFormAsync(string title,IReadOnlyList<DiskField> fields,string explanation="")
     {Forms++;Reports.Add(explanation);return Task.FromResult(CancelForm?null:Answer is null?new DiskAnswer(fields.ToDictionary(f=>f.Key,f=>f.Value)):Answer(title,fields));}
-    public Task<IReadOnlyList<string>> PickDiskFilesAsync(string title,bool multiple=false)=>Task.FromResult(Inputs);
+    public Task<IReadOnlyList<string>> PickDiskFilesAsync(FilePickerPurpose purpose,string title,bool multiple=false){LastPickerPurpose=purpose;return Task.FromResult(Inputs);}
     public Task<IReadOnlyList<string>> PickBatchFilesAsync(string title,string extensions){BatchFilter=extensions;return Task.FromResult(Inputs);}
     public Task<string?> PickDiskOutputAsync(string title,string suggestedName)=>Task.FromResult(Output);
     public Task<bool> ConfirmDiskAsync(string title,string report){Reports.Add(report);Confirmations.Add(title);return Task.FromResult(Confirm?.Invoke(title)??Accept);}
-    public Task<IReadOnlyList<string>> PickImportAsync()=>Task.FromResult(Inputs);
+    public Task<IReadOnlyList<string>> PickImportAsync(TapeSession target)=>Task.FromResult(Inputs);
     public Task<CompressionChoice?> ChooseCompressionAsync()=>Task.FromResult<CompressionChoice?>(null);
     public Task<ExportChoice?> ChooseExportAsync(TapeSession session)=>Task.FromResult<ExportChoice?>(null);
     public Task<bool> ConfirmPreviewAsync(string title,string report)=>ConfirmDiskAsync(title,report);

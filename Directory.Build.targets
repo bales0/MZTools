@@ -1,0 +1,11 @@
+<Project>
+  <Target Name="MZToolsUpdateRunnableBuild" AfterTargets="Build"
+          Condition="'$(MSBuildProjectName)' == 'MZTools.Desktop' and '$(DesignTimeBuild)' != 'true' and '$(MZToolsPublishLatest)' != 'false'">
+    <PropertyGroup>
+      <_MZToolsLatestRid Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</_MZToolsLatestRid>
+      <_MZToolsLatestRid Condition="'$(_MZToolsLatestRid)' == ''">$(NETCoreSdkRuntimeIdentifier)</_MZToolsLatestRid>
+    </PropertyGroup>
+    <Exec WorkingDirectory="$(MZToolsRepositoryRoot)"
+          Command="&quot;$(MZToolsPython)&quot; &quot;$(MZToolsRepositoryRoot)tools/build_desktop.py&quot; --rid &quot;$(_MZToolsLatestRid)&quot; --configuration &quot;$(Configuration)&quot;" />
+  </Target>
+</Project>

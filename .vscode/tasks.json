@@ -1,0 +1,38 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build MZTools (Release)",
+			"type": "process",
+			"command": "python3",
+			"windows": { "command": "python" },
+			"args": [
+				"${workspaceFolder}/tools/build_desktop.py"
+			],
+			"problemMatcher": "$msCompile",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		{
+			"label": "Build MZTools (Windows + Linux x64)",
+			"type": "process",
+			"command": "python3",
+			"windows": { "command": "python" },
+			"args": ["${workspaceFolder}/tools/build_desktop.py", "--rid", "win-x64", "--rid", "linux-x64"],
+			"problemMatcher": "$msCompile"
+		},
+		{
+			"type": "markdownlint",
+			"problemMatcher": [
+				"$markdownlint"
+			],
+			"label": "markdownlint: Lint all Markdown files in the workspace with markdownlint",
+			"group": {
+				"kind": "build",
+				"isDefault": false
+			}
+		}
+	]
+}

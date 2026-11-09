@@ -89,11 +89,12 @@ internal static class DiskScenario
         public Task<bool> ConfirmOverwriteAsync(string path)=>Task.FromResult(true);
         public Task<bool> ConfirmLossAsync(string message)=>Task.FromResult(true);
         public Task<CloseDecision> ConfirmCloseAsync(DocumentSession document)=>Task.FromResult(CloseDecision.Discard);
-        public Task<IReadOnlyList<string>> PickImportAsync()=>Task.FromResult(Inputs);
+        public Task<IReadOnlyList<string>> PickImportAsync(TapeSession target)=>Task.FromResult(Inputs);
         public Task<CompressionChoice?> ChooseCompressionAsync()=>Task.FromResult<CompressionChoice?>(null);
         public Task<ExportChoice?> ChooseExportAsync(TapeSession session)=>Task.FromResult<ExportChoice?>(null);
         public Task<bool> ConfirmPreviewAsync(string title,string report)=>Task.FromResult(true);
-        public Task<IReadOnlyList<string>> PickDiskFilesAsync(string title,bool multiple=false)=>Task.FromResult(Inputs);
+        public Task<IReadOnlyList<string>> PickBatchFilesAsync(string title,string extensions)=>PickDiskFilesAsync(FilePickerPurpose.BatchInputs,title,true);
+        public Task<IReadOnlyList<string>> PickDiskFilesAsync(FilePickerPurpose purpose,string title,bool multiple=false)=>Task.FromResult(Inputs);
         public Task<string?> PickDiskOutputAsync(string title,string name)=>Task.FromResult<string?>(null);
         public Task<bool> ConfirmDiskAsync(string title,string report)=>Task.FromResult(true);
         public Task<DiskAnswer?> DiskFormAsync(string title,IReadOnlyList<DiskField> fields,string explanation="")

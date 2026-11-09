@@ -10,8 +10,11 @@ waveform selection/detail zoom and stereo alignment in Deep Analyze.
 independent WPF-style preview immediately and decodes only its captured interval.
 [Payload-only analysis](docs/PAYLOAD_UNKNOWN_LENGTH_2026-11-04.md) treats a blank size
 as unknown and ignores stale size values when Unknown length is selected.
-Current Windows/Linux x64 developer archives are in
-`TestResults/BatchHex-2026-11-06/distribution`; earlier archives predate this change.
+The current runnable builds are always **`bin/win-x64`** and **`bin/linux-x64`**.
+Build with `python tools/build_desktop.py --rid win-x64 --rid linux-x64`;
+normal Desktop builds and the default VS Code build task update the same folders.
+Copy the entire platform folder to another PC; .NET is included.
+See [build/output instructions](docs/BUILD_OUTPUT.md) for commands and Linux OS requirements.
 [Persistent Batch workflow and shared hex navigation](docs/BATCH_HEX_IMPLEMENTATION_2026-11-06.md)
 add one WPF-style Batch window, five detail tabs, RAM addresses for program payloads
 and a common byte position in HEX, ASCII and MZASCII.
@@ -1340,3 +1343,7 @@ in the catalog browser. IC/NORMAL aliases share exact guide data and one physica
 classification test. Guide visibility redraws the reference strip and dotted lines
 without resetting measured pulses or zoom; ROM hover details distinguish multiple
 LOW contexts. [Reference picker and validation](docs/PULSE_REFERENCE_UI.md).
+
+### Rychlé testy Open / Import
+
+Po změně filtrů použijte `python tools/test_picker_policy.py` (na Linuxu `python3`), případně `--core` pro cílené Core regrese. FAST vždy nejprve sestaví zdroje, nekopíruje mediální korpus a neprovádí distribuční publish. Úplné Desktop/Core testy zůstávají opt-in přes `--mode full --core`. Příkazy, rozsah, naměřené I/O a neotestované platformy jsou v [auditu filtrů a testování](docs/OPEN_IMPORT_FILTERS_2026-11-09.md).

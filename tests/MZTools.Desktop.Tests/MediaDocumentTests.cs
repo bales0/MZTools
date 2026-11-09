@@ -21,7 +21,7 @@ internal sealed class MediaTestDialogs : IDocumentDialogs, IMediaDialogs
     public Task<bool> ConfirmOverwriteAsync(string path) { OverwritePaths.Add(path); return Task.FromResult(Overwrite); }
     public Task<bool> ConfirmLossAsync(string message) => Task.FromResult(AcceptLoss);
     public Task<CloseDecision> ConfirmCloseAsync(DocumentSession document) => Task.FromResult(CloseDecision);
-    public Task<IReadOnlyList<string>> PickImportAsync() => Task.FromResult(ImportPaths);
+    public Task<IReadOnlyList<string>> PickImportAsync(TapeSession target) => Task.FromResult(ImportPaths);
     public Task<CompressionChoice?> ChooseCompressionAsync() => Task.FromResult(Compression);
     public Task<ExportChoice?> ChooseExportAsync(TapeSession session) => Task.FromResult(Export);
     public Task<bool> ConfirmPreviewAsync(string title, string report) => Task.FromResult(Apply);

@@ -61,7 +61,7 @@ public sealed partial class MainWindow
         if (disk is null || dialogs is null) return;
         await Model.Documents.ExecuteAsync(async ct =>
         {
-            var paths = await dialogs.PickDiskFilesAsync("Select MZF / M12 to import as COM");
+            var paths = await dialogs.PickDiskFilesAsync(FilePickerPurpose.ImportNativeComSource,"Select MZF / M12 to import as COM");
             if (paths.Count == 0) return false;
             return await Model.ImportNativeComFromPathAsync(disk, paths[0], ct);
         });
@@ -73,7 +73,7 @@ public sealed partial class MainWindow
         if (dialogs is null) return;
         await Model.Documents.ExecuteAsync(async ct =>
         {
-            var paths = await dialogs.PickDiskFilesAsync("Select MZF / M12 to convert to COM");
+            var paths = await dialogs.PickDiskFilesAsync(FilePickerPurpose.ConvertNativeComSource,"Select MZF / M12 to convert to COM");
             var path = paths.FirstOrDefault();
             if (path is null) return false;
             if (Path.GetExtension(path).ToLowerInvariant() is not (".mzf" or ".m12" or ".mz0" or ".mz7"))

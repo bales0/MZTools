@@ -4,6 +4,7 @@ Uses only stdlib and existing NuGet assets. Does not restore or install packages
 Remote fallback reads exact repository commits from restored package metadata.
 """
 import hashlib
+from build_paths import assets_path
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -37,9 +38,9 @@ def remote_text(url):
 def main():
     packages = {}
     for project in PROJECTS:
-        assets_path=Path(os.environ['MZTOOLS_ASSETS_ROOT'])/'obj'/Path(project).name/'project.assets.json' if os.environ.get('MZTOOLS_ASSETS_ROOT') else REPO/project/'obj/project.assets.json'
-        if not assets_path.exists():continue
-        assets = json.loads(assets_path.read_text(encoding='utf-8-sig'))
+        project_assets=assets_path(project)
+        if not project_assets.exists():continue
+        assets = json.loads(project_assets.read_text(encoding='utf-8-sig'))
         folders = [Path(p) for p in assets['packageFolders']]
         for key, library in assets['libraries'].items():
             if library['type'] != 'package':

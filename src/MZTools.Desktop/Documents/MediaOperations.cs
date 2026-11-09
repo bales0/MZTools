@@ -14,7 +14,7 @@ internal sealed record ExportPreview(string Report, IReadOnlyDictionary<string, 
 
 public interface IMediaDialogs
 {
-    Task<IReadOnlyList<string>> PickImportAsync();
+    Task<IReadOnlyList<string>> PickImportAsync(TapeSession target);
     Task<CompressionChoice?> ChooseCompressionAsync();
     Task<ExportChoice?> ChooseExportAsync(TapeSession session);
     Task<bool> ConfirmPreviewAsync(string title, string report);
@@ -24,6 +24,7 @@ internal static class MediaOperations
 {
     internal static async Task<RecordPreview> ImportAsync(TapeSession session, IEnumerable<string> paths, CancellationToken cancellation)
     {
+        if (session.Model.IsReadOnlyQuickDisk) throw new InvalidOperationException("Non-SHARP/unknown QuickDisk is read-only.");
         long revision = session.Revision; var original = session.Model.Records.Select(r => r.DeepClone()).ToList();
         var imported = await Task.Run(() =>
         {

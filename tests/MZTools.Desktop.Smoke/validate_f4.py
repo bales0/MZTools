@@ -1,6 +1,7 @@
 """Validate F4 artifacts and boundaries without changing the frozen F2 inventory."""
 import hashlib
 from html.parser import HTMLParser
+from build_paths import assets_path
 import json
 from pathlib import Path
 import subprocess
@@ -28,7 +29,7 @@ def main():
         else:check('Unchanged WPF UI '+source['source'],current==source['sha256'])
     items=json.loads((REPO/'TestResults/F4/wpf-evaluated-items.json').read_text(encoding='utf-8-sig'))['Items']
     check('WPF compile/Page isolation',not any(i['Identity'].replace('\\','/').lower().startswith(('src/','tests/','testresults/')) for v in items.values() for i in v))
-    assets=json.loads((REPO/'src/MZTools.Desktop/obj/project.assets.json').read_text(encoding='utf-8-sig'))
+    assets=json.loads(assets_path('src/MZTools.Desktop').read_text(encoding='utf-8-sig'))
     check('No WPF host or Windows Capture/NAudio dependency',not any('NAudio' in k or 'MZTools.Capture.Windows' in k or k.startswith('MZTools/') for k in assets['libraries']))
     check('Capture production sources unchanged',subprocess.run(['git','diff','--quiet','--','MZTools.Capture','MZTools.Capture.Windows'],cwd=REPO).returncode==0)
     check('Original binary goldens and boot images unchanged',subprocess.run(['git','diff','--quiet','--','boot','MZTool.Tests/ReferenceGolden'],cwd=REPO).returncode==0)

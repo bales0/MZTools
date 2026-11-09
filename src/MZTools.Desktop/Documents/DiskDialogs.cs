@@ -9,8 +9,8 @@ public sealed record DiskAnswer(IReadOnlyDictionary<string,string> Values)
 public interface IDiskDialogs
 {
     Task<DiskAnswer?> DiskFormAsync(string title,IReadOnlyList<DiskField> fields,string explanation="");
-    Task<IReadOnlyList<string>> PickDiskFilesAsync(string title,bool multiple=false);
-    Task<IReadOnlyList<string>> PickBatchFilesAsync(string title,string extensions)=>PickDiskFilesAsync(title,true);
+    Task<IReadOnlyList<string>> PickDiskFilesAsync(FilePickerPurpose purpose,string title,bool multiple=false);
+    Task<IReadOnlyList<string>> PickBatchFilesAsync(string title,string extensions);
     Task<string?> PickDiskOutputAsync(string title,string suggestedName);
     Task<bool> ConfirmDiskAsync(string title,string report);
 }

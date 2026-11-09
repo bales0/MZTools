@@ -1,5 +1,6 @@
 """Validate F6 evidence, preserved algorithms and actual review artifacts."""
 import hashlib
+from build_paths import assets_path
 import json
 from pathlib import Path
 import re
@@ -45,7 +46,7 @@ def main():
     check('Reference goldens unchanged',subprocess.run(['git','diff','--quiet','--','MZTool.Tests/ReferenceGolden','boot'],cwd=REPO).returncode==0)
     renderer=(REPO/'src/MZTools.Desktop/Controls/AudioChart.cs').read_text(encoding='utf-8-sig')
     check('Graph renderer has no source IO, decoder or FFT calls',not any(x in renderer for x in ('File.','FileStream','OpenReader(','SpectralAnalysis.','Task.Run','WavHeuristicAnalyzer')))
-    assets=json.loads((REPO/'src/MZTools.Desktop/obj/project.assets.json').read_text(encoding='utf-8-sig'))
+    assets=json.loads(assets_path('src/MZTools.Desktop').read_text(encoding='utf-8-sig'))
     check('No Windows Capture/NAudio dependency in Desktop',not any('NAudio' in x or 'MZTools.Capture.Windows' in x for x in assets['libraries']))
     review=REPO/'docs/ui-design-system/avalonia-f6';links=Links();links.feed((review/'index.html').read_text(encoding='utf-8'))
     for ref in links.refs:

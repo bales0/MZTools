@@ -44,16 +44,15 @@ public sealed partial class DesktopDialogs : IDiskDialogs
         }
         return FormAsync(title,controls,ReadAnswer);
     }
-    public async Task<IReadOnlyList<string>> PickDiskFilesAsync(string title,bool multiple=false)
+    public async Task<IReadOnlyList<string>> PickDiskFilesAsync(FilePickerPurpose purpose,string title,bool multiple=false)
     {
-        var files=await owner.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {Title=title,AllowMultiple=multiple});
-        return files.Select(f=>f.TryGetLocalPath()??throw new NotSupportedException("A local file is required.")).ToArray();
+        var files=await OpenInputPickerAsync(FilePickerPolicy.Options(purpose,title,multiple));
+        return files;
     }
     public async Task<IReadOnlyList<string>> PickBatchFilesAsync(string title,string extensions)
     {
-        var patterns=extensions.Split(',',StringSplitOptions.RemoveEmptyEntries).Select(extension=>"*"+extension).ToArray();
-        var files=await owner.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions{Title=title,AllowMultiple=true,FileTypeFilter=[new("Supported batch inputs"){Patterns=patterns},FilePickerFileTypes.All]});
-        return files.Select(f=>f.TryGetLocalPath()??throw new NotSupportedException("A local file is required.")).ToArray();
+        var files=await OpenInputPickerAsync(FilePickerPolicy.Options(FilePickerPurpose.BatchInputs,title,true,batchExtensions:extensions));
+        return files;
     }
     public async Task<string?> PickDiskOutputAsync(string title,string suggestedName)
     {

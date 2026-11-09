@@ -116,7 +116,7 @@ internal static class MediaScenario
         public Task<bool> ConfirmOverwriteAsync(string path)=>Task.FromResult(true);
         public Task<CloseDecision> ConfirmCloseAsync(DocumentSession document)=>Task.FromResult(CloseDecision.Discard);
         public Task<bool> ConfirmLossAsync(string message)=>Task.FromResult(true);
-        public Task<IReadOnlyList<string>> PickImportAsync()=>Task.FromResult(Imports);
+        public Task<IReadOnlyList<string>> PickImportAsync(TapeSession target)=>Task.FromResult(Imports);
         public Task<CompressionChoice?> ChooseCompressionAsync()=>Task.FromResult<CompressionChoice?>(null);
         public Task<ExportChoice?> ChooseExportAsync(TapeSession session)=>Task.FromResult(Export);
         public Task<bool> ConfirmPreviewAsync(string title,string report)=>Task.FromResult(true);

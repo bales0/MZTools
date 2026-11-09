@@ -76,7 +76,7 @@ public sealed class BatchProcessWindow : Window
         filesMode.IsCheckedChanged+=(_,_)=>{if(filesMode.IsChecked==true)SwitchMode();};folderMode.IsCheckedChanged+=(_,_)=>{if(folderMode.IsChecked==true)SwitchMode();};
         add.Click+=async(_,_)=>{var files=await dialogs.PickBatchFilesAsync("Batch inputs",BatchMediaPolicy.Extensions(Operation,Target));AddInputs(files);};
         browseFolder.Click+=async(_,_)=>{if(await PickFolder("Input folder") is{} path)folder.Text=path;};browseOutput.Click+=async(_,_)=>{if(await PickFolder("Output folder") is{} path)output.Text=path;};
-        browseAux.Click+=async(_,_)=>{var files=await StorageProvider.OpenFilePickerAsync(new(){Title="Boot DSK / boot profile",FileTypeFilter=[new("Boot source / profile"){Patterns=["*.dsk","*.json"]}]});if(files.FirstOrDefault()?.TryGetLocalPath() is{} path)auxiliary.Text=path;};
+        browseAux.Click+=async(_,_)=>{var files=await dialogs.OpenInputPickerAsync(FilePickerPolicy.Options(FilePickerPurpose.BootSystemOrProfile,"Boot DSK / boot profile"));if(files.FirstOrDefault() is{} path)auxiliary.Text=path;};
         clear.Click+=(_,_)=>{updating=true;selected.Clear();folder.Text="";filesMode.IsChecked=true;updating=false;Invalidate();};
         preview.Click+=async(_,_)=>await PreviewAsync();execute.Click+=async(_,_)=>await ExecuteAsync();details.Click+=(_,_)=>OpenDetails();table.DoubleTapped+=(_,_)=>OpenDetails();table.SelectionChanged+=(_,_)=>States();report.Click+=async(_,_)=>await ExportAsync();stop.Click+=(_,_)=>{Model.Documents.Cancel();summary.Text="Stopping… Completed outputs are kept; pending work will be cancelled.";};
         Model.Documents.PropertyChanged+=(_,e)=>

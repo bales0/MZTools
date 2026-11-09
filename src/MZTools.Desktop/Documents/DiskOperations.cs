@@ -138,5 +138,5 @@ internal static class DiskOperations
         return new(candidate,session.Revision,new DskOperationPreview(session.Model.Serialize(),candidate.Serialize(),$"Rebuild IPL: {inputs.Count} programs. Existing Core menu, loader and compression rules apply.",session.Model).Report);
     }
     internal static MultiGameIplInput[] ReadIplFiles(IReadOnlyList<string> paths,CancellationToken ct)
-        =>paths.SelectMany(p=>{ct.ThrowIfCancellationRequested();return TapeDocumentIO.Read(p).Records;}).Select(r=>new MultiGameIplInput(r.DeepClone(),SharpMzEncoding.ConvertMzfNameToASCIIString(r.Header.MzfFname).Trim(),new(MzfCompressionAlgorithm.None),r.Body.DataSize)).ToArray();
+        =>paths.SelectMany(p=>{ct.ThrowIfCancellationRequested();var document=TapeDocumentIO.Read(p);if(document.IsReadOnlyQuickDisk)throw new InvalidDataException("IPL requires SHARP program records; non-SHARP/unknown QuickDisk is read-only.");return document.Records;}).Select(r=>new MultiGameIplInput(r.DeepClone(),SharpMzEncoding.ConvertMzfNameToASCIIString(r.Header.MzfFname).Trim(),new(MzfCompressionAlgorithm.None),r.Body.DataSize)).ToArray();
 }

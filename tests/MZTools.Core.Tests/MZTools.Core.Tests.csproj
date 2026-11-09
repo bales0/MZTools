@@ -46,6 +46,9 @@
     <Compile Include="../../MZTool.Tests/TapeTestData.cs" Link="Regression/TapeTestData.cs" />
     <Compile Include="../../MZTool.Tests/CompressionTestData.cs" Link="Regression/CompressionTestData.cs" />
     <Compile Include="../../MZTool.Tests/NativeComCompressionData.cs" Link="Regression/NativeComCompressionData.cs" />
+  </ItemGroup>
+  <!-- Explicit FAST runs select synthetic tests; ordinary/FULL builds keep the complete corpus. -->
+  <ItemGroup Condition="'$(MZToolsFastTests)' != 'true'">
     <None Include="../../MZTool.Tests/DSK/**/*" Link="DSK/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../../MZTool.Tests/WAV/Barbarian2_700.wav" Condition="Exists('../../MZTool.Tests/WAV/Barbarian2_700.wav')" Link="WAV/Barbarian2_700.wav" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../../MZTool.Tests/ReferenceGolden/*.json" Link="ReferenceGolden/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

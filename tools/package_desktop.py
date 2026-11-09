@@ -1,4 +1,7 @@
-"""Build an isolated, self-contained desktop archive. Never deletes/replaces an existing release."""
+"""Update bin/<RID>. With --output, also create a minimal runtime-only archive.
+
+Published archives are exclusive; build state and staging stay in obj/desktop.
+"""
 import argparse
 import hashlib
 import json
@@ -13,10 +16,17 @@ import tarfile
 import tempfile
 import zipfile
 
+try:
+    from .build_desktop import build, remove_owned
+except ImportError:
+    from build_desktop import build, remove_owned
+
 ROOT=Path(__file__).resolve().parents[1]
 RIDS=('win-x64','win-arm64','linux-x64','linux-arm64','osx-x64','osx-arm64')
 
 def verify_apphost(path,rid):
+    if rid.startswith('linux-') and path.read_bytes().startswith(b'#!/bin/sh'):
+        path=path.with_name(path.name+'.bin')
     data=path.read_bytes()
     if rid.startswith('win-'):
         valid=data[:2]==b'MZ' and struct.unpack_from('<H',data,struct.unpack_from('<I',data,60)[0]+4)[0]==(0x8664 if rid.endswith('x64') else 0xaa64)
@@ -25,11 +35,17 @@ def verify_apphost(path,rid):
     else:
         valid=data[:4]==b'\xcf\xfa\xed\xfe' and struct.unpack_from('<I',data,4)[0]==(0x1000007 if rid.endswith('x64') else 0x100000c)
     if not valid:raise RuntimeError('Invalid apphost architecture/content for '+rid)
-def package(rid,output,dotnet):
-    output=output.resolve();output.mkdir(parents=True,exist_ok=True)
-    work=Path(tempfile.mkdtemp(prefix='mztools-package-',dir=output));publish=work/'publish'
-    subprocess.run([dotnet,'publish',str(ROOT/'src/MZTools.Desktop/MZTools.Desktop.csproj'),'-c','Release','-r',rid,'--self-contained','true','-p:UseAppHost=true','-p:PublishSingleFile=false','-p:PublishTrimmed=false','-p:EnableWindowsTargeting=true','--artifacts-path',str(work/'build'),'-o',str(publish)],cwd=ROOT,check=True)
-    product=work/'MZTools';product.mkdir()
+def package(rid,output=None,dotnet='dotnet'):
+    latest=build(rid,dotnet=dotnet)
+    if output is None:return latest
+    output=Path(output).resolve();output.mkdir(parents=True,exist_ok=True)
+    archive=output/('MZTools-'+rid+('.zip' if rid.startswith(('win-','osx-')) else '.tar.gz'))
+    if archive.exists():raise FileExistsError('Archive already exists: '+str(archive))
+    work=ROOT/'obj/desktop'/rid
+    product=work/'MZTools'
+    remove_owned(product,ROOT/'obj/desktop')
+    product.mkdir()
+    publish=latest
     if rid.startswith('osx-'):
         app=product/'MZTools.app'/'Contents';(app/'MacOS').mkdir(parents=True);shutil.copytree(publish,app/'MacOS',dirs_exist_ok=True)
         with (app/'Info.plist').open('wb') as file:plistlib.dump({'CFBundleName':'MZTools','CFBundleDisplayName':'MZTools','CFBundleIdentifier':'cz.mztools.desktop','CFBundleExecutable':'MZTools.Desktop','CFBundlePackageType':'APPL','CFBundleShortVersionString':'0.9.9','CFBundleVersion':'0.9.9','NSHighResolutionCapable':True,'NSMicrophoneUsageDescription':'Audio input is used only when you explicitly choose Monitor or Record in MZTools.'},file)
@@ -38,44 +54,7 @@ def package(rid,output,dotnet):
         shutil.copytree(publish,product,dirs_exist_ok=True);executable=product/('MZTools.Desktop.exe' if rid.startswith('win-') else 'MZTools.Desktop')
     if not executable.exists():raise RuntimeError('Publish did not produce the expected apphost')
     if not rid.startswith('win-'):executable.chmod(0o755)
-    for source in ('README.md','LICENSE','THIRD_PARTY_NOTICES.md','docs/MIGRATION_COMPLETION_2026-10-30.md','docs/RELEASE_CHECKLIST.md','docs/WPF_PARITY_2026-11-03.md','docs/WPF_PARITY_AUDIT_2026-11-04.md','docs/UI_FIXES_2026-11-04.md','docs/SELECTED_AUDIO_ANALYSIS_2026-11-04.md','docs/PAYLOAD_UNKNOWN_LENGTH_2026-11-04.md','docs/DSK_ANALYZER_PARITY_2026-11-04.md','docs/HEX_PRESENTATION_2026-11-05.md'):
-        path=ROOT/source
-        if path.exists():
-            shutil.copyfile(path,product/path.name)
-            if source.startswith('docs/'):
-                target=product/source;target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(path,target)
-    audit=ROOT/'docs/BATCH_PARITY_AUDIT_2026-11-06.md'
-    if audit.exists():
-        shutil.copyfile(audit,product/audit.name)
-        (product/'docs').mkdir(exist_ok=True)
-        shutil.copyfile(audit,product/'docs'/audit.name)
-    current_audit=ROOT/'docs/BATCH_HEX_IMPLEMENTATION_2026-11-06.md'
-    if current_audit.exists():
-        shutil.copyfile(current_audit,product/current_audit.name)
-        (product/'docs').mkdir(exist_ok=True)
-        shutil.copyfile(current_audit,product/'docs'/current_audit.name)
-    batch_comparison=ROOT/'docs/ui-design-system/batch-hex-2026-11-06'
-    if batch_comparison.exists():shutil.copytree(batch_comparison,product/'docs/ui-design-system/batch-hex-2026-11-06')
-    comparison=ROOT/'docs/ui-design-system/selected-analysis-2026-11-04'
-    if comparison.exists():shutil.copytree(comparison,product/'docs/ui-design-system/selected-analysis-2026-11-04')
-    dsk_comparison=ROOT/'docs/ui-design-system/dsk-parity-2026-11-04'
-    if dsk_comparison.exists():shutil.copytree(dsk_comparison,product/'docs/ui-design-system/dsk-parity-2026-11-04')
-    hex_comparison=ROOT/'docs/ui-design-system/hex-presentation-2026-11-05'
-    if hex_comparison.exists():shutil.copytree(hex_comparison,product/'docs/ui-design-system/hex-presentation-2026-11-05')
-    environment=os.environ.copy();environment['MZTOOLS_ASSETS_ROOT']=str(work/'build');environment['MZTOOLS_NOTICES_OUTPUT']=str(work/'notices')
-    subprocess.run([sys.executable,str(ROOT/"tests/MZTools.Desktop.Smoke/collect_completion_notices.py")],cwd=ROOT,env=environment,check=True)
-    notices=work/'notices'
-    upstream=ROOT/'docs/third-party/avalonia-f9'
-    for path in [*upstream.glob('*.txt'),upstream/'NATIVE_LIBRARIES.md',upstream/'native-sources.json']:
-        if not path.exists():raise FileNotFoundError('Required native notice missing: '+str(path))
-        shutil.copyfile(path,notices/path.name)
-    if not (notices/'packages.json').exists():raise RuntimeError('Collect and review the final package notices before packaging')
-    shutil.copytree(notices,product/'third-party')
-    if rid.startswith('linux-'):
-        # A distinct basename also works when cross-publishing on case-insensitive Windows.
-        (product/'mztools-launcher.desktop').write_text('[Desktop Entry]\nType=Application\nName=MZTools\nExec=MZTools.Desktop\nTerminal=false\nCategories=AudioVideo;Utility;\n',encoding='utf-8')
     verify_apphost(executable,rid)
-    (product/'PLATFORM.txt').write_text('RID: '+rid+'\nSelf-contained .NET. Native PortAudio/libsndfile on Linux/macOS are system dependencies (Debian: libportaudio2 libsndfile1; macOS: brew install portaudio libsndfile).\nUnsigned developer build: no signing/notarization or hardware certification is claimed. WPF is retained separately until parity acceptance.\n',encoding='utf-8')
     hashes={p.relative_to(product).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(product.rglob('*')) if p.is_file()}
     (product/'SHA256SUMS.json').write_text(json.dumps(hashes,indent=2)+'\n',encoding='utf-8')
     archive=output/('MZTools-'+rid+('.zip' if rid.startswith(('win-','osx-')) else '.tar.gz'))
@@ -90,12 +69,12 @@ def package(rid,output,dotnet):
     else:
         # Exclusive creation; retain execute permissions in the tar archive.
         def unix_permissions(info):
-            if info.name=='MZTools/MZTools.Desktop':info.mode=0o755
+            if info.name in ('MZTools/MZTools.Desktop','MZTools/MZTools.Desktop.bin'):info.mode=0o755
             return info
         with archive.open('xb') as raw:
             with tarfile.open(fileobj=raw,mode='w:gz') as file:file.add(product,arcname='MZTools',filter=unix_permissions)
     result={'rid':rid,'archive':str(archive),'sha256':hashlib.sha256(archive.read_bytes()).hexdigest(),'files':len(hashes),'selfContained':True,'signed':False,'nativeHardwareTested':False,'staging':str(work)}
     archive.with_suffix(archive.suffix+'.json').write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8');print(json.dumps(result))
-    # Keep the exact prepared build for inspection; never recursively remove a computed release path.
+    # Archive staging is outside bin; bin contains only the latest runnable product.
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('--rid',choices=RIDS,required=True);parser.add_argument('--output',type=Path,default=ROOT/'TestResults/Completion/packages');parser.add_argument('--dotnet',default='dotnet');args=parser.parse_args();package(args.rid,args.output,args.dotnet)
+    parser=argparse.ArgumentParser();parser.add_argument('--rid',choices=RIDS,required=True);parser.add_argument('--output',type=Path,default=None);parser.add_argument('--dotnet',default='dotnet');args=parser.parse_args();package(args.rid,args.output,args.dotnet)

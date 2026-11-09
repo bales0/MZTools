@@ -21,7 +21,7 @@ public sealed partial class ShellViewModel
         var labels=new[]{"Choose source image…"}.Concat(bundled.Select(b=>b.DisplayName)).Concat(user.Select(p=>"User: "+p.Name)).ToArray();
         var a=await DiskDialogs!.DiskFormAsync("Install boot/system",[new("source","Verified source",labels[0],labels)],DskCapabilityService.BootSystemAvailabilityReason(s.Model));if(a is null)return false;
         int choice=Array.IndexOf(labels,a["source"]);DskDocument source;
-        if(choice==0){var path=await InputFileAsync("Choose compatible boot/system image");if(path is null)return false;source=await Task.Run(()=>DskDocument.Open(path),ct);}
+        if(choice==0){var path=await InputFileAsync(FilePickerPurpose.BootSystemSource,"Choose compatible boot/system image");if(path is null)return false;source=await Task.Run(()=>DskDocument.Open(path),ct);}
         else source=choice<=bundled.Length?bundled[choice-1].Open():UserProfileService.ResolveBootSource(user[choice-bundled.Length-1]);
         var compatibility=DskCapabilityService.CanInstallBootSystem(s.Model,source);if(!compatibility.IsCompatible)throw new InvalidDataException(compatibility.Reason);
         string report="";var preview=await Task.Run(()=>DiskOperations.Preview(s,c=>report=DskBootSystemService.InstallWithReport(c,source).ToText(),"Install compatible boot/system areas. Ordinary target files must be preserved."),ct);
@@ -74,7 +74,7 @@ public sealed partial class ShellViewModel
         var indices=DiskOperations.SelectedOrEmpty(s).Select(r=>directory.ToList().FindIndex(e=>e.Key==r.Key)).Where(i=>i>=0).Order().ToArray();
         if(tool=="IPL add programs")
         {
-            var paths=await DiskDialogs!.PickDiskFilesAsync("Add IPL programs",true);if(paths.Count==0)return false;
+            var paths=await DiskDialogs!.PickDiskFilesAsync(FilePickerPurpose.ImportIplPrograms,"Add IPL programs",true);if(paths.Count==0)return false;
             inputs.AddRange(await Task.Run(()=>DiskOperations.ReadIplFiles(paths,ct),ct));
         }
         else
@@ -103,7 +103,7 @@ public sealed partial class ShellViewModel
     private async Task<bool> ImportDiskComAsync(DiskSession s,CancellationToken ct)
     {
         if(NativeComImportService.UnavailableReason(s.Model) is { } reason)throw new InvalidOperationException(reason);
-        var path=await InputFileAsync("Choose a native tape program for COM import");if(path is null)return false;
+        var path=await InputFileAsync(FilePickerPurpose.ImportNativeComRecord,"Choose a native tape program for COM import");if(path is null)return false;
         var records=TapeDocumentIO.Read(path).Records;if(records.Count!=1)throw new InvalidDataException("Select a standalone single-record program.");
         var labels=CpmTargetProfile.BuiltIns.Select(p=>p.Name).ToArray();
         var a=await DiskDialogs!.DiskFormAsync("Native COM options",[new("target","CP/M target",labels[0],labels),new("mode","Machine mode",Enum.GetNames<NativeMachineMode>()[0],Enum.GetNames<NativeMachineMode>()),new("compression","Compression",NativeComCompressionChoice.Choices[0].Label,NativeComCompressionChoice.Choices.Select(c=>c.Label).ToArray()),new("name","COM filename",NativeComConversionService.SuggestName(SharpMzEncoding.ConvertMzfNameToASCIIString(records[0].Header.MzfFname))),new("collision","Collision policy","Cancel",Enum.GetNames<DiskCollisionPolicy>())]);if(a is null)return false;

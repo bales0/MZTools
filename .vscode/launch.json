@@ -1,0 +1,15 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Run MZTools",
+			"type": "coreclr",
+			"request": "launch",
+			"preLaunchTask": "Build MZTools (Release)",
+			"program": "${workspaceFolder}/bin/win-x64/MZTools.Desktop.exe",
+			"linux": { "program": "${workspaceFolder}/bin/linux-x64/MZTools.Desktop.bin", "env": { "LD_LIBRARY_PATH": "${workspaceFolder}/bin/linux-x64/native" } },
+			"cwd": "${workspaceFolder}",
+			"stopAtEntry": false
+		}
+	]
+}

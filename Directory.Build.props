@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <!-- Compiler/test output is not a distributable. Keep it outside the runnable bin folders. -->
+    <MZToolsRepositoryRoot>$(MSBuildThisFileDirectory)</MZToolsRepositoryRoot>
+    <MZToolsBuildHost Condition="$([MSBuild]::IsOSPlatform('Windows'))">windows</MZToolsBuildHost>
+    <MZToolsBuildHost Condition="$([MSBuild]::IsOSPlatform('Linux'))">linux</MZToolsBuildHost>
+    <MZToolsBuildHost Condition="$([MSBuild]::IsOSPlatform('OSX'))">darwin</MZToolsBuildHost>
+    <ArtifactsPath Condition="'$(ArtifactsPath)' == ''">$(MZToolsRepositoryRoot)obj/artifacts/$(MZToolsBuildHost)</ArtifactsPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);**/bin/**;**/obj/**;**/artifacts/**;TestResults/**</DefaultItemExcludes>
+    <MZToolsPython Condition="'$(MZToolsPython)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">python</MZToolsPython>
+    <MZToolsPython Condition="'$(MZToolsPython)' == ''">python3</MZToolsPython>
+  </PropertyGroup>
+</Project>
