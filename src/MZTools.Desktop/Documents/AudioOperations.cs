@@ -20,7 +20,7 @@ internal static class AudioOperations
     {
         if(session.HasTransformDraft)throw new InvalidOperationException("Apply transform preview or Cancel edits before exporting.");
         if(session.SelectedIntervals.Count!=1)throw new InvalidOperationException("Choose one contiguous waveform interval for WAV export. Separate disjoint intervals are not concatenated silently.");
-        long first=session.SelectionStart,last=session.SelectionEnd;var transform=session.EffectiveTransform;if(channels=="Average")transform=transform with{Mix=true};int mode=transform.Mix?0:session.ChannelMode==1?1:session.ChannelMode==2?2:0;
+        long first=session.SelectionStart,last=session.SelectionEnd;var transform=session.EffectiveTransform;if(channels is not null)transform=transform with{Mix=channels=="Average"};int mode=transform.Mix?0:session.ChannelMode==1?1:session.ChannelMode==2?2:0;
         if(channels is not null)mode=transform.Mix?0:channels=="Right"?1:channels=="Stereo"?2:0;
         string directory=System.IO.Path.Combine(System.IO.Path.GetTempPath(),"mztools-f6-wave-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(directory);string path=System.IO.Path.Combine(directory,"selected.wav");
         try
@@ -42,7 +42,7 @@ internal static class AudioOperations
     internal static byte[] Report(AudioSession session,string format)=>format switch
     {
         "txt" or "csv" or "json"=>Encoding.UTF8.GetBytes(AudioAnalysisReport.Export(session.Model,format)),
-        "recovery"=>session.Recovery is { } result?JsonSerializer.SerializeToUtf8Bytes(new{result.Source,result.StartSample,result.EndSample,programs=session.Programs.Select(p=>new{p.Name,p.Type,p.Load,p.Execute,p.Size,p.Profile}),candidates=session.Candidates.Select(c=>new{c.Index,c.Start,c.End,c.Bytes,c.Status,c.Channel,c.Detector}),passes=session.Passes,diagnostics=session.Diagnostics,rejectedHeaders=session.RejectedHeaders,failures=session.Failures,result.OmittedDiagnostics,result.OmittedHeaderRejections},new JsonSerializerOptions{WriteIndented=true}):throw new InvalidOperationException("Run deeper analysis first."),
+        "recovery"=>session.Recovery is { } result?JsonSerializer.SerializeToUtf8Bytes(new{analysisInput=session.CompletedAnalysisInput?.Label,isCurrent=session.IsRecoveryCurrent,result.Source,result.StartSample,result.EndSample,programs=session.Programs.Select(p=>new{p.AnalysisSource,p.Name,p.Type,p.Load,p.Execute,p.Size,p.Profile}),candidates=session.Candidates.Select(c=>new{c.AnalysisSource,c.Index,c.Start,c.End,c.Bytes,c.Status,c.Channel,c.Detector}),passes=session.Passes,diagnostics=session.Diagnostics,rejectedHeaders=session.RejectedHeaders,failures=session.Failures,result.OmittedDiagnostics,result.OmittedHeaderRejections},new JsonSerializerOptions{WriteIndented=true}):throw new InvalidOperationException("Run deeper analysis first."),
         "comparison"=>session.PassComparison is { } comparison?JsonSerializer.SerializeToUtf8Bytes(comparison,new JsonSerializerOptions{WriteIndented=true}):throw new InvalidOperationException("Compare two retained passes first."),
         _=>throw new InvalidDataException("Unknown report format.")
     };

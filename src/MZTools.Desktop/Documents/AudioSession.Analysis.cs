@@ -77,20 +77,23 @@ public sealed partial class AudioSession
         var result=await Task.Run(()=>AudioRangeInspection.Analyze(Model,first,last,transform,channel,WavPulseMode.ZeroCrossing,1,false,null,linked.Token,waveformOnly:true),linked.Token);
         if(disposed||revision!=settingsGeneration||selection!=selectionGeneration)return false;
         AppliedTransform=transform;ClearSpectral();DisplayWaveform=result.Analysis.Waveform;DisplayedTransform=transform;settingsDirty=false;Validation="";ShowRange(result.Start,result.End);
-        foreach(var p in new[]{nameof(DisplayWaveform),nameof(HasDraft),nameof(Title),nameof(Validation),nameof(TransformDescription)})Changed(p);return true;
+        foreach(var p in new[]{nameof(DisplayWaveform),nameof(HasDraft),nameof(HasTransformDraft),nameof(Title),nameof(Validation),nameof(TransformDescription)})Changed(p);return true;
     }
     public async Task<bool> MeasureAsync(CancellationToken ct)
     {
         if(settingsDirty)throw new InvalidOperationException("Apply transform preview or Cancel edits before measuring.");
         var intervals=SelectedIntervals.ToArray();var reference=SelectedBlock?.Value;var transform=EffectiveTransform;int channel=transform.Mix||ChannelMode!=1?0:1;
         bool used=MeasurementMode==0&&reference?.PulseSource is not null;
-        if(used&&transform==new AudioPcmTransform()&&intervals.Length==1&&intervals[0]==(reference!.StartSample,reference.EndSample)&&channel==reference.Channel-1)
+        if(!IsDeepAnalysis&&used&&transform==new AudioPcmTransform()&&intervals.Length==1&&intervals[0]==(reference!.StartSample,reference.EndSample)&&channel==reference.Channel-1)
         {MeasuredBlock=reference;NotifyMeasurement();return true;}
         var detector=used&&Enum.TryParse<WavPulseMode>(reference!.DecodeDetector,out var decoded)?decoded:MeasurementMode switch{2=>WavPulseMode.Schmitt,3=>WavPulseMode.AdaptiveZeroCrossing,_=>WavPulseMode.ZeroCrossing};
         double gate=used?reference!.PulseSource!.ThresholdScale:1;long? preprocessing=used?reference!.PulseSource!.PreprocessingStartSample:null;double deadband=used?reference!.PulseSource!.ZeroDeadbandPercent/100:0;
         long generation=selectionGeneration;using var linked=CancellationTokenSource.CreateLinkedTokenSource(ct,lifetime.Token);
-        var result=await Task.Run(()=>AudioRangeInspection.AnalyzeSelection(Model,intervals,channel,transform.Mix,reference,linked.Token,detector,gate,preprocessing,deadband,transform),linked.Token);
-        if(disposed||generation!=selectionGeneration||transform!=EffectiveTransform)return false;MeasuredBlock=result;NotifyMeasurement();return true;
+        long settings=settingsGeneration;
+        var channels=IsDeepAnalysis&&ChannelMode==2&&CanAlign?new[]{0,1}:new[]{channel};
+        var measured=await Task.Run(()=>channels.Select(c=>AudioRangeInspection.AnalyzeSelection(Model,intervals,c,transform.Mix,reference,linked.Token,detector,gate,preprocessing,deadband,transform)).ToArray(),linked.Token);
+        if(disposed||generation!=selectionGeneration||settings!=settingsGeneration||transform!=EffectiveTransform)return false;
+        DeepMeasurements=measured;MeasuredBlock=measured[0];NotifyMeasurement();return true;
     }
     private readonly object cacheGate=new();
     private readonly Dictionary<string,(object Value,long Bytes)> spectralCache=[];
@@ -132,15 +135,20 @@ public sealed partial class AudioSession
     public IReadOnlyList<int> FftChoices {get;}=[256,512,1024,2048,4096,8192,16384,32768];
     public int FftSize {get=>fftSize;set{if(FftChoices.Contains(value))Set(ref fftSize,value);}}
     public string SpectralSummary=>SpectrogramData is { } g?$"{g.Method}\nFrames [{g.StartFrame:N0}, {g.EndFrame:N0}) · N={g.FftSize} · hop={g.Hop} frames · Δf={g.SampleRate/(double)g.FftSize:0.###} Hz\n{g.Windows:N0} exact FFT windows aggregated to {g.Columns.Count} columns · {g.FrequencyGroup} bins per displayed band · uncovered tail {g.UncoveredTail} frames\n"+SpectrumSummary:SpectrumSummary;
-    private string SpectrumSummary=>SpectrumData is { } s?$"{s.Method}\nFrames [{s.StartFrame:N0}, {s.EndFrame:N0}) · N={s.FftSize} · Δf={s.SampleRate/(double)s.FftSize:0.###} Hz\nDominant L/R: {s.LeftPeak:0.###}/{s.RightPeak:0.###} Hz · {s.Bins.Count} bins":"Select a frame interval and Compute spectrum/spectrogram. PCM is not read during painting.";
+    private string SpectrumSummary=>SpectrumData is { } s?$"{s.Method}\nFrames [{s.StartFrame:N0}, {s.EndFrame:N0}) · N={s.FftSize} · Δf={s.SampleRate/(double)s.FftSize:0.###} Hz\nDominant {SpectrumPeakLabel(s)} · {s.Bins.Count} bins":"Select a frame interval and Compute spectrum/spectrogram. PCM is not read during painting.";
+    private string SpectrumPeakLabel(AudioSpectrum value)=>IsDeepAnalysis?ChannelMode switch
+    {
+        0=>$"Left: {value.LeftPeak:0.###} Hz",1=>$"Right: {value.RightPeak:0.###} Hz",3=>$"Average: {value.LeftPeak:0.###} Hz",
+        _=>$"Left / Right: {value.LeftPeak:0.###}/{value.RightPeak:0.###} Hz (independent channels)"
+    }:$"L/R: {value.LeftPeak:0.###}/{value.RightPeak:0.###} Hz";
     internal async Task<bool> ComputeSpectralAsync(bool spectrogram,IProgress<WavAnalysisProgress>? progress,CancellationToken ct)
     {
         RequireSingleInterval();
         if(settingsDirty)throw new InvalidOperationException("Apply transform preview or Cancel edits first.");
-        long start=SelectionStart,end=SelectionEnd,generation=selectionGeneration;int n=FftSize;var transform=EffectiveTransform;string key=FormattableString.Invariant($"{spectrogram}:{start}:{end}:{n}:{transform}");
+        long start=SelectionStart,end=SelectionEnd,generation=selectionGeneration,settings=settingsGeneration;int n=FftSize;var transform=EffectiveTransform;string key=FormattableString.Invariant($"{spectrogram}:{start}:{end}:{n}:{transform}:{(IsDeepAnalysis?ChannelMode:-1)}");
         using var linked=CancellationTokenSource.CreateLinkedTokenSource(ct,lifetime.Token);
         object result=await Task.Run<object>(()=>spectrogram?Cache(key,()=>AudioSpectralAnalysis.Spectrogram(Model,start,end,transform,n,progress,linked.Token),x=>x.Bytes):Cache(key,()=>AudioSpectralAnalysis.Spectrum(Model,start,end,transform,n,linked.Token),x=>(long)x.Bins.Count*24),linked.Token);
-        if(disposed||generation!=selectionGeneration||transform!=EffectiveTransform||n!=FftSize)return false;if(result is AudioSpectrogram g)SpectrogramData=g;else SpectrumData=(AudioSpectrum)result;
+        if(disposed||generation!=selectionGeneration||settings!=settingsGeneration||transform!=EffectiveTransform||n!=FftSize)return false;if(result is AudioSpectrogram g)SpectrogramData=g;else SpectrumData=(AudioSpectrum)result;
         Changed(nameof(SpectralSummary));Changed(nameof(SpectrumData));Changed(nameof(SpectrogramData));return true;
     }
     internal async Task<bool> TriggerAsync(double level,bool rising,CancellationToken ct)

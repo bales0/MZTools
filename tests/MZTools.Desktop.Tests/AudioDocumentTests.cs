@@ -13,7 +13,7 @@ public sealed class AudioDocumentTests : IDisposable
     internal DocumentCoordinator Coordinator {get;}
     internal ShellViewModel Shell {get;}
     internal const int Frames=8229;
-    public AudioDocumentTests(){Directory.CreateDirectory(Root);Coordinator=new(new MediaDocumentLoader(Dialogs),Dialogs,new());Shell=new(Coordinator,_=>Task.CompletedTask,Dialogs);}
+    public AudioDocumentTests(){Directory.CreateDirectory(Root);Coordinator=new(new MediaDocumentLoader(Dialogs,true),Dialogs,new());Shell=new(Coordinator,_=>Task.CompletedTask,Dialogs);}
     internal string FilePath(string name)=>Path.Combine(Root,name);
     internal string Wave(string name="tone.wav",int channels=2,int frames=Frames)
     {

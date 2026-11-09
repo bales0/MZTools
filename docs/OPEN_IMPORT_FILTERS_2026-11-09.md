@@ -1,5 +1,7 @@
 # Kontextové filtry a cílené testování (2026-11-09)
 
+> Historický záznam: aktuální programové Open/Add, omezené Linux globy a upřesnění IPL viz [audit Phase 5](PHASE5_FUNCTIONAL_AUDIT_2026-11-09.md). Níže uvedené starší výsledky nejsou novým runtime ověřením.
+
 Schválený rozsah A + B; výchozí HEAD `181d217664fb343f5ac97fb50f5be22a257a5aa7`. Předchozí změny buildů i uživatelské změny dokumentů byly zachovány. Původní produkční WPF ani Core parsery, dekodéry a exportní algoritmy se nemění.
 
 ## Změna A

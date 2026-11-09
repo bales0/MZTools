@@ -59,30 +59,29 @@ public sealed class RecoveryWindow : Window
                 input=list;
             }
             else if(field.Choices is{} choices&&choices.SequenceEqual(new[]{"Yes","No"}))input=new CheckBox{Content=Label(field.Key,field.Label),IsChecked=field.Value=="Yes",Margin=new Thickness(6)};
-            else if(field.Choices is{} options)input=new ComboBox{ItemsSource=options,SelectedItem=field.Value,MinWidth=field.Key=="scope"?210:120,ItemTemplate=new FuncDataTemplate<string>((value,_)=>new TextBlock{Text=field.Key switch{"scope"=>value=="Payload only"?"Payload only (no header)":"Standard MZF record","channel"=>value=="All"?"All channels":value=="Mix"?"Mix (L + R) / 2":value,_=>value}})};
+            else if(field.Choices is{} options)input=new ComboBox{ItemsSource=options,SelectedItem=field.Value,MinWidth=field.Key=="scope"?210:120,ItemTemplate=new FuncDataTemplate<string>((value,_)=>new TextBlock{Text=field.Key switch{"scope"=>value=="Payload only"?"Payload only (no header)":"Standard MZF record","channel"=>value=="All"?"Both / Overlay (independent L and R)":value=="Mix"?"Average (L + R) / 2":value,_=>value}})};
             else input=new TextBox{Text=field.Value,Width=field.Key is "thresholds" or "times"?145:field.Key=="length"?85:75};
             input.Name="Recovery_"+field.Key;inputs.Add(field.Key,input);
         }
         var decode=new WrapPanel();settings.Children.Add(decode);Field(decode,"Decode scope",inputs["scope"]);decode.Children.Add(inputs["unknown"]);decode.Children.Add(inputs["diagnostics"]);
         var tests=new WrapPanel();settings.Children.Add(tests);
         foreach(string key in new[]{"adaptive","fixed","fuzzy","zero","schmitt","peak","normal","inverted","half"})tests.Children.Add(inputs[key]);
-        tests.Children.Add(inputs["channel"]);
+        // Source selection belongs next to alignment, not detector settings.
         foreach(string key in new[]{"thresholds","deadband","short","times","fuzzyTolerance"})Field(tests,Label(key,fields.Single(f=>f.Key==key).Label),inputs[key]);
         settings.Children.Add(new TextBlock{Text="Fixed timing uses SHORT × time scale and LONG = 2 × SHORT for the classifier's physical LOW half (HIGH after polarity inversion). Fuzzy matching chooses the nearer SHORT/LONG duration within the tolerance; it also relaxes leader matching. Time scale and fuzzy are separate test families. Lists accept semicolons or spaces.",TextWrapping=Avalonia.Media.TextWrapping.Wrap,Margin=new Thickness(5)});
         var references=new StackPanel();var refTools=new WrapPanel();references.Children.Add(refTools);refTools.Children.Add(inputs["referenceTests"]);
         var refScope=new ComboBox{ItemsSource=new[]{"All profiles","Selected profiles"},SelectedIndex=0,Width=170};refScope.SelectionChanged+=(_,_)=>{referenceScopeIndex=refScope.SelectedIndex;RefreshHistogram();};refTools.Children.Add(refScope);Field(refTools,"Tolerance (%)",inputs["referenceTolerance"]);references.Children.Add(inputs["refs"]);
         tests.Children.Add(new Expander{Header="Reference test settings / profile selection",Content=references,MaxWidth=1000,Margin=new Thickness(5)});
         ((ListBox)inputs["refs"]).SelectionChanged+=(_,_)=>{((CheckBox)inputs["referenceTests"]).IsChecked=true;refScope.SelectedIndex=1;};
-        var alignment=new WrapPanel();Field(alignment,"Right shift (samples)",inputs["rightShift"]);Field(alignment,"ms (+ = right)",milliseconds);
-        void Step(int count){var command=count switch{-10=>Model.AudioShiftRightMinusTenCommand,-1=>Model.AudioShiftRightMinusOneCommand,1=>Model.AudioShiftRightPlusOneCommand,_=>Model.AudioShiftRightPlusTenCommand};if(command.CanExecute(null))command.Execute(null);previewTimer.Stop();}
-        Button(alignment,"← 1 sample",()=>Step(-1));Button(alignment,"1 sample →",()=>Step(1));
+        var alignment=new WrapPanel();Field(alignment,"Effective input",inputs["channel"]);Field(alignment,"Right shift (samples, ±2 s)",inputs["rightShift"]);Field(alignment,"ms (+ = right)",milliseconds);
+        void Step(int count){if(!Session.CanAdjustRight)return;var command=count switch{-10=>Model.AudioShiftRightMinusTenCommand,-1=>Model.AudioShiftRightMinusOneCommand,1=>Model.AudioShiftRightPlusOneCommand,_=>Model.AudioShiftRightPlusTenCommand};if(command.CanExecute(null))command.Execute(null);previewTimer.Stop();}
+        var stepLeft=Button(alignment,"← 1 sample",()=>Step(-1));var stepRight=Button(alignment,"1 sample →",()=>Step(1));
         Button(alignment,"Reset",()=>{if(Model.AudioResetCommand.CanExecute(null))Model.AudioResetCommand.Execute(null);});alignment.Children.Add(inputs["invertRight"]);
-        alignment.IsEnabled=Session.CanAlign;
+        stepLeft.IsEnabled=stepRight.IsEnabled=milliseconds.IsEnabled=inputs["rightShift"].IsEnabled=inputs["invertRight"].IsEnabled=Session.CanAdjustRight;
         ((ComboBox)inputs["channel"]).SelectedItem=Session.Mix?"Mix":Read("channel");
-        ((ComboBox)inputs["channel"]).SelectionChanged+=(_,_)=>{Session.Mix=Read("channel")=="Mix";QueuePreview();RefreshHistogram();};
+        ((ComboBox)inputs["channel"]).SelectionChanged+=(_,_)=>{Session.ChannelMode=Read("channel") switch{"Left" or "Mono"=>0,"Right"=>1,"Mix"=>3,_=>2};stepLeft.IsEnabled=stepRight.IsEnabled=milliseconds.IsEnabled=inputs["rightShift"].IsEnabled=inputs["invertRight"].IsEnabled=Session.CanAdjustRight;QueuePreview();RefreshHistogram();};
         ((TextBox)inputs["rightShift"]).Bind(TextBox.TextProperty,new Binding("ActiveAudio.RightShift"){Mode=BindingMode.TwoWay});
         ((CheckBox)inputs["invertRight"]).Bind(CheckBox.IsCheckedProperty,new Binding("ActiveAudio.InvertRight"){Mode=BindingMode.TwoWay});
-        ((CheckBox)inputs["mixChannels"]).Bind(CheckBox.IsCheckedProperty,new Binding("ActiveAudio.Mix"){Mode=BindingMode.TwoWay});
         var range=new WrapPanel();top.Children.Add(range);Field(range,"From (s)",from);Field(range,"To (s)",to);Field(range,"Expected payload (B, blank = unknown)",inputs["length"]);
         ToolTip.SetTip(inputs["length"],"For Payload only, blank automatically uses unknown length / framing boundaries. Unknown length ignores any previously entered size.");
         from.Bind(IsEnabledProperty,new Binding("!Documents.IsBusy"));to.Bind(IsEnabledProperty,new Binding("!Documents.IsBusy"));
@@ -95,6 +94,7 @@ public sealed class RecoveryWindow : Window
         var progress=new ProgressBar{Height=6,Minimum=0,Maximum=1,Foreground=Avalonia.Media.Brushes.Green};progress.Bind(ProgressBar.ValueProperty,new Binding("Documents.ProgressFraction"));top.Children.Add(progress);
         var error=new TextBlock{TextWrapping=Avalonia.Media.TextWrapping.Wrap,Foreground=Avalonia.Media.Brushes.Firebrick,Margin=new Thickness(5)};error.Bind(TextBlock.TextProperty,new Binding("Documents.Error"));error.Bind(IsVisibleProperty,new Binding("Documents.HasError"));top.Children.Add(error);
         var status=new TextBlock{Text="Results are a separate preview. The source recording and current analysis remain unchanged. Raw candidates may have a failed checksum and are not complete MZF programs.",TextWrapping=Avalonia.Media.TextWrapping.Wrap,Margin=new Thickness(5)};top.Children.Add(status);
+        var inputStatus=new TextBlock{TextWrapping=Avalonia.Media.TextWrapping.Wrap};inputStatus.Bind(TextBlock.TextProperty,new Binding("ActiveAudio.AnalysisInputStatus"));top.Children.Add(inputStatus);
         Model.Documents.PropertyChanged+=(_,e)=>{if(e.PropertyName==nameof(DocumentCoordinator.Status)&&Model.Documents.IsBusy)status.Text=Model.Documents.Status;};
         var footer=new WrapPanel();DockPanel.SetDock(footer,Dock.Bottom);root.Children.Add(footer);
         var saveProgram=Button(footer,"Save selected program as MZF…",async()=>await SaveProgramAsync());
@@ -132,10 +132,15 @@ public sealed class RecoveryWindow : Window
         UpdateOutputs();Model.Documents.PropertyChanged+=(_,e)=>{if(e.PropertyName==nameof(DocumentCoordinator.IsBusy))UpdateOutputs();};
         Session.PropertyChanged+=(_,e)=>
         {
+            if(e.PropertyName==nameof(AudioSession.ChannelMode))
+            {
+                ((ComboBox)inputs["channel"]).SelectedItem=!Session.CanAlign?"Mono":Session.ChannelMode switch{0=>"Left",1=>"Right",3=>"Mix",_=>"All"};
+                stepLeft.IsEnabled=stepRight.IsEnabled=milliseconds.IsEnabled=inputs["rightShift"].IsEnabled=inputs["invertRight"].IsEnabled=Session.CanAdjustRight;
+            }
             if(e.PropertyName is nameof(AudioSession.SelectedCandidate) or nameof(AudioSession.SelectedProgram))UpdateOutputs();
             if(e.PropertyName is nameof(AudioSession.RightShift) or nameof(AudioSession.InvertRight) or nameof(AudioSession.Mix))
             {SyncMilliseconds();QueuePreview();}
-            if(e.PropertyName==nameof(AudioSession.DisplayWaveform))RefreshHistogram();
+            if(e.PropertyName is nameof(AudioSession.DisplayWaveform) or nameof(AudioSession.MeasurementSummary))RefreshHistogram();
             if(e.PropertyName==nameof(AudioSession.RecoverySummary))
             {
                 messages.ItemsSource=(Session.Recovery?.Failures.Select(f=>new Message("Unresolved",f.Reason,f.StartSample/(double)Session.Model.SampleRate,f.EndSample/(double)Session.Model.SampleRate))??[])
@@ -151,7 +156,7 @@ public sealed class RecoveryWindow : Window
             inputs["thresholds"].IsEnabled=Read("schmitt")=="Yes"||Read("peak")=="Yes";inputs["deadband"].IsEnabled=Read("peak")=="Yes";
             inputs["times"].IsEnabled=inputs["short"].IsEnabled=Read("fixed")=="Yes";inputs["fuzzyTolerance"].IsEnabled=Read("fuzzy")=="Yes";
         }
-        Model.Documents.PropertyChanged+=(_,e)=>{if(e.PropertyName==nameof(DocumentCoordinator.IsBusy)){Settings();alignment.IsEnabled=Session.CanAlign&&!Model.Documents.IsBusy;}};
+        Model.Documents.PropertyChanged+=(_,e)=>{if(e.PropertyName==nameof(DocumentCoordinator.IsBusy)){Settings();alignment.IsEnabled=!Model.Documents.IsBusy;}};
         foreach(var check in inputs.Values.OfType<CheckBox>())check.IsCheckedChanged+=(_,_)=>{Settings();RefreshHistogram();};((ComboBox)inputs["scope"]).SelectionChanged+=(_,_)=>Settings();Settings();SyncMilliseconds();UpdateScope();RefreshHistogram();
         foreach(var input in inputs.Values.OfType<TextBox>())input.TextChanged+=(_,_)=>RefreshHistogram();
         foreach(var input in inputs.Values.OfType<ComboBox>())input.SelectionChanged+=(_,_)=>RefreshHistogram();
@@ -220,17 +225,26 @@ public sealed class RecoveryWindow : Window
         if(refreshingHistogram)return;refreshingHistogram=true;
         try
         {
+            if(Session.DeepMeasurements.Count>0)
+            {
+                measurementChannel.IsEnabled=Session.DeepMeasurements.Count>1;
+                var block=Session.DeepMeasurements[Math.Clamp(measurementChannel.SelectedIndex,0,Session.DeepMeasurements.Count-1)];
+                Session.UseDeepMeasurement(block);measurement.Text="Current pulse measurement · "+Session.AnalysisInputStatus+"\n"+Session.MeasurementSummary;return;
+            }
             if(Session.Recovery is not{} result||result.Passes.Count==0)
             {
-                measurement.Text="Histogram: run Deep analysis to collect pulse measurements. Waveform preview is independent.";
+                measurement.Text="Histogram: run Deep analysis or Measure selection to collect measurements for the current input.";
                 Session.UseSelectedRecoveryMeasurement(null);return;
             }
-            var pass=result.Passes.OrderByDescending(p=>p.ValidHeaders+p.ValidPayloads).First();string detector=AudioRecoveryHistogram.Detector(result,pass);
+            if(!Session.IsRecoveryCurrent){measurement.Text=Session.AnalysisInputStatus;Session.UseSelectedRecoveryMeasurement(null);return;}
+            var availableChannels=result.Passes.SelectMany(p=>p.Measurements).Select(m=>m.Block.Channel).Distinct().Order().ToArray();
+            int wanted=Session.ChannelMode==1?2:Session.ChannelMode==2&&measurementChannel.SelectedIndex==1?2:1;
+            var pass=result.Passes.Where(p=>p.Measurements.Any(m=>m.Block.Channel==wanted)).OrderByDescending(p=>p.ValidHeaders+p.ValidPayloads).FirstOrDefault()??result.Passes.First();string detector=AudioRecoveryHistogram.Detector(result,pass);
             var streams=pass.Measurements.Where(m=>m.Block.DecodeDetector==detector).ToArray();
             string firstLabel=pass.Channels=="Mix"?"Mix":Session.CanAlign?"Left":"Mono";
             if(!Equals(measurementChannel.ItemsSource!.Cast<string>().First(),firstLabel))
             {int old=measurementChannel.SelectedIndex;measurementChannel.ItemsSource=Session.CanAlign?new[]{firstLabel,"Right"}:new[]{firstLabel};measurementChannel.SelectedIndex=Math.Max(0,old);}
-            measurementChannel.IsEnabled=streams.Any(m=>m.Block.Channel==1)&&streams.Any(m=>m.Block.Channel==2);
+            measurementChannel.IsEnabled=Session.ChannelMode==2&&availableChannels.Contains(1)&&availableChannels.Contains(2);
             int channel=measurementChannel.IsEnabled?measurementChannel.SelectedIndex+1:streams.FirstOrDefault()?.Block.Channel??1;
             if(!measurementChannel.IsEnabled)measurementChannel.SelectedIndex=channel-1;
             measurementPolarity.IsEnabled=streams.Any(m=>m.Block.Inverted)&&streams.Any(m=>!m.Block.Inverted);
@@ -245,7 +259,7 @@ public sealed class RecoveryWindow : Window
     {
         previewTimer.Stop();if(Model.Documents.IsBusy||closing)return false;
         if(!TryRange(out long first,out long last)){Model.Documents.ReportError("Choose a nonempty From / To interval within the source recording.");return false;}
-        var values=inputs.Keys.ToDictionary(key=>key,Read);values["rightShift"]=Session.RightShift;values["invertRight"]=Session.InvertRight?"Yes":"No";values["mixChannels"]=Session.Mix?"Yes":"No";
+        var values=inputs.Keys.ToDictionary(key=>key,Read);values["rightShift"]=Session.RightShift;values["invertRight"]=Session.InvertRight?"Yes":"No";
         if(allProfiles)values["refs"]=JsonSerializer.Serialize(((ListBox)inputs["refs"]).ItemsSource!.Cast<string>().ToArray());
         previewWork?.Cancel();
         return await Model.Documents.ExecuteAsync(async ct=>

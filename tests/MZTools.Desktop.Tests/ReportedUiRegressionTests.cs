@@ -16,6 +16,33 @@ namespace MZTools.Desktop.Tests;
 
 public sealed class ReportedUiRegressionTests
 {
+    [AvaloniaTheory][InlineData(1)][InlineData(2)]
+    public async Task MainAudioAutomaticallyShowsMonoOrStereoOverlayWithoutAChannelChoice(int channels)
+    {
+        using var files=new AudioDocumentTests();var session=await files.Open(files.Wave(channels:channels));var window=new MainWindow(files.Shell);window.Show();
+        try
+        {
+            Dispatcher.UIThread.RunJobs();window.UpdateLayout();
+            var selector=window.GetVisualDescendants().OfType<ComboBox>().Single(c=>AutomationProperties.GetName(c)=="Displayed audio channels");
+            Assert.False(selector.IsEffectivelyVisible);Assert.Equal(channels==1?0:2,session.ChannelMode);Assert.Contains(channels==1?"Mono":"Overlay L/R",session.AnalysisInputStatus);
+            Assert.Equal(new AudioPcmTransform(),session.EffectiveTransform);
+        }
+        finally{window.Close();Dispatcher.UIThread.RunJobs();}
+    }
+    [AvaloniaFact]public async Task CurrentPulseMeasurementIsVisibleAfterPreviousRecoveryBecomesOutdated()
+    {
+        using var files=new AudioDocumentTests();var parent=await files.Open();var child=new RecoveryWindow(parent,100,1000);child.Show();
+        try
+        {
+            Dispatcher.UIThread.RunJobs();child.GetVisualDescendants().OfType<TextBox>().Single(t=>t.Name=="Recovery_thresholds").Text="1";
+            Assert.True(await child.ScanAsync(),child.Model.Documents.Error);child.Session.ChannelMode=1;
+            Assert.True(await child.Session.ApplyTransformKeepingViewportAsync(TestContext.Current.CancellationToken));
+            Assert.False(child.Session.IsRecoveryCurrent);Assert.True(await child.Session.MeasureAsync(TestContext.Current.CancellationToken));
+            Assert.NotNull(child.Session.MeasuredBlock);Assert.Equal(2,child.Session.MeasuredBlock.Channel);
+            Assert.Contains(child.GetVisualDescendants().OfType<TextBlock>(),t=>t.Text?.StartsWith("Current pulse measurement",StringComparison.Ordinal)==true);
+        }
+        finally{child.Close();await Idle(child.Model.Documents);}
+    }
     [AvaloniaFact]public async Task IndependentWaveformZoomLoadsExactPcmInsteadOfExpandingTheOverviewIntoASolidFill()
     {
         using var files=new AudioDocumentTests();var source=await files.Open();byte[] original=File.ReadAllBytes(source.Path!);
@@ -83,13 +110,14 @@ public sealed class ReportedUiRegressionTests
     [AvaloniaFact]public async Task DeepAnalysisOffsetButtonsShiftActualRightPcmAndPreserveViewportAndSelection()
     {
         using var files=new AudioDocumentTests();var session=await files.Open();byte[] original=File.ReadAllBytes(session.Path!);session.ShowRange(100,400);session.SetSelection([(120,350)]);
+        var parent=session;session=parent.CreateSelectedPreview(120,350);files.Coordinator.Add(session);session.ShowRange(120,350);
         var window=new MainWindow(files.Shell);window.Show();
         try
         {
             session.ViewIndex=8;Dispatcher.UIThread.RunJobs();var deep=window.OwnedWindows.Single(w=>w.Title=="Analyze selected audio — recovery");
             Assert.True(deep.GetVisualDescendants().OfType<TextBox>().Single(t=>AutomationProperties.GetName(t)=="Deep analysis right channel offset").IsEffectivelyVisible);
             var increment=deep.GetVisualDescendants().OfType<Button>().Single(b=>Equals(b.Content,"+1"));deep.UpdateLayout();var point=increment.TranslatePoint(new Point(increment.Bounds.Width/2,increment.Bounds.Height/2),deep)!.Value;deep.MouseDown(point,MouseButton.Left);deep.MouseUp(point,MouseButton.Left);await Idle(files.Coordinator);
-            Assert.Equal("1",session.RightShift);Assert.Equal(1,session.AppliedTransform.RightShiftSamples);Assert.Equal(100,session.ViewStart);Assert.Equal(400,session.ViewEnd);Assert.Equal(120,session.SelectionStart);Assert.Equal(350,session.SelectionEnd);
+            Assert.Equal("0",parent.RightShift);Assert.Null(parent.Recovery);Assert.Equal("1",session.RightShift);Assert.Equal(1,session.AppliedTransform.RightShiftSamples);Assert.Equal(120,session.ViewStart);Assert.Equal(350,session.ViewEnd);Assert.Equal(120,session.SelectionStart);Assert.Equal(350,session.SelectionEnd);
             var bucket=session.DisplayWaveform.VisibleBuckets(200,201,10).Single();Assert.Equal(BitConverter.ToInt16(original,44+200*4)/32768d,bucket.LeftMin);Assert.Equal(BitConverter.ToInt16(original,44+199*4+2)/32768d,bucket.RightMin);
             Assert.Same(session,deep.GetVisualDescendants().OfType<AudioChart>().Single().Session);Assert.Equal(original,File.ReadAllBytes(session.Path!));
         }
@@ -104,6 +132,6 @@ public sealed class ReportedUiRegressionTests
             var values=fields.ToDictionary(f=>f.Key,f=>f.Value);values["rightShift"]="3";values["invertRight"]="Yes";values["thresholds"]="1";values["inverted"]="No";return new DiskAnswer(values);
         };
         files.Shell.AudioRecoverCommand.Execute(null);await Idle(files.Coordinator);
-        Assert.NotNull(session.Recovery);Assert.Equal(new AudioPcmTransform(3,true,false),session.AppliedTransform);Assert.NotEmpty(session.Passes);Assert.All(session.Passes,p=>Assert.Contains("R shift +3",p.Value.AudioTransform));Assert.Equal(original,File.ReadAllBytes(session.Path!));
+        Assert.Null(session.Recovery);Assert.Equal("0",session.RightShift);var deep=Assert.IsType<AudioSession>(files.Coordinator.Active);Assert.NotSame(session,deep);Assert.NotNull(deep.Recovery);Assert.Equal(new AudioPcmTransform(3,true,false),deep.AppliedTransform);Assert.NotEmpty(deep.Passes);Assert.All(deep.Passes,p=>Assert.Contains("R shift +3",p.Value.AudioTransform));Assert.Equal(original,File.ReadAllBytes(session.Path!));
     }
 }

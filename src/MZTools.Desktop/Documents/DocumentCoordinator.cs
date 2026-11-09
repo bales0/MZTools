@@ -112,7 +112,7 @@ public sealed class DocumentCoordinator : Observable
         var document = await loader.LoadAsync(path, ct);
         try
         {
-        if(audioIntegrity)before=(document as AudioSession)?.SourceHashes[path]??throw new IOException("The audio loader did not supply a verified source fingerprint.");
+        if(audioIntegrity)before=(document as IFileSetDocument)?.SourceHashes[path]??throw new IOException("The audio loader did not supply a verified source fingerprint.");
         else if (await AtomicDocumentStore.FingerprintAsync(path, ct) != before)
             throw new IOException("The source changed while opening. Please open it again.");
         ct.ThrowIfCancellationRequested();

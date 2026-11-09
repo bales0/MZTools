@@ -42,7 +42,7 @@ public sealed partial class ShellViewModel
             source.StepRightChannel(count);
             return await source.ApplyTransformKeepingViewportAsync(ct);
         });
-    }, () => ActiveAudio?.CanAlign == true && !Documents.IsBusy);
+    }, () => ActiveAudio?.CanAdjustRight == true && !Documents.IsBusy);
 
     private void RefreshAudioParityCommands()
     {

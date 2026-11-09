@@ -6,7 +6,7 @@ public sealed partial class AudioSession
     private IReadOnlyList<AudioSignalRegion>? rawPreviewRegions;
     private AudioRecoveryMeasurement? selectedRecoveryMeasurement;
     private AudioPcmTransform? selectedRecoveryTransform;
-    internal bool SelectedRecoveryMatchesPreview=>Recovery is{} r&&selectedRecoveryTransform==DisplayedTransform&&r.StartSample==PreviewStart&&r.EndSample==PreviewEnd;
+    internal bool SelectedRecoveryMatchesPreview=>Recovery is{} r&&IsRecoveryCurrent&&selectedRecoveryTransform==DisplayedTransform&&r.StartSample==Math.Max(PreviewStart,Math.Max(0,DisplayedTransform.RightShiftSamples))&&r.EndSample==Math.Min(PreviewEnd,Model.FrameCount+Math.Min(0,DisplayedTransform.RightShiftSamples));
     private IReadOnlyList<AudioIssueRow>? selectedPreviewIssues;
     private IReadOnlyList<AudioSignalRegion>? selectedPreviewRegions;
     public IReadOnlyList<AudioIssueRow> PreviewIssues=>selectedPreviewIssues??issues;
@@ -59,9 +59,9 @@ public sealed partial class AudioSession
         };
         var preview=new AudioSession(model,new(sources,AtomicFileTransaction.PathComparer));
         preview.references.Clear();preview.references.AddRange(references);preview.referenceIndex=referenceIndex;
-        preview.shift=RightShift;preview.invertRight=InvertRight;preview.mix=Mix;preview.channelMode=Model.ChannelCount>1?2:0;
-        preview.AppliedTransform=AppliedTransform;preview.DisplayedTransform=DisplayedTransform;
-        preview.DisplayWaveform=DisplayWaveform;preview.autoScale=AutoScale;preview.gain=Gain;
+        preview.EnableDeepAnalysis();preview.shift="0";preview.invertRight=preview.mix=false;preview.channelMode=Model.ChannelCount>1?2:0;
+        preview.AppliedTransform=new();preview.DisplayedTransform=new();
+        preview.DisplayWaveform=Model.Waveform;preview.autoScale=AutoScale;preview.gain=Gain;
         preview.Loaded(Model.Source,SavedFingerprint??sources[Model.Source]!,true);
         preview.SetPreviewBounds(first,last);return preview;
     }

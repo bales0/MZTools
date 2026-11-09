@@ -12,7 +12,7 @@ public sealed partial class AudioChart
         string channels=s.EffectiveTransform.Mix?"Mix / average":s.ChannelMode==2?"blue Left • orange Right":s.ChannelMode==1?"orange Right":"blue Left";
         Text(dc,$"PCM • {channels} • {(s.AutoScale?"Auto scale":$"FS ×{s.Gain:G3}")} • gray: unassigned • wheel: zoom • drag: pan • Shift+drag: select audio",Plot.X,3);
         if(ShowIssueMarkers)Text(dc,"Red: measured anomalies • orange: failed / unresolved block, exact damaged byte unknown",Plot.X,18,size:10);
-        if(s.DisplayedTransform!=s.EffectiveTransform){Text(dc,"Preparing requested PCM transform…",Plot.X,Plot.Y+20);return;}
+        if(s.IsDeepAnalysis&&s.HasTransformDraft || s.DisplayedTransform!=s.EffectiveTransform){Text(dc,"Preparing requested PCM transform…",Plot.X,Plot.Y+20);return;}
         var visible=s.DisplayWaveform.VisibleBuckets(s.ViewStart,s.ViewEnd,Math.Max(1,(int)Math.Ceiling(Plot.Width)));
         double mid=Plot.Y+18+(Plot.Height-18)/2, amplitude=Math.Max(1,(Plot.Height-22)/2);
         using(dc.PushClip(new Rect(Plot.X,Plot.Y-18,Plot.Width,Plot.Height+18)))

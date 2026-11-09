@@ -1,5 +1,7 @@
 # WPF / Avalonia — matice a inventář, 5. listopadu 2026
 
+> Historický záznam: aktuální programové Open/Add, omezené Linux globy a upřesnění IPL viz [audit Phase 5](PHASE5_FUNCTIONAL_AUDIT_2026-11-09.md). Níže uvedené starší výsledky nejsou novým runtime ověřením.
+
 Výchozí HEAD d3dc601292101e4dd82bcc2022fa981301c75837. Matice rozlišuje statickou kontrolu, konkrétní regrese a dosud neověřenou úplnou paritu. WPF produkční zdroje zůstávají beze změny.
 
 | Funkce | WPF chování | Avalonia chování | Rozdíl / stav | Dopad na data | Priorita | Důkaz a reprodukce | Návrh / provedení | Regresní test | Stav schválení |

@@ -16,7 +16,7 @@ public sealed partial class ShellViewModel
         BatchPreviewCommand=new(async()=>await Documents.ExecuteAsync(async ct=>
         {
             var dialogs=DiskDialogs!;var answer=await dialogs.DiskFormAsync("Batch process · preflight",BatchProcessForm.Fields(),"Preflight validates each input and operation using the shared Core policy. Custom folder extensions restrict scanning; unsupported combinations appear as incompatible rows. Preview writes no outputs. Execute, data loss and replacement each require their own confirmation.");if(answer is null)return false;
-            var operation=Enum.Parse<BatchOperation>(answer["operation"]);string[] inputs=answer["input"]=="Scan folder"?await Task.Run(()=>BatchProcessService.Scan(answer["folder"],answer["recursive"]=="Yes",answer["extensions"],ct),ct):(await dialogs.PickBatchFilesAsync("Batch inputs",BatchMediaPolicy.Extensions(operation,answer["target"]))).ToArray();if(inputs.Length==0)return false;
+            var operation=Enum.Parse<BatchOperation>(answer["operation"]);string[] inputs=answer["input"]=="Scan folder"?await Task.Run(()=>BatchInputSelection.Scan(answer["folder"],answer["recursive"]=="Yes",answer["extensions"],operation,answer["target"],ct),ct):(await dialogs.PickBatchFilesAsync("Batch inputs",BatchMediaPolicy.Extensions(operation,answer["target"]))).ToArray();if(inputs.Length==0)return false;
             MzfCompressionOptions? compression=null;
             if(operation==BatchOperation.CompressPrograms)
             {

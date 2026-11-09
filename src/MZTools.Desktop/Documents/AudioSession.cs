@@ -42,7 +42,11 @@ public sealed partial class AudioSession : DocumentSession,IFileSetDocument
     public int ChannelMode
     {
         get=>channelMode;
-        set{if(value<0||value>=Channels.Count)return;if(Set(ref channelMode,value)){ClearSpectral();InvalidateView();Changed(nameof(TransformDescription));}}
+        set{if(value<0||value>=Channels.Count)return;if(Set(ref channelMode,value))
+            {
+                if(IsDeepAnalysis){mix=value==3;if(value==0){shift="0";invertRight=false;}DraftChanged();Changed(nameof(Mix));Changed(nameof(RightShift));Changed(nameof(InvertRight));}
+                ClearSpectral();InvalidateView();Changed(nameof(TransformDescription));Changed(nameof(DisplayChannelMode));Changed(nameof(AnalysisInputStatus));
+            }}
     }
     private long viewStart,viewEnd,selectionStart,selectionEnd;
     public long ViewStart=>viewStart;public long ViewEnd=>viewEnd;
@@ -77,16 +81,16 @@ public sealed partial class AudioSession : DocumentSession,IFileSetDocument
     public bool IsPreviewBusy {get;private set;}
     public string Validation {get;private set;}="";
     internal AudioPcmTransform AppliedTransform {get;private set;}=new();
-    internal AudioPcmTransform EffectiveTransform=>AppliedTransform with{Mix=AppliedTransform.Mix||ChannelMode==3};
+    internal AudioPcmTransform EffectiveTransform=>AppliedTransform with{Mix=IsDeepAnalysis?ChannelMode==3:AppliedTransform.Mix||ChannelMode==3};
     public string TransformDescription=>"Measured PCM · "+EffectiveTransform.Description+". Gain/Auto are display-only.";
     private string shift="0";
     private bool invertRight,mix;
     public string RightShift {get=>shift;set{if(Set(ref shift,value))DraftChanged();}}
     public bool InvertRight {get=>invertRight;set{if(Set(ref invertRight,value))DraftChanged();}}
-    public bool Mix {get=>mix;set{if(Set(ref mix,value))DraftChanged();}}
+    public bool Mix {get=>mix;set{if(Set(ref mix,value)){if(IsDeepAnalysis){channelMode=value?3:channelMode==3?2:channelMode;Changed(nameof(ChannelMode));Changed(nameof(DisplayChannelMode));}DraftChanged();}}}
     public bool CanAlign=>Model.ChannelCount==2;
-    internal AudioPcmTransform RequestedTransform()=>new(int.Parse(RightShift,CultureInfo.InvariantCulture),InvertRight,Mix);
-    private void DraftChanged(){settingsDirty=true;settingsGeneration++;Changed(nameof(HasDraft));Changed(nameof(Title));}
+    internal AudioPcmTransform RequestedTransform()=>IsDeepAnalysis?RequestedAnalysisInput().Transform:new(int.Parse(RightShift,CultureInfo.InvariantCulture),InvertRight,Mix);
+    private void DraftChanged(){settingsDirty=true;settingsGeneration++;if(IsDeepAnalysis)InputChanged();Changed(nameof(HasTransformDraft));Changed(nameof(HasDraft));Changed(nameof(Title));}
     internal AudioSession(AudioSignalAnalysis model,Dictionary<string,string?> hashes)
     {
         Model=model;baseReport=AudioAnalysisReport.Export(model,"txt");sources=hashes;channelMode=model.ChannelCount>1?2:0;viewEnd=model.FrameCount;selectionEnd=model.FrameCount;SelectedIntervals=[(0,model.FrameCount)];DisplayWaveform=model.Waveform;
@@ -182,7 +186,7 @@ public sealed partial class AudioSession : DocumentSession,IFileSetDocument
     }
     public void ResetDraft()
     {
-        shift="0";invertRight=mix=false;AppliedTransform=new();DisplayWaveform=Model.Waveform;DisplayedTransform=new();if(previewBounds is not null)RefreshSelectedOverlays();ClearSpectral();settingsDirty=false;settingsGeneration++;
+        shift="0";invertRight=false;mix=IsDeepAnalysis&&ChannelMode==3;AppliedTransform=new(Mix:mix);DisplayWaveform=Model.Waveform;DisplayedTransform=new();if(previewBounds is not null)RefreshSelectedOverlays();ClearSpectral();settingsDirty=false;settingsGeneration++;if(IsDeepAnalysis)InputChanged();Changed(nameof(HasTransformDraft));Changed(nameof(AnalysisInputStatus));
         foreach(var p in new[]{nameof(RightShift),nameof(InvertRight),nameof(Mix),nameof(HasDraft),nameof(Title)})Changed(p);InvalidateView();
     }
     internal void SetError(string message){Validation=message;Changed(nameof(Validation));}

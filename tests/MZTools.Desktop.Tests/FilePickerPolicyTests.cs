@@ -14,10 +14,10 @@ public sealed class FilePickerPolicyTests
     [Fact] public void OpenUnionExactlyMatchesLoaderAndHasUsefulCategories()
     {
         var options=FilePickerPolicy.Options(FilePickerPurpose.OpenMedia,"Title does not determine purpose");
-        Assert.Equal(new[]{"*.dsk","*.flac","*.hfe","*.m12","*.mz0","*.mz7","*.mzf","*.mzq","*.mzt","*.qd","*.qdf","*.wav","*.wav.json"}.Order(),Patterns(options));
+        Assert.Equal(new[]{"*.dsk","*.l16","*.lep","*.flac","*.hfe","*.m12","*.mz0","*.mz7","*.mzf","*.mzq","*.mzt","*.qd","*.qdf","*.wav","*.wav.json"}.Order(),Patterns(options));
         Assert.Equal("All supported media",options.FileTypeFilter![0].Name);
         Assert.Equal(5,options.FileTypeFilter.Count);
-        foreach(string path in new[]{"one.LEP","one.L16","one.bin","one.com","one.json","one.mfi","one.m2i","one.mti"})
+        foreach(string path in new[]{"one.bin","one.com","one.json","one.mfi","one.m2i","one.mti"})
             Assert.False(FilePickerPolicy.Matches(options,path),path);
     }
     [Fact] public void AudioAndRecordImportAreDifferentContracts()
@@ -25,7 +25,7 @@ public sealed class FilePickerPolicyTests
         Assert.Equal(new[]{"*.flac","*.wav","*.wav.json"},Patterns(FilePickerPolicy.Options(FilePickerPurpose.OpenAudio,"Audio")));
         var options=FilePickerPolicy.Options(FilePickerPurpose.ImportTapeRecords,"Records",true,target:TapeSession.New(false));
         Assert.Contains("*.lep",Patterns(options));Assert.Contains("*.l16",Patterns(options));
-        Assert.DoesNotContain("*.flac",Patterns(options));Assert.DoesNotContain("*.wav.json",Patterns(options));
+        Assert.Contains("*.flac",Patterns(options));Assert.Contains("*.wav.json",Patterns(options));
         foreach(var format in FormatChoice.All)Assert.Contains("*"+format.Extension,Patterns(options));
     }
     [Theory][InlineData(".WAV")][InlineData(".FlAc")][InlineData(".WaV.JsOn")]
@@ -33,7 +33,7 @@ public sealed class FilePickerPolicyTests
     {
         var options=FilePickerPolicy.Options(FilePickerPurpose.OpenAudio,"Audio");
         Assert.True(FilePickerPolicy.Matches(options,"recording"+suffix));
-        if(OperatingSystem.IsLinux())Assert.Contains("*"+suffix,options.FileTypeFilter![0].Patterns!);
+        Assert.True(options.FileTypeFilter!.SelectMany(g=>g.Patterns!).Count()<=6);
         Assert.False(FilePickerPolicy.Matches(options,"recording.json"));
         Assert.False(FilePickerPolicy.Matches(options,"recording.wav.json.backup"));
     }
@@ -80,7 +80,7 @@ public sealed class OpenImportPickerTests
         FilePickerOpenOptions? captured=null;
         var dialogs=new DesktopDialogs(new Window()){InputPicker=o=>{captured=o;return Task.FromResult<IReadOnlyList<string>>([]);}};
         Assert.Null(await dialogs.OpenAsync());Assert.Equal("All supported media",captured!.FileTypeFilter![0].Name);Assert.False(captured.AllowMultiple);
-        Assert.Empty(await dialogs.PickImportAsync(TapeSession.New(false)));Assert.True(captured.AllowMultiple);Assert.False(FilePickerPolicy.Matches(captured,"x.flac"));
+        Assert.Empty(await dialogs.PickImportAsync(TapeSession.New(false)));Assert.True(captured.AllowMultiple);Assert.True(FilePickerPolicy.Matches(captured,"x.flac"));
         Assert.Empty(await dialogs.PickDiskFilesAsync(FilePickerPurpose.CompareDisk,"Misleading audio title"));Assert.True(FilePickerPolicy.Matches(captured,"x.hfe"));
         Assert.Empty(await dialogs.PickBatchFilesAsync("Batch",BatchMediaPolicy.Extensions(BatchOperation.Defragment)));
         Assert.False(FilePickerPolicy.Matches(captured,"x.mzf"));Assert.True(captured.AllowMultiple);

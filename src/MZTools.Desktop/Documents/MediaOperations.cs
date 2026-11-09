@@ -5,7 +5,10 @@ public sealed record ExportChoice(string Path, string Format, bool SelectedOnly 
     bool Sidecar = true, bool PreserveTrailing = true, string Machine = "Mz800", int CpmProfile = 0,
     string NativeMode = "Mz800Monitor", int ComCompression = 0, bool Multipart = false);
 public sealed record MediaPreview(string Report, long Revision, IReadOnlyList<string> Files);
-internal sealed record RecordPreview(string Report, long Revision, IReadOnlyList<TapeRecord> Records);
+internal sealed record RecordPreview(string Report, long Revision, IReadOnlyList<TapeRecord> Records)
+{
+    internal IReadOnlyDictionary<string,string?> Sources {get;init;}=new Dictionary<string,string?>();
+}
 internal sealed record ExportPreview(string Report, IReadOnlyDictionary<string, byte[]> Outputs,
     IReadOnlyDictionary<string,string> SourceFiles) : IDisposable
 {
@@ -22,31 +25,43 @@ public interface IMediaDialogs
 
 internal static class MediaOperations
 {
-    internal static async Task<RecordPreview> ImportAsync(TapeSession session, IEnumerable<string> paths, CancellationToken cancellation)
+    internal static async Task<RecordPreview> ImportAsync(TapeSession session, IEnumerable<string> paths, CancellationToken cancellation, IAudioImportDialogs? audioDialogs = null, IProgress<WavAnalysisProgress>? progress = null)
     {
         if (session.Model.IsReadOnlyQuickDisk) throw new InvalidOperationException("Non-SHARP/unknown QuickDisk is read-only.");
         long revision = session.Revision; var original = session.Model.Records.Select(r => r.DeepClone()).ToList();
-        var imported = await Task.Run(() =>
+        var inputs=paths.ToArray();var choice=await AudioProgramImport.ChooseAsync(inputs,audioDialogs,cancellation);
+        var reports=new List<string>();var sources=new Dictionary<string,string?>(AtomicFileTransaction.PathComparer);
+        var imported = await Task.Run(async () =>
         {
             var result = new List<TapeRecord>();
-            foreach (string path in paths)
+            foreach (string path in inputs)
             {
                 cancellation.ThrowIfCancellationRequested(); var hash = AtomicFileTransaction.Hash(path);
                 var extension = System.IO.Path.GetExtension(path).ToLowerInvariant();
-                if (extension is ".wav" or ".lep" or ".l16") result.AddRange(SharpTapeImporter.ReadFile(path, cancellation));
+                if (AudioProgramImport.IsSignal(path))
+                {
+                    var decoded=await AudioProgramImport.ReadAsync(path,choice,progress,cancellation);result.AddRange(decoded.Records);
+                    foreach(var pair in decoded.Sources)sources[pair.Key]=pair.Value;
+                    reports.Add(decoded.Report);
+                }
                 else
                 {
+                    if(extension is ".mzf" or ".m12" or ".mz0" or ".mz7" or ".mzt")
+                    {string sidecar=SidecarService.GetSidecarPath(path);sources[sidecar]=AtomicFileTransaction.Hash(sidecar);}
                     var document = TapeDocumentIO.Read(path);
                     if (document.IsReadOnlyQuickDisk) throw new InvalidDataException("Non-SHARP/unknown QuickDisk cannot be imported as SHARP records.");
                     result.AddRange(document.Records);
                 }
+                sources[path]=hash;
                 if (AtomicFileTransaction.Hash(path) != hash) throw new IOException("Import source changed while reading: " + path);
             }
             return result;
         }, cancellation);
+        if(reports.Count>0&&choice.Report!=ProgramImportReport.None&&audioDialogs is not null)await audioDialogs.ShowAudioImportReportAsync(string.Join("\n\n",reports));
+        AudioProgramImport.Verify(sources,cancellation);
         original.AddRange(imported.Select(r => r.DeepClone()));
         return new($"Import {imported.Count} records ({imported.Sum(r => (long)r.Body.DataSize):N0} B) at the end of this document.\nSource files are unchanged. Existing order is retained.\n" +
-            string.Join("\n", imported.Select(r => SharpMzEncoding.ConvertMzfNameToASCIIString(r.Header.MzfFname))), revision, original);
+            string.Join("\n", imported.Select(r => SharpMzEncoding.ConvertMzfNameToASCIIString(r.Header.MzfFname))), revision, original){Sources=sources};
     }
 
     internal static async Task<RecordPreview> CompressAsync(TapeSession session, CompressionChoice choice, CancellationToken cancellation)

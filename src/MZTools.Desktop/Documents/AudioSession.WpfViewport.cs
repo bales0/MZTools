@@ -37,7 +37,7 @@ public sealed partial class AudioSession
         Validation = "";
         foreach (var property in new[]
         {
-            nameof(DisplayWaveform), nameof(HasDraft), nameof(Title),
+            nameof(DisplayWaveform), nameof(HasDraft), nameof(HasTransformDraft), nameof(Title),
             nameof(Validation), nameof(TransformDescription)
         }) Changed(property);
         return true;
@@ -45,7 +45,7 @@ public sealed partial class AudioSession
 
     internal void StepRightChannel(int frames)
     {
-        if (!CanAlign) throw new InvalidOperationException("The source is not stereo.");
+        if (!CanAdjustRight) throw new InvalidOperationException("Right-channel alignment requires stereo and a Deep input using R.");
         if (!int.TryParse(RightShift, NumberStyles.Integer, CultureInfo.InvariantCulture, out int current))
             throw new InvalidDataException("Enter a valid integer right-channel shift in source frames.");
         RightShift = checked(current + frames).ToString(CultureInfo.InvariantCulture);

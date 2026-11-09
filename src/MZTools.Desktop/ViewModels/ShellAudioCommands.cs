@@ -70,6 +70,7 @@ public sealed partial class ShellViewModel
         },()=>AnalysisDialogs is not null&&ActiveAudio?.Programs.Count>0);
         AudioCandidateExportCommand=Op(async(s,ct)=>
         {
+            if(!s.IsRecoveryCurrent)throw new InvalidOperationException("Deep results are OUTDATED; run analysis before exporting candidates.");
             var row=s.SelectedCandidate!;if(!await AnalysisDialogs!.ConfirmDiskAsync("Export raw candidate",row.Status+"\n"+row.Value.BoundaryEvidence+$"\n{row.Bytes:N0} raw decoded bytes; no recovered tape header is claimed."))return false;
             var path=await AnalysisDialogs.PickDiskOutputAsync("Export raw candidate","candidate.bin");if(path is null)return false;
             await Documents.WriteExportAsync(new Dictionary<string,byte[]>{[path]=row.Value.Data.ToArray()},ct,beforeCommit:s.VerifySources);return true;

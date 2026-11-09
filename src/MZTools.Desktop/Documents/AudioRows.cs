@@ -44,6 +44,7 @@ public sealed class AudioAgreementRow
 public sealed class AudioCandidateRow
 {
     internal SharpBlockCandidate Value {get;}internal AudioCandidateRow(SharpBlockCandidate value,int index){Value=value;Index=index;}
+    public string AnalysisSource {get;internal set;}="";
     public int Index {get;}public string Kind=>Value.Kind.ToString();public int Channel=>Value.Channel+1;public string Detector=>Value.PulseMode.ToString();public bool Inverted=>Value.Inverted;
     public long Start=>Value.StartSample;public long End=>Value.EndSample;public int Bytes=>Value.Data.Length;
     public string Status=>!Value.ChecksumAvailable?"Partial / checksum unknown":!Value.ChecksumValid?"Checksum mismatch":!Value.LengthVerified?"Checksum match / unverified length":"Verified checksum";

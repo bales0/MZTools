@@ -1,6 +1,8 @@
 """Targeted picker regressions. FULL is explicit; FAST never copies or scans the media corpus."""
 import argparse
 import json
+import os
+import datetime
 from pathlib import Path
 import platform
 import subprocess
@@ -9,7 +11,7 @@ import time
 ROOT=Path(__file__).resolve().parents[1]
 DESKTOP='tests/MZTools.Desktop.Tests/MZTools.Desktop.Tests.csproj'
 CORE='tests/MZTools.Core.Tests/MZTools.Core.Tests.csproj'
-CLASSES=['FilePickerPolicyTests','OpenImportPickerTests','MediaDocumentTests','DiskDocumentTests','BatchParityTests']
+CLASSES=['DeepAnalysisInputTests','AudioDocumentTests','SelectedAnalysisWindowTests','ReportedUiRegressionTests','Phase5WorkflowTests','FilePickerPolicyTests','OpenImportPickerTests','MediaDocumentTests','DiskDocumentTests','BatchParityTests']
 EXCLUDED=['MZTools.Desktop.Tests.DiskDocumentTests.HfeMetadataEditKeepsOriginalAndCorePhysicalSerialization']
 CORE_FILTER='FullyQualifiedName~DskPatchTests|FullyQualifiedName~BootstrapRawRangeTests'
 
@@ -22,10 +24,16 @@ def main():
     artifacts=ROOT/'obj/test-runs'/host/args.mode
     output=ROOT/'TestResults/PickerPolicy'/host/args.mode
     output.mkdir(parents=True,exist_ok=True)
+    metadata={'head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
+              'sdk':subprocess.check_output(['dotnet','--version'],cwd=ROOT,text=True).strip(),
+              'os':platform.platform(),'startedUtc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+              'modifiedFiles':subprocess.check_output(['git','-c','core.autocrlf=true','-c','core.filemode=false','status','--short'],cwd=ROOT,text=True).splitlines(),
+              'statusNormalization':'autocrlf=true, filemode=false (shared Windows/WSL checkout)'}
+    environment=dict(os.environ,MZTOOLS_PHASE5_EVIDENCE=str(output/'fixtures'))
     results=[]
     def run(label,command):
         start=time.perf_counter()
-        result=subprocess.run(command,cwd=ROOT)
+        result=subprocess.run(command,cwd=ROOT,env=environment)
         results.append({'step':label,'seconds':round(time.perf_counter()-start,3),'exitCode':result.returncode,'command':command})
         (output/'timings.json').write_text(json.dumps(results,indent=2)+'\n',encoding='utf-8')
         if result.returncode:raise SystemExit(result.returncode)
@@ -44,7 +52,7 @@ def main():
         run('core '+args.mode,command)
     # Inventory only this runner's output, never user folders or the source corpus.
     files=[p for folder in ['DSK','QD','MZF','ROM','LEP','WAV','ReferenceGolden','QDReference'] for p in (artifacts/'bin/MZTools.Core.Tests/debug'/folder).rglob('*') if p.is_file()]
-    report={'mode':args.mode,'coreRequested':args.core,'explicitExcludedMethods':EXCLUDED if args.mode=='fast' else [],'copiedCorpusFiles':len(files),'copiedCorpusBytes':sum(p.stat().st_size for p in files),'steps':results}
+    report={'metadata':metadata,'mode':args.mode,'coreRequested':args.core,'explicitExcludedMethods':EXCLUDED if args.mode=='fast' else [],'copiedCorpusFiles':len(files),'copiedCorpusBytes':sum(p.stat().st_size for p in files),'steps':results}
     (output/'summary.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     if args.mode=='fast' and files:raise RuntimeError('FAST output unexpectedly contains a copied media corpus; use a clean FAST output directory.')
     print(json.dumps(report,indent=2))

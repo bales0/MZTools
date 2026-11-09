@@ -72,6 +72,7 @@ public sealed partial class TapeSession : DocumentSession, IFileSetDocument
         : HasDraft ? "Apply or Cancel the unapplied metadata edits before another operation."
         : !CanSave ? "The current path/record count is not bindable in this format. Use Save As or Export separate files."
         : IsReadOnly ? "Source is read-only. Save As creates an editable copy." : !IsModified ? "No unsaved changes." : "Changes remain in memory until Save.";
+    public string ImportEvidence {get;internal set;} = "";
     public string Format => Model.Format.ToString();
     public string Summary => $"{Format} · {Model.Records.Count} records · {Model.Records.Sum(r => (long)r.Body.DataSize):N0} B payload";
     public string Hex => SelectedRow?.Hex ?? "Select a record to inspect its bytes.";
@@ -102,7 +103,7 @@ public sealed partial class TapeSession : DocumentSession, IFileSetDocument
         "\n\n" + string.Join("\n",Snapshot.Findings.Select(f=>$"{f.Severity}: {f.Description}"));
     public string MediaReport => Summary + "\n" + (Path ?? "Untitled") + "\n\n" +
         string.Join("\n",Model.Records.Select((r,i)=>new RecordRow(r,i)).Select(r=>$"#{r.Number} {r.Name} · type {r.Type} · LOAD {r.Load} · EXEC {r.Execute} · {r.Size} · {r.Profile} · {r.Compression}")) +
-        "\n\n" + MediaEvidence + "\n\nUnapplied metadata fields are not included. No hardware capture or test certification is implied.";
+        "\n\n" + MediaEvidence + "\n\n" + ImportEvidence + "\n\nUnapplied metadata fields are not included. No hardware capture or test certification is implied.";
     internal void SelectRegion(QuickDiskRegion? region) { SelectedRegion = region; Changed(nameof(MapDetail)); Changed(nameof(WpfMapDetail)); Changed(nameof(MapMessages)); Changed(nameof(HasRegion)); Changed(nameof(CanFitSelection)); }
 
     internal TapeSession(TapeDocument document, Dictionary<string, string?>? hashes = null)
@@ -258,18 +259,30 @@ public sealed partial class TapeSession : DocumentSession, IFileSetDocument
     public override Task ValidateSavedAsync(string temporaryPath, CancellationToken cancellationToken) => throw new NotSupportedException("Validation belongs to the file-set plan.");
 }
 
-public sealed class MediaDocumentLoader(IDiskDialogs? diskDialogs = null, bool audioOnly = false) : IDocumentLoader,IProgressDocumentLoader
+public sealed class MediaDocumentLoader(IDiskDialogs? diskDialogs = null, bool audioOnly = false, IAudioImportDialogs? audioDialogs = null) : IDocumentLoader,IProgressDocumentLoader
 {
     private IProgress<LoadProgress>? progress;
     IProgress<LoadProgress>? IProgressDocumentLoader.Progress {get=>progress;set=>progress=value;}
     public async Task<DocumentSession> LoadAsync(string path, CancellationToken cancellationToken)
     {
-        if(System.IO.Path.GetExtension(path).ToLowerInvariant() is ".wav" or ".flac" || SegmentedPcmStreamReader.IsManifest(path))
+        if(audioOnly && AudioSession.IsSource(path))
         {
             var sink=progress;var reporter=new Progress<WavAnalysisProgress>(p=>sink?.Report(new(p.Stage,p.Fraction)));
             return await AudioSession.LoadAsync(path,reporter,cancellationToken);
         }
         if(audioOnly)throw new InvalidDataException("Choose a WAV, FLAC, or a complete .wav.json recording report.");
+        if(AudioProgramImport.IsSignal(path))
+        {
+            var dialogs=audioDialogs??diskDialogs as IAudioImportDialogs;
+            var choice=await AudioProgramImport.ChooseAsync([path],dialogs,cancellationToken);
+            var sink=progress;var reporter=new Progress<WavAnalysisProgress>(p=>sink?.Report(new(p.Stage,p.Fraction)));
+            var imported=await AudioProgramImport.ReadAsync(path,choice,reporter,cancellationToken);
+            if(AudioSession.IsSource(path)&&choice.Report!=ProgramImportReport.None&&dialogs is not null)await dialogs.ShowAudioImportReportAsync(imported.Report);
+            AudioProgramImport.Verify(imported.Sources,cancellationToken);
+            var model=new TapeDocument{Format=imported.Records.Count==1?TapeDocumentFormat.Mzf:TapeDocumentFormat.Mzt};
+            model.Records.AddRange(imported.Records);
+            return new TapeSession(model,imported.Sources){ImportEvidence=imported.Report};
+        }
         if (System.IO.Path.GetExtension(path).ToLowerInvariant() is ".dsk" or ".hfe")
             return await DiskLoader.LoadAsync(path,diskDialogs,cancellationToken);
         return await Task.Run<DocumentSession>(() =>

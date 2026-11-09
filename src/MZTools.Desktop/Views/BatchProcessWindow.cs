@@ -115,15 +115,15 @@ public sealed class BatchProcessWindow : Window
             paths.Text=selected.Count switch{0=>"No files selected",1=>selected[0],_=>$"{selected.Count} files selected — see list below"};ToolTip.SetTip(paths,string.Join('\n',selected));
             ShowInputs(fromFolder?[]:selected);summary.Text=$"Selected files: {selected.Count}. Preview to validate the operation.";error.Text="";
             pendingScans.RemoveAll(task=>task.IsCompleted);
-            if(fromFolder&&!string.IsNullOrWhiteSpace(folder.Text)){scanCancellation=new();scan=ScanAsync(version,folder.Text!,extensions.Text??"",recursive.IsChecked==true,scanCancellation.Token);pendingScans.Add(scan);}
+            if(fromFolder&&!string.IsNullOrWhiteSpace(folder.Text)){scanCancellation=new();scan=ScanAsync(version,folder.Text!,extensions.Text??"",recursive.IsChecked==true,Operation,Target,scanCancellation.Token);pendingScans.Add(scan);}
         }
         finally{updating=false;States();}
     }
     private void ShowInputs(IEnumerable<string> inputs)=>table.ItemsSource=inputs.Select(path=>new BatchRowView(new(){Input=path,Operation=BatchMediaPolicy.Label(Operation),Result=BatchMediaPolicy.Supports(Operation,path,Target)?"Selected":"Unsupported input",Reason=BatchMediaPolicy.Supports(Operation,path,Target)?"Preview required":"Choose an operation/target for this file type."})).ToArray();
-    private async Task ScanAsync(int generation,string path,string filter,bool recurse,CancellationToken token)
+    private async Task ScanAsync(int generation,string path,string filter,bool recurse,BatchOperation operation,string target,CancellationToken token)
     {
         summary.Text="Scanning input folder…";
-        try{await Task.Delay(250,token);var inputs=await Task.Run(()=>BatchProcessService.Scan(path,recurse,filter,token),token);if(closed||version!=generation||token.IsCancellationRequested)return;ShowInputs(inputs);summary.Text=$"Folder inputs: {inputs.Length}. Preview required.";}
+        try{await Task.Delay(250,token);var inputs=await Task.Run(()=>BatchInputSelection.Scan(path,recurse,filter,operation,target,token),token);if(closed||version!=generation||token.IsCancellationRequested)return;ShowInputs(inputs);summary.Text=$"Folder inputs: {inputs.Length}. Preview required.";}
         catch(OperationCanceledException){}catch(Exception e)when(e is IOException or UnauthorizedAccessException or ArgumentException){if(!closed&&version==generation)summary.Text="Folder scan: "+e.Message;}
     }
     private void States()
@@ -139,8 +139,8 @@ public sealed class BatchProcessWindow : Window
         bool fromFolder=folderMode.IsChecked==true,recurse=recursive.IsChecked==true;string filter=extensions.Text??"";string[] files=selected.ToArray();
         await Model.Documents.ExecuteAsync(async ct=>
         {
-            if(fromFolder)files=await Task.Run(()=>BatchProcessService.Scan(options.InputRoot??"",recurse,filter,ct),ct);
-            if(files.Length==0)throw new InvalidOperationException("Select at least one input file.");var progress=Model.Documents.BatchProgress();var result=await Task.Run(()=>BatchProcessService.Preview(files,options,progress,ct),ct);
+            if(fromFolder)files=await Task.Run(()=>BatchInputSelection.Scan(options.InputRoot??"",recurse,filter,options.Operation,options.TargetFormat,ct),ct);
+            if(files.Length==0)throw new InvalidOperationException(fromFolder?"No compatible files match the folder filter and current operation/target.":"Select at least one input file.");var progress=Model.Documents.BatchProgress();var result=await Task.Run(()=>BatchProcessService.Preview(files,options,progress,ct),ct);
             if(closed||version!=generation)return false;Model.Documents.ReplaceBatch(result);current=true;table.ItemsSource=Session!.Rows;table.SelectedItem=Session.Rows.FirstOrDefault();summary.Text=(result.Cancelled?"Cancelled. Run Preview again to continue. ":"")+Session.Summary;return true;
         });States();
     }

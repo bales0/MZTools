@@ -18,7 +18,7 @@ internal static class AudioScenario
     {
         string root=Path.Combine(Path.GetTempPath(),"mztools-f6-native-"+Guid.NewGuid().ToString("N"));Directory.CreateDirectory(root);
         var checks=new List<object>();var frames=new List<object>();var dialogs=new Dialogs();
-        var model=new ShellViewModel(new(new MediaDocumentLoader(dialogs),dialogs,new()),_=>Task.CompletedTask,dialogs);var window=new MainWindow(model);window.Show();
+        var model=new ShellViewModel(new(new MediaDocumentLoader(dialogs,true),dialogs,new()),_=>Task.CompletedTask,dialogs);var window=new MainWindow(model);window.Show();
         void Check(bool ok,string name){checks.Add(new{name,pass=ok});if(!ok)throw new InvalidOperationException(name);}
         async Task Execute(AsyncCommand command)
         {

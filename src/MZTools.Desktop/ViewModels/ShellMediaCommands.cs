@@ -69,8 +69,9 @@ public sealed partial class ShellViewModel
         ImportCommand = Operation(async ct =>
         {
             var tape = ActiveTape!; var paths = await dialogs!.PickImportAsync(tape); if (paths.Count == 0) return false;
-            var preview = await MediaOperations.ImportAsync(tape, paths, ct);
+            var preview = await MediaOperations.ImportAsync(tape, paths, ct, dialogs as IAudioImportDialogs, Documents.AudioProgress());
             if (!await dialogs.ConfirmPreviewAsync("Import preview", preview.Report)) return false;
+            AudioProgramImport.Verify(preview.Sources,ct);
             return ApplyPreview(tape, preview);
         }, () => dialogs is not null && CanMutateRecords);
         CompressCommand = Operation(async ct =>
@@ -78,6 +79,7 @@ public sealed partial class ShellViewModel
             var tape = ActiveTape!; var choice = await dialogs!.ChooseCompressionAsync(); if (choice is null) return false;
             var preview = await MediaOperations.CompressAsync(tape, choice, ct);
             if (!await dialogs.ConfirmPreviewAsync("Compression preview", preview.Report)) return false;
+            AudioProgramImport.Verify(preview.Sources,ct);
             return ApplyPreview(tape, preview);
         }, () => dialogs is not null && CanMutateRecords && Selected());
         ExportCommand = Operation(async ct =>
