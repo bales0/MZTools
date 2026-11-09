@@ -44,6 +44,7 @@ public sealed partial class TapeSession : DocumentSession, IFileSetDocument
     private RecordRow? selected;
     private string filter = "";
     private bool refreshing;
+    internal bool IsRefreshing=>refreshing;
     private bool snapshotDirty = true;
     internal List<int> Selection { get; } = [];
     public IReadOnlyList<RecordRow> Rows => rows;
@@ -144,9 +145,10 @@ public sealed partial class TapeSession : DocumentSession, IFileSetDocument
             catch (Exception e) when (e is InvalidDataException or InvalidOperationException) { Snapshot = null; }
             snapshotDirty = false; SelectedRegion = null;
         }
+        if (!hadDraft || previousRecord != selected?.Record) LoadFields();
         Changed(nameof(Rows)); Changed(nameof(HasRows)); Changed(nameof(EmptyMessage)); Changed(nameof(SelectedRow)); Changed(nameof(Summary)); Changed(nameof(Format)); Changed(nameof(CanEdit)); Changed(nameof(IsQuickDisk));
         Changed(nameof(MapSummary)); Changed(nameof(MapRegions)); Changed(nameof(WpfMapSummary)); Changed(nameof(Hex)); Changed(nameof(SaveDisabledReason)); Changed(nameof(SelectedHidden)); Changed(nameof(MapDetail)); Changed(nameof(WpfMapDetail)); Changed(nameof(MapMessages)); Changed(nameof(HasRegion)); Changed(nameof(CanFitSelection)); Changed(nameof(MediaEvidence)); Changed(nameof(MediaReport));
-        refreshing = false; if (!hadDraft || previousRecord != selected?.Record) LoadFields();
+        refreshing = false; DraftChanged();
     }
     private void EnsureEditable() { if (!CanEdit) throw new InvalidOperationException(SaveDisabledReason); }
     internal void ApplyMetadata()
@@ -213,10 +215,10 @@ public sealed partial class TapeSession : DocumentSession, IFileSetDocument
         byte[] main = await Task.Run(() => TapeDocumentIO.Serialize(clone, format, choice.PreserveTrailing), cancellation);
         var outputs = new Dictionary<string, byte[]>(AtomicFileTransaction.PathComparer) { [choice.Path] = main };
         bool tape = format is TapeDocumentFormat.Mzf or TapeDocumentFormat.M12 or TapeDocumentFormat.Mzt;
-        string? sidecar = tape && choice.GenerateSidecar ? SidecarService.GetSidecarPath(choice.Path) : null;
-        if (tape && sidecar is null && File.Exists(SidecarService.GetSidecarPath(choice.Path)))
+        string? sidecar = choice.GenerateSidecar ? SidecarService.GetSidecarPath(choice.Path) : null;
+        if (sidecar is null && File.Exists(SidecarService.GetSidecarPath(choice.Path)))
             throw new IOException("The destination already has metadata. Enable sidecar output or choose a different destination; stale metadata will not be left beside new media.");
-        if (sidecar is not null) outputs.Add(sidecar, format == TapeDocumentFormat.Mzt ? SidecarService.SerializeMti(clone.Records) : SidecarService.SerializeMfi(clone.Records.Single()));
+        if (sidecar is not null) outputs.Add(sidecar, format == TapeDocumentFormat.Mzt ? SidecarService.SerializeMti(clone.Records) : !tape ? SidecarService.SerializeMqi(clone.Records) : SidecarService.SerializeMfi(clone.Records.Single()));
         var warnings = new List<string>();
         if (Model.ContainerTrailingData.Length != 0 || clone.Records.Any(r => r.Body.TrailingData.Length != 0) && (format == TapeDocumentFormat.Mzt || !choice.PreserveTrailing || !tape))
             warnings.Add("Trailing/container data will be omitted by this output format.");
@@ -239,7 +241,7 @@ public sealed partial class TapeSession : DocumentSession, IFileSetDocument
                 {
                     if (format == TapeDocumentFormat.Mzt || !choice.PreserveTrailing || !tape) record.RemoveTrailingData();
                     if (sidecar is null) record.ResetMetadataToImplicit();
-                    else record.MetadataOrigin = format == TapeDocumentFormat.Mzt ? MetadataOrigin.LoadedFromMti : SidecarService.SingleRecordOrigin(choice.Path);
+                    else record.MetadataOrigin = format == TapeDocumentFormat.Mzt ? MetadataOrigin.LoadedFromMti : !tape ? MetadataOrigin.LoadedFromMqi : SidecarService.SingleRecordOrigin(choice.Path);
                 }
             }
             if (Model.IsQuickDisk) Model.QuickDiskSourceImage = main;
@@ -289,11 +291,11 @@ public sealed class MediaDocumentLoader(IDiskDialogs? diskDialogs = null, bool a
     {
         cancellationToken.ThrowIfCancellationRequested();
         string sidecar = SidecarService.GetSidecarPath(path);
-        bool tapeExtension = System.IO.Path.GetExtension(path).ToLowerInvariant() is ".mzf" or ".m12" or ".mzt" or ".mz0" or ".mz7";
-        string? sideHash = tapeExtension ? AtomicFileTransaction.Hash(sidecar) : null;
+        bool metadataExtension = System.IO.Path.GetExtension(path).ToLowerInvariant() is ".mzf" or ".m12" or ".mzt" or ".mz0" or ".mz7" or ".qd" or ".qdf" or ".mzq";
+        string? sideHash = metadataExtension ? AtomicFileTransaction.Hash(sidecar) : null;
         var document = TapeDocumentIO.Read(path);
         var hashes = new Dictionary<string, string?>(AtomicFileTransaction.PathComparer) { [path] = AtomicFileTransaction.Hash(path) };
-        if (document.Format is TapeDocumentFormat.Mzf or TapeDocumentFormat.M12 or TapeDocumentFormat.Mzt)
+        if (metadataExtension)
         {
             if (AtomicFileTransaction.Hash(sidecar) != sideHash) throw new IOException("Metadata changed while opening.");
             hashes.Add(sidecar, sideHash);

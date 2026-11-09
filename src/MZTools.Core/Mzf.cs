@@ -161,7 +161,8 @@ namespace MZTools
         LoadedFromMfi,
         LoadedFromMti,
         CreatedOrModifiedInAdvanced,
-        LoadedFromM2i
+        LoadedFromM2i,
+        LoadedFromMqi
     }
 
     internal enum TapeDocumentFormat
@@ -630,6 +631,7 @@ namespace MZTools
             {
                 ".mzt" => ".mti",
                 ".m12" => ".m2i",
+                ".qd" or ".qdf" or ".mzq" => ".mqi",
                 _ => ".mfi"
             };
             return Path.ChangeExtension(mainPath, extension);
@@ -656,14 +658,15 @@ namespace MZTools
             return path;
         }
 
-        public static string? LoadForMzt(string mztPath, IReadOnlyList<TapeRecord> records)
-        {
-            string path = GetSidecarPath(mztPath);
-            if (!File.Exists(path))
-            {
-                return null;
-            }
+        public static string? LoadForMzt(string mztPath, IReadOnlyList<TapeRecord> records) =>
+            LoadMultiple(GetSidecarPath(mztPath), records, MetadataOrigin.LoadedFromMti);
 
+        public static string? LoadForQuickDisk(string imagePath, IReadOnlyList<TapeRecord> records) =>
+            LoadMultiple(GetSidecarPath(imagePath), records, MetadataOrigin.LoadedFromMqi);
+
+        private static string? LoadMultiple(string path, IReadOnlyList<TapeRecord> records, MetadataOrigin origin)
+        {
+            if (!File.Exists(path)) return null;
             Dictionary<int, List<string>> sections = ParseMtiSections(File.ReadAllLines(path));
             for (int index = 0; index < records.Count; index++)
             {
@@ -671,12 +674,13 @@ namespace MZTools
                     TryParseProfile(lines, out TapeProfile profile))
                 {
                     records[index].Profile = profile;
-                    records[index].MetadataOrigin = MetadataOrigin.LoadedFromMti;
+                    records[index].MetadataOrigin = origin;
                 }
             }
-
             return path;
         }
+
+        public static byte[] SerializeMqi(IReadOnlyList<TapeRecord> records) => SerializeMti(records);
 
         public static byte[] SerializeMfi(TapeRecord record) =>
             Encoding.ASCII.GetBytes(SerializeProfile(record.Profile));

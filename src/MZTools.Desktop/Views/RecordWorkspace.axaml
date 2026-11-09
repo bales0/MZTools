@@ -23,7 +23,7 @@
               <TableView x:Name="RecordsTable" ItemsSource="{Binding ActiveTape.Rows}" SelectionMode="Multiple" IsEnabled="{Binding !Documents.IsBusy}"
                          SelectionChanged="SelectionChanged" AutomationProperties.Name="Records" DragDrop.AllowDrop="True">
                 <TableView.ContextMenu>
-                  <ContextMenu><MenuItem Header="Add..." Command="{Binding ImportCommand}" /><MenuItem Header="Rename" Click="RenameInline" /><MenuItem Header="Hex view..." Click="ViewHex" />
+                  <ContextMenu><MenuItem Header="Add..." Command="{Binding ImportCommand}" /><MenuItem Header="Hex view..." Click="ViewHex" />
                     <MenuItem Header="Copy records" Command="{Binding CopyRecordsCommand}" />
                     <MenuItem Header="Paste records…" Command="{Binding PasteRecordsCommand}" />
                     <MenuItem Header="Compression…" Command="{Binding CompressCommand}" />
@@ -34,7 +34,7 @@
                 </TableView.ContextMenu>
                 <TableView.Columns>
                   <TableViewColumn Header="Type" Binding="{ReflectionBinding TypeLabel}" Width="55" />
-                  <TableViewColumn Header="File name" Width="170"><TableViewColumn.CellTemplate><DataTemplate x:DataType="d:RecordRow"><TextBox IsReadOnly="{Binding !Editable}" Text="{Binding Name, Mode=OneWay}" LostFocus="CommitName" KeyDown="NameKey" Padding="4,1" BorderThickness="0" Background="Transparent" AutomationProperties.Name="File name" /></DataTemplate></TableViewColumn.CellTemplate></TableViewColumn>
+                  <TableViewColumn Header="File name" Binding="{ReflectionBinding Name}" Width="170" />
                   <TableViewColumn Header="Size" Binding="{ReflectionBinding SizeDecimal}" Width="55" />
                   <TableViewColumn Header="Size(Hex)" Binding="{ReflectionBinding SizeHex}" Width="75" />
                   <TableViewColumn Header="Trailing" Binding="{ReflectionBinding Trailing}" Width="65" />
@@ -42,7 +42,7 @@
                   <TableViewColumn Header="Exec" Binding="{ReflectionBinding ExecLabel}" Width="70" />
                   <TableViewColumn Header="Compression" Binding="{ReflectionBinding CompressionLabel}" Width="100" />
                   <TableViewColumn Header="Description" Binding="{ReflectionBinding Description}" Width="*" />
-                  <TableViewColumn Header="Loader" Width="110"><TableViewColumn.CellTemplate><DataTemplate x:DataType="d:RecordRow"><ComboBox IsEnabled="{Binding Editable}" ItemsSource="{Binding Loaders}" SelectedItem="{Binding Loader, Mode=OneWay}" SelectionChanged="ChangeLoader" Padding="2,0" HorizontalAlignment="Stretch" AutomationProperties.Name="Tape loader"><ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{ReflectionBinding Converter={StaticResource WpfLoaderLabel}}" /></DataTemplate></ComboBox.ItemTemplate></ComboBox></DataTemplate></TableViewColumn.CellTemplate></TableViewColumn>
+                  <TableViewColumn Header="Loader" Width="110"><TableViewColumn.CellTemplate><DataTemplate x:DataType="d:RecordRow"><TextBlock Text="{Binding Loader, Converter={StaticResource WpfLoaderLabel}}" /></DataTemplate></TableViewColumn.CellTemplate></TableViewColumn>
                   <TableViewColumn Header="Speed" Width="75"><TableViewColumn.CellTemplate><DataTemplate x:DataType="d:RecordRow"><ComboBox IsEnabled="{Binding Editable}" ItemsSource="{Binding Speeds}" SelectedItem="{Binding Speed, Mode=OneWay}" SelectionChanged="ChangeSpeed" Padding="2,0" HorizontalAlignment="Stretch" AutomationProperties.Name="Tape speed" /></DataTemplate></TableViewColumn.CellTemplate></TableViewColumn>
                 </TableView.Columns>
               </TableView>

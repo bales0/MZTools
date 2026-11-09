@@ -38,9 +38,6 @@ public sealed partial class MainWindow
         Tool("Analyze Audio (WAV / FLAC)...",click:async(_,_)=>await OpenAudioForAnalysisAsync());
         Tool("Record Audio / Live Tape Analysis...",Model.RecorderCommand);
         Tool("MZF/M12 → COM...",click:async(_,_)=>await ConvertNativeProgramAsync());
-        menu.Items.Add(new Separator());
-        Tool("New tape",Model.NewTapeCommand);Tool("New QD...",Model.NewQuickDiskCommand);Tool("New disk...",Model.NewDiskCommand);
-        Tool("Record properties...",Model.InspectorCommand);
         CommandBar.Children.Add(tools);
         OpenButton.Content="Open...";OpenButton.Classes.Add("wpfToolbar");CommandBar.Children.Add(OpenButton);
         Button Add(string name,string label,ICommand? command=null,EventHandler<RoutedEventArgs>? click=null)
@@ -59,7 +56,11 @@ public sealed partial class MainWindow
         wpfUp.MinWidth=wpfDown.MinWidth=44;wpfUp.Width=wpfDown.Width=44;
         ToolTip.SetTip(wpfUp,"Move selected rows up");ToolTip.SetTip(wpfDown,"Move selected rows down");
         CommandBar.Children.Add(new Border{Width=1,Height=24,Margin=new Thickness(7,2,13,2),Background=Avalonia.Media.Brushes.LightGray});
-        Add("NewQuickDiskButton","New QD...",Model.NewQuickDiskCommand);Add("NewDiskButton","New disk...",Model.NewDiskCommand);
+        var create=Add("NewDocumentButton","New ▾");create.ContextMenu=new ContextMenu();
+        create.ContextMenu.Items.Add(new MenuItem{Header="New tape",Command=Model.NewTapeCommand});
+        create.ContextMenu.Items.Add(new MenuItem{Header="New QD...",Command=Model.NewQuickDiskCommand});
+        create.ContextMenu.Items.Add(new MenuItem{Header="New disk...",Command=Model.NewDiskCommand});
+        create.Click+=(_,_)=>create.ContextMenu.Open(create);
         wpfFormat=Add("FormatQuickDiskButton","Format...",click:async(_,_)=>await FormatWpfQuickDiskAsync());
         var empty=new TableView{SelectionMode=SelectionMode.Multiple,Margin=new Thickness(0),ItemsSource=Array.Empty<object>()};
         foreach(var (header,width) in new[]{("Type",65),("Name",200),("Size",65),("Size(Hex)",85),("Trailing",75),("Start",70),("Exec",70),("Compression",100),("Description",200),("Loader",100),("Speed",65)})
@@ -85,7 +86,6 @@ public sealed partial class MainWindow
         wpfDelete!.Command=Model.ActiveDisk is not null?Model.DiskDeleteCommand:Model.DeleteRecordsCommand;
         wpfView!.IsEnabled=Model.ActiveTape?.SelectedRow is not null||Model.ActiveDisk is not null;
         wpfCompression!.IsVisible=Model.ActiveTape is not null;
-        foreach(var button in CommandBar.Children.OfType<Button>().Where(b=>b.Name is "NewQuickDiskButton" or "NewDiskButton"))button.IsVisible=!Model.HasDocument;
         wpfFormat!.IsVisible=Model.ActiveTape?.IsQuickDisk==true;wpfFormat.IsEnabled=Model.ActiveTape?.CanEdit==true&&!Model.Documents.IsBusy;
         wpfUp!.IsVisible=wpfDown!.IsVisible=Model.ActiveDisk is null;
         wpfVisual!.IsVisible=Model.ActiveTape?.IsQuickDisk==true||Model.ActiveDisk is not null;

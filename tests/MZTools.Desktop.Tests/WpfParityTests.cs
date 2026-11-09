@@ -97,12 +97,13 @@ public sealed class WpfParityTests
         try
         {
             Dispatcher.UIThread.RunJobs();var toolbar=window.FindControl<WrapPanel>("CommandBar")!;
-            Assert.Equal(new[]{"Tools ▾","Open...","Add...","Export...","View","Delete","Compression...","Save","Save As...","Close","↑","↓"},toolbar.Children.OfType<Button>().Where(b=>b.IsVisible).Select(b=>b.Content));
+            Assert.Equal(new[]{"Tools ▾","Open...","Add...","Export...","View","Delete","Compression...","Save","Save As...","Close","↑","↓","New ▾"},toolbar.Children.OfType<Button>().Where(b=>b.IsVisible).Select(b=>b.Content));
             Assert.All(toolbar.Children.OfType<Button>().Where(b=>b.IsVisible),b=>Assert.Equal(28,b.Height));
             var table=window.GetVisualDescendants().OfType<TableView>().Single(t=>t.Name=="RecordsTable");
             Assert.Equal(new[]{"Type","File name","Size","Size(Hex)","Trailing","Start","Exec","Compression","Description","Loader","Speed"},table.Columns.Select(c=>c.Header));
-            var input=table.GetVisualDescendants().OfType<TextBox>().Single(t=>AutomationProperties.GetName(t)=="File name");
-            Assert.True(input.Focus());input.SelectAll();window.KeyTextInput("RENAMED");window.KeyPress(Key.Enter,RawInputModifiers.None,PhysicalKey.Enter,null);window.KeyRelease(Key.Enter,RawInputModifiers.None,PhysicalKey.Enter,null);Dispatcher.UIThread.RunJobs();
+            Assert.All(table.GetVisualDescendants().OfType<TextBox>().Where(t=>!t.GetVisualAncestors().Any(v=>v is ComboBox)),t=>Assert.True(t.IsReadOnly,$"Editable: {t.Text} ({t.Name})"));
+            window.GetVisualDescendants().OfType<RecordWorkspace>().Single().ShowInspector(window);Dispatcher.UIThread.RunJobs();var properties=Assert.Single(window.OwnedWindows);Assert.Equal("Properties",properties.Title);
+            var input=properties.GetVisualDescendants().OfType<TextBox>().Single(t=>AutomationProperties.GetName(t)=="Record name");input.Text="RENAMED";model.ApplyMetadataCommand.Execute(null);Dispatcher.UIThread.RunJobs();properties.Close();Dispatcher.UIThread.RunJobs();
             Assert.Equal("RENAMED",tape.Rows[0].Name);Assert.False(tape.HasDraft);Assert.True(tape.IsModified);Assert.True(model.SaveCommand.CanExecute(null));
             Assert.Null(model.Documents.Error);
             Assert.Equal(original,File.ReadAllBytes(tape.Path!));Assert.Equal(original[24..],tape.Model.Records[0].GetSerializedHeader()[24..].Concat(tape.Model.Records[0].Body.MzfBody));
@@ -114,11 +115,12 @@ public sealed class WpfParityTests
     {
         using var files=new MediaDocumentTests();files.Dialogs.CloseDecision=CloseDecision.Discard;
         string path=files.FilePath("multi.mzt");File.WriteAllBytes(path,MediaDocumentTests.Mzf("A").Concat(MediaDocumentTests.Mzf("B")).ToArray());var tape=await files.Open("multi.mzt");
+        var profiles=tape.Model.Records.Select(r=>r.DeepClone()).ToArray();foreach(var record in profiles)record.Profile=TapeProfileComponents.Combine("IC","1:1");tape.ApplyRecords(profiles);
         var model=new ShellViewModel(files.Coordinator,_=>Task.CompletedTask,files.Dialogs);var window=new MainWindow(model);window.Show();
         try
         {
             Dispatcher.UIThread.RunJobs();var table=window.GetVisualDescendants().OfType<TableView>().Single(t=>t.Name=="RecordsTable");table.SelectedItems!.Clear();table.SelectedItems.Add(tape.Rows[0]);table.SelectedItems.Add(tape.Rows[1]);Dispatcher.UIThread.RunJobs();
-            var loader=table.GetVisualDescendants().OfType<ComboBox>().First(b=>AutomationProperties.GetName(b)=="Tape loader");loader.SelectedItem="IC";Dispatcher.UIThread.RunJobs();
+            Assert.DoesNotContain(table.GetVisualDescendants().OfType<ComboBox>(),b=>AutomationProperties.GetName(b)=="Tape loader");
             Assert.All(tape.Model.Records,r=>Assert.Equal(TapeProfileComponents.Combine("IC","1:1"),r.Profile));
             var speed=table.GetVisualDescendants().OfType<ComboBox>().First(b=>AutomationProperties.GetName(b)=="Tape speed");speed.SelectedItem="1:3";Dispatcher.UIThread.RunJobs();
             Assert.All(tape.Model.Records,r=>Assert.Equal(TapeProfileComponents.Combine("IC","1:3"),r.Profile));

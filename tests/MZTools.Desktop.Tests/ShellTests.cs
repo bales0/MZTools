@@ -279,7 +279,7 @@ public sealed class ShellTests
             var toolbar=window.FindControl<WrapPanel>("CommandBar")!;
             Assert.Same(model.OpenCommand,toolbar.Children.OfType<Button>().Single(b=>Equals(b.Content,"Open...")).Command);
             Assert.Same(model.SaveCommand,toolbar.Children.OfType<Button>().Single(b=>Equals(b.Content,"Save")).Command);
-            Assert.Same(model.NewQuickDiskCommand,toolbar.Children.OfType<Button>().Single(b=>Equals(b.Content,"New QD...")).Command);
+            Assert.Same(model.NewQuickDiskCommand,toolbar.Children.OfType<Button>().Single(b=>b.Name=="NewDocumentButton").ContextMenu!.Items.OfType<MenuItem>().Single(i=>Equals(i.Header,"New QD...")).Command);
             Assert.False(toolbar.Children.OfType<Button>().Single(b=>Equals(b.Content,"Add...")).IsEnabled);
         } finally {Close(window);}
     }

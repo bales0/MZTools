@@ -37,6 +37,8 @@ internal static class TapeDocumentIO
                 document.Records.AddRange(qd.Records); break;
             default: throw new NotSupportedException("Open supports MZF, M12, MZT, MZQ, QDF and QD. Use Import for WAV/LEP/L16. Disk/audio editors are in subsequent phases.");
         }
+        if (document.IsQuickDisk && !document.IsReadOnlyQuickDisk)
+            document.SidecarPath = SidecarService.LoadForQuickDisk(path, document.Records);
         return document;
     }
 

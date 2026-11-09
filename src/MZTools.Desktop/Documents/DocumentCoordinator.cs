@@ -28,7 +28,7 @@ public sealed class DocumentCoordinator : Observable
     private DocumentSession? active;
     private bool busy;
     private string? error;
-    private string status = "Ready · Media editors will be connected in subsequent phases.";
+    private string status = "Ready.";
     private CancellationTokenSource? operation;
     private readonly ObservableCollection<DocumentSession> documents = [];
     public ReadOnlyObservableCollection<DocumentSession> Documents { get; }
@@ -44,7 +44,22 @@ public sealed class DocumentCoordinator : Observable
     {long generation=operationGeneration;return new Progress<WavAnalysisProgress>(p=>ReportProgress(p.Stage,p.Fraction,generation));}
     internal IProgress<BatchProgress> BatchProgress()
     {long generation=operationGeneration;return new Progress<BatchProgress>(p=>ReportProgress($"{p.Stage}: {p.Completed}/{p.Total} — {System.IO.Path.GetFileName(p.Input)}",p.Total==0?0:p.Completed/(double)p.Total,generation));}
-    public bool IsBusy { get => busy; private set => Set(ref busy, value); }
+    public bool IsBusy { get => busy; private set {if(Set(ref busy,value))Changed(nameof(IsWorking));} }
+    private int inputDepth;
+    public bool IsAwaitingInput=>inputDepth>0;
+    public bool IsWorking=>IsBusy&&!IsAwaitingInput;
+    internal IDisposable AwaitUserInput(string prompt)
+    {
+        string previous=Status;inputDepth++;Status=prompt;Changed(nameof(IsAwaitingInput));Changed(nameof(IsWorking));
+        return new InputWait(()=>{inputDepth--;Status=previous;Changed(nameof(IsAwaitingInput));Changed(nameof(IsWorking));});
+    }
+    private sealed class InputWait(Action finish):IDisposable
+    {
+        private Action? remaining=finish;
+        public void Dispose()=>Interlocked.Exchange(ref remaining,null)?.Invoke();
+    }
+    private async Task<T> SelectInputAsync<T>(Func<Task<T>> select,string prompt)
+    {using var wait=AwaitUserInput(prompt);return await select();}
     public string? Error { get => error; private set { Set(ref error, value); Changed(nameof(HasError)); } }
     public bool HasError => Error is not null;
     public string Status { get => status; private set => Set(ref status, value); }
@@ -91,7 +106,7 @@ public sealed class DocumentCoordinator : Observable
 
     public Task<bool> OpenAsync() => RunAsync(async ct =>
     {
-        var path = await dialogs.OpenAsync();
+        var path = await SelectInputAsync(dialogs.OpenAsync,"Choose a file…");
         if (path is null) return false;
         return await OpenPathCoreAsync(path,ct);
     });
@@ -133,7 +148,7 @@ public sealed class DocumentCoordinator : Observable
         if (document is TapeSession { HasDraft: true }) throw new InvalidOperationException("Apply or Cancel metadata edits before saving.");
         if (!saveAs && document.IsReadOnly) throw new IOException(document.SaveDisabledReason);
         if (!saveAs && !document.IsModified) return true;
-        SaveChoice? choice = saveAs || document.Path is null ? await dialogs.ChooseSaveAsync(document)
+        SaveChoice? choice = saveAs || document.Path is null ? await SelectInputAsync(()=>dialogs.ChooseSaveAsync(document),"Choose a destination…")
             : document is IFileSetDocument current ? current.CurrentSaveChoice(document.Path) : new(document.Path);
         if (choice is null) return false;
         string destination = PathIdentity.Normalize(choice.Path);

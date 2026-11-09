@@ -2,7 +2,7 @@
              xmlns:vm="using:MZTools.Desktop.ViewModels" x:Class="MZTools.Desktop.Controls.RecordInspector" x:DataType="vm:ShellViewModel">
   <ScrollViewer HorizontalScrollBarVisibility="Disabled">
     <StackPanel Spacing="8">
-      <TextBlock Text="Record inspector" Classes="section" />
+      <TextBlock Text="Properties" Classes="section" />
       <TextBlock Text="{Binding ActiveTape.SelectedRow.Origin}" Classes="muted" TextWrapping="Wrap" />
       <TextBlock Text="Selected record is hidden by the filter." IsVisible="{Binding ActiveTape.SelectedHidden}" TextWrapping="Wrap" Classes="muted" />
       <StackPanel x:Name="MetadataEditor" Spacing="6" IsEnabled="{Binding CanEditMetadata}">
@@ -21,12 +21,11 @@
           <Button Content="Cancel edits" Click="CancelEdits" Margin="0,0,0,6" />
         </WrapPanel>
       </StackPanel>
-      <TextBlock Text="Unapplied edits" IsVisible="{Binding ActiveTape.HasDraft}" Foreground="{DynamicResource F2.warning}" />
       <TextBlock Text="{Binding ActiveTape.Validation}" Foreground="{DynamicResource F2.error}" TextWrapping="Wrap" />
       <Border Height="1" Background="{DynamicResource F2.border}" Margin="0,8" />
       <TextBlock Text="Source compression" FontWeight="SemiBold" />
       <TextBlock Text="{Binding ActiveTape.SelectedRow.Compression}" TextWrapping="Wrap" />
-      <TextBlock Text="{Binding DocumentReason}" Classes="muted" TextWrapping="Wrap" />
+      <TextBlock Text="{Binding DocumentReason}" IsVisible="{Binding !ActiveTape.HasDraft}" Classes="muted" TextWrapping="Wrap" />
       <TextBlock Text="{Binding ActiveTape.MapDetail}" Classes="muted" TextWrapping="Wrap" />
     </StackPanel>
   </ScrollViewer>

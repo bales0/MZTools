@@ -11,7 +11,7 @@ import time
 ROOT=Path(__file__).resolve().parents[1]
 DESKTOP='tests/MZTools.Desktop.Tests/MZTools.Desktop.Tests.csproj'
 CORE='tests/MZTools.Core.Tests/MZTools.Core.Tests.csproj'
-CLASSES=['DeepAnalysisInputTests','AudioDocumentTests','SelectedAnalysisWindowTests','ReportedUiRegressionTests','Phase5WorkflowTests','FilePickerPolicyTests','OpenImportPickerTests','MediaDocumentTests','DiskDocumentTests','BatchParityTests']
+CLASSES=['QuickDiskSidecarTests','QuickDiskSpeedEditingTests','ShellPresentationTests','DeepAnalysisInputTests','AudioDocumentTests','SelectedAnalysisWindowTests','ReportedUiRegressionTests','Phase5WorkflowTests','FilePickerPolicyTests','OpenImportPickerTests','MediaDocumentTests','DiskDocumentTests','BatchParityTests']
 EXCLUDED=['MZTools.Desktop.Tests.DiskDocumentTests.HfeMetadataEditKeepsOriginalAndCorePhysicalSerialization']
 CORE_FILTER='FullyQualifiedName~DskPatchTests|FullyQualifiedName~BootstrapRawRangeTests'
 

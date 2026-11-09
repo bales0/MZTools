@@ -46,7 +46,7 @@ internal static class MediaOperations
                 }
                 else
                 {
-                    if(extension is ".mzf" or ".m12" or ".mz0" or ".mz7" or ".mzt")
+                    if(extension is ".mzf" or ".m12" or ".mz0" or ".mz7" or ".mzt" or ".qd" or ".qdf" or ".mzq")
                     {string sidecar=SidecarService.GetSidecarPath(path);sources[sidecar]=AtomicFileTransaction.Hash(sidecar);}
                     var document = TapeDocumentIO.Read(path);
                     if (document.IsReadOnlyQuickDisk) throw new InvalidDataException("Non-SHARP/unknown QuickDisk cannot be imported as SHARP records.");

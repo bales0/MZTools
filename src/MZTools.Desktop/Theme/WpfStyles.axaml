@@ -35,6 +35,10 @@
   <Style Selector="TableView"><Setter Property="Background" Value="#F0F0F0" /><Setter Property="BorderBrush" Value="#ABADB3" /><Setter Property="BorderThickness" Value="1" /><Setter Property="Focusable" Value="True" /></Style>
   <Style Selector="TableViewColumnHeader"><Setter Property="Background" Value="#F0F0F0" /><Setter Property="Foreground" Value="Black" /><Setter Property="FontSize" Value="12" /><Setter Property="MinHeight" Value="24" /></Style>
   <Style Selector="TableViewRow"><Setter Property="MinHeight" Value="24" /><Setter Property="Foreground" Value="Black" /></Style>
+  <Style Selector="ListBox#DocumentTabs ListBoxItem"><Setter Property="MinWidth" Value="100" /><Setter Property="Padding" Value="12,6" /></Style>
+  <Style Selector="ListBox#DocumentTabs ListBoxItem TextBlock"><Setter Property="Foreground" Value="Black" /></Style>
+  <Style Selector="ListBox#DocumentTabs ListBoxItem:selected TextBlock"><Setter Property="Foreground" Value="White" /></Style>
+  <Style Selector="ListBox#DocumentTabs ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter"><Setter Property="Background" Value="#0078D7" /><Setter Property="Foreground" Value="White" /></Style>
   <Style Selector="TableViewRow:selected"><Setter Property="Background" Value="#0078D7" /><Setter Property="Foreground" Value="White" /></Style>
   <Style Selector="TableViewRow:selected /template/ Border#Border"><Setter Property="Background" Value="#0078D7" /><Setter Property="TextElement.Foreground" Value="White" /></Style>
   <Style Selector="TableViewRow:selected TextBox"><Setter Property="Foreground" Value="White" /></Style>

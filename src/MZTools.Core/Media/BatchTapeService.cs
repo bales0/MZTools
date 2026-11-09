@@ -29,7 +29,7 @@ internal static class BatchTapeService
         row.Contents = input.Records.Select((record, index) => new BatchContentItem(index + 1,
             SharpMzEncoding.ConvertMzfNameToASCIIString(record.Header.MzfFname), record.Body.MzfBody.Length,
             record.Header.MzfFtype.ToString("X2"), record.Header.MzfStart, record.Header.MzfExec,
-            Profile: extension is ".qd" or ".qdf" or ".mzq" ? "" : TapeProfileNames.ToDisplayName(record.Profile), Compression: MzfLoaderBuilder.DetectCompression(record).ToString(),
+            Profile: (extension is ".qd" or ".qdf" or ".mzq") && record.MetadataOrigin != MetadataOrigin.LoadedFromMqi ? "" : TapeProfileNames.ToDisplayName(record.Profile), Compression: MzfLoaderBuilder.DetectCompression(record).ToString(),
             TrailingBytes: record.Body.TrailingData?.Length ?? 0)).ToArray();
         row.Filesystem = input.QuickDisk?.Analysis.Identification.DisplayName ?? "SHARP MZ tape records";
         var report = new StringBuilder(input.Report);
@@ -144,15 +144,11 @@ internal static class BatchTapeService
                     row.Warnings += "\nQD retains only the first 38 MZF description bytes; the remaining description bytes are lost.";
                     row.RequiresLossConfirmation = true;
                 }
-                if (records.Any(r => r.Profile != TapeProfile.Normal1_1))
-                {
-                    row.Warnings += "\nQD containers store program headers and payloads, but do not retain tape speed/loader metadata.";
-                    row.RequiresLossConfirmation = true;
-                }
             }
             row.OutputExtension = Extension(target);
             row.ImageBytes = Encode(records, target, options.WavSampleRate, input.Trailing, input.QuickDisk?.PhysicalProfile, cancellationToken);
-            if (target is "MZF" or "M12" or "MZT") row.SidecarBytes = target == "MZT" ? SidecarService.SerializeMti(records) : SidecarService.SerializeMfi(records[0]);
+            if (qdOutput) row.SidecarBytes = SidecarService.SerializeMqi(records);
+            else if (target is "MZF" or "M12" or "MZT") row.SidecarBytes = target == "MZT" ? SidecarService.SerializeMti(records) : SidecarService.SerializeMfi(records[0]);
             // The closure owns cloned records and reopens a temporary copy, including
             // checksum validation for encoded waveform and QD output.
             row.VerifyOutput = (bytes, token) => Verify(bytes, target, records, token);
@@ -176,22 +172,24 @@ internal static class BatchTapeService
         }
         if (!Targets.Contains(target)) throw new InvalidDataException("Unsupported extraction format: " + target);
         if (target is not ("MZF" or "M12") && record.Body.TrailingData?.Length > 0) throw new InvalidDataException("The extraction format cannot preserve trailing record bytes. Choose MZF/M12 or BIN.");
-        if ((target is "MZQ" or "QDF" || target.StartsWith("QD (", StringComparison.Ordinal)) && (record.Profile != TapeProfile.Normal1_1 || record.GetSerializedHeader().AsSpan(62).ContainsAnyExcept((byte)0))) throw new InvalidDataException("QD extraction would discard tape/header metadata. Choose MZF/M12/MZT or audio.");
+        if ((target is "MZQ" or "QDF" || target.StartsWith("QD (", StringComparison.Ordinal)) && record.GetSerializedHeader().AsSpan(62).ContainsAnyExcept((byte)0)) throw new InvalidDataException("QD extraction would discard header metadata. Choose MZF/M12/MZT or audio.");
         byte[] bytes = Encode([record], target, options.WavSampleRate, [], null, cancellationToken);
         Verify(bytes, target, [record], cancellationToken);
         if (!files.TryAdd(filename, bytes)) throw new InvalidDataException("Extracted filenames collide.");
         if (target is "MZF" or "M12" or "MZT") files.Add(SidecarService.GetSidecarPath(filename), target == "MZT" ? SidecarService.SerializeMti([record]) : SidecarService.SerializeMfi(record));
+        else if (target is "MZQ" or "QDF" || target.StartsWith("QD (", StringComparison.Ordinal)) files.Add(SidecarService.GetSidecarPath(filename), SidecarService.SerializeMqi([record]));
     }
 
     private static void TrackSidecar(BatchRow row, string extension, IReadOnlyList<TapeRecord> records)
     {
-        if (extension is not (".mzf" or ".m12" or ".mz0" or ".mz7" or ".mzt")) return;
+        if (extension is not (".mzf" or ".m12" or ".mz0" or ".mz7" or ".mzt" or ".qd" or ".qdf" or ".mzq")) return;
         string sidecar = SidecarService.GetSidecarPath(row.Input);
         byte[]? bytes = File.Exists(sidecar) ? File.ReadAllBytes(sidecar) : null;
         row.Dependencies[sidecar] = bytes == null ? null : Convert.ToHexString(SHA256.HashData(bytes));
         if (bytes == null) return;
+        if ((extension is ".qd" or ".qdf" or ".mzq") && records.Count == 0 && string.IsNullOrWhiteSpace(Encoding.UTF8.GetString(bytes))) return;
         string[] lines = Encoding.UTF8.GetString(bytes).TrimStart('\uFEFF').Split('\n');
-        if (extension == ".mzt")
+        if (extension is ".mzt" or ".qd" or ".qdf" or ".mzq")
         {
             var sections = new Dictionary<int, List<string>>();
             List<string>? current = null;
@@ -200,20 +198,20 @@ internal static class BatchTapeService
                 string line = text.Trim();
                 if (line.StartsWith("RECORD=", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (!int.TryParse(line[7..], out int index) || index < 1 || index > records.Count || sections.ContainsKey(index)) throw new InvalidDataException("Invalid/duplicate MTI record section: " + sidecar);
+                    if (!int.TryParse(line[7..], out int index) || index < 1 || index > records.Count || sections.ContainsKey(index)) throw new InvalidDataException("Invalid/duplicate MTI/MQI record section: " + sidecar);
                     current = []; sections.Add(index, current);
                 }
                 else if (line.Length > 0 && !line.StartsWith('#'))
                 {
-                    if (current == null) throw new InvalidDataException("MTI metadata requires RECORD sections: " + sidecar);
+                    if (current == null) throw new InvalidDataException("MTI/MQI metadata requires RECORD sections: " + sidecar);
                     current.Add(line);
                 }
             }
-            if (sections.Count == 0) throw new InvalidDataException("MTI contains no record metadata: " + sidecar);
+            if (sections.Count == 0) throw new InvalidDataException("MTI/MQI contains no record metadata: " + sidecar);
             foreach (var section in sections)
             {
-                if (!SidecarService.TryParseProfile(section.Value, out TapeProfile profile)) throw new InvalidDataException("Invalid MTI tape profile: " + sidecar);
-                records[section.Key - 1].Profile = profile; records[section.Key - 1].MetadataOrigin = MetadataOrigin.LoadedFromMti;
+                if (!SidecarService.TryParseProfile(section.Value, out TapeProfile profile)) throw new InvalidDataException("Invalid MTI/MQI tape profile: " + sidecar);
+                records[section.Key - 1].Profile = profile; records[section.Key - 1].MetadataOrigin = extension == ".mzt" ? MetadataOrigin.LoadedFromMti : MetadataOrigin.LoadedFromMqi;
             }
         }
         else

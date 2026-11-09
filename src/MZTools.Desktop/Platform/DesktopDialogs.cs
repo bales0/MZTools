@@ -12,6 +12,7 @@ public sealed partial class DesktopDialogs(Window owner) : IDocumentDialogs
     internal Func<FilePickerOpenOptions, Task<IReadOnlyList<string>>>? InputPicker {get;init;}
     internal async Task<IReadOnlyList<string>> OpenInputPickerAsync(FilePickerOpenOptions options)
     {
+        using var wait=(owner.DataContext as MZTools.Desktop.ViewModels.ShellViewModel)?.Documents.AwaitUserInput("Choose a file…");
         IReadOnlyList<string> paths;
         if (InputPicker is { } picker) paths = await picker(options);
         else
@@ -21,6 +22,11 @@ public sealed partial class DesktopDialogs(Window owner) : IDocumentDialogs
         }
         FilePickerPolicy.Validate(options, paths);
         return paths;
+    }
+    private async Task<IStorageFile?> SaveOutputPickerAsync(FilePickerSaveOptions options)
+    {
+        using var wait=(owner.DataContext as MZTools.Desktop.ViewModels.ShellViewModel)?.Documents.AwaitUserInput("Choose a destination…");
+        return await owner.StorageProvider.SaveFilePickerAsync(options);
     }
     public async Task<string?> OpenAsync()
     {
@@ -32,7 +38,7 @@ public sealed partial class DesktopDialogs(Window owner) : IDocumentDialogs
 
     public async Task<string?> SaveAsAsync(DocumentSession document)
     {
-        var file = await owner.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        var file = await SaveOutputPickerAsync(new FilePickerSaveOptions
         { Title = "Save document as", SuggestedFileName = document.Path is null ? null : Path.GetFileName(document.Path), ShowOverwritePrompt = false });
         return file is null ? null : file.TryGetLocalPath()
             ?? throw new NotSupportedException("This provider did not return a local path.");

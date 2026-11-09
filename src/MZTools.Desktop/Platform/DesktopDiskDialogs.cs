@@ -56,7 +56,7 @@ public sealed partial class DesktopDialogs : IDiskDialogs
     }
     public async Task<string?> PickDiskOutputAsync(string title,string suggestedName)
     {
-        var file=await owner.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions {Title=title,SuggestedFileName=suggestedName,ShowOverwritePrompt=false});
+        var file=await SaveOutputPickerAsync(new FilePickerSaveOptions {Title=title,SuggestedFileName=suggestedName,ShowOverwritePrompt=false});
         return file is null?null:file.TryGetLocalPath()??throw new NotSupportedException("A local path is required.");
     }
 }

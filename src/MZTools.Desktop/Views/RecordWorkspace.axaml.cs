@@ -20,6 +20,7 @@ public sealed partial class RecordWorkspace : UserControl
     private ShellViewModel? Model => DataContext as ShellViewModel;
     private TapeSession? observed;
     private bool syncing;
+    private (TapeSession Session,RecordRow[] Rows)? speedClickSelection;
     private PointerPressedEventArgs? pressed;
     private Point pressPoint;
     private Window? detail;
@@ -31,10 +32,13 @@ public sealed partial class RecordWorkspace : UserControl
         InitializeComponent();ConfigureWpfRecordTabs();
         DataContextChanged += (_, _) => BindSession();
         SizeChanged += (_, _) => Reflow();
+        AddHandler(PointerPressedEvent, RememberSpeedSelection, RoutingStrategies.Tunnel);
+        AddHandler(PointerReleasedEvent, EndSpeedSelection, RoutingStrategies.Tunnel);
         RecordsTable.AddHandler(PointerPressedEvent, RememberPress, RoutingStrategies.Tunnel);
         RecordsTable.PointerMoved += DragMove;
-        RecordsTable.PointerReleased += (_, _) => pressed = null;
-        RecordsTable.DoubleTapped += (_,_) => { if(observed?.SelectedRow is not null && TopLevel.GetTopLevel(this) is Window owner) ShowInspector(owner); };
+        RecordsTable.AddHandler(PointerReleasedEvent,(_,_)=>pressed=null,RoutingStrategies.Tunnel,handledEventsToo:true);
+        RecordsTable.PointerCaptureLost+=(_,_)=>pressed=null;
+        RecordsTable.DoubleTapped += (_,e) => { if(e.Source is Visual source&&(source is ComboBox||source.GetVisualAncestors().Any(v=>v is ComboBox)))return;if(observed?.SelectedRow is not null && TopLevel.GetTopLevel(this) is Window owner) ShowInspector(owner); };
         RecordsTable.AddHandler(DragDrop.DragOverEvent, DragOver);
         RecordsTable.AddHandler(DragDrop.DropEvent, Drop);
         AddHandler(KeyDownEvent, RecordKey, RoutingStrategies.Tunnel);
@@ -65,17 +69,13 @@ public sealed partial class RecordWorkspace : UserControl
         finally { syncing = false; }
         MediaMap.InvalidateVisual();
     }
-    private async void SelectionChanged(object? sender, SelectionChangedEventArgs e)
+    private void SelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
-        if (syncing || observed is null || !RecordsTable.IsEffectivelyVisible) return;
+        if (e.Source!=RecordsTable || syncing || observed is null || !RecordsTable.IsEffectivelyVisible) return;
         var selected = RecordsTable.SelectedItems!.OfType<RecordRow>().ToArray();
         if (selected.Length == 0) return; // ItemsSource refresh is followed by explicit restoration.
-        if (observed.HasDraft && !selected.Any(r => r.Index == observed.SelectedRow?.Index))
-        {
-            var current = observed;
-            if (Model?.MediaDialogs is null || !await Model.MediaDialogs.ConfirmPreviewAsync("Unapplied metadata", "Discard unapplied metadata edits before changing the selection?")) { RestoreSelection(); return; }
-            if (current != observed) return; current.ResetMetadata();
-        }
+        if(speedClickSelection is{} speed&&speed.Session==observed)
+        {observed.SetSelection(speed.Rows);RestoreSelection();return;}
         observed.SetSelection(selected); MediaMap.InvalidateVisual();
     }
     private void Reflow()
@@ -87,24 +87,22 @@ public sealed partial class RecordWorkspace : UserControl
     }
     internal void ShowInspector(Window owner)
     {
+        pressed=null;speedClickSelection=null;
         if (detail is not null) { detail.Activate(); return; }
-        detail = new Window { Title = "Record inspector", Width = 380, Height = 640,
+        detail = new Window { Title = "Properties", Width = 380, Height = 640,
             Content = new RecordInspector { DataContext = Model, Margin = new Thickness(20) }, WindowStartupLocation = WindowStartupLocation.CenterOwner };
-        detail.Closed += (_, _) => detail = null; detail.Show(owner);
+        var session=observed;
+        detail.Closed += (_, _) => {pressed=null;session?.ResetMetadata();detail=null;};
+        _=detail.ShowDialog(owner);
     }
     private void ZoomIn(object? sender, RoutedEventArgs e) => MediaMap.Zoom(1.5);
     private void ZoomOut(object? sender, RoutedEventArgs e) => MediaMap.Zoom(1/1.5);
     private void Fit(object? sender, RoutedEventArgs e) => MediaMap.Fit();
     private void FitSelection(object? sender, RoutedEventArgs e) => MediaMap.FitSelection();
-    private async void MapSelect(int index, KeyModifiers modifiers)
+    private void MapSelect(int index, KeyModifiers modifiers)
     {
         if (observed is null) return;
         var session = observed;
-        if (session.HasDraft && session.SelectedRow?.Index != index)
-        {
-            if (Model?.MediaDialogs is null || !await Model.MediaDialogs.ConfirmPreviewAsync("Unapplied metadata", "Discard unapplied edits before selecting another record?")) return;
-            if (session != observed) return; session.ResetMetadata();
-        }
         var indices = modifiers.HasFlag(KeyModifiers.Shift)
             ? Enumerable.Range(Math.Min(session.MapAnchor,index),Math.Abs(session.MapAnchor-index)+1).ToList()
             : modifiers.HasFlag(OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control) ? session.Selection.ToList() : [];
@@ -121,16 +119,36 @@ public sealed partial class RecordWorkspace : UserControl
         var command = e.Key == Key.Delete ? Model.DeleteRecordsCommand : e.KeyModifiers.HasFlag(primary) && e.Key == Key.C ? Model.CopyRecordsCommand
             : e.KeyModifiers.HasFlag(primary) && e.Key == Key.V ? Model.PasteRecordsCommand : null;
         if (e.Key is Key.F2 or Key.Enter && observed?.SelectedRow is not null &&
-            e.Source is Visual source && (source == RecordsTable || source.GetVisualAncestors().Contains(RecordsTable))) { FocusInlineName(); e.Handled = true; return; }
+            e.Source is Visual source && (source == RecordsTable || source.GetVisualAncestors().Contains(RecordsTable))) { if(TopLevel.GetTopLevel(this) is Window owner)ShowInspector(owner); e.Handled = true; return; }
         if (command?.CanExecute(null) == true) { command.Execute(null); e.Handled = true; }
+    }
+    // Opening a cell editor must retain the records targeted by a multi-edit.
+    private void RememberSpeedSelection(object? sender,PointerPressedEventArgs e)
+    {
+        speedClickSelection=null;
+        if(observed is null||e.Source is not Visual source||!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)return;
+        var combo=source as ComboBox??source.GetVisualAncestors().OfType<ComboBox>().FirstOrDefault();
+        if(combo?.DataContext is not RecordRow row||!observed.Selection.Contains(row.Index))return;
+        var selectedRows=RecordsTable.SelectedItems!.OfType<RecordRow>().ToArray();
+        if(selectedRows.Length>1)speedClickSelection=(observed,selectedRows);
+    }
+    private void EndSpeedSelection(object? sender,PointerReleasedEventArgs e)
+    {
+        var previous=speedClickSelection;
+        Dispatcher.UIThread.Post(()=>{if(speedClickSelection==previous)speedClickSelection=null;});
     }
     private void RememberPress(object? sender, PointerPressedEventArgs e)
     {
+        pressed=null;
+        if(e.ClickCount!=1||detail is not null)return;
         if (e.Source is not Visual source || !(source is TableViewRow || source.GetVisualAncestors().Any(v => v is TableViewRow))) return;
+        if(source is ComboBox||source.GetVisualAncestors().Any(v=>v is ComboBox))return;
         if (e.GetCurrentPoint(RecordsTable).Properties.IsLeftButtonPressed) { pressed = e; pressPoint = e.GetPosition(RecordsTable); }
     }
     private async void DragMove(object? sender, PointerEventArgs e)
     {
+        if(!e.GetCurrentPoint(RecordsTable).Properties.IsLeftButtonPressed||detail is not null)
+        {pressed=null;return;}
         if (pressed is not { } start || observed is null || Model?.Documents.IsBusy != false ||
             Math.Abs(e.GetPosition(RecordsTable).X-pressPoint.X) + Math.Abs(e.GetPosition(RecordsTable).Y-pressPoint.Y) < 4 || observed.SelectedRecords().Count == 0) return;
         pressed = null;

@@ -13,18 +13,18 @@ public sealed partial class DesktopDialogs : IMediaDialogs
     {
         if(document is DiskSession disk)
         {
-            var diskFile=await owner.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions {Title=disk.RequiresRepairSaveAs?"Save repaired copy · choose a new file":"Save disk as · "+disk.Container,SuggestedFileName=(disk.Path is null?"Untitled":Path.GetFileNameWithoutExtension(disk.Path)+(disk.RequiresRepairSaveAs?"-repaired":""))+disk.Extension,ShowOverwritePrompt=false,FileTypeChoices=[new(disk.Container){Patterns=["*"+disk.Extension]}]});
+            var diskFile=await SaveOutputPickerAsync(new FilePickerSaveOptions {Title=disk.RequiresRepairSaveAs?"Save repaired copy · choose a new file":"Save disk as · "+disk.Container,SuggestedFileName=(disk.Path is null?"Untitled":Path.GetFileNameWithoutExtension(disk.Path)+(disk.RequiresRepairSaveAs?"-repaired":""))+disk.Extension,ShowOverwritePrompt=false,FileTypeChoices=[new(disk.Container){Patterns=["*"+disk.Extension]}]});
             return diskFile is null?null:new SaveChoice(diskFile.TryGetLocalPath()??throw new NotSupportedException("A local output path is required."),disk.IsHfe?"Hfe":"Dsk",false);
         }
         if (document is not TapeSession tape) { var path = await SaveAsAsync(document); return path is null ? null : new(path); }
         var format = new ComboBox { ItemsSource = FormatChoice.All, SelectedItem = FormatChoice.All.FirstOrDefault(f => f.Key == tape.Format) ?? FormatChoice.All[2] };
-        var sidecar = new CheckBox { Content = "Write profile metadata sidecar (.mfi / .m2i / .mti)", IsChecked = tape.GenerateSidecar };
+        var sidecar = new CheckBox { Content = "Write profile metadata sidecar (.mfi / .m2i / .mti / .mqi)", IsChecked = tape.GenerateSidecar };
         var trailing = new CheckBox { Content = "Preserve trailing data where supported", IsChecked = tape.PreserveTrailing };
         var options = await FormAsync("Save As options", [Label("Bindable format", format), sidecar, trailing],
             () => new SaveChoice("", ((FormatChoice)format.SelectedItem!).Key, sidecar.IsChecked == true, trailing.IsChecked == true));
         if (options is null) return null;
         var selected = FormatChoice.All.Single(f => f.Key == options.Format);
-        var file = await owner.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        var file = await SaveOutputPickerAsync(new FilePickerSaveOptions
         {
             Title = "Save document as · " + selected.Label, ShowOverwritePrompt = false,
             SuggestedFileName = (document.Path is null ? "Untitled" : Path.GetFileNameWithoutExtension(document.Path)) + selected.Extension,
@@ -76,7 +76,7 @@ public sealed partial class DesktopDialogs : IMediaDialogs
             string? key = (format.SelectedItem as FormatChoice)?.Key;
             signalGroup.IsVisible = key is "Wav" or "Lep" or "L16";
             nativeGroup.IsVisible = key == "Com";
-            sidecar.IsVisible = key is "Mzf" or "M12" or "Mzt";
+            sidecar.IsVisible = FormatChoice.All.Any(f => f.Key == key);
             trailing.IsVisible = key is "Mzf" or "M12";
         }
         format.SelectionChanged += (_,_) => Update(); Update();
@@ -86,7 +86,7 @@ public sealed partial class DesktopDialogs : IMediaDialogs
                 (string)machine.SelectedItem!, cpm.SelectedIndex, (string)native.SelectedItem!, compression.SelectedIndex, multipart.IsChecked == true));
         if (options is null) return null;
         var output = choices.Single(c => c.Key == options.Format);
-        var file = await owner.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        var file = await SaveOutputPickerAsync(new FilePickerSaveOptions
         { Title = "Export · " + output.Label, SuggestedFileName = "Export" + output.Extension, ShowOverwritePrompt = false,
             FileTypeChoices = [new(output.Label) { Patterns = ["*" + output.Extension] }] });
         return file is null ? null : options with { Path = file.TryGetLocalPath() ?? throw new NotSupportedException("A local path is required.") };

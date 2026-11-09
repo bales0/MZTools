@@ -223,7 +223,8 @@ public sealed class BatchProcessTests : IDisposable
         if (Path.GetExtension(row.Output) is ".qd" or ".qdf" or ".mzq")
         {
             var item = Assert.Single(integrity.Contents);
-            Assert.Empty(item.Profile);
+            Assert.Equal(TapeProfileNames.ToDisplayName(TapeProfile.Normal1_1), item.Profile);
+            Assert.True(File.Exists(Path.ChangeExtension(row.Output, ".mqi")));
             Assert.NotEmpty(item.Compression);
         }
     }

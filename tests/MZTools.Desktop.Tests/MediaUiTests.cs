@@ -171,7 +171,7 @@ public sealed class MediaUiTests
     {
         using var host=new Host();await host.Open();Assert.True(host.Table.ContainerFromIndex(0)!.Focus());
         host.Window.KeyPress(Key.Enter,RawInputModifiers.None,PhysicalKey.Enter,null);host.Window.KeyRelease(Key.Enter,RawInputModifiers.None,PhysicalKey.Enter,null);Dispatcher.UIThread.RunJobs();
-        Assert.Empty(host.Window.OwnedWindows);Assert.Contains(host.Table.GetVisualDescendants().OfType<TextBox>(),t=>t.IsFocused&&AutomationProperties.GetName(t)=="File name");
+        var properties=Assert.Single(host.Window.OwnedWindows);Assert.Equal("Properties",properties.Title);Assert.Contains(properties.GetVisualDescendants().OfType<TextBox>(),t=>AutomationProperties.GetName(t)=="Record name");properties.Close();
     }
     [AvaloniaFact] public async Task DeleteCancelAndMoveCommandsRespectSelection()
     {
