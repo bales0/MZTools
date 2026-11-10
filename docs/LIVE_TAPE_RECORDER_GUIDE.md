@@ -204,13 +204,11 @@ není nutná. Sledujte datovou pasáž a stiskněte
 **Zero here (L + R)**. Každý použitelný kanál dostane vlastní nulu; mono má jednu
 ručičku. Při nevhodném pravém či levém kanálu lze vynulovat pouze použitelný kanál.
 
-Zero lze použít už při prvním čerstvém plném okně s alespoň osmi měřitelnými
-náběžnými i sestupnými hranami. Nemusíte vystihnout krátký okamžik ustálení pásky.
-U kolísání, šumu nebo meze vzorkování se uloží **uncertain manual zero**; přísné
-hodnocení stability a porovnání tím není obejité. Nula vychází z aktuálních mediánů,
-nikoli ze starého dobrého úseku. Ticho, clipping, nedostatek hran a chybějící či
-zastaralá data nulování blokují. Nejistota uložené nuly zůstává označená, dokud
-výslovně neuložíte novou nulu z kvalitního úseku.
+Kvalifikovaná nula vyžaduje nejméně tři nepřekrývající se okna pokrývající
+alespoň 0,5 s a stabilní skupiny hran. Časnější **Zero here** uloží pouze
+**provisional / uncertain zero**. Taková nula nikdy sama nepřejde na kvalifikovanou;
+po ustálení ji musíte výslovně uložit znovu. Ticho, clipping, nedostatek hran a
+zastaralá data nulování blokují. Reference je místní pro tuto capture session.
 
 Nad ručičkami jsou pro každý kanál stálé grafické kontrolky **Signal / Stable / Zero**.
 Zelené ✓ znamená použitelný stav, jantarové ! nejistotu/omezení, červené × nedostupnost
@@ -220,18 +218,27 @@ Kontrolky mají pevný prostor. Ve výběru waveformu je
 u sterea **Left / Right / Overlay L/R**, u mono pouze **Mono**; změna popisku
 neresetuje zoom.
 
-Každá ručička kombinuje medián náběžné a sestupné doby 10–90 % se stejnou vahou:
-`t = (rise + fall) / 2`, změna rychlosti `100 × (t_zero / t_now − 1)` v procentech.
-Kladná hodnota znamená kratší hrany proti ručně uložené nule. Aktuální doby obou
-hran zůstávají číselně v µs; výrazně opačný vývoj hran vyvolá upozornění. **Damping s**
-vyhlazuje pohyb ručičky, nemění měření ani audio; **Dial ±%** mění rozsah stupnice.
+Měří se fyzické přechody PCM **10–90 % / 90–10 % v µs**, odděleně pro L/R.
+Hrany se třídí podle směru a obou sousedních midpoint intervalů. Rodiny intervalů
+se učí z pásky bez předvoleného profilu; **Zero here** je zamkne společně s časy
+a vahami. Změna počtu bitů v aktuálním okně váhy nepřepočítává. Porovnání používá
+vážené logaritmy poměrů časů; náběh a sestup mají v souhrnu stejnou váhu.
+Kladné procento znamená kratší odpovídající hrany. Nejde o mechanický úhel.
 
-Proměnlivý obsah, rychlost pásku, šum, EQ a clipping mohou měření ovlivnit.
-Příliš velký rozptyl, překmity, nedostatek hran, mez vzorkování nebo ztráta aktuálních
-dat ručičku zneplatní/pozastaví. Výrazná změna hustoty hran nebo tvaru signálu
-pozastaví srovnání; aplikace sama neposune nulu. Přehrajte původní úsek nebo nastavte
-novou nulu pro jinou stabilní pasáž. Změna vstupu, formátu, měřicích podmínek či
-výpadek kontinuity nulu zneplatní. Zastavení zachová poslední polohu šedě jako neaktuální.
+Hrany pod dvěma vzorkovacími periodami jsou **ResolutionLimited**, mezi dvěma
+a čtyřmi **LowConfidence**; dostatečně rozlišené hrany jsou pouze **Candidate**,
+nikoli důkaz kvalitní hlavy. 44,1/48 kHz lze použít při dostatečně dlouhých hranách.
+Pro rychlé hrany může pomoci skutečný 88,2/96kHz vstup. 192 kHz není podmínkou;
+softwarové převzorkování nezvyšuje fyzické rozlišení původní nahrávky.
+
+Ztráta referenční skupiny, nejednoznačné přiřazení, změna přijaté populace,
+rozpor náběhů/sestupů, šum, clipping či nejistá změna vedou na **HOLD**. Ručička
+zůstává šedě na poslední poloze a procento nového důkazu není dostupné. Počty
+přijatých, odmítnutých, neúplných a nerozlišených hran, časy skupin a MAD jsou
+v rozbalovacích podrobnostech. **Damping s** vyhlazuje jen kvalifikovaný pohyb;
+**Dial ±%** mění stupnici. FFT zůstává diagnostikou a nerozhoduje živý trend.
+Změna zdroje, formátu, parametrů, kanálu či kontinuity nulu zneplatní.
+Archivované PCM/WAV se tím nemění; posuny z Deep Analyze se zde nepoužívají.
 
 Jantarové porovnání je pracovní pomůcka pro měnící se kopii. Příznivý výsledek ověřte
 opakovaným přehráním stejného úseku; pokud jej skutečně opakujete, můžete zaškrtnout

@@ -92,7 +92,21 @@ public sealed partial class RecorderModel : Observable,IAsyncDisposable
     public bool RisingTrigger {get;set;}=true;
     public int FftSize {get;set;}=4096;
     public IReadOnlyList<int> FftChoices {get;}=[256,512,1024,2048,4096,8192,16384,32768];
-    public bool AlignmentEnabled {get;set;}=true;
+    private bool alignmentEnabled=true;
+    public bool AlignmentEnabled
+    {
+        get=>alignmentEnabled;
+        set
+        {
+            if(!Set(ref alignmentEnabled,value))return;
+            foreach(var model in EdgeModels)
+            {
+                model.Reset(value?"Alignment enabled — collect a fresh reference.":"Alignment disabled — no current edge evidence.");
+                if(!value)model.SetActive(false,PresentationClock);
+            }
+            NotifyEdges();
+        }
+    }
     public double BandLow {get;set;}=300;
     public double BandSplit {get;set;}=3000;
     public double BandHigh {get;set;}=12000;
@@ -130,7 +144,7 @@ public sealed partial class RecorderModel : Observable,IAsyncDisposable
         for(int channel=0;channel<EdgeModels.Length;channel++)
         {
             var model=EdgeModels[channel];model.SetDamping(EdgeDamping);
-            if(!IsActive||stream is null||channel>=stream.ActualFormat.Channels){model.SetActive(false,now);continue;}
+            if(!AlignmentEnabled||!IsActive||stream is null||channel>=stream.ActualFormat.Channels){model.SetActive(false,now);continue;}
             model.Update(measurement,new(stream.Device.Id,stream.ProcessingDescription+stream.Processing,Live?.PreviewDiscontinuities??0,CopyLabel),channel,SameSection,now);
         }
         NotifyEdges();
@@ -224,6 +238,7 @@ public sealed partial class RecorderModel : Observable,IAsyncDisposable
         {
             var view=new LiveSignalViewOptions{WaveSeconds=WaveSeconds,WaveEndFrame=FollowLive?null:WaveEndFrame,WaveBuckets=1200,FftSize=FftSize,TriggerEnabled=TriggerEnabled,TriggerLevel=TriggerLevel,TriggerChannel=ChannelMode==1?1:0,RisingTrigger=RisingTrigger,
                 Alignment=AlignmentEnabled?new(){BandLowHz=BandLow,BandSplitHz=BandSplit,BandHighHz=BandHigh,KnownToneHz=string.IsNullOrWhiteSpace(KnownTone)?null:double.Parse(KnownTone,CultureInfo.InvariantCulture),MaximumLagSamples=MaximumLag}:null,
+                LeftEdgeReference=EdgeModels[0].Reference,RightEdgeReference=EdgeModels[1].Reference,
                 Pulses=PulsesEnabled?new(){Detector=(LivePulseDetector)PulseDetector,Channel=PulseChannel,MinimumMicroseconds=pulseMin,MaximumMicroseconds=pulseMax}:null};
             var snapshot=await recorder.RefreshAsync(view,lifetime.Token);if(disposed)return;Live=snapshot;UpdateEdges();Error=recorder.Error??"";NotifyState();
         }

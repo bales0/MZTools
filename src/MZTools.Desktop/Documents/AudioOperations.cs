@@ -43,7 +43,7 @@ internal static class AudioOperations
     {
         "txt" or "csv" or "json"=>Encoding.UTF8.GetBytes(AudioAnalysisReport.Export(session.Model,format)),
         "recovery"=>session.Recovery is { } result?JsonSerializer.SerializeToUtf8Bytes(new{analysisInput=session.CompletedAnalysisInput?.Label,isCurrent=session.IsRecoveryCurrent,result.Source,result.StartSample,result.EndSample,programs=session.Programs.Select(p=>new{p.AnalysisSource,p.Name,p.Type,p.Load,p.Execute,p.Size,p.Profile}),candidates=session.Candidates.Select(c=>new{c.AnalysisSource,c.Index,c.Start,c.End,c.Bytes,c.Status,c.Channel,c.Detector}),passes=session.Passes,diagnostics=session.Diagnostics,rejectedHeaders=session.RejectedHeaders,failures=session.Failures,result.OmittedDiagnostics,result.OmittedHeaderRejections},new JsonSerializerOptions{WriteIndented=true}):throw new InvalidOperationException("Run deeper analysis first."),
-        "comparison"=>session.PassComparison is { } comparison?JsonSerializer.SerializeToUtf8Bytes(comparison,new JsonSerializerOptions{WriteIndented=true}):throw new InvalidOperationException("Compare two retained passes first."),
+        "comparison"=>session.IsRecoveryCurrent&&session.PassComparison is { } comparison?JsonSerializer.SerializeToUtf8Bytes(comparison,new JsonSerializerOptions{WriteIndented=true}):throw new InvalidOperationException("Compare two retained passes first."),
         _=>throw new InvalidDataException("Unknown report format.")
     };
     internal static Task<ExportPreview> ProgramsAsync(AudioSession session,string path,string format,bool all,CancellationToken ct)

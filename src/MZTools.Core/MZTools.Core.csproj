@@ -10,6 +10,7 @@
     <InternalsVisibleTo Include="MZTools" />
     <InternalsVisibleTo Include="MZTools.Tests" />
     <InternalsVisibleTo Include="MZTools.Core.Tests" />
+    <InternalsVisibleTo Include="MZTools.Capture.Tests" />
     <InternalsVisibleTo Include="MZTools.Desktop" />
     <InternalsVisibleTo Include="MZTools.Platform.Audio" />
     <InternalsVisibleTo Include="MZTools.Desktop.Tests" />

@@ -89,7 +89,6 @@ public sealed partial class AudioWorkspace : UserControl
         else if(observed.SelectedBlock is{} block)observed.SetSelection([(block.Start,block.End)]);
         observed.FitSelection();
     }
-    private void SelectedRecord(object? sender,RoutedEventArgs e){if(observed?.SelectedBlock is { } block){observed.SetSelection(observed.Blocks.Where(b=>b.Record==block.Record).Select(b=>(b.Start,b.End)));observed.FitSelection();}}
     private void PulseKindChanged(object? sender,SelectionChangedEventArgs e){if(PulseChart is not null)PulseChart.Kind=(AudioPlotKind)(1+Math.Max(0,PulseKind.SelectedIndex));}
     private void SpectralKindChanged(object? sender,SelectionChangedEventArgs e){if(SpectrumChart is not null)SpectrumChart.Kind=SpectralKind.SelectedIndex==1?AudioPlotKind.Spectrogram:AudioPlotKind.Spectrum;}
     private void PulseZoomIn(object? sender,RoutedEventArgs e)=>PulseChart.Zoom(2);
@@ -98,7 +97,6 @@ public sealed partial class AudioWorkspace : UserControl
     private void SpectralZoomIn(object? sender,RoutedEventArgs e)=>SpectrumChart.Zoom(2);
     private void SpectralZoomOut(object? sender,RoutedEventArgs e)=>SpectrumChart.Zoom(.5);
     private void SpectralFit(object? sender,RoutedEventArgs e)=>SpectrumChart.Fit();
-    private void OpenGraph(object? sender,RoutedEventArgs e)=>ShowGraph(AudioPlotKind.Waveform);
     private void OpenPulseGraph(object? sender,RoutedEventArgs e)=>ShowGraph(PulseChart.Kind);
     private void OpenSpectralGraph(object? sender,RoutedEventArgs e)=>ShowGraph(SpectrumChart.Kind);
     private void ShowGraph(AudioPlotKind kind)

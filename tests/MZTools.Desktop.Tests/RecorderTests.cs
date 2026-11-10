@@ -13,11 +13,11 @@ namespace MZTools.Desktop.Tests;
 
 public sealed class RecorderTests
 {
-    private sealed class Factory(SyntheticCaptureOptions? options=null):IRecorderBackendFactory
+    private sealed class Factory(SyntheticCaptureOptions? options=null,Func<long,int,double>? sample=null):IRecorderBackendFactory
     {
         internal int Created,Enumerated,Opened;
         public IReadOnlyList<string> Choices {get;}=["Test only synthetic"];
-        public IAudioCaptureBackend Create(int index,bool raw,bool conversion){Created++;return new Spy(new SyntheticCaptureBackend(options??new(){FrameCount=long.MaxValue,ChunkFramePattern=[480],ChunkInterval=TimeSpan.FromMilliseconds(10)}),this);}
+        public IAudioCaptureBackend Create(int index,bool raw,bool conversion){Created++;return new Spy(new SyntheticCaptureBackend(options??new(){FrameCount=long.MaxValue,ChunkFramePattern=[480],ChunkInterval=TimeSpan.FromMilliseconds(10)},sample),this);}
         private sealed class Spy(IAudioCaptureBackend inner,Factory owner):IAudioCaptureBackend
         {
             public ValueTask<IReadOnlyList<AudioCaptureDevice>> EnumerateDevicesAsync(CancellationToken cancellationToken=default){owner.Enumerated++;return inner.EnumerateDevicesAsync(cancellationToken);}
@@ -29,6 +29,40 @@ public sealed class RecorderTests
     private static async Task Select(RecorderModel model){await model.EnumerateAsync();model.Device=model.Devices[0];model.Format=new(48000,2,AudioSampleRepresentation.Signed16);}
     private static async Task Until(Func<bool> condition)
     {for(int i=0;i<1000&&!condition();i++)await Task.Delay(10,TestContext.Current.CancellationToken);Assert.True(condition());}
+    [AvaloniaFact]public async Task FrozenEdgeReferenceFlowsThroughWorkerAndDiagnosticsStayCollapsed()
+    {
+        double width=140;
+        double Signal(long frame,int channel)
+        {
+            double samples=System.Threading.Volatile.Read(ref width)*96000/1e6/.8,p=frame%100;
+            double value=p<10?-.4:p<10+samples?-.4+.8*(p-10)/samples:p<50?.4:p<50+samples?.4-.8*(p-50)/samples:-.4;
+            return value*(channel==0?1:.7);
+        }
+        var factory=new Factory(new(){FrameCount=long.MaxValue,ChunkFramePattern=[8192],ChunkInterval=TimeSpan.FromMilliseconds(25)},Signal);
+        await using var model=new RecorderModel(factory);await Select(model);model.Format=new(96000,2,AudioSampleRepresentation.Signed24);model.FftSize=8192;
+        var window=new RecorderWindow(model,new Navigation());window.Show();
+        try
+        {
+            await model.StartAsync();
+            for(int i=0;i<100&&model.LeftEdge.State!=HeadEdgeAdjustmentState.ReadyToZero;i++){await Task.Delay(35,TestContext.Current.CancellationToken);await model.RefreshAsync();}
+            Assert.Equal(HeadEdgeAdjustmentState.ReadyToZero,model.LeftEdge.State);model.ZeroEdges();
+            var left=model.EdgeModels[0].Reference;var right=model.EdgeModels[1].Reference;
+            Assert.NotNull(left);Assert.NotNull(right);Assert.NotEqual(left.Id,right.Id);
+            System.Threading.Volatile.Write(ref width,95);
+            for(int i=0;i<120&&model.LeftEdge.Combined.ChangePercent is not >30;i++){await Task.Delay(35,TestContext.Current.CancellationToken);await model.RefreshAsync();}
+            Assert.Same(left,model.EdgeModels[0].Reference);Assert.Same(right,model.EdgeModels[1].Reference);
+            Assert.InRange(model.LeftEdge.Combined.ChangePercent!.Value,45,50);Assert.InRange(model.RightEdge!.Combined.ChangePercent!.Value,45,50);
+            Assert.Equal(left.Id,model.Live!.Alignment!.Channels[0].Edges!.ReferenceId);
+            Assert.Equal(right.Id,model.Live.Alignment.Channels[1].Edges!.ReferenceId);
+            var tabs=window.GetVisualDescendants().OfType<TabControl>().First();tabs.SelectedItem=tabs.Items.OfType<TabItem>().Single(t=>Equals(t.Header,"Head alignment"));Dispatcher.UIThread.RunJobs();
+            var detail=window.GetVisualDescendants().OfType<Expander>().Single(e=>Equals(e.Header,"Edge qualification / diagnostic details"));Assert.False(detail.IsExpanded);
+            detail.IsExpanded=true;Dispatcher.UIThread.RunJobs();Assert.Contains("Detected",model.LeftEdge.Diagnostics);
+            model.AlignmentEnabled=false;await model.RefreshAsync();Assert.Null(model.LeftEdge.Combined.ChangePercent);
+            Assert.DoesNotContain(model.LeftEdge.State,new[]{HeadEdgeAdjustmentState.WorkingCopy,HeadEdgeAdjustmentState.RepeatedPassage});
+            await model.StopAsync();Assert.Empty(model.Recordings);Assert.Empty(model.Error);
+        }
+        finally{await model.DisposeAsync();window.Close();Dispatcher.UIThread.RunJobs();}
+    }
     [Fact]public async Task ConstructorEnumerationAndExplicitSelectionNeverStartInput()
     {
         var f=new Factory();await using var m=new RecorderModel(f);Assert.Equal(0,f.Created);Assert.False(m.CanStart);await m.EnumerateAsync();Assert.Equal(0,f.Opened);Assert.Null(m.Device);m.Device=m.Devices[0];Assert.True(m.CanStart);Assert.False(m.IsActive);

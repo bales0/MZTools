@@ -244,6 +244,7 @@ internal sealed class AudioRecorderWindow : Window
                 if(fitHistoryActive) seconds=2;
                 if(!double.TryParse(triggerLevel.Text,out double triggerValue)||!double.IsFinite(triggerValue)) triggerValue=0;
                 var view=new LiveSignalViewOptions { WaveSeconds=seconds,WaveEndFrame=follow.IsChecked==true?null:end,WaveBuckets=Math.Clamp((int)Math.Max(1,waveform.ActualWidth-78),1,4096),FftSize=int.Parse((string)(tabs.SelectedItem==alignmentTab?alignment.WindowSize.SelectedItem:fft.SelectedItem)),TriggerEnabled=trigger.IsChecked==true,TriggerChannel=channel.SelectedIndex==1?1:0,TriggerLevel=triggerValue,RisingTrigger=slope.SelectedIndex==0,
+                    LeftEdgeReference=alignment.Adjustment.Models[0].Reference,RightEdgeReference=alignment.Adjustment.Models[1].Reference,
                     Alignment=tabs.SelectedItem==alignmentTab?alignment.Options(capture?.Stream?.ActualFormat.SampleRate??48000):null,
                     Pulses=tabs.SelectedItem==pulsesTab?pulses.View(capture?.Stream?.ActualFormat):null };
                 viewDirty=false; lastFrame=capture?.Statistics.AnalyzedFrames??-1;

@@ -32,7 +32,7 @@ internal sealed class HeadEdgeAdjustmentControl : DockPanel
         Add(controls,"Damping s",damping); Add(controls,"Dial ±%",range); controls.Children.Add(Repeated); top.Children.Add(controls);
         var label=new StackPanel(); var copy=new WrapPanel(); Add(copy,"Tape copy / section (optional)",recording); label.Children.Add(copy); label.Children.Add(detail);
         top.Children.Add(new Expander { Header="Tape label / stability details",Content=label }); top.Children.Add(status);
-        var bottom=Text("Each channel combines rising/falling times equally. Positive = shorter edges than your zero. Damping changes pointers only. Content, speed, noise and EQ can move them too; verify by replaying a recognizable section. No automatic best/ideal azimuth.");
+        var bottom=Text("Frozen context groups use fixed reference weights in log space. Positive = shorter edges than your zero. Damping changes pointers only. Content, speed, noise and EQ can move them too; verify by replaying a recognizable section. No automatic best/ideal azimuth.");
         SetDock(bottom,Dock.Bottom); Children.Add(bottom);
         dials.ColumnDefinitions.Add(new()); dials.ColumnDefinitions.Add(new()); dials.Children.Add(left); Grid.SetColumn(right,1); dials.Children.Add(right); Children.Add(dials);
         ZeroHere.ToolTip="Vynulovat zde: set zero for currently usable channels. Each channel is qualified independently.";
@@ -73,7 +73,7 @@ internal sealed class HeadEdgeAdjustmentControl : DockPanel
         {
             var v=Models[i].Current;
             detail.Text+=(i==0?"":"\n")+$"{(i==0?channels==1?"Mono":"Left":"Right")}: {v.Windows} distinct windows • rise MAD {v.Rise.WindowMadPercent:F1}% / temporal {v.Rise.TemporalMadPercent:F1}% • fall {v.Fall.WindowMadPercent:F1}% / {v.Fall.TemporalMadPercent:F1}% • sample {v.SamplePeriodMicroseconds:F2} µs"+
-                (v.HasZero?$" • zero [{v.ZeroStartFrame:N0}, {v.ZeroEndFrame:N0}){(v.ZeroIsUncertain?" • uncertain manual zero":"")}":"")+"\n"+v.Message;
+                (v.HasZero?$" • zero [{v.ZeroStartFrame:N0}, {v.ZeroEndFrame:N0}){(v.ZeroIsUncertain?" • uncertain manual zero":"")}":"")+"\n"+v.Message+"\n"+v.Diagnostics;
         }
         double limit=double.Parse((string)range.SelectedItem,CultureInfo.InvariantCulture);
         for(int i=0;i<2;i++)

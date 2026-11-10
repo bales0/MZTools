@@ -98,6 +98,25 @@ public sealed class DeepAnalysisInputTests
         deep.ChannelMode=0;Assert.Equal("0",deep.RightShift);Assert.False(deep.CanAdjustRight);
         deep.ChannelMode=1;deep.RightShift="99999999999999999999999";Assert.Contains("integer",deep.AnalysisInputStatus);Assert.False(deep.IsRecoveryCurrent);
     }
+    [Fact]public async Task ChangedDeepRangeClearsPulseAndSpectrumAndNotifiesTheCurrentInput()
+    {
+        using var files=new AudioDocumentTests();var normal=await files.Open();using var deep=normal.CreateSelectedPreview(0,AudioDocumentTests.Frames);
+        Assert.True(await deep.MeasureAsync(Token));Assert.True(await deep.ComputeSpectralAsync(false,null,Token));Assert.NotNull(deep.MeasuredBlock);Assert.NotNull(deep.SpectrumData);
+        var changed=new List<string?>();deep.PropertyChanged+=(_,e)=>changed.Add(e.PropertyName);
+        deep.SetPreviewBounds(100,1000);Assert.Null(deep.MeasuredBlock);Assert.Empty(deep.DeepMeasurements);Assert.Null(deep.SpectrumData);Assert.Contains(nameof(AudioSession.AnalysisInputStatus),changed);Assert.Contains("frames [100, 1000)",deep.AnalysisInputStatus);
+        Assert.True(await deep.MeasureAsync(Token));var block=deep.MeasuredBlock;deep.SetPreviewBounds(100,1000);Assert.Same(block,deep.MeasuredBlock);
+        Assert.Equal(0,normal.SelectionStart);Assert.Equal(AudioDocumentTests.Frames,normal.SelectionEnd);
+    }
+    [Theory][InlineData("range")][InlineData("channel")][InlineData("offset")]
+    public async Task ChangedInputClearsComparisonAndPreventsComparingOrExportingOldPasses(string change)
+    {
+        using var files=new AudioDocumentTests();var normal=await files.Open();using var deep=normal.CreateSelectedPreview(0,AudioDocumentTests.Frames);
+        Assert.True(await deep.RecoverAsync(Options,null,null,Token));Assert.True(deep.Passes.Count>=2);await deep.ComparePassesAsync(Token);Assert.NotNull(deep.PassComparison);Assert.NotEmpty(AudioOperations.Report(deep,"comparison"));
+        if(change=="range")deep.SetPreviewBounds(100,AudioDocumentTests.Frames-100);else if(change=="channel")deep.ChannelMode=1;else deep.RightShift="2";
+        Assert.False(deep.IsRecoveryCurrent);Assert.Null(deep.PassComparison);Assert.Empty(deep.PassDifferences);Assert.Contains("OUTDATED",deep.PassComparisonSummary);
+        await Assert.ThrowsAsync<InvalidOperationException>(()=>deep.ComparePassesAsync(Token));Assert.Throws<InvalidOperationException>(()=>AudioOperations.Report(deep,"comparison"));
+        Assert.True(await deep.RecoverAsync(Options,null,null,Token));await deep.ComparePassesAsync(Token);Assert.NotNull(deep.PassComparison);Assert.True(deep.IsRecoveryCurrent);
+    }
     private sealed class Gate(TaskCompletionSource ready,Task release):IProgress<WavAnalysisProgress>
     {public void Report(WavAnalysisProgress value){ready.TrySetResult();release.GetAwaiter().GetResult();}}
 }

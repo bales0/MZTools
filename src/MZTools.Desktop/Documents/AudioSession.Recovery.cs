@@ -52,7 +52,7 @@ public sealed partial class AudioSession
     public int CompareRight {get=>compareRight;set=>Set(ref compareRight,value);}
     internal AudioPassComparisonResult? PassComparison {get;private set;}
     public IReadOnlyList<AudioDifferenceRow> PassDifferences=>PassComparison?.Rows.Select(r=>new AudioDifferenceRow(r)).ToArray()??[];
-    public string PassComparisonSummary=>PassComparison is { } comparison?$"{comparison.Status} · {comparison.OmittedDiagnostics} omitted diagnostic events. Bounded evidence does not establish an absolute first bad byte.":"Choose retained passes from the latest deeper analysis.";
+    public string PassComparisonSummary=>Recovery is not null&&!IsRecoveryCurrent?"OUTDATED — run Deep analysis for the current input before comparing passes.":PassComparison is { } comparison?$"{comparison.Status} · {comparison.OmittedDiagnostics} omitted diagnostic events. Bounded evidence does not establish an absolute first bad byte.":"Choose retained passes from the latest deeper analysis.";
     internal async Task<bool> RecoverAsync(AudioRecoveryOptions options,int? expectedLength,IProgress<WavAnalysisProgress>? progress,CancellationToken ct)
     {
         RequireSingleInterval();
@@ -105,9 +105,11 @@ public sealed partial class AudioSession
     }
     internal async Task ComparePassesAsync(CancellationToken ct)
     {
-        var result=Recovery??throw new InvalidOperationException("Run deeper analysis first.");int left=CompareLeft,right=CompareRight;
+        var result=Recovery??throw new InvalidOperationException("Run deeper analysis first.");
+        if(!IsRecoveryCurrent)throw new InvalidOperationException("Deep results are OUTDATED; analyze the current input before comparing passes.");
+        long settings=settingsGeneration;int left=CompareLeft,right=CompareRight;
         var comparison=await Task.Run(()=>AudioDecodePassComparison.Compare(result,left,right,ct),ct);
-        if(disposed||result!=Recovery)return;PassComparison=comparison;Changed(nameof(PassDifferences));Changed(nameof(PassComparisonSummary));
+        if(disposed||result!=Recovery||settings!=settingsGeneration||!IsRecoveryCurrent)return;PassComparison=comparison;Changed(nameof(PassDifferences));Changed(nameof(PassComparisonSummary));
     }
     internal TapeRecord[] ExportRecords(bool all)=>!IsRecoveryCurrent?throw new InvalidOperationException("Deep results are OUTDATED; analyze the current input before export."):all?AvailableRecords.Select(r=>r.DeepClone()).ToArray():SelectedProgram is { } row?[row.Record.DeepClone()]:throw new InvalidOperationException("Select a recovered program first.");
     internal TapeRecord CreateSynthetic(string name,byte type,ushort load,ushort exec,string description)

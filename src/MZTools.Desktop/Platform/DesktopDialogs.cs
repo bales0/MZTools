@@ -60,10 +60,13 @@ public sealed partial class DesktopDialogs(Window owner) : IDocumentDialogs
     private async Task<T> ConfirmAsync<T>(string title, string message, params (string Caption, T Value)[] choices)
     {
         T result = choices[^1].Value; // Window close is always Cancel.
+        var screen = owner.Screens.ScreenFromWindow(owner) ?? owner.Screens.Primary;
+        double availableWidth = screen is null ? 480 : Math.Max(1, screen.WorkingArea.Width / screen.Scaling - 32);
+        double messageHeight = screen is null ? 320 : Math.Min(320, Math.Max(40, screen.WorkingArea.Height / screen.Scaling - 160));
         var dialog = new Window
         {
-            Title = title, Width = 560, Height = 520, CanResize = true,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner, MinHeight = 280, MinWidth = 400
+            Title = title, Width = Math.Min(480, availableWidth), SizeToContent = SizeToContent.Height,
+            CanResize = false, ShowInTaskbar = false, WindowStartupLocation = WindowStartupLocation.CenterOwner
         };
         var buttons = new WrapPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
         Button? cancel = null;
@@ -73,10 +76,12 @@ public sealed partial class DesktopDialogs(Window owner) : IDocumentDialogs
             button.Click += (_, _) => { result = choice.Value; dialog.Close(); };
             buttons.Children.Add(button); cancel = button;
         }
-        var body = new DockPanel { Margin = new Thickness(24) }; DockPanel.SetDock(buttons, Dock.Bottom);
-        body.Children.Add(buttons); body.Children.Add(new ScrollViewer { Margin = new Thickness(0,0,0,20),
-            Content = new TextBox { Text = message, IsReadOnly = true, AcceptsReturn = true, TextWrapping = Avalonia.Media.TextWrapping.Wrap, BorderThickness = new Thickness(0) } });
-        DesktopWindowSizing.FitToWorkingArea(dialog);
+        var body = new StackPanel { Margin = new Thickness(20), Spacing = 16 };
+        body.Children.Add(new ScrollViewer { MaxHeight = messageHeight,
+            HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+            Content = new TextBlock { Text = message, TextWrapping = Avalonia.Media.TextWrapping.Wrap } });
+        body.Children.Add(buttons);
         dialog.Content = body;
         dialog.Opened += (_, _) => cancel?.Focus();
         await dialog.ShowDialog(owner);

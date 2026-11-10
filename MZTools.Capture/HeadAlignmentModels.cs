@@ -23,6 +23,7 @@ public sealed record HeadAlignmentChannel(string Channel,bool Assessable,string 
     int RiseCount,int FallCount,long ClippedSamples)
 {
     public HeadEdgeEvidence? EdgeEvidence { get; init; }
+    public HeadEdgeWindow? Edges { get; init; }
 }
 public sealed record HeadEdgeEvidence(double RiseMadPercent,double FallMadPercent,double BacktrackingFraction,
     double OvershootFraction,double PositiveFraction,double PlateauFraction,double TransitionsPerSecond);

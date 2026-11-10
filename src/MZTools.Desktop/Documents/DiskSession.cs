@@ -288,6 +288,17 @@ public sealed class DiskSession : DocumentSession, IFileSetDocument
         SelectedSector=Sectors.FirstOrDefault(s=>next.Contains(s.Sector.Address)&&s.Sector.Address==focus)??Sectors.FirstOrDefault(s=>next.Contains(s.Sector.Address));
         Changed(nameof(SectorSelection));Changed(nameof(Detail));
     }
+    private string SectorGeometryInformation()
+    {
+        static string Sizes(IEnumerable<DiskSectorRow> sectors)=>string.Join(", ",sectors.Select(s=>s.Bytes).Distinct().Order())+" B";
+        var boot=Sectors.Where(s=>s.Track==1).ToArray();
+        bool sharpBoot=Model.FileSystem is CpmFileSystem&&Model.Image.SideCount==2&&boot.Length==16&&
+            boot.All(s=>s.Bytes==256&&s.Sector.DeclaredBytes==256)&&boot.Select(s=>s.R).Order().SequenceEqual(Enumerable.Range(1,16));
+        if(!sharpBoot)return "Physical sector sizes: "+Sizes(Sectors);
+        var data=Sectors.Where(s=>s.Track!=1).ToArray();
+        string counts=string.Join(", ",data.GroupBy(s=>s.Track).Select(t=>t.Count()).Distinct().Order());
+        return $"Data sectors: {Sizes(data)} ({counts}/track) | Sharp boot track (cylinder 0, side 1): 16 × 256 B";
+    }
     internal void Refresh()
     {
         string? key=selectedFile?.Key;var address=selectedSector?.Sector.Address;
@@ -297,7 +308,7 @@ public sealed class DiskSession : DocumentSession, IFileSetDocument
         files=projection?.FileSystem.ReadDirectory().Select(e=>new DiskFileRow(e)).ToArray()??[];
         Sectors=Snapshot.Sectors.Select(s=>new DiskSectorRow(s)).ToArray();SortSectors();
         WpfInformation=projection is null?Summary: $"Container: {Model.ContainerName} | Creator: {(Model.SourceHfe is null?Model.Image.Creator:"not stored in HFE")} | Tracks: {Model.Image.TrackCount} | Sides: {Model.Image.SideCount} | Physical tracks: {Model.Image.Tracks.Count} | Image: {SerializeContainer().Length:N0} B\n"+
-            $"Filesystem: {Model.FileSystem.DisplayName} | Sector sizes: {string.Join(", ",Sectors.Select(s=>s.Bytes).Distinct().Order())} B | Used: {Model.FileSystem.UsedBytes:N0} B | Free: {Model.FileSystem.FreeBytes:N0} B"+
+            $"Filesystem: {Model.FileSystem.DisplayName} | {SectorGeometryInformation()} | Used: {Model.FileSystem.UsedBytes:N0} B | Free: {Model.FileSystem.FreeBytes:N0} B"+
             (Model.FileSystem is MultiGameIplFileSystem multi?"\n"+multi.MetadataLocationDescription:"")+"\n"+DskBootInfo.Inspect(Model).Summary+
             (Model.LastSavedSha256 is{} saved?"\nLast saved output SHA-256: "+saved:"");
         Changed(nameof(WpfInformation));

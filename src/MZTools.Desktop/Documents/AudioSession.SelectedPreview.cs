@@ -42,7 +42,9 @@ public sealed partial class AudioSession
     internal void SetPreviewBounds(long first,long last)
     {
         if(first<0||last>Model.FrameCount||first>=last)throw new ArgumentOutOfRangeException(nameof(first),"Choose a nonempty interval within the source recording.");
-        previewBounds=(first,last);SetSelection([(first,last)]);ShowRange(first,last);RefreshSelectedOverlays();
+        bool changed=previewBounds!=(first,last);
+        previewBounds=(first,last);SetSelection([(first,last)]);ShowRange(first,last);
+        if(changed&&IsDeepAnalysis){settingsGeneration++;InputChanged();}else RefreshSelectedOverlays();
     }
     internal AudioSession CreateSelectedPreview(long first,long last)
     {

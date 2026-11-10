@@ -146,7 +146,7 @@ public sealed partial class AudioChart
             {
                 double middle=Plot.X+width;double value=Math.Clamp(s.Combined.DisplayPercent??0,-EdgeRange,EdgeRange)/Math.Max(1,EdgeRange);
                 c.DrawLine(new Pen(Brush("border"),2),new Point(Plot.X,y+45),new Point(Plot.Right,y+45));c.DrawLine(new Pen(Brush("muted")),new Point(middle,y+30),new Point(middle,y+60));
-                c.DrawLine(new Pen(Brush(index==0?"live-wave-l":"live-wave-r"),3),new Point(middle+value*width,y+28),new Point(middle+value*width,y+62));
+                c.DrawLine(new Pen(Brush(s.State is HeadEdgeAdjustmentState.WorkingCopy or HeadEdgeAdjustmentState.RepeatedPassage?(index==0?"live-wave-l":"live-wave-r"):"muted"),3),new Point(middle+value*width,y+28),new Point(middle+value*width,y+62));
                 Text(c,$"−{EdgeRange:0.#}%",Plot.X,y+65);Text(c,"0",middle-4,y+65);Text(c,$"+{EdgeRange:0.#}%",Plot.Right-60,y+65);
                 Text(c,$"Rise {s.Rise.CurrentMicroseconds:0.###} µs · fall {s.Fall.CurrentMicroseconds:0.###} µs · zero [{s.ZeroStartFrame}, {s.ZeroEndFrame})",Plot.X,y+90);
                 Text(c,s.Message,Plot.X,y+108);

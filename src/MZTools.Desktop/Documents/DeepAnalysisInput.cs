@@ -37,6 +37,7 @@ public sealed partial class AudioSession
     private void InputChanged()
     {
         ClearSpectral();DeepMeasurements=[];MeasuredBlock=null;NotifyMeasurement();selectedRecoveryMeasurement=null;
+        PassComparison=null;Changed(nameof(PassDifferences));Changed(nameof(PassComparisonSummary));
         RefreshSelectedOverlays();Changed(nameof(CanAdjustRight));Changed(nameof(AnalysisInputStatus));Changed(nameof(RecoverySummary));
     }
 }

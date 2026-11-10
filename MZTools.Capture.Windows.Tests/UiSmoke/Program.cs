@@ -225,6 +225,8 @@ internal static class Program
                 Check(report.Recording.SidecarFinalized&&File.Exists(report.Recording.SidecarPath),"SHA-256 sidecar finalized");
                 Check(((TextBlock)Field(window,"completionNotice")!).Text.Contains(segment.Path),"Stop returns to settings with the saved WAV path");
                 Check(!Descendants<Button>(window).Any(b=>Equals(b.Content,"Input / file settings…")),"Redundant input/file settings action is removed");
+                // Navigation requires an explicitly selected saved segment; do not depend on incidental DataGrid selection.
+                ((DataGrid)Field(window,"segments")!).SelectedIndex=0;
                 foreach(var action in Enum.GetValues<RecordedAudioAction>()) await window.OpenSelected(action);
                 Check(navigation.Actions.Count==3&&navigation.Actions.All(a=>a.Path==segment.Path),"All existing analyzer navigation actions use saved WAV");
                 var tabs=Descendants<TabControl>(window).First(); tabs.SelectedIndex=1; await Idle();
@@ -352,6 +354,8 @@ internal static class Program
                 var wholeRecording=window.Model.LatestReport!.Recording!;
                 var segmentedTable=(DataGrid)Field(window,"segments")!; await Wait(()=>segmentedTable.Items.Count==3); segmentedTable.SelectedIndex=1;
                 int actionsBeforeJoined=navigation.Actions.Count;
+                // Navigation requires an explicitly selected saved segment; do not depend on incidental DataGrid selection.
+                ((DataGrid)Field(window,"segments")!).SelectedIndex=0;
                 foreach(var action in Enum.GetValues<RecordedAudioAction>()) await window.OpenSelected(action);
                 Check(navigation.Actions.Skip(actionsBeforeJoined).Count()==3&&navigation.Actions.Skip(actionsBeforeJoined).All(a=>a.Path==wholeRecording.SidecarPath),"Every recorder analysis action opens all segments through the recording report");
                 using(var joined=new SegmentedPcmStreamReader(wholeRecording.SidecarPath!)) Check(joined.Format.FrameCount==2400&&joined.Format.Channels==2,"Actual recorder JSON and PCM24 stereo segments form a continuous source");

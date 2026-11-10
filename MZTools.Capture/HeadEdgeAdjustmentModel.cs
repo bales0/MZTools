@@ -1,6 +1,6 @@
 namespace MZTools.Capture;
 
-public enum HeadEdgeAdjustmentState { Waiting, WarmingUp, ReadyToZero, WorkingCopy, RepeatedPassage, Unstable, ContentChanged, ResolutionLimited, Unavailable, Paused, Stale }
+public enum HeadEdgeAdjustmentState { Waiting, WarmingUp, ReadyToZero, WorkingCopy, RepeatedPassage, Unstable, ContentChanged, ResolutionLimited, Unavailable, Paused, Stale, LowConfidence, Conflict, Uncertain }
 public sealed record HeadEdgeSource(string DeviceId,string ProcessingSignature,long Discontinuities,string RecordingLabel="");
 public sealed record HeadEdgeNeedle(double? CurrentMicroseconds,double? ZeroMicroseconds,double? ChangePercent,
     double? DisplayPercent,double WindowMadPercent,double TemporalMadPercent);
@@ -8,144 +8,206 @@ public sealed record HeadEdgeAdjustmentSnapshot(HeadEdgeAdjustmentState State,st
     HeadEdgeNeedle Rise,HeadEdgeNeedle Fall,HeadEdgeNeedle Combined,int Windows,double SamplePeriodMicroseconds,long? ZeroStartFrame,long? ZeroEndFrame)
 {
     public bool ZeroIsUncertain { get; init; }
+    public string Diagnostics { get; init; } = "";
+    public IReadOnlyList<HeadEdgeGroup> Groups { get; init; } = [];
 }
 
-/// <summary>Two relative edge indicators for matching a particular tape copy. Never estimates a mechanical angle or edits PCM.</summary>
+/// <summary>Relative physical edge quality, with frozen context and reference weights. Never edits PCM or estimates an angle.</summary>
 public sealed class HeadEdgeAdjustmentModel
 {
     private sealed record Key(AudioCaptureFormat Format,HeadAlignmentOptions Options,long Frames,int Channel,HeadEdgeSource Source,bool Repeated);
-    private sealed record Observation(long Start,long End,double Rise,double Fall,HeadEdgeEvidence Evidence);
+    private sealed record Observation(long Start,long End,HeadEdgeWindow Window);
     private readonly List<Observation> history=[];
     private Key? key;
-    private Observation? zero;
-    private Observation? latest;
-    private long? lastEnd;
+    private Observation? latest,zero;
     private HeadAlignmentChannel? channel;
-    private double lastDataTime,lastClock;
+    private long? lastEnd;
+    private double lastDataTime,lastClock,damping=.5;
     private double? displayedRise,displayedFall,displayedCombined;
-    private bool active;
-    private bool zeroUncertain;
-    private double damping=.5;
-    public HeadEdgeAdjustmentSnapshot Current { get; private set; }=Empty(HeadEdgeAdjustmentState.Waiting,"Start monitoring and allow the edge statistics to settle.");
+    private bool active,zeroUncertain;
+    public HeadEdgeReference? Reference { get; private set; }
+    public HeadEdgeAdjustmentSnapshot Current { get; private set; }=Empty(HeadEdgeAdjustmentState.Waiting,"Start monitoring and allow independent edge windows to settle.");
     private static HeadEdgeNeedle Blank=>new(null,null,null,null,0,0);
     private static HeadEdgeAdjustmentSnapshot Empty(HeadEdgeAdjustmentState state,string message)=>new(state,message,false,false,Blank,Blank,Blank,0,0,null,null);
-
     public void Reset(string reason="Measurement conditions changed — set a new zero.")
     {
-        key=null; zero=latest=null; zeroUncertain=false; channel=null; history.Clear(); lastEnd=null; displayedRise=displayedFall=displayedCombined=null;
-        Current=Empty(HeadEdgeAdjustmentState.Waiting,reason);
+        key=null; Reference=null; latest=zero=null; channel=null; lastEnd=null; history.Clear(); zeroUncertain=false;
+        displayedRise=displayedFall=displayedCombined=null; Current=Empty(HeadEdgeAdjustmentState.Waiting,reason);
     }
     public void SetDamping(double seconds)
     { if(!double.IsFinite(seconds)||seconds is < .1 or > 3) throw new ArgumentOutOfRangeException(nameof(seconds)); damping=seconds; }
     public void SetActive(bool value,double now)
-    {
-        Advance(now); active=value;
-        if(!value) { history.Clear(); Hold(HeadEdgeAdjustmentState.Paused,"Paused — retained measurements are not live. Zeroing is disabled."); }
-    }
+    { Advance(now); active=value; if(!value) { history.Clear(); Hold(HeadEdgeAdjustmentState.Paused,"HOLD — paused; retained pointer is not live evidence."); } }
     public void Update(HeadAlignmentMeasurement? measurement,HeadEdgeSource source,int selectedChannel,bool repeatedPassage,double now)
     {
         Advance(now); active=true;
-        if(measurement==null) { history.Clear(); Hold(HeadEdgeAdjustmentState.Unavailable,"No current measurement; waiting for usable edges."); return; }
+        if(measurement==null) { history.Clear(); latest=null; Hold(HeadEdgeAdjustmentState.Unavailable,"HOLD — waiting for physical edge measurements."); return; }
         if(selectedChannel<0||selectedChannel>=measurement.Channels.Count) throw new ArgumentOutOfRangeException(nameof(selectedChannel));
-        var nextKey=new Key(measurement.Format,measurement.Options,measurement.EndFrame-measurement.StartFrame,selectedChannel,source,repeatedPassage);
-        if(key!=nextKey) { Reset(); key=nextKey; }
-        var selected=measurement.Channels[selectedChannel];
-        if(lastEnd.HasValue&&measurement.EndFrame<lastEnd) { Reset("Source position moved backwards — set a new zero."); key=nextKey; }
-        string? invalid=null; var state=HeadEdgeAdjustmentState.Unavailable; var evidence=selected.EdgeEvidence;
+        var next=new Key(measurement.Format,measurement.Options,measurement.EndFrame-measurement.StartFrame,selectedChannel,source,repeatedPassage);
+        if(key!=next||measurement.EndFrame<lastEnd) { Reset(); key=next; }
+        var selected=measurement.Channels[selectedChannel]; var w=selected.Edges;
         double sample=1e6/measurement.Format.SampleRate;
-        if(latest?.End==measurement.EndFrame&&now-lastDataTime>Math.Max(1,2.5*nextKey.Frames/measurement.Format.SampleRate)) { Advance(now); return; }
-        bool measurable=selected.Assessable&&selected.ClippedSamples==0&&selected.RiseCount>=8&&selected.FallCount>=8&&
-            selected.RiseMicroseconds is >0&&double.IsFinite(selected.RiseMicroseconds.Value)&&selected.FallMicroseconds is >0&&double.IsFinite(selected.FallMicroseconds.Value)&&evidence!=null;
-        if(!selected.Assessable||selected.ClippedSamples>0) invalid=selected.ClippedSamples>0?"Digital clipping — manual zero is unavailable.":selected.Quality;
-        else if(!measurable) invalid="Need at least eight complete rising and falling edges in a full window.";
-        else if(selected.RiseMicroseconds<2*sample||selected.FallMicroseconds<2*sample)
-        { invalid="Sampling limit: fewer than two sample periods across an edge; a relative improvement is not resolved."; state=HeadEdgeAdjustmentState.ResolutionLimited; }
-        else if(evidence!.RiseMadPercent>25||evidence.FallMadPercent>25||evidence.BacktrackingFraction>.20||evidence.OvershootFraction>.20)
-        { invalid="Edges are variable, noisy or ringing — wait for a steadier section; a shorter spike is not an improvement."; state=HeadEdgeAdjustmentState.Unstable; }
-        if(invalid!=null)
+        if(lastEnd==measurement.EndFrame) { Advance(now); return; }
+        bool raw=selected.ClippedSamples==0&&selected.AcRms>=measurement.Options.MinimumAcRms&&
+            next.Frames>=1024&&w!=null&&w.Complete>=16&&selected.RiseCount>=8&&selected.FallCount>=8;
+        // Fresh bad data overrides an overlapping good window; successful overlapping polls never count twice.
+        if(!raw)
         {
-            channel=selected; history.Clear();
-            if(latest?.End!=measurement.EndFrame) lastDataTime=now;
-            latest=measurable?new(measurement.StartFrame,measurement.EndFrame,selected.RiseMicroseconds!.Value,selected.FallMicroseconds!.Value,evidence!):null;
-            lastEnd=measurement.EndFrame;
-            Current=Build(state,invalid+(measurable?" Manual zero is available from the current robust edge medians, with uncertainty.":""),measurable,sample,0,0); return;
+            history.Clear(); latest=null; channel=selected; lastEnd=measurement.EndFrame; lastDataTime=now;
+            Current=Build(HeadEdgeAdjustmentState.Unavailable,selected.ClippedSamples>0?"HOLD — digital clipping.":"HOLD — insufficient raw PCM edges; aggregate/FFT evidence cannot qualify the pointer.",false,sample); return;
         }
-        // Reject bad signal immediately, but do not count overlapping valid windows as new evidence.
-        if(lastEnd.HasValue&&measurement.StartFrame<lastEnd.Value) { Advance(now); return; }
-        channel=selected; lastEnd=measurement.EndFrame; lastDataTime=now;
-        latest=new(measurement.StartFrame,measurement.EndFrame,channel.RiseMicroseconds!.Value,channel.FallMicroseconds!.Value,evidence!);
-        history.Add(latest);
-        double duration=(measurement.EndFrame-measurement.StartFrame)/(double)measurement.Format.SampleRate;
-        long cutoff=measurement.EndFrame-(long)(measurement.Format.SampleRate*Math.Max(1.5,3.5*duration));
-        history.RemoveAll(o=>o.End<cutoff); if(history.Count>24) history.RemoveAt(0);
-        double medianRise=Median(history.Select(o=>o.Rise)),medianFall=Median(history.Select(o=>o.Fall));
-        double riseMad=Mad(history.Select(o=>o.Rise),medianRise),fallMad=Mad(history.Select(o=>o.Fall),medianFall);
-        bool settled=history.Count>=3&&(latest.End-history[0].Start)/(double)measurement.Format.SampleRate>=.3;
-        if(!settled) { Current=Build(HeadEdgeAdjustmentState.WarmingUp,"Collecting distinct windows. Manual zero is available now; its stability is not yet established.",true,sample,riseMad,fallMad); return; }
-        if(riseMad>20||fallMad>20||Math.Abs(latest.Rise/medianRise-1)>.20||Math.Abs(latest.Fall/medianFall-1)>.20) { Current=Build(HeadEdgeAdjustmentState.Unstable,"Timing is changing across windows — content, tape speed or adjustment may be responsible. Manual zero is available with uncertainty.",true,sample,riseMad,fallMad); return; }
-        if(zero==null) { Current=Build(HeadEdgeAdjustmentState.ReadyToZero,"Ready: zero on a usable part of this recording. A studio reference is not required.",true,sample,riseMad,fallMad); return; }
-        var old=zero.Evidence; var current=evidence!;
-        double density=current.TransitionsPerSecond/Math.Max(1e-9,old.TransitionsPerSecond);
-        if(density is < .65 or > 1.55||Math.Abs(current.PositiveFraction-old.PositiveFraction)>.15||Math.Abs(current.PlateauFraction-old.PlateauFraction)>.25)
-        { Current=Build(HeadEdgeAdjustmentState.ContentChanged,"Possible content/shape change — comparison held. Replay the earlier section, or zero on this stable section. This cannot be separated from adjustment automatically.",true,sample,riseMad,fallMad); return; }
+        string? reason=null; var state=HeadEdgeAdjustmentState.Unstable;
+        if(w!.OvershootFraction>.2||w.Backtracking>Math.Max(1,.1*w.Complete)||w.LocalRejected>Math.Max(1,.1*w.Complete)) reason="HOLD — local level loss, ringing or backtracking; rejected edges remain counted.";
+        else if(w.Grouping==null||w.Ambiguous>Math.Max(2,.05*w.Detected)||w.Incomplete>Math.Max(2,.05*w.Detected))
+        { reason="HOLD — interval identity is ambiguous or transitions were lost; no regrouping against zero."; state=HeadEdgeAdjustmentState.ContentChanged; }
+        else if(w.ResolutionLimited>Math.Max(1,.05*w.Complete)) { reason="HOLD — transitions shorter than two sample periods are unresolved, not worse edges."; state=HeadEdgeAdjustmentState.ResolutionLimited; }
+        else if(w.LowConfidence>Math.Max(1,.05*w.Complete)) { reason="HOLD — 2–4 sample periods per edge: low confidence. A native 96 kHz capture may help."; state=HeadEdgeAdjustmentState.LowConfidence; }
+        else if(w.Groups.Any(g=>g.CandidateCount<4||g.MadPercent>15)) reason="HOLD — too few or variable candidates in a context group.";
+        if(reason!=null)
+        {
+            history.Clear(); channel=selected; latest=new(measurement.StartFrame,measurement.EndFrame,w); lastEnd=measurement.EndFrame; lastDataTime=now;
+            Current=Build(state,reason,true,sample); return;
+        }
+        if(lastEnd.HasValue&&measurement.StartFrame<lastEnd.Value) return;
+        channel=selected; lastEnd=measurement.EndFrame; lastDataTime=now; latest=new(measurement.StartFrame,measurement.EndFrame,w);
+        if(Reference!=null&&w.ReferenceId!=Reference.Id)
+        { history.Clear(); Current=Build(HeadEdgeAdjustmentState.WarmingUp,"HOLD — waiting for a worker window classified with the frozen zero.",true,sample); return; }
+        history.Add(latest); if(history.Count>24) history.RemoveAt(0);
+        double duration=next.Frames/(double)next.Format.SampleRate;
+        long cutoff=measurement.EndFrame-(long)(next.Format.SampleRate*Math.Max(1.5,4*duration));
+        history.RemoveAll(o=>o.End<cutoff);
+        if(history.Count<3||(latest.End-history[0].Start)/(double)next.Format.SampleRate<.5)
+        { Current=Build(HeadEdgeAdjustmentState.WarmingUp,"HOLD — collecting at least three independent windows over 0.5 s. Early zero remains provisional.",true,sample); return; }
+        if(!Stable()) { Current=Build(HeadEdgeAdjustmentState.Unstable,"HOLD — context groups or their times changed across independent windows.",true,sample); return; }
+        if(zero==null) { Current=Build(HeadEdgeAdjustmentState.ReadyToZero,"Ready for a manual zero on this tape. FFT is diagnostic only.",true,sample); return; }
+        if(Reference is not { Qualified:true })
+        { Current=Build(HeadEdgeAdjustmentState.Uncertain,"HOLD — provisional zero cannot certify a trend. Set a new zero after independent windows settle.",true,sample); return; }
+        if(w.Range/Reference.WindowRange is < .75 or > 1.33)
+        { Current=Build(HeadEdgeAdjustmentState.ContentChanged,"HOLD — signal range changed substantially; check gain, dropout or analog clipping before comparing edges.",true,sample); return; }
+        var groups=Aggregated();
+        if(groups.Count!=Reference.Groups.Count||Reference.Groups.Any(z=>!groups.Any(g=>g.Id==z.Id)))
+        { Current=Build(HeadEdgeAdjustmentState.ContentChanged,"HOLD — a frozen reference group is missing; weights are never redistributed.",true,sample); return; }
+        double fraction=w.Candidates/(double)Math.Max(1,w.Detected-w.Boundary);
+        if(Math.Abs(fraction-Reference.AcceptedFraction)>.08||Reference.Groups.Any(z=>
+            groups.First(g=>g.Id==z.Id) is var g&&(Math.Abs(g.LocalRange-z.LocalRange)>.15||Math.Abs(g.CandidateCount/(double)Math.Max(1,g.Count)-z.CandidateCount/(double)Math.Max(1,z.Count))>.1)))
+        { Current=Build(HeadEdgeAdjustmentState.ContentChanged,"HOLD — accepted/rejected edge population or local range changed; survivor bias cannot count as improvement.",true,sample); return; }
+        var logs=Reference.Groups.Select(z=>Math.Log(z.Microseconds/groups.First(g=>g.Id==z.Id).Microseconds)).ToArray();
+        double uncertainty=Reference.Groups.Max(z=>sample/Math.Min(z.Microseconds,groups.First(g=>g.Id==z.Id).Microseconds));
+        if(logs.Any(v=>!double.IsFinite(v)||Math.Abs(v)>Math.Log(2))||logs.Max()-logs.Min()>Math.Max(.15,uncertainty)||logs.Min()<-.03&&logs.Max()>.03)
+        { Current=Build(HeadEdgeAdjustmentState.Conflict,"HOLD — rising/falling or context groups disagree, or change is implausibly large.",true,sample); return; }
+        double combined=LogChange(groups,null);
+        if(Math.Abs(combined)>1e-6&&Math.Abs(Math.Log(1+combined/100))<uncertainty)
+        { Current=Build(HeadEdgeAdjustmentState.Uncertain,"HOLD — change is smaller than the sampling uncertainty allowance.",true,sample); return; }
         Current=Build(repeatedPassage?HeadEdgeAdjustmentState.RepeatedPassage:HeadEdgeAdjustmentState.WorkingCopy,
-            repeatedPassage?"Repeated passage declared — relative edge change for this copy; no calibrated head angle.":"Working comparison for this tape copy. Content varies: verify a promising setting by replaying the same passage.",true,sample,riseMad,fallMad);
-        Advance(now);
+            "Relative physical edge quality from frozen context groups; verify a promising setting on the same passage. No calibrated mechanical angle.",true,sample);
+    }
+    private bool Stable()
+    {
+        var current=latest!.Window;
+        foreach(var observation in history)
+        {
+            var old=observation.Window;
+            if(!SameGrouping(old.Grouping,current.Grouping)||old.Groups.Count!=current.Groups.Count) return false;
+            foreach(var g in current.Groups)
+            {
+                var prior=old.Groups.FirstOrDefault(v=>v.Id==g.Id);
+                if(prior==null||!double.IsFinite(g.Microseconds)||Math.Abs(prior.Microseconds/g.Microseconds-1)>.15) return false;
+            }
+        }
+        return true;
+    }
+    private static bool SameGrouping(HeadEdgeGrouping? a,HeadEdgeGrouping? b)
+    {
+        if(a==null||b==null) return false;
+        bool Same(IReadOnlyList<HeadEdgeFamily> x,IReadOnlyList<HeadEdgeFamily> y)=>x.Count==y.Count&&x.Select((v,i)=>Math.Abs(v.CenterSamples/y[i].CenterSamples-1)<.08).All(v=>v);
+        return Same(a.High,b.High)&&Same(a.Low,b.Low);
+    }
+    private IReadOnlyList<HeadEdgeGroup> Aggregated()
+    {
+        if(latest==null) return [];
+        var result=new List<HeadEdgeGroup>();
+        foreach(var g in latest.Window.Groups)
+        {
+            var matches=history.Select(o=>o.Window.Groups.FirstOrDefault(v=>v.Id==g.Id)).OfType<HeadEdgeGroup>().ToArray();
+            if(matches.Length==0) { result.Add(g); continue; }
+            result.Add(g with { Microseconds=HeadEdgeAnalysis.Median(matches.Select(v=>v.Microseconds)),LocalRange=HeadEdgeAnalysis.Median(matches.Select(v=>v.LocalRange)),
+                Count=matches.Sum(v=>v.Count),CandidateCount=matches.Sum(v=>v.CandidateCount),MadPercent=matches.Max(v=>v.MadPercent) });
+        }
+        return result.AsReadOnly();
     }
     public bool ZeroHere(double now)
     {
-        Advance(now);
-        if(!Current.CanZero||latest==null||key==null) return false;
-        var previousState=Current.State;
-        zeroUncertain=previousState is HeadEdgeAdjustmentState.WarmingUp or HeadEdgeAdjustmentState.Unstable or HeadEdgeAdjustmentState.ResolutionLimited;
-        zero=latest; // current window already uses robust edge medians; manual zero means exactly "here"
+        Advance(now); if(!Current.CanZero||latest==null||key==null) return false;
+        bool qualified=Current.State is HeadEdgeAdjustmentState.ReadyToZero or HeadEdgeAdjustmentState.WorkingCopy or HeadEdgeAdjustmentState.RepeatedPassage;
+        // A stable, currently held change may be explicitly re-zeroed, never automatically.
+        if(history.Count>=3&&(latest.End-history[0].Start)/(double)key.Format.SampleRate>=.5&&Stable()&&latest.Window.Groups.All(g=>g.CandidateCount>=4)&&latest.Window.LowConfidence==0&&latest.Window.ResolutionLimited==0)
+            qualified=true;
+        zeroUncertain=!qualified; zero=new(history.Count>0?history[0].Start:latest.Start,latest.End,latest.Window);
+        var groups=Aggregated();
+        Reference=latest.Window.Grouping is {} grouping?new(Guid.NewGuid(),grouping,groups,latest.Window.Candidates/(double)Math.Max(1,latest.Window.Detected-latest.Window.Boundary),zero.Start,zero.End,qualified,latest.Window.Range):null;
         displayedRise=displayedFall=displayedCombined=0;
-        Current=Build(zeroUncertain?previousState:key.Repeated?HeadEdgeAdjustmentState.RepeatedPassage:HeadEdgeAdjustmentState.WorkingCopy,
-            zeroUncertain?"Manual zero saved from current edge medians. Live comparison remains held until measurement quality permits it.":"Zero saved for this recording. Positive = shorter edge than this zero; verify with repeated playback.",true,1e6/key.Format.SampleRate,Current.Rise.TemporalMadPercent,Current.Fall.TemporalMadPercent);
+        Current=Build(qualified?(key.Repeated?HeadEdgeAdjustmentState.RepeatedPassage:HeadEdgeAdjustmentState.WorkingCopy):HeadEdgeAdjustmentState.Uncertain,
+            qualified?"Qualified manual zero saved with fixed context identities and weights.":"Provisional manual zero saved; HOLD until a new explicit qualified zero.",true,1e6/key.Format.SampleRate);
         Current=Current with { Rise=Current.Rise with { DisplayPercent=0 },Fall=Current.Fall with { DisplayPercent=0 },Combined=Current.Combined with { DisplayPercent=0 } };
-        return true;
+        history.Clear(); return true;
+    }
+    private double LogChange(IReadOnlyList<HeadEdgeGroup> groups,bool? rising)
+    {
+        if(Reference==null) return double.NaN;
+        double Direction(bool direction)
+        {
+            var z=Reference.Groups.Where(g=>g.Rising==direction).ToArray(); double weight=z.Sum(g=>g.CandidateCount);
+            if(weight<=0) return double.NaN;
+            return z.Sum(g=>g.CandidateCount/weight*Math.Log(g.Microseconds/(groups.FirstOrDefault(v=>v.Id==g.Id)?.Microseconds??double.NaN)));
+        }
+        double log=rising.HasValue?Direction(rising.Value):(Direction(true)+Direction(false))*.5;
+        return 100*(Math.Exp(log)-1);
     }
     public HeadEdgeAdjustmentSnapshot Advance(double now)
     {
-        double dt=CheckClock(now);
-        double staleAfter=key==null?1:Math.Max(1,2.5*key.Frames/key.Format.SampleRate);
-        if(active&&lastEnd.HasValue&&now-lastDataTime>staleAfter)
-        { history.Clear(); Hold(HeadEdgeAdjustmentState.Stale,"No fresh measurement — comparison held until new windows arrive."); }
+        if(!double.IsFinite(now)||now<lastClock) throw new ArgumentOutOfRangeException(nameof(now),"Use a monotonic presentation clock.");
+        double dt=lastClock==0?0:now-lastClock; lastClock=now;
+        if(active&&lastEnd.HasValue&&now-lastDataTime>Math.Max(1,key==null?1:2.5*key.Frames/key.Format.SampleRate))
+        { history.Clear(); Hold(HeadEdgeAdjustmentState.Stale,"HOLD — stale retained pointer; no fresh evidence."); }
         if(Current.State is HeadEdgeAdjustmentState.WorkingCopy or HeadEdgeAdjustmentState.RepeatedPassage)
         {
             double alpha=1-Math.Exp(-dt/damping);
-            if(Current.Rise.ChangePercent is double r) displayedRise=displayedRise.HasValue?displayedRise+(r-displayedRise)*alpha:r;
-            if(Current.Fall.ChangePercent is double f) displayedFall=displayedFall.HasValue?displayedFall+(f-displayedFall)*alpha:f;
-            if(Current.Combined.ChangePercent is double c) displayedCombined=displayedCombined.HasValue?displayedCombined+(c-displayedCombined)*alpha:c;
+            double? Smooth(double? old,double? target)=>target.HasValue?old.HasValue?old+(target-old)*alpha:target:old;
+            displayedRise=Smooth(displayedRise,Current.Rise.ChangePercent); displayedFall=Smooth(displayedFall,Current.Fall.ChangePercent); displayedCombined=Smooth(displayedCombined,Current.Combined.ChangePercent);
             Current=Current with { Rise=Current.Rise with { DisplayPercent=displayedRise },Fall=Current.Fall with { DisplayPercent=displayedFall },Combined=Current.Combined with { DisplayPercent=displayedCombined } };
         }
         return Current;
     }
-    private HeadEdgeAdjustmentSnapshot Build(HeadEdgeAdjustmentState state,string message,bool canZero,double sample,double riseMad,double fallMad)
+    private HeadEdgeAdjustmentSnapshot Build(HeadEdgeAdjustmentState state,string message,bool canZero,double sample)
     {
-        double? rise=channel?.RiseMicroseconds,fall=channel?.FallMicroseconds;
+        var groups=Aggregated();
         bool show=state is HeadEdgeAdjustmentState.WorkingCopy or HeadEdgeAdjustmentState.RepeatedPassage;
-        if(zeroUncertain) message+=" Manual zero has uncertain stability/resolution; it is not a qualified reference.";
-        double? combined=rise.HasValue&&fall.HasValue?(rise+fall)*.5:null;
-        double? zeroCombined=zero==null?null:(zero.Rise+zero.Fall)*.5;
-        if(show&&Math.Abs((zero!.Rise/rise!.Value-1)-(zero.Fall/fall!.Value-1))>.25)
-            message+=" Rising/falling changes disagree; inspect the separate times before treating the combined movement as useful.";
-        return new(state,message,canZero,zero!=null,
-            new(rise,zero?.Rise,show&&rise is >0?(zero!.Rise/rise-1)*100:null,displayedRise,channel?.EdgeEvidence?.RiseMadPercent??0,riseMad),
-            new(fall,zero?.Fall,show&&fall is >0?(zero!.Fall/fall-1)*100:null,displayedFall,channel?.EdgeEvidence?.FallMadPercent??0,fallMad),
-            new(combined,zeroCombined,show&&combined is >0?(zeroCombined/combined-1)*100:null,displayedCombined,Math.Max(channel?.EdgeEvidence?.RiseMadPercent??0,channel?.EdgeEvidence?.FallMadPercent??0),Math.Max(riseMad,fallMad)),
-            history.Count,sample,zero?.Start,zero?.End) { ZeroIsUncertain=zeroUncertain };
+        double? Time(IReadOnlyList<HeadEdgeGroup>? source,bool? direction)
+        {
+            var a=source?.Where(g=>!direction.HasValue||g.Rising==direction).Where(g=>double.IsFinite(g.Microseconds)).ToArray();
+            return a is {Length:>0}?HeadEdgeAnalysis.Median(a.Select(g=>g.Microseconds)):null;
+        }
+        HeadEdgeNeedle Needle(bool? direction,double? displayed)
+        {
+            double? change=show?LogChange(groups,direction):null;
+            if(change.HasValue&&!double.IsFinite(change.Value)) change=null;
+            double temporal=groups.Where(g=>!direction.HasValue||g.Rising==direction).Select(g=>
+            {
+                var times=history.Select(o=>o.Window.Groups.FirstOrDefault(v=>v.Id==g.Id)?.Microseconds??double.NaN).Where(double.IsFinite).ToArray();
+                double median=HeadEdgeAnalysis.Median(times);
+                return times.Length<2||median<=0?0:100*HeadEdgeAnalysis.Median(times.Select(t=>Math.Abs(t-median)))/median;
+            }).DefaultIfEmpty().Max();
+            return new(Time(groups,direction),Time(Reference?.Groups,direction),change,displayed,
+                groups.Where(g=>!direction.HasValue||g.Rising==direction).Select(g=>g.MadPercent).DefaultIfEmpty().Max(),temporal);
+        }
+        return new(state,message,canZero,zero!=null,Needle(true,displayedRise),Needle(false,displayedFall),Needle(null,displayedCombined),
+            history.Count,sample,zero?.Start,zero?.End) { ZeroIsUncertain=zeroUncertain,Groups=groups,
+            Diagnostics=(latest?.Window.Diagnostics??"No edge window.")+" Fixed reference groups: "+(Reference?.Groups.Count??0)+". "+
+                string.Join("; ",groups.Select(g=>$"{(g.Rising?"Rise":"Fall")} {g.Id%4}: n={g.CandidateCount}/{g.Count}, {(double.IsFinite(g.Microseconds)?g.Microseconds.ToString("F2")+" µs":"unresolved")}, MAD {g.MadPercent:F1}%")) };
     }
     private void Hold(HeadEdgeAdjustmentState state,string message)
     {
         Current=Current with { State=state,Message=message,CanZero=false,
             Rise=Current.Rise with { ChangePercent=null },Fall=Current.Fall with { ChangePercent=null },Combined=Current.Combined with { ChangePercent=null } };
     }
-    private double CheckClock(double now)
-    {
-        if(!double.IsFinite(now)||now<lastClock) throw new ArgumentOutOfRangeException(nameof(now),"Use a monotonic presentation clock.");
-        double dt=lastClock==0?0:now-lastClock; lastClock=now; return dt;
-    }
-    private static double Median(IEnumerable<double> values) { var sorted=values.Order().ToArray(); return(sorted[(sorted.Length-1)/2]+sorted[sorted.Length/2])*.5; }
-    private static double Mad(IEnumerable<double> values,double median)=>100*Median(values.Select(v=>Math.Abs(v-median)))/median;
 }

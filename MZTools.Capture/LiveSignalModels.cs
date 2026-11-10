@@ -18,6 +18,8 @@ public sealed record LiveSignalViewOptions
     public double TriggerLevel { get; init; }
     public bool RisingTrigger { get; init; } = true;
     public HeadAlignmentOptions? Alignment { get; init; }
+    public HeadEdgeReference? LeftEdgeReference { get; init; }
+    public HeadEdgeReference? RightEdgeReference { get; init; }
     public LivePulseViewOptions? Pulses { get; init; }
 }
 

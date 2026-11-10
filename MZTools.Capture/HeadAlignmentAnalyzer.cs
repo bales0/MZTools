@@ -6,7 +6,8 @@ namespace MZTools.Capture;
 public static class HeadAlignmentAnalyzer
 {
     public static HeadAlignmentMeasurement Measure(ReadOnlySpan<double> left,ReadOnlySpan<double> right,AudioCaptureFormat format,
-        long firstFrame,IReadOnlyList<LiveSpectrumBin> spectrum,HeadAlignmentOptions options)
+        long firstFrame,IReadOnlyList<LiveSpectrumBin> spectrum,HeadAlignmentOptions options,
+        HeadEdgeReference? leftReference=null,HeadEdgeReference? rightReference=null)
     {
         options.Validate(format.SampleRate);
         if(left.Length>32768||firstFrame<0||firstFrame>long.MaxValue-left.Length||format.Channels==2&&right.Length!=left.Length)
@@ -23,8 +24,8 @@ public static class HeadAlignmentAnalyzer
                !double.IsFinite(bin.LeftDbfs)||!double.IsFinite(bin.RightDbfs)||bin.LeftDbfs < -160||bin.RightDbfs < -160||bin.LeftDbfs>maxDb||bin.RightDbfs>maxDb)
                 throw new ArgumentException("Spectrum must use the matching finite, normalized peak-amplitude grid.");
         }
-        var channels=new List<HeadAlignmentChannel> { Channel(left,format.Channels==1?"Mono":"Left",0,format,spectrum,options) };
-        if(format.Channels==2) channels.Add(Channel(right,"Right",1,format,spectrum,options));
+        var channels=new List<HeadAlignmentChannel> { Channel(left,format.Channels==1?"Mono":"Left",0,format,spectrum,options) with { Edges=HeadEdgeAnalysis.Measure(left,format.SampleRate,leftReference) } };
+        if(format.Channels==2) channels.Add(Channel(right,"Right",1,format,spectrum,options) with { Edges=HeadEdgeAnalysis.Measure(right,format.SampleRate,rightReference) });
         var stereo=format.Channels==2 ? Stereo(left,right,format.SampleRate,options,channels) : EmptyStereo("Not assessable: mono input; use the individual indicators.");
         return new(format,options,firstFrame,firstFrame+left.Length,channels.AsReadOnly(),stereo);
     }

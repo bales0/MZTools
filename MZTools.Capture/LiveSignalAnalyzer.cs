@@ -154,7 +154,7 @@ public sealed class LiveSignalAnalyzer(LiveSignalAnalyzerOptions? options = null
             if(view.Alignment != null)
             {
                 int n=spectrum.Length>0?view.FftSize:Math.Min(levelCount,view.FftSize);
-                alignment=HeadAlignmentAnalyzer.Measure(levelScratch[0].AsSpan(levelCount-n,n),f.Channels==2?levelScratch[1].AsSpan(levelCount-n,n):ReadOnlySpan<double>.Empty,f,last-n,spectrum,view.Alignment);
+                alignment=HeadAlignmentAnalyzer.Measure(levelScratch[0].AsSpan(levelCount-n,n),f.Channels==2?levelScratch[1].AsSpan(levelCount-n,n):ReadOnlySpan<double>.Empty,f,last-n,spectrum,view.Alignment,view.LeftEdgeReference,view.RightEdgeReference);
             }
             return new(f,first,last,waveFirst,waveLast,last-levelFrames,last,spectrumFirst,last,
                 Array.AsReadOnly(buckets),Array.AsReadOnly(levels),Array.AsReadOnly(spectrum),view.FftSize,
