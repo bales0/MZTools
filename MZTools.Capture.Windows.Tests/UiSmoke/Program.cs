@@ -24,6 +24,7 @@ internal static class Program
             try
             {
                 string output=Path.Combine(AppContext.BaseDirectory,"smoke-artifacts",Guid.NewGuid().ToString("N")); Directory.CreateDirectory(output);
+                await MzfEditingChecks(output);
                 bool closeApproved=false,discardApproved=false,overwriteApproved=false; int hardwareRequests=0,discardPrompts=0,overwritePrompts=0; var navigation=new Navigation();
                 window=new(navigation,_=>{ hardwareRequests++; throw new Exception("Hardware access is forbidden in this test."); },true,()=>closeApproved,()=>{ discardPrompts++; return discardApproved; },_=>{ overwritePrompts++; return overwriteApproved; });
                 window.Show(); await Wait(()=>window.Device.SelectedItem!=null);
@@ -381,6 +382,58 @@ internal static class Program
         int width=Math.Max(1,(int)element.ActualWidth),height=Math.Max(1,(int)element.ActualHeight);
         var bitmap=new RenderTargetBitmap(width,height,96,96,PixelFormats.Pbgra32); bitmap.Render(element);
         var bytes=new byte[width*height*4]; bitmap.CopyPixels(bytes,width*4,0); return bytes;
+    }
+    private static async Task MzfEditingChecks(string output)
+    {
+        var bytes=new byte[128+16+3];bytes[0]=1;bytes[17]=13;bytes[18]=16;bytes[21]=0x40;bytes[23]=0x40;
+        Array.Fill(bytes,(byte)0xff,24,104);bytes[^1]=0xa5;
+        using var stream=new MemoryStream(bytes);using var reader=new BinaryReader(stream);var original=new MZTFileReader().ReadMzfRecord(reader);
+        var body=original.Body;body.TrailingData=reader.ReadBytes(3);original.Body=body;
+        var owner=new Window{Width=600,Height=400};owner.Show();
+        try
+        {
+            var progressWindow=new WavAnalysisProgressWindow("synthetic-not-opened.wav");
+            typeof(WavAnalysisProgressWindow).GetMethod("Cancel_Click",BindingFlags.Instance|BindingFlags.NonPublic)!.Invoke(progressWindow,[progressWindow,new RoutedEventArgs()]);
+            typeof(WavAnalysisProgressWindow).GetMethod("UpdateProgress",BindingFlags.Instance|BindingFlags.NonPublic)!.Invoke(progressWindow,[new WavAnalysisProgress("late callback",.5,1,2,0)]);
+            Check(((TextBlock)progressWindow.FindName("stageText")).Text=="Cancelling…","WPF delayed progress cannot overwrite cancellation status");
+            Check(!((Button)progressWindow.FindName("cancelButton")).IsEnabled,"WPF cancellation remains disabled while waiting for completion");
+            typeof(WavAnalysisProgressWindow).GetField("analysisFinished",BindingFlags.Instance|BindingFlags.NonPublic)!.SetValue(progressWindow,true);progressWindow.Close();
+            var ipl=new IplDskOptionsDialog(original){Owner=owner};ipl.Show();await Wait(()=>ipl.PackedRecord!=null);
+            Check(((ProgressBar)ipl.FindName("previewProgressBar")).Visibility==Visibility.Collapsed,"WPF compression preview releases progress on completion");
+            Check(((TextBlock)ipl.FindName("previewTextBlock")).Text.Contains(" / "),"WPF compression preview compares packed and original sizes");ipl.Close();
+            var waveformOptions=new SaveOptionsDialog(".wav",2){Owner=owner};waveformOptions.Show();
+            Check(waveformOptions.ExportGaps==TapeExportGapOptions.Standard,"WPF waveform options explicitly default to Standard gaps");waveformOptions.UpdateLayout();Check(waveformOptions.ActualWidth<=650,"WPF waveform options wrap explanatory text in a compact window");Save(waveformOptions,output,"waveform-gap-options");
+            var gapControl=(TapeExportGapControl)waveformOptions.FindName("gapOptionsControl");Check(gapControl.Start.IsEnabled&&gapControl.Between.IsEnabled&&gapControl.End.IsEnabled,"WPF pause fields are directly editable");gapControl.Start.Text=gapControl.Between.Text=gapControl.End.Text="0";
+            Check(waveformOptions.ExportGaps==TapeExportGapOptions.Legacy,"WPF Custom zero pauses retain the original signal");
+            gapControl.Start.Text="10";gapControl.Between.Text="20";gapControl.End.Text="30";
+            Check(waveformOptions.ExportGaps==new TapeExportGapOptions(10,20,30),"WPF waveform options pass Custom gaps");waveformOptions.Close();
+            string waveform=Path.Combine(output,"standard.l16");
+            Check(WaveformExportWindow.Run(owner,[original],[waveform],SharpTapeOutputFormat.L16,SharpTapeMachine.Mz800,44100,TapeExportGapOptions.Standard,null),"WPF waveform export commits the prepared output");
+            Check(File.ReadAllBytes(waveform).Take(1000).All(b=>b==unchecked((byte)-63)),"WPF L16 starts with the requested rounded LOW pause");
+            byte[] originalTarget=[0xA5,0x5A];string cancelledWave=Path.Combine(output,"cancelled.wav");File.WriteAllBytes(cancelledWave,originalTarget);
+            var cancelExport=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(1)};
+            cancelExport.Tick+=(_,_)=>{var active=owner.OwnedWindows.OfType<Window>().SingleOrDefault(w=>w.Title=="Export waveform");if(active is null)return;cancelExport.Stop();Descendants<Button>(active).Single(b=>Equals(b.Content,"Cancel")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));};
+            cancelExport.Start();bool cancelledResult;
+            try{cancelledResult=WaveformExportWindow.Run(owner,Enumerable.Repeat(original,128).ToArray(),[cancelledWave],SharpTapeOutputFormat.Wav,SharpTapeMachine.Mz800,44100,TapeExportGapOptions.Standard,null);}finally{cancelExport.Stop();}
+            Check(!cancelledResult&&File.ReadAllBytes(cancelledWave).SequenceEqual(originalTarget),"WPF Cancel preserves the existing waveform destination and waits for cleanup");
+            TapeRecord? applied=null;
+            var properties=new MzfDescriptionWindow(owner,original,value=>applied=value);properties.Show();properties.UpdateLayout();
+            Check(properties.Warning.Text.Contains("may contain"),"MZF Properties warns inline before editing suspected binary bytes");
+            properties.Description.Text="TEST EDIT";properties.Apply();
+            Check(properties.Applied&&applied!=null&&MzfDescriptionEditing.DecodeText(applied.DescriptionRaw)=="TEST EDIT","MZF inline warning permits explicit text Apply");
+            Check(TapeDocumentWriter.SerializeMzf(original,true).SequenceEqual(bytes),"Properties Apply preserves the source record until its caller commits");
+            var invalid=new MzfDescriptionWindow(owner,original,_=>throw new Exception("Invalid description must not apply"));invalid.Show();invalid.Description.Text=new string('X',105);invalid.Apply();
+            Check(!invalid.Applied&&invalid.Status.Text.Contains("104"),"WPF rejects Description overflow inline without truncation");invalid.Close();
+            var hex=HexBrowser.MzfEditor(owner,original,value=>applied=MzfRecordEditing.ParseEdited(original,value),24);hex.Show();hex.UpdateLayout();
+            var changed=(byte[])bytes.Clone();changed[24]=0xC3;changed[128]=0x76;changed[^1]=0xF3;
+            hex.SetBytes(changed);hex.Undo();Check(hex.EditedBytes.SequenceEqual(bytes),"Whole-MZF WPF HEX Undo restores all original bytes");hex.SetBytes(changed);await Idle();Check(hex.MzfView!.Position.Text.Contains("byte 0xC3"),"WPF HEX retains its selected byte and updates cursor status after Undo/Revert");Save(hex,output,"mzf-full-hex");hex.Apply();
+            Check(hex.Applied&&TapeDocumentWriter.SerializeMzf(applied!,true).SequenceEqual(changed),"Whole-MZF WPF HEX can edit Description, payload and trailing data byte-exactly");
+            Check(hex.IsVisible&&hex.MzfView?.IsEditing==false,"WPF Apply returns to viewing in the same HEX window");hex.Close();
+            var rejected=HexBrowser.MzfEditor(owner,original,_=>throw new Exception("Invalid MZF must not apply"));rejected.Show();var bad=(byte[])bytes.Clone();bad[18]=0xff;bad[19]=0xff;rejected.SetBytes(bad);rejected.Apply();
+            Check(!rejected.Applied&&rejected.Status.Text.Length>0,"WPF HEX rejects a payload size outside the existing file");rejected.Close();
+            Check(owner.OwnedWindows.Count==0,"MZF editing does not open warning popups or leave child dialogs behind");
+        }
+        finally{owner.Close();}
     }
     private static void Check(bool result,string name) { if(!result) throw new Exception(name); checks++; Console.WriteLine("PASS "+name); }
     private static async Task Wait(Func<bool> done) { var timeout=DateTime.UtcNow.AddSeconds(12); while(!done()) { if(DateTime.UtcNow>timeout) throw new TimeoutException(); await Task.Delay(30); } await Idle(); }

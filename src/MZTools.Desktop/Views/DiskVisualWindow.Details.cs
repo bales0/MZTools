@@ -83,9 +83,10 @@ public sealed partial class DiskVisualWindow
         if(selected!=null && autoFloating.IsChecked==true && tabs.SelectedIndex==0) OpenFloatingDetails();
         if(showMfm.IsChecked==true && (mfmTrack!=selectedTrack || mfmDetail.Track==null)) _=LoadMfmDetail();
     }
-    private async Task LoadMfmDetail()
+    private Task LoadMfmDetail()=>TrackWork(LoadMfmDetailCore());
+    private async Task LoadMfmDetailCore()
     {
-        if(closed || showMfm.IsChecked!=true) return;
+        if(closed || closePending || showMfm.IsChecked!=true) return;
         detailWork?.Cancel(); var cancellation=new CancellationTokenSource(); detailWork=cancellation;
         int version=revision, track=selectedTrack; var cache=generatedCache;
         mfmDetail.SetTrack(null,track); mfmTrack=-1;

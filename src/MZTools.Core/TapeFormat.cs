@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
@@ -487,7 +487,8 @@ namespace MZTools
             IReadOnlyList<(MZQFileHeader Header, MZQFileBody Body)> blocks,
             SharpTapeOutputFormat format,
             SharpTapeMachine machine = SharpTapeMachine.Mz800,
-            int wavSampleRate = WavSampleRate)
+            int wavSampleRate = WavSampleRate,
+            TapeExportGapOptions? gaps = null)
         {
             ArgumentNullException.ThrowIfNull(blocks);
             List<TapeRecord> records = blocks.Select(block =>
@@ -499,7 +500,7 @@ namespace MZTools
                 record.MetadataOrigin = MetadataOrigin.CreatedOrModifiedInAdvanced;
                 return record;
             }).ToList();
-            Export(filePath, records, format, machine, wavSampleRate);
+            Export(filePath, records, format, machine, wavSampleRate,gaps:gaps);
         }
 
         public static IReadOnlyList<string> GetSeparateOutputPaths(
@@ -536,8 +537,12 @@ namespace MZTools
             SharpTapeOutputFormat format,
             SharpTapeMachine machine,
             bool overwrite,
-            int wavSampleRate = WavSampleRate)
+            int wavSampleRate = WavSampleRate,
+            TapeExportGapOptions? gaps = null,
+            CancellationToken cancellationToken = default)
         {
+            (gaps??TapeExportGapOptions.Legacy).Validate();
+            cancellationToken.ThrowIfCancellationRequested();
             ValidateWavSampleRate(format, wavSampleRate);
             IReadOnlyList<string> paths = GetSeparateOutputPaths(selectedPath, records);
             if (!overwrite)
@@ -551,11 +556,12 @@ namespace MZTools
 
             for (int index = 0; index < records.Count; index++)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (overwrite && File.Exists(paths[index]))
                 {
                     File.Delete(paths[index]);
                 }
-                Export(paths[index], new[] { records[index] }, format, machine, wavSampleRate);
+                Export(paths[index], new[] { records[index] }, format, machine, wavSampleRate,cancellationToken,gaps);
             }
             return paths;
         }
@@ -566,10 +572,12 @@ namespace MZTools
             SharpTapeOutputFormat format,
             SharpTapeMachine machine = SharpTapeMachine.Mz800,
             int wavSampleRate = WavSampleRate,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            TapeExportGapOptions? gaps = null)
         {
             ArgumentNullException.ThrowIfNull(records);
             ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+            gaps ??= TapeExportGapOptions.Legacy;gaps.Validate();
             cancellationToken.ThrowIfCancellationRequested();
 
             if (records.Count == 0)
@@ -607,14 +615,15 @@ namespace MZTools
                 _ => throw new ArgumentOutOfRangeException(nameof(format))
             }, cancellationToken);
 
-            foreach (IReadOnlyList<SharpTapeStage> plan in plans)
+            for(int index=0;index<plans.Count;index++)
             {
-                foreach (SharpTapeStage stage in plan)
+                WriteDelay(sink,SharpConnectorLevel.Low,index==0?gaps.StartMs:gaps.BetweenMs);
+                foreach (SharpTapeStage stage in plans[index])
                 {
                     WriteStage(sink, stage);
                 }
             }
-
+            WriteDelay(sink,SharpConnectorLevel.Low,gaps.EndMs);
             sink.Complete();
         }
 
@@ -916,6 +925,7 @@ namespace MZTools
                 double exactSamples = ((double)durationMicroseconds * sampleRate / 1_000_000) + quantizationError;
                 int samples = Math.Max(1, (int)Math.Round(exactSamples, MidpointRounding.AwayFromZero));
                 quantizationError = exactSamples - samples;
+                if(totalSamples+samples>uint.MaxValue-36L)throw new InvalidOperationException("The generated WAV exceeds the 4 GiB RIFF size limit.");
                 byte value = physicalHigh ? HighSample : LowSample;
 
                 for (int i = 0; i < samples; i++)

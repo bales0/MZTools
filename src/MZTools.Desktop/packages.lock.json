@@ -205,7 +205,7 @@
         }
       }
     },
-    "net10.0/linux-arm64": {
+    "net10.0/linux-x64": {
       "Avalonia.Angle.Windows.Natives": {
         "type": "Transitive",
         "resolved": "2.1.27548.20260419",

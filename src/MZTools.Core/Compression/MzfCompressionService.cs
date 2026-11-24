@@ -8,6 +8,7 @@ namespace MZTools
 {
     internal static class MzfCompressionService
     {
+        private static readonly MzfCompressionCache PayloadCache = new();
         private static readonly MzfCompressionOptions[] AutoCandidates =
         [
             new(MzfCompressionAlgorithm.None),
@@ -23,8 +24,12 @@ namespace MZTools
             TapeRecord source,
             MzfCompressionOptions options,
             CompressionTarget target,
-            CancellationToken cancellationToken = default) =>
-            Task.Run(() => Compress(source, options, target, cancellationToken), cancellationToken);
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var snapshot=source.DeepClone();
+            return Task.Run(() => Compress(snapshot, options, target, cancellationToken), cancellationToken);
+        }
 
         public static MzfCompressionResult Compress(
             TapeRecord source,
@@ -33,6 +38,7 @@ namespace MZTools
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(source);
+            cancellationToken.ThrowIfCancellationRequested();
             if (options.Algorithm == MzfCompressionAlgorithm.None && target is CompressionTarget.MzfTape or CompressionTarget.MztTape or CompressionTarget.QuickDisk)
             {
                 ValidateOptions(options, target, source.Body.MzfBody.Length);
@@ -166,21 +172,21 @@ namespace MZTools
             }
 
             bool backwards = options.Direction == CompressionDirection.Backward;
-            CompressionPayload payload = options.Algorithm switch
+            CompressionPayload payload = PayloadCache.GetOrCreate(source.Body.MzfBody,options,input => options.Algorithm switch
             {
                 MzfCompressionAlgorithm.Zx0 => Zx0Compressor.Compress(
-                    source.Body.MzfBody,
+                    input,
                     options.SkipBytes,
                     backwards,
                     options.Zx0Quick,
                     cancellationToken),
                 MzfCompressionAlgorithm.Zx7 => Zx7Compressor.Compress(
-                    source.Body.MzfBody,
+                    input,
                     options.SkipBytes,
                     backwards,
                     cancellationToken),
                 _ => throw new InvalidOperationException("A concrete compression algorithm is required.")
-            };
+            }, cancellationToken);
 
             TapeRecord packed = MzfLoaderBuilder.Build(source, payload, options);
             return new MzfCompressionResult(packed, options, source.Body.MzfBody.Length);

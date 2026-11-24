@@ -11,6 +11,7 @@ internal sealed class HexEditorCursor
     private readonly Func<int,string> address;
     private bool syncing;
     private int selected;
+    internal int SelectedByte=>selected;
     internal HexEditorCursor(TextBox hex,TextBox ascii,TextBox mz,TextBlock status,Func<int,string> address)
     {
         boxes=[hex,ascii,mz];this.status=status;this.address=address;

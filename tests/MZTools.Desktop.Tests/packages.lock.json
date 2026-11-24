@@ -1,7 +1,7 @@
 {
   "version": 1,
   "dependencies": {
-    "net10.0": {
+    "net10.0-windows7.0": {
       "Avalonia.Headless.XUnit": {
         "type": "Direct",
         "requested": "[12.1.4, )",
@@ -269,10 +269,31 @@
         "resolved": "5.0.0",
         "contentHash": "dDoKi0PnDz31yAyETfRntsLArTlVAVzUzCIvvEDsDsucrl33Dl8pIJG06ePTJTI3tGpeyHS9Cq7Foc/s4EeKcg=="
       },
+      "NAudio.Core": {
+        "type": "Transitive",
+        "resolved": "3.3.0",
+        "contentHash": "xU3f1/5jBTfdjauhcPbjo0O1Ow+PVTPnjMo0KbV7twkWRcoY3GnVmA3mbUXxAePtJ2eUbWgteHWfFjOAvGovLg==",
+        "dependencies": {
+          "System.Numerics.Tensors": "9.0.0"
+        }
+      },
+      "NAudio.Wasapi": {
+        "type": "Transitive",
+        "resolved": "3.3.0",
+        "contentHash": "wUFqmyrTHde79yzt68g/akvtVG9KDnOVFJ0Aawr07zlbwcGOQo/IWO/NTw9YJTuESl9WGgncZitx/Q7JWQaaBA==",
+        "dependencies": {
+          "NAudio.Core": "3.3.0"
+        }
+      },
       "Newtonsoft.Json": {
         "type": "Transitive",
         "resolved": "13.0.3",
         "contentHash": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ=="
+      },
+      "org.sndfile.runtime.win-x64": {
+        "type": "Transitive",
+        "resolved": "1.2.2",
+        "contentHash": "T+OXr8J1jvU5axfBcufucrGZqkdWsjJ+zBj0kxUOEqR0hBvddOmqwIAWvAJkssP4NyzDgfvbeD1o7PsO8f7bwQ=="
       },
       "SkiaSharp": {
         "type": "Transitive",
@@ -302,6 +323,11 @@
         "type": "Transitive",
         "resolved": "3.119.4",
         "contentHash": "XOpbx/4CReO2wYsq2s6rbvdauc6dntG4Zv499sHGTJ87bwZaFXszFkwql3+FIZMc8kUPeaj3Mx2ezIJmo8a1Kg=="
+      },
+      "System.Numerics.Tensors": {
+        "type": "Transitive",
+        "resolved": "9.0.0",
+        "contentHash": "hyJB4UlpAi19Xr9AXzu2NuagKC4lPfHObNMEAA0HmqFz2rX7wKgzeYzO/jM/eBHDhnUGFFEjk5cOoJaxqg5J4A=="
       },
       "Tmds.DBus.Protocol": {
         "type": "Transitive",
@@ -378,6 +404,13 @@
       "mztools.capture": {
         "type": "Project"
       },
+      "mztools.capture.windows": {
+        "type": "Project",
+        "dependencies": {
+          "MZTools.Capture": "[1.0.0, )",
+          "NAudio.Wasapi": "[3.3.0, )"
+        }
+      },
       "mztools.core": {
         "type": "Project",
         "dependencies": {
@@ -390,6 +423,7 @@
           "Avalonia": "[12.1.4, )",
           "Avalonia.Desktop": "[12.1.4, )",
           "Avalonia.Themes.Fluent": "[12.1.4, )",
+          "MZTools.Capture.Windows": "[1.0.0, )",
           "MZTools.Core": "[1.0.0, )",
           "MZTools.Platform.Audio": "[1.0.0, )"
         }
@@ -397,7 +431,8 @@
       "mztools.platform.audio": {
         "type": "Project",
         "dependencies": {
-          "MZTools.Core": "[1.0.0, )"
+          "MZTools.Core": "[1.0.0, )",
+          "org.sndfile.runtime.win-x64": "[1.2.2, )"
         }
       }
     }

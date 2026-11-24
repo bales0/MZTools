@@ -11,7 +11,7 @@ using MZTools.Desktop.Documents;
 
 namespace MZTools.Desktop.Views;
 
-public sealed class HexViewWindow:Window
+public sealed partial class HexViewWindow:Window
 {
     internal static readonly FontFamily DumpFont=new("Consolas, Cascadia Mono, Courier New, DejaVu Sans Mono");
     internal static readonly IBrush PrefixBrush=new SolidColorBrush(Color.FromArgb(0x55,0xff,0x55,0x55));
@@ -27,14 +27,20 @@ public sealed class HexViewWindow:Window
         public bool IsQdf=>Section=="QDF header (derived)";
         private string Characters(bool sharp)=>new(Enumerable.Range(Offset,Count).Select(i=>HexPositions.Character(Bytes[i],sharp)).ToArray());
         public IBrush Foreground=>Section=="Trailing"?TrailingBrush:Brushes.Black;
-        internal IBrush ByteBackground(int index)=>IsQdf&&index<4?PrefixBrush:IsQdf&&index>=Bytes.Length-2?CrcBrush:Brushes.Transparent;
+        internal IBrush ByteBackground(int index)=>IsQdf?(index<4?PrefixBrush:index>=Bytes.Length-2?CrcBrush:Brushes.Transparent):
+            Section is "MZF header" or "Data" or "Trailing"?FieldBrush(MzfHexPresentation.Field(index,MzfHexPresentation.Payload(Bytes))):Brushes.Transparent;
     }
     internal static Row[] RecordRows(TapeRecord record)
     {
         byte[] header=record.GetSerializedHeader(),data=record.Body.MzfBody,trailing=record.Body.TrailingData??[];
         byte[] bytes=header.Concat(data).Concat(trailing).ToArray();
-        return Rows(bytes,0,header.Length,"MZF header").Concat(Rows(bytes,header.Length,data.Length,"Data",record.Header.MzfStart))
-            .Concat(Rows(bytes,header.Length+data.Length,trailing.Length,"Trailing")).ToArray();
+        return FileRows(bytes);
+    }
+    private static Row[] FileRows(byte[] bytes)
+    {
+        int data=Math.Min(MzfHexPresentation.Payload(bytes),bytes.Length-128);
+        return Rows(bytes,0,128,"MZF header").Concat(Rows(bytes,128,data,"Data",MzfHexPresentation.Load(bytes)))
+            .Concat(Rows(bytes,128+data,bytes.Length-128-data,"Trailing")).ToArray();
     }
     internal static Row[] DisplayRows(TapeRecord record,bool showQdfHeader=false)
     {
@@ -57,7 +63,8 @@ public sealed class HexViewWindow:Window
     internal void SelectByte(Row row,int column)
     {
         if(row.Count==0)return;selectedRow=row;selectedByte=Math.Clamp(column,0,row.Count-1);
-        position.Text=$"Offset 0x{row.Offset+selectedByte:X8} · RAM {HexPositions.Ram(row.Load,row.PayloadOffset+selectedByte)} · Byte 0x{row.Bytes[row.Offset+selectedByte]:X2} · HEX / ASCII / MZASCII";
+        if(buffer!=null){inputOffset=row.Offset+selectedByte;lowNibble=false;}
+        position.Text=buffer!=null?MzfHexPresentation.Location(buffer.Bytes,row.Offset+selectedByte):$"Offset 0x{row.Offset+selectedByte:X8} · RAM {HexPositions.Ram(row.Load,row.PayloadOffset+selectedByte)} · Byte 0x{row.Bytes[row.Offset+selectedByte]:X2} · HEX / ASCII / MZASCII";
         foreach(var cell in visible.ToArray())Paint(cell.Row,cell.Representation,cell.Text);
     }
     private void Paint(Row row,int representation,TextBlock text)
@@ -72,16 +79,26 @@ public sealed class HexViewWindow:Window
     }
     private Control Present(IEnumerable<Row> rows,Control? legend=null)
     {
-        displayed=rows.ToArray();var root=new DockPanel();DockPanel.SetDock(position,Dock.Bottom);root.Children.Add(position);
+        displayed=rows.ToArray();var root=new DockPanel();var footer=new StackPanel();footer.Children.Add(position);if(buffer!=null)footer.Children.Add(Status);DockPanel.SetDock(footer,Dock.Bottom);root.Children.Add(footer);
         if(legend is not null){DockPanel.SetDock(legend,Dock.Top);root.Children.Add(legend);}root.Children.Add(Table(displayed));return root;
+    }
+    internal HexViewWindow(RecordRow row,TapeSession session):this()
+    {
+        if(session.Model.Format==TapeDocumentFormat.Qdf){PresentQdf(row.Record);return;}
+        TapeRecord target=row.Record;
+        InitializeMzf(row.Record,session.CanEditDescription?bytes=>{session.ApplyMzfBytes(target,bytes);target=session.Model.Records[0];}:null,()=>session.CanEditMzfBytes);
     }
     internal HexViewWindow(RecordRow row,bool showQdfHeader=false):this()
     {
-        if(!showQdfHeader){Content=Present(RecordRows(row.Record));return;}
+        if(!showQdfHeader){InitializeMzf(row.Record,null,null);return;}
+        PresentQdf(row.Record);
+    }
+    private void PresentQdf(TapeRecord record)
+    {
         var legend=new TextBlock{FontFamily=DumpFont,FontSize=12,Margin=new Thickness(8),TextWrapping=TextWrapping.Wrap};
         legend.Inlines!.Add(new Run("QDF (derived): "));legend.Inlines.Add(new Run(" prefix / block type / length "){Background=PrefixBrush});legend.Inlines.Add(new Run("  "));legend.Inlines.Add(new Run(" CRC "){Background=CrcBrush});legend.Inlines.Add(new Run("  Trailing data"){Foreground=TrailingBrush});
         ToolTip.SetTip(legend,"QDF prefix: bytes 0–3; calculated header CRC: bytes 68–69. Trailing bytes follow the declared MZF payload; no source bytes are changed.");
-        Content=Present(DisplayRows(row.Record,true),legend);
+        Content=Present(DisplayRows(record,true),legend);
     }
     private HexViewWindow()
     {
@@ -124,8 +141,11 @@ public sealed class HexViewWindow:Window
                     SelectByte(row,selected);table.SelectedItem=row;table.Focus();e.Handled=true;
                 };return text;
             })});
+        if(buffer!=null)byteTable=table;
         table.KeyDown+=(_,e)=>
         {
+            if(buffer!=null&&e.Key is Key.Left or Key.Right or Key.Up or Key.Down)
+            {SelectOffset(Math.Clamp(SelectedOffset+(e.Key==Key.Left?-1:e.Key==Key.Right?1:e.Key==Key.Up?-16:16),0,buffer.Bytes.Length-1));e.Handled=true;return;}
             if(selectedRow is null&&displayed.Length>0)SelectByte(displayed[0],0);if(selectedRow is null)return;
             int rowIndex=Array.IndexOf(displayed,selectedRow);int change=e.Key switch{Key.Left=>-1,Key.Right=>1,Key.Up=>-16,Key.Down=>16,_=>0};
             if(change==0)return;int next=selectedByte+change;int targetRow=Math.Clamp(rowIndex+(next<0?-1:next>=selectedRow.Count?1:0),0,displayed.Length-1);

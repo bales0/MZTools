@@ -10,23 +10,24 @@ public sealed partial class DesktopDialogs(Window owner) : IDocumentDialogs
 {
     public bool AudioOnly {get;init;}
     internal Func<FilePickerOpenOptions, Task<IReadOnlyList<string>>>? InputPicker {get;init;}
+    internal Func<FilePickerSaveOptions,Task<IStorageFile?>>? OutputPicker {get;init;}
     internal async Task<IReadOnlyList<string>> OpenInputPickerAsync(FilePickerOpenOptions options)
     {
         using var wait=(owner.DataContext as MZTools.Desktop.ViewModels.ShellViewModel)?.Documents.AwaitUserInput("Choose a file…");
         IReadOnlyList<string> paths;
-        if (InputPicker is { } picker) paths = await picker(options);
+        if (InputPicker is { } picker) paths = await NativePickerOwner.RunAsync(owner, () => picker(options));
         else
         {
-            var files = await owner.StorageProvider.OpenFilePickerAsync(options);
+            var files = await NativePickerOwner.RunAsync(owner, () => owner.StorageProvider.OpenFilePickerAsync(options));
             paths = files.Select(f => f.TryGetLocalPath() ?? throw new NotSupportedException("A local input path is required.")).ToArray();
         }
         FilePickerPolicy.Validate(options, paths);
         return paths;
     }
-    private async Task<IStorageFile?> SaveOutputPickerAsync(FilePickerSaveOptions options)
+    internal async Task<IStorageFile?> SaveOutputPickerAsync(FilePickerSaveOptions options)
     {
         using var wait=(owner.DataContext as MZTools.Desktop.ViewModels.ShellViewModel)?.Documents.AwaitUserInput("Choose a destination…");
-        return await owner.StorageProvider.SaveFilePickerAsync(options);
+        return await NativePickerOwner.RunAsync(owner, () => OutputPicker is{} picker?picker(options):owner.StorageProvider.SaveFilePickerAsync(options));
     }
     public async Task<string?> OpenAsync()
     {
@@ -84,6 +85,7 @@ public sealed partial class DesktopDialogs(Window owner) : IDocumentDialogs
         body.Children.Add(buttons);
         dialog.Content = body;
         dialog.Opened += (_, _) => cancel?.Focus();
+        using var wait=(owner.DataContext as MZTools.Desktop.ViewModels.ShellViewModel)?.Documents.AwaitUserInput(title+" — waiting for your choice…");
         await dialog.ShowDialog(owner);
         return result;
     }

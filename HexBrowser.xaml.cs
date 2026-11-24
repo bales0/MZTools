@@ -30,7 +30,27 @@ namespace MZTools
 
         public HexBrowser()
         {
-            InitializeComponent();
+            InitializeComponent();legacyContent=Content;
+        }
+
+        private readonly object legacyContent;
+        internal MzfHexViewControl? MzfView {get;private set;}
+        internal bool Applied=>MzfView?.Applied==true;
+        internal byte[] EditedBytes=>MzfView?.EditedBytes??Array.Empty<byte>();
+        internal TextBlock Status=>MzfView!.Status;
+        internal void SetBytes(byte[] bytes)=>MzfView!.SetBytes(bytes);
+        internal void Undo()=>MzfView!.Undo();
+        internal void Apply()=>MzfView!.Apply();
+        internal void EnableMzfEditing(TapeRecord record,Action<TapeRecord> apply)
+        {
+            if(MzfView==null){MzfView=new(record);Content=MzfView;}
+            TapeRecord current=record;
+            MzfView.Enable(bytes=>{var parsed=MzfRecordEditing.ParseEdited(current,bytes);apply(parsed);current=parsed;});
+        }
+        internal static HexBrowser MzfEditor(Window owner,TapeRecord record,Action<byte[]> apply,int start=0)
+        {
+            var browser=new HexBrowser{Owner=owner};browser.ShowHexDump(record,false);browser.MzfView!.Enable(apply);browser.MzfView.BeginEdit();
+            browser.Loaded+=(_,_)=>browser.MzfView.SelectOffset(start);return browser;
         }
 
         private static TextBlock CreateDumpTextBlock(string text = "")
@@ -292,6 +312,8 @@ namespace MZTools
 
         internal void ShowHexDump(TapeRecord record, bool advancedFeaturesEnabled)
         {
+            if(!advancedFeaturesEnabled){Width=Math.Min(1130,SystemParameters.WorkArea.Width-32);Height=640;MzfView=new(record);Content=MzfView;return;}
+            Content=legacyContent;MzfView=null;
             MZQFileHeader header = record.Header;
             MZQFileBody body = record.Body;
             byte[] mzfHeaderData = record.GetSerializedHeader();
@@ -342,6 +364,7 @@ namespace MZTools
 
         internal void ShowRawData(string heading, byte[] data, byte[]? logicalData = null)
         {
+            Content=legacyContent;MzfView=null;
             Title = $"Hex Browser - {heading}";
             contentPanel.Children.Clear();
             AddSection($"ADDRESS   {heading.ToUpperInvariant()} RAW DATA", data);

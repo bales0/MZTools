@@ -109,7 +109,7 @@ internal sealed partial class DskVisualInspectorWindow : Window
         var issueDetails=new Button {Content="Finding details…",Margin=new Thickness(5)}; issueDetails.Click+=(_,_)=>ShowSelectionDetails(); filters.Children.Add(issueDetails);
         issueView.Children.Add(issues); Tab("Issues",issueView);
         Tab("Statistics",statistics); Tab("Tracks",tracks);
-        cancel.Click+=(_,_)=>work?.Cancel();
+        cancel.Click+=(_,_)=>{if(work is null)return;cancel.IsEnabled=false;status.Text="Cancelling report export…";work.Cancel();};
         var footer=new DockPanel(); Grid.SetRow(footer,3); root.Children.Add(footer);
         DockPanel.SetDock(cancel,Dock.Right); footer.Children.Add(cancel); footer.Children.Add(status);
         Columns(tracks,("Track","PhysicalIndex"),("Slot C","SlotCylinder"),("Slot side","SlotSide"),("Declared C","DeclaredCylinder"),("Declared H","DeclaredSide"),("Missing","Missing"),("Sectors","SectorCount"),("Stored B","StoredBytes"),("Declared B","DeclaredBytes"),("Padding B","PaddingBytes"),("Issues","IssueCount"),("Descriptor R order","DescriptorSequence"));

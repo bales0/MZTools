@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 
 namespace MZTools.Desktop.Documents;
 
+public enum OperationPhase { Idle, Running, AwaitingInput, Cancelling, Completed, Failed, Cancelled }
+
 public enum CloseDecision { Save, Discard, Cancel }
 
 public interface IDocumentDialogs
@@ -39,19 +41,28 @@ public sealed class DocumentCoordinator : Observable
     public bool HasProgress {get=>hasProgress;private set=>Set(ref hasProgress,value);}
     public double ProgressFraction {get=>progressFraction;private set=>Set(ref progressFraction,value);}
     private void ReportProgress(string stage,double fraction,long generation)
-    {if(!IsBusy||generation!=operationGeneration)return;HasProgress=true;ProgressFraction=double.IsFinite(fraction)?Math.Clamp(fraction,0,1):0;Status=stage+" · "+ProgressFraction.ToString("P0");}
+    {if(!IsBusy||IsAwaitingInput||IsCancelling||generation!=operationGeneration)return;HasProgress=true;ProgressFraction=double.IsFinite(fraction)?Math.Clamp(fraction,0,1):0;Status=stage+" · "+ProgressFraction.ToString("P0");}
     internal IProgress<WavAnalysisProgress> AudioProgress()
     {long generation=operationGeneration;return new Progress<WavAnalysisProgress>(p=>ReportProgress(p.Stage,p.Fraction,generation));}
     internal IProgress<BatchProgress> BatchProgress()
     {long generation=operationGeneration;return new Progress<BatchProgress>(p=>ReportProgress($"{p.Stage}: {p.Completed}/{p.Total} — {System.IO.Path.GetFileName(p.Input)}",p.Total==0?0:p.Completed/(double)p.Total,generation));}
-    public bool IsBusy { get => busy; private set {if(Set(ref busy,value))Changed(nameof(IsWorking));} }
+    public bool IsBusy { get => busy; private set {if(Set(ref busy,value))NotifyOperation();} }
+    private OperationPhase phase;
+    public OperationPhase Phase => IsBusy && IsAwaitingInput && !IsCancelling ? OperationPhase.AwaitingInput : phase;
+    public bool IsCancelling => phase == OperationPhase.Cancelling;
+    public bool CanCancel => IsBusy && !IsAwaitingInput && phase == OperationPhase.Running && operation is not null;
+    private void NotifyOperation()
+    {foreach(var name in new[]{nameof(Phase),nameof(IsWorking),nameof(IsCancelling),nameof(CanCancel)})Changed(name);}
+    private void SetPhase(OperationPhase value){phase=value;NotifyOperation();}
+    internal void SetStage(string stage){if(IsBusy&&!IsAwaitingInput&&!IsCancelling)Status=stage;}
     private int inputDepth;
     public bool IsAwaitingInput=>inputDepth>0;
-    public bool IsWorking=>IsBusy&&!IsAwaitingInput;
+    public bool IsWorking=>IsBusy&&!IsAwaitingInput&&phase is OperationPhase.Running or OperationPhase.Cancelling;
     internal IDisposable AwaitUserInput(string prompt)
     {
-        string previous=Status;inputDepth++;Status=prompt;Changed(nameof(IsAwaitingInput));Changed(nameof(IsWorking));
-        return new InputWait(()=>{inputDepth--;Status=previous;Changed(nameof(IsAwaitingInput));Changed(nameof(IsWorking));});
+        string previous=Status;long generation=operationGeneration;inputDepth++;
+        if(!IsCancelling)Status=prompt;Changed(nameof(IsAwaitingInput));NotifyOperation();
+        return new InputWait(()=>{inputDepth--;if(generation==operationGeneration&&!IsCancelling)Status=previous;Changed(nameof(IsAwaitingInput));NotifyOperation();});
     }
     private sealed class InputWait(Action finish):IDisposable
     {
@@ -65,7 +76,11 @@ public sealed class DocumentCoordinator : Observable
     public string Status { get => status; private set => Set(ref status, value); }
     public void ClearError() => Error = null;
     public void ReportError(string message) => Error = message;
-    public void Cancel() => operation?.Cancel();
+    public void Cancel()
+    {
+        if(operation is null||IsCancelling)return;
+        SetPhase(OperationPhase.Cancelling);Status="Cancelling… Waiting for the operation to finish safely.";operation.Cancel();
+    }
     internal Task WaitForIdleAsync()
     {
         if(!IsBusy)return Task.CompletedTask;
@@ -79,10 +94,10 @@ public sealed class DocumentCoordinator : Observable
         foreach(var previous in documents.OfType<BatchSession>().ToArray()){documents.Remove(previous);previous.Dispose();}
         Add(new BatchSession(preview));
     }
-    internal Task<bool> ExecuteAsync(Func<CancellationToken, Task<bool>> action) => RunAsync(async ct =>
+    internal Task<bool> ExecuteAsync(Func<CancellationToken, Task<bool>> action, string stage="Preparing operation…") => RunAsync(async ct =>
     {
-        Status = "Working…"; bool result = await action(ct);
-        if (Status == "Working…") Status = result ? "Ready." : "No changes applied.";
+        Status = stage; bool result = await action(ct);
+        if (Status == stage) Status = result ? "Ready." : "No changes applied.";
         return result;
     });
     internal void Add(DocumentSession document) { documents.Add(document); Active = document; }
@@ -250,11 +265,27 @@ public sealed class DocumentCoordinator : Observable
     private async Task<bool> RunAsync(Func<CancellationToken, Task<bool>> action)
     {
         if (IsBusy) return false;
-        operationGeneration++;IsBusy = true;HasProgress=false;ProgressFraction=0; Error = null; operation = new();
-        try { return await action(operation.Token); }
-        catch (OperationCanceledException) { Status = "Cancelled. Document state retained."; return false; }
+        operationGeneration++;using var current=new CancellationTokenSource();operation=current;
+        phase=OperationPhase.Running;IsBusy=true;HasProgress=false;ProgressFraction=0;Error=null;
+        OperationPhase outcome=OperationPhase.Completed;
+        try
+        {
+            current.Token.ThrowIfCancellationRequested();
+            bool result=await action(current.Token);
+            if(IsCancelling)
+            {
+                outcome=result?OperationPhase.Completed:OperationPhase.Cancelled;
+                Status=result?"Completed before cancellation could take effect.":"Cancelled. Document state retained.";
+            }
+            return result;
+        }
+        catch (OperationCanceledException) {outcome=OperationPhase.Cancelled;Status="Cancelled. Document state retained.";return false;}
         catch (Exception exception) when (exception is not OutOfMemoryException)
-        { Error = exception.Message; Status = "Operation failed. Document state retained."; return false; }
-        finally { operation.Dispose(); operation = null; IsBusy = false;HasProgress=false;if(loader is IProgressDocumentLoader p)p.Progress=null; }
+        {outcome=OperationPhase.Failed;Error=exception.Message;Status="Operation failed. Document state retained.";return false;}
+        finally
+        {
+            if(loader is IProgressDocumentLoader p)p.Progress=null;
+            operation=null;HasProgress=false;phase=outcome;IsBusy=false;
+        }
     }
 }

@@ -320,7 +320,7 @@ namespace MZTools
             MZQFileBody body = clone.Body;
             body.DataSize = (ushort)packedSize;
             body.MzfBody = packedBody;
-            return new TapeRecord(rawHeader, header, body, clone.Profile, clone.MetadataOrigin);
+            return new TapeRecord(rawHeader, header, body, clone.Profile, clone.MetadataOrigin) { DescriptionEditRisk=clone.DescriptionEditRisk,SourceFingerprints=clone.SourceFingerprints,SourceProfile=clone.SourceProfile };
         }
 
         private static byte[] BuildPrefix(

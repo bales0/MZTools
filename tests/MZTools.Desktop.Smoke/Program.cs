@@ -20,9 +20,11 @@ internal static class Program
 {
     internal static string Output = "";
     internal static bool PickersOnly;
+    internal static bool SavePickerOnly;
     [STAThread]
     public static int Main(string[] args)
     {
+        if(args.Length==2&&args[0]=="--save-picker"){SavePickerOnly=true;args=args[1..];}
         if (args.Length == 2 && args[0] == "--pickers") { PickersOnly = true; args = args[1..]; }
         if (args.Length != 1) { Console.Error.WriteLine("Usage: MZTools.Desktop.Smoke <output-directory>"); return 2; }
         Output = Path.GetFullPath(args[0]); Directory.CreateDirectory(Output);Environment.SetEnvironmentVariable("MZTOOLS_SETTINGS_ROOT",Path.Combine(Output,"preferences"));
@@ -36,7 +38,7 @@ public sealed class ReviewApp : App
     {
         base.OnFrameworkInitializationCompleted();
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop && desktop.MainWindow is MainWindow window)
-            window.Opened += async (_, _) => { if (Program.PickersOnly) await PickerScenario.Run(window,desktop); else await Review(window, desktop); };
+            window.Opened += async (_, _) => { if(Program.SavePickerOnly)await SavePickerScenario.Run(window,desktop);else if (Program.PickersOnly) await PickerScenario.Run(window,desktop); else await Review(window, desktop); };
     }
 
     private static async Task Review(MainWindow window, IClassicDesktopStyleApplicationLifetime desktop)

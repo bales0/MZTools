@@ -28,7 +28,7 @@ public sealed partial class RecordRow
     public string Profile => TapeProfileNames.ToDisplayName(Record.Profile);
     public string Origin => Record.MetadataOrigin.ToString();
     public string Compression => MzfLoaderBuilder.TryGetCompressionInfo(Record, out var info) && info is not null
-        ? info.DisplayName : "Not detected";
+        ? info.DisplayName+" · "+MzfCompressionSizes.Describe(Record) : "Not detected";
     public string Hex => Convert.ToHexString(Record.GetSerializedHeader()).Chunk(32).Select(x => new string(x))
         .Aggregate("Header (128 bytes)\n", (a, b) => a + b + "\n") + "\nPayload (first 4096 bytes)\n" +
         string.Join("\n", Convert.ToHexString(Record.Body.MzfBody.AsSpan(0, Math.Min(4096, Record.Body.MzfBody.Length))).Chunk(32).Select(x => new string(x)));
@@ -85,9 +85,9 @@ public sealed partial class TapeSession : DocumentSession, IFileSetDocument
     public string ExecuteAddress { get => exec; set { if (Set(ref exec, value)) DraftChanged(); } }
     public IReadOnlyList<string> Profiles { get; } = Enum.GetValues<TapeProfile>().Select(TapeProfileNames.ToDisplayName).ToArray();
     public string Profile { get => profile; set { if (Set(ref profile, value)) DraftChanged(); } }
-    public bool HasDraft => SelectedRow is not null && (Name != SelectedRow.Name || FileType != SelectedRow.Type || LoadAddress != SelectedRow.Load || ExecuteAddress != SelectedRow.Execute || Profile != SelectedRow.Profile);
+    public bool HasDraft => SelectedRow is not null && (Name != SelectedRow.Name || FileType != SelectedRow.Type || LoadAddress != SelectedRow.Load || ExecuteAddress != SelectedRow.Execute || Profile != SelectedRow.Profile || HasDescriptionDraft);
     public override bool HasUnsavedChanges => IsModified || HasDraft;
-    private void DraftChanged() { Changed(nameof(HasDraft)); Changed(nameof(HasUnsavedChanges)); Changed(nameof(Title)); }
+    private void DraftChanged() { Changed(nameof(CanEditMzfBytes)); Changed(nameof(HasDraft)); Changed(nameof(HasUnsavedChanges)); Changed(nameof(Title)); }
     public string Validation { get; private set; } = "";
     public bool GenerateSidecar { get; internal set; } = true;
     public bool PreserveTrailing { get; internal set; } = true;
@@ -129,7 +129,7 @@ public sealed partial class TapeSession : DocumentSession, IFileSetDocument
         name = selected?.Name ?? ""; type = selected?.Type ?? ""; load = selected?.Load ?? "";
         exec = selected?.Execute ?? ""; profile = selected?.Profile ?? Profiles[0];
         foreach (string field in new[] { nameof(Name), nameof(FileType), nameof(LoadAddress), nameof(ExecuteAddress), nameof(Profile) }) Changed(field);
-        DraftChanged();
+        LoadDescription(); DraftChanged();
     }
     internal void ResetMetadata() { LoadFields(); Validation = ""; Changed(nameof(Validation)); }
     internal void Refresh()
@@ -153,16 +153,21 @@ public sealed partial class TapeSession : DocumentSession, IFileSetDocument
     private void EnsureEditable() { if (!CanEdit) throw new InvalidOperationException(SaveDisabledReason); }
     internal void ApplyMetadata()
     {
-        EnsureEditable(); if (SelectedRow is null) return;
+        EnsureEditable(); if (SelectedRow is null || !HasDraft) return;
         try
         {
             var record = SelectedRow.Record.DeepClone(); var header = record.Header;
-            header.MzfFname = TapeFileNameEncoding.Encode(Name);
-            header.MzfFtype = byte.Parse(FileType, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+            if(Name!=SelectedRow.Name)header.MzfFname = TapeFileNameEncoding.Encode(Name);
+            if(FileType!=SelectedRow.Type)header.MzfFtype = byte.Parse(FileType, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
             if (header.MzfFtype == 0) throw new InvalidDataException("File type zero is not supported.");
-            header.MzfStart = ushort.Parse(LoadAddress, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-            header.MzfExec = ushort.Parse(ExecuteAddress, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+            if(LoadAddress!=SelectedRow.Load)header.MzfStart = ushort.Parse(LoadAddress, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+            if(ExecuteAddress!=SelectedRow.Execute)header.MzfExec = ushort.Parse(ExecuteAddress, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
             record.Header = header;
+            if(HasDescriptionDraft)
+            {
+                if(!CanEditDescription)throw new InvalidOperationException("Description editing is supported only for an editable standalone MZF.");
+                record=MzfDescriptionEditing.Replace(record,MzfDescriptionEditing.EncodeText(Description));
+            }
             if (Profile != SelectedRow.Profile) record.Profile = Enum.GetValues<TapeProfile>().First(p => TapeProfileNames.ToDisplayName(p) == Profile);
             record.MetadataOrigin = MetadataOrigin.CreatedOrModifiedInAdvanced;
             var proposed = Model.Records.Select(r => r.DeepClone()).ToList(); proposed[SelectedRow.Index] = record;
@@ -207,6 +212,7 @@ public sealed partial class TapeSession : DocumentSession, IFileSetDocument
 
     async Task<DocumentSavePlan> IFileSetDocument.PrepareSaveAsync(SaveChoice choice, CancellationToken cancellation)
     {
+        var capturedSources=sourceHashes.ToArray();
         var format = choice.Format is null ? Model.Format : Enum.Parse<TapeDocumentFormat>(choice.Format);
         if (!System.IO.Path.GetExtension(choice.Path).Equals(TapeSavePolicy.Extension(format), StringComparison.OrdinalIgnoreCase))
             throw new InvalidDataException("The destination extension does not match the explicitly selected format.");
@@ -218,7 +224,7 @@ public sealed partial class TapeSession : DocumentSession, IFileSetDocument
         string? sidecar = choice.GenerateSidecar ? SidecarService.GetSidecarPath(choice.Path) : null;
         if (sidecar is null && File.Exists(SidecarService.GetSidecarPath(choice.Path)))
             throw new IOException("The destination already has metadata. Enable sidecar output or choose a different destination; stale metadata will not be left beside new media.");
-        if (sidecar is not null) outputs.Add(sidecar, format == TapeDocumentFormat.Mzt ? SidecarService.SerializeMti(clone.Records) : !tape ? SidecarService.SerializeMqi(clone.Records) : SidecarService.SerializeMfi(clone.Records.Single()));
+        if (sidecar is not null) outputs.Add(sidecar, format == TapeDocumentFormat.Mzt ? SidecarService.SerializeMti(clone.Records) : !tape ? SidecarService.SerializeMqi(clone.Records) : SidecarService.SerializeMfiForSave(clone.Records.Single()));
         var warnings = new List<string>();
         if (Model.ContainerTrailingData.Length != 0 || clone.Records.Any(r => r.Body.TrailingData.Length != 0) && (format == TapeDocumentFormat.Mzt || !choice.PreserveTrailing || !tape))
             warnings.Add("Trailing/container data will be omitted by this output format.");
@@ -239,6 +245,7 @@ public sealed partial class TapeSession : DocumentSession, IFileSetDocument
                 Model.IsModified = false; Model.ContainerTrailingData = [];
                 foreach (var record in Model.Records)
                 {
+                    record.DescriptionEditRisk=null;
                     if (format == TapeDocumentFormat.Mzt || !choice.PreserveTrailing || !tape) record.RemoveTrailingData();
                     if (sidecar is null) record.ResetMetadataToImplicit();
                     else record.MetadataOrigin = format == TapeDocumentFormat.Mzt ? MetadataOrigin.LoadedFromMti : !tape ? MetadataOrigin.LoadedFromMqi : SidecarService.SingleRecordOrigin(choice.Path);
@@ -255,6 +262,10 @@ public sealed partial class TapeSession : DocumentSession, IFileSetDocument
                 Model.QuickDiskProfile = qd.PhysicalProfile;
             }
             snapshotDirty = true; Refresh();
+        },BeforeCommit:()=>
+        {
+            foreach(var source in capturedSources)
+                if(AtomicFileTransaction.HashCancellable(source.Key,cancellation)!=source.Value)throw new IOException("The source or sidecar changed before saving: "+source.Key);
         });
     }
     public override Task WriteAsync(Stream destination, CancellationToken cancellationToken) => throw new NotSupportedException("Media documents require a complete file-set save plan.");

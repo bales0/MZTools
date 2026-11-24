@@ -263,10 +263,10 @@ internal static class BatchTapeService
         else if (target == "FLAC")
         {
             string wav = temporary.PathFor(".wav");
-            SharpTapeExporter.Export(wav, records, SharpTapeOutputFormat.Wav, wavSampleRate: sampleRate, cancellationToken: cancellationToken);
+            SharpTapeExporter.Export(wav, records, SharpTapeOutputFormat.Wav, wavSampleRate: sampleRate, cancellationToken: cancellationToken,gaps:TapeExportGapOptions.Legacy);
             CorePlatformServices.EncodeFlac(wav, path, cancellationToken);
         }
-        else SharpTapeExporter.Export(path, records, SharpTapeExporter.GetFormat(Extension(target)), wavSampleRate: sampleRate, cancellationToken: cancellationToken);
+        else SharpTapeExporter.Export(path, records, SharpTapeExporter.GetFormat(Extension(target)), wavSampleRate: sampleRate, cancellationToken: cancellationToken,gaps:TapeExportGapOptions.Legacy);
         cancellationToken.ThrowIfCancellationRequested();
         return File.ReadAllBytes(path);
     }

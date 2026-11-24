@@ -12,6 +12,7 @@ public sealed partial class RecordRow
     public string StartLabel=>"0x"+Load;
     public string ExecLabel=>"0x"+Execute;
     public string CompressionLabel=>MzfLoaderBuilder.DetectCompression(Record);
+    public string CompressionSizes=>MzfLoaderBuilder.TryGetCompressionInfo(Record,out _)?MzfCompressionSizes.Describe(Record):"";
     public string Description=>SharpMzEncoding.ConvertMzfDescriptionToASCIIString(Record.DescriptionRaw);
     public string Loader=>TapeProfileComponents.Split(Record.Profile).LoaderType;
     public string Speed=>TapeProfileComponents.Split(Record.Profile).Speed;

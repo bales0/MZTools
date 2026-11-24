@@ -23,7 +23,7 @@
               <TableView x:Name="RecordsTable" ItemsSource="{Binding ActiveTape.Rows}" SelectionMode="Multiple" IsEnabled="{Binding !Documents.IsBusy}"
                          SelectionChanged="SelectionChanged" AutomationProperties.Name="Records" DragDrop.AllowDrop="True">
                 <TableView.ContextMenu>
-                  <ContextMenu><MenuItem Header="Add..." Command="{Binding ImportCommand}" /><MenuItem Header="Hex view..." Click="ViewHex" />
+                  <ContextMenu><MenuItem Header="Add..." Command="{Binding ImportCommand}" /><MenuItem Header="Hex view..." Click="ViewHex" /><MenuItem Header="Properties..." Click="Properties" />
                     <MenuItem Header="Copy records" Command="{Binding CopyRecordsCommand}" />
                     <MenuItem Header="Paste records…" Command="{Binding PasteRecordsCommand}" />
                     <MenuItem Header="Compression…" Command="{Binding CompressCommand}" />
@@ -41,6 +41,7 @@
                   <TableViewColumn Header="Start" Binding="{ReflectionBinding StartLabel}" Width="70" />
                   <TableViewColumn Header="Exec" Binding="{ReflectionBinding ExecLabel}" Width="70" />
                   <TableViewColumn Header="Compression" Binding="{ReflectionBinding CompressionLabel}" Width="100" />
+                  <TableViewColumn Header="Compressed / original" Binding="{ReflectionBinding CompressionSizes}" Width="420" />
                   <TableViewColumn Header="Description" Binding="{ReflectionBinding Description}" Width="*" />
                   <TableViewColumn Header="Loader" Width="110"><TableViewColumn.CellTemplate><DataTemplate x:DataType="d:RecordRow"><TextBlock Text="{Binding Loader, Converter={StaticResource WpfLoaderLabel}}" /></DataTemplate></TableViewColumn.CellTemplate></TableViewColumn>
                   <TableViewColumn Header="Speed" Width="75"><TableViewColumn.CellTemplate><DataTemplate x:DataType="d:RecordRow"><ComboBox IsEnabled="{Binding Editable}" ItemsSource="{Binding Speeds}" SelectedItem="{Binding Speed, Mode=OneWay}" SelectionChanged="ChangeSpeed" Padding="2,0" HorizontalAlignment="Stretch" AutomationProperties.Name="Tape speed" /></DataTemplate></TableViewColumn.CellTemplate></TableViewColumn>

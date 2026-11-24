@@ -36,6 +36,7 @@ public class MzfDisplayData : INotifyPropertyChanged
     public string MzfHeaderDescription { get; set; } = string.Empty;
     public string TrailingData { get; set; } = string.Empty;
     public string Compression { get; set; } = string.Empty;
+    public string CompressionSizes { get; set; } = string.Empty;
 
     public IReadOnlyList<string> LoaderTypes => MZTools.TapeProfileComponents.LoaderTypes;
     public string ProfileDescription => MZTools.TapeProfileNames.Description(MZTools.TapeProfileComponents.Combine(loaderType,speed))+"\nCtrl/Shift-select rows to apply the profile to all selected records.";
@@ -453,7 +454,8 @@ namespace MZTools
                     MzfExecHex = $"0x{header.MzfExec:X4}",
                     MzfHeaderDescription = ConvertMzfDescriptionToASCIIString(record.DescriptionRaw),
                     TrailingData = $"{record.Body.TrailingData?.Length ?? 0} B",
-                    Compression = MzfLoaderBuilder.DetectCompression(record)
+                    Compression = MzfLoaderBuilder.DetectCompression(record),
+                    CompressionSizes=MzfLoaderBuilder.TryGetCompressionInfo(record,out _)?MzfCompressionSizes.Describe(record):""
                 };
                 displayData.SetProfile(record.Profile);
                 MzfDisplayDataCollection.Add(displayData);
@@ -815,11 +817,12 @@ namespace MZTools
             int recordCount,
             out SharpTapeMachine machine,
             out bool separateFiles,
-            out int wavSampleRate)
+            out int wavSampleRate,
+            out TapeExportGapOptions gaps)
         {
             machine = SharpTapeMachine.Mz800;
             separateFiles = false;
-            wavSampleRate = SharpTapeExporter.WavSampleRate;
+            wavSampleRate = SharpTapeExporter.WavSampleRate;gaps=TapeExportGapOptions.Legacy;
             var dialog = new SaveOptionsDialog(extension, recordCount)
             {
                 Owner = this
@@ -831,65 +834,19 @@ namespace MZTools
 
             machine = dialog.SelectedMachine;
             separateFiles = dialog.SeparateFiles;
-            wavSampleRate = dialog.WavSampleRate;
+            wavSampleRate = dialog.WavSampleRate;gaps=dialog.ExportGaps;
             return true;
         }
 
-        private bool ExportWaveform(
-            string selectedPath,
-            IReadOnlyList<TapeRecord> records,
-            SharpTapeOutputFormat format,
-            SharpTapeMachine machine,
-            bool separateFiles,
-            int wavSampleRate)
+        private bool ExportWaveform(string selectedPath,IReadOnlyList<TapeRecord> records,SharpTapeOutputFormat format,SharpTapeMachine machine,bool separateFiles,int wavSampleRate,TapeExportGapOptions gaps)
         {
             try
             {
-                if (!separateFiles || records.Count == 1)
-                {
-                    SharpTapeExporter.Export(selectedPath, records, format, machine, wavSampleRate);
-                    return true;
-                }
-
-                IReadOnlyList<string> outputPaths =
-                    SharpTapeExporter.GetSeparateOutputPaths(selectedPath, records);
-                string[] existingPaths = outputPaths.Where(File.Exists).ToArray();
-                bool overwrite = false;
-                if (existingPaths.Length > 0)
-                {
-                    MessageBoxResult result = MessageBox.Show(
-                        this,
-                        $"{existingPaths.Length} separate output file(s) already exist. Overwrite them?",
-                        "Overwrite separate files",
-                        MessageBoxButton.YesNo,
-                        MessageBoxImage.Warning);
-                    if (result != MessageBoxResult.Yes)
-                    {
-                        return false;
-                    }
-                    overwrite = true;
-                }
-
-                SharpTapeExporter.ExportSeparate(
-                    selectedPath,
-                    records,
-                    format,
-                    machine,
-                    overwrite,
-                    wavSampleRate);
-                MessageBox.Show(
-                    this,
-                    $"Created {outputPaths.Count} separate files in:\n{System.IO.Path.GetDirectoryName(outputPaths[0])}",
-                    "Separate export complete",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
-                return true;
+                var paths=separateFiles&&records.Count>1?SharpTapeExporter.GetSeparateOutputPaths(selectedPath,records):new[]{selectedPath};
+                if(paths.Count>1&&paths.Any(File.Exists)&&MessageBox.Show(this,"Overwrite the existing separate output files?","Overwrite separate files",MessageBoxButton.YesNo,MessageBoxImage.Warning)!=MessageBoxResult.Yes)return false;
+                return WaveformExportWindow.Run(this,records,paths,format,machine,wavSampleRate,gaps,document.FilePath);
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show(this, ex.Message, "Error saving tape output", MessageBoxButton.OK, MessageBoxImage.Error);
-                return false;
-            }
+            catch(Exception error){MessageBox.Show(this,error.Message,"Error saving tape output",MessageBoxButton.OK,MessageBoxImage.Error);return false;}
         }
 
         private string GetOpenFilter() => FeatureModePolicy.GetOpenFilter();
@@ -959,6 +916,7 @@ namespace MZTools
             SharpTapeMachine machine = SharpTapeMachine.Mz800;
             bool separateFiles = false;
             int wavSampleRate = SharpTapeExporter.WavSampleRate;
+            TapeExportGapOptions gaps=TapeExportGapOptions.Legacy;
             byte[]? iplImage = null;
             try
             {
@@ -969,7 +927,7 @@ namespace MZTools
                 }
                 else if (selectedExtension is ".lep" or ".l16" or ".wav")
                 {
-                    if (!TryChooseWaveformSaveOptions(selectedExtension, records.Count, out machine, out separateFiles, out wavSampleRate)) return;
+                    if (!TryChooseWaveformSaveOptions(selectedExtension, records.Count, out machine, out separateFiles, out wavSampleRate,out gaps)) return;
                 }
                 else if (selectedExtension == ".dsk")
                 {
@@ -994,6 +952,11 @@ namespace MZTools
                     if (allPaths.Any(Directory.Exists)) throw new IOException("An output filename or sidecar is already used by a directory.");
                     int existing = allPaths.Count(File.Exists);
                     if (existing > 0 && MessageBox.Show(this, $"{existing} output file(s) / sidecar(s) already exist. Overwrite them?", "Overwrite separate files", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+                    if(selectedExtension is ".wav" or ".lep" or ".l16")
+                    {
+                        WaveformExportWindow.Run(this,exportRecords,paths,SharpTapeExporter.GetFormat(selectedExtension),machine,wavSampleRate,gaps,document.FilePath);
+                        return;
+                    }
                     for (int index = 0; index < paths.Length; index++)
                     {
                         if (selectedExtension == ".bin") File.WriteAllBytes(paths[index], exportRecords[index].Body.MzfBody);
@@ -1179,7 +1142,7 @@ namespace MZTools
                         SharpTapeExporter.GetFormat(fileExtension),
                         machine,
                         separateFiles,
-                        wavSampleRate);
+                        wavSampleRate,gaps);
                     return;
                 }
 
@@ -1539,7 +1502,12 @@ namespace MZTools
             if (selectedIndex >= 0 && selectedIndex < mzfBlocks.Count)
             {
                 TapeRecord selectedRecord = mzfBlocks[selectedIndex];
-                hexBrowserWindow.ShowHexDump(selectedRecord, true);
+                hexBrowserWindow.ShowHexDump(selectedRecord, document.Format==TapeDocumentFormat.Qdf);
+                if(CanEditMzf)
+                {
+                    TapeRecord current=selectedRecord;
+                    hexBrowserWindow.EnableMzfEditing(selectedRecord,record=>{int index=mzfBlocks.IndexOf(current);ApplyMzfEdit(current,record);current=mzfBlocks[index];});
+                }
             }
 
             hexBrowserWindow.ShowDialog(); // Zobrazí HexBrowser jako modální dialogové okno
@@ -1612,6 +1580,7 @@ namespace MZTools
             tapeContextExportSelected.Header = $"Export selected ({MzfDataGrid.SelectedItems.Count})…";
             tapeContextExportSelected.Visibility = MzfDataGrid.SelectedItems.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
             tapeContextDelete.IsEnabled = deleteButton.IsEnabled && !document.IsReadOnlyQuickDisk && MzfDataGrid.SelectedItems.Count > 0;
+            tapeContextProperties.IsEnabled = CanEditMzf && MzfDataGrid.SelectedItems.Count==1;
             tapeContextRename.IsEnabled = !document.IsReadOnlyQuickDisk && MzfDataGrid.SelectedItems.Count == 1;
             tapeContextView.IsEnabled = viewButton.IsEnabled && MzfDataGrid.SelectedItems.Count > 0;
         }

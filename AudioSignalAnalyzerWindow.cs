@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using System;
 using System.Collections;
 using System.IO;
@@ -84,7 +84,7 @@ internal sealed partial class AudioSignalAnalyzerWindow : Window
         var charts = new TabControl(); charts.Items.Add(new TabItem { Header = "Histogram", Content = histogram }); charts.Items.Add(new TabItem { Header = "High / Low scatter", Content = scatter }); charts.Items.Add(new TabItem { Header = "Drift", Content = drift }); pulsePanel.Children.Add(charts);
         AddTab("Pulse statistics", new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Content = pulsePanel }); AddTab("Channels / levels", channels); AddTab("Detector agreement", agreement); AddTab("Issues", issues); AddTab("Regions", regions);
         AddTab("Definitions", new ScrollViewer { Content = new TextBlock { Text = new AudioSignalAnalysis().Limits + "\n\nPulse agreement: one-to-one physical-level matches with end positions within max(2 samples, 10% of pulse duration), bounded 64-pulse queues. Classification agreement compares SHORT/LONG for matched pulses.\n\nOnly regions with decoder trace positions are labelled leader/sync/data/checksum. Unassigned audio contributes to Estimated noise; it may contain music, speech or undecodable tape data.\n\nUsed for decoding measures each candidate detector and original preprocessing interval/threshold; explicit detector comparisons and arbitrary intervals are reference comparisons. Reconstructed provenance may be mixed or unknown. Short-term variation is the per-window local standard deviation; drift is change in timing scale between windows; global speed offset is reported separately.\n\nHistogram bins are exact sample-duration counts. Scatter is bounded to 20,000 pairs by deterministic thinning. Charts are read-only; this analyzer never rewrites the capture.", TextWrapping = TextWrapping.Wrap, Margin = new(12), FontSize = 14 } });
-        open.Click += (_, _) => ChooseSource(); cancel.Click += (_, _) => { work?.Cancel(); wavWork?.Cancel(); }; report.Click += (_, _) => ExportReport();
+        open.Click += (_, _) => ChooseSource(); cancel.Click += (_, _) => { cancel.IsEnabled=false;status.Text="Cancelling…";work?.Cancel(); wavWork?.Cancel(); }; report.Click += (_, _) => ExportReport();
         records.SelectionChanged += (_, _) =>
         {
             if (synchronizingSelection) return;
@@ -157,7 +157,7 @@ internal sealed partial class AudioSignalAnalyzerWindow : Window
         open.IsEnabled = report.IsEnabled = deepAnalysis.IsEnabled = false; cancel.IsEnabled = true; progress.Value = 0;
         UpdateWaveExport();
         status.Text = "Analyzing…";
-        var reporter = new Progress<WavAnalysisProgress>(p => { if (!closed && work == cancellation) { status.Text = $"{p.Stage} — {p.Fraction:P0}"; progress.Value = p.Fraction; } });
+        var reporter = new Progress<WavAnalysisProgress>(p => { if (!closed && work == cancellation && !cancellation.IsCancellationRequested) { status.Text = $"{p.Stage} — {p.Fraction:P0}"; progress.Value = p.Fraction; } });
         try
         {
             var result = await Task.Run(() => AudioSignalAnalysisService.Analyze(path, reporter, cancellation.Token), cancellation.Token);

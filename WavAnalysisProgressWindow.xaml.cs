@@ -23,6 +23,7 @@ namespace MZTools
             this.filePath = filePath;
             progressPrefix = fileCount > 1 ? $"File {fileIndex} / {fileCount} · " : string.Empty;
             InitializeComponent();
+            Closed+=(_,_)=>cancellation.Dispose();
             stageText.Text = $"{progressPrefix}Preparing {Path.GetFileName(filePath)}…";
         }
 
@@ -59,6 +60,7 @@ namespace MZTools
 
         private void UpdateProgress(WavAnalysisProgress progress)
         {
+            if(analysisFinished||cancellation.IsCancellationRequested)return;
             double percentage = Math.Clamp(progress.Fraction * 100, 0, 100);
             stageText.Text = $"{progressPrefix}{Path.GetFileName(filePath)} · {progress.Stage}";
             progressBar.Value = percentage;

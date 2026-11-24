@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -8,6 +8,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using MZTools.Desktop.Controls;
 using MZTools.Desktop.Documents;
+using MZTools.Desktop.Platform;
 using MZTools.Desktop.ViewModels;
 
 namespace MZTools.Desktop.Views;
@@ -49,8 +50,13 @@ public sealed partial class RecordWorkspace : UserControl
     }
     internal void BindSession()
     {
+        var current=Model?.ActiveTape;
+        // Status/busy notifications also publish ActiveTape. Rebinding an unchanged
+        // document clears/rebuilds SelectedItems and feeds its two-way SelectedRow
+        // binding back into the shell, starving input with a multi-record selection.
+        if(ReferenceEquals(observed,current)){Reflow();return;}
         if (observed is not null) observed.PropertyChanged -= SessionChanged;
-        observed = Model?.ActiveTape;
+        observed = current;
         if (observed is not null) observed.PropertyChanged += SessionChanged;
         RestoreSelection(); Reflow();
     }
@@ -203,7 +209,7 @@ public sealed partial class RecordWorkspace : UserControl
         {
             var bytes = snapshot.Layout.GetBlockBytes(region);
             if (Model.MediaDialogs is null || !await Model.MediaDialogs.ConfirmPreviewAsync("Region export", snapshot.Layout.Detail(region) + $"\n{bytes.Length:N0} output bytes. Decoded blocks and raw gaps are distinct; this does not rewrite the medium.")) return false;
-            var file = await owner.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions { Title = "Export decoded/raw region", SuggestedFileName = "region.bin", ShowOverwritePrompt = false });
+            var file = await NativePickerOwner.RunAsync(owner,()=>owner.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions { Title = "Export decoded/raw region", SuggestedFileName = "region.bin", ShowOverwritePrompt = false }));
             if (file is null) return false;
             await Model.Documents.WriteExportAsync(new Dictionary<string,byte[]> { [file.TryGetLocalPath() ?? throw new NotSupportedException("A local path is required.")] = bytes },ct); return true;
         });

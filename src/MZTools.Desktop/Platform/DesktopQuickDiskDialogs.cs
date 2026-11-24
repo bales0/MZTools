@@ -46,6 +46,7 @@ public sealed partial class DesktopDialogs : INewQuickDiskDialog
         };
         create.Click += (_, _) => dialog.Close((TapeDocumentFormat?)options[select.SelectedIndex].Format);
         cancel.Click += (_, _) => dialog.Close((TapeDocumentFormat?)null);
+        using var wait=(owner.DataContext as MZTools.Desktop.ViewModels.ShellViewModel)?.Documents.AwaitUserInput("New QuickDisk"+" — waiting for your choice…");
         return await dialog.ShowDialog<TapeDocumentFormat?>(owner);
     }
 }

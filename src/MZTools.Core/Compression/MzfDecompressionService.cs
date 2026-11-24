@@ -73,7 +73,7 @@ namespace MZTools
                 header,
                 body,
                 packed.Profile,
-                packed.MetadataOrigin);
+                packed.MetadataOrigin) { DescriptionEditRisk=packed.DescriptionEditRisk,SourceFingerprints=packed.SourceFingerprints,SourceProfile=packed.SourceProfile };
             return new MzfDecompressionResult(record, info, !info.EmbeddedLoader);
         }
 

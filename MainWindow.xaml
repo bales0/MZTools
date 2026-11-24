@@ -81,6 +81,7 @@
                 <MenuItem x:Name="tapeContextAdd" Header="Add..." Click="button_Click_Add"/>
                 <MenuItem x:Name="tapeContextExport" Header="Export..." Click="TapeContextExport_Click"/>
                 <MenuItem x:Name="tapeContextExportSelected" Header="Export selected..." Click="button_Click_Export"/>
+                <MenuItem x:Name="tapeContextProperties" Header="Properties..." Click="TapeProperties_Click"/>
                 <MenuItem x:Name="tapeContextRename" Header="Rename" InputGestureText="F2" Click="TapeRename_Click"/>
                 <MenuItem x:Name="tapeContextDelete" Header="Delete" Click="button_Click_Delete"/>
                 <MenuItem x:Name="tapeContextCompression" Header="Compression..." Click="QuickDiskCompression_Click" Visibility="Collapsed"/>
@@ -108,6 +109,7 @@
                 <DataGridTextColumn Header="Start" Binding="{Binding MzfStartHex}" Width="Auto" IsReadOnly="True"/>
                 <DataGridTextColumn Header="Exec" Binding="{Binding MzfExecHex}" Width="Auto" IsReadOnly="True"/>
                 <DataGridTextColumn Header="Compression" Binding="{Binding Compression}" Width="Auto" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Compressed / original" Binding="{Binding CompressionSizes}" Width="Auto" IsReadOnly="True"/>
                 <DataGridTemplateColumn Header="Description" Width="*" MinWidth="180" IsReadOnly="True">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>

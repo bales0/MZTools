@@ -32,12 +32,15 @@ internal sealed class BatchProcessDialog : Window
         var summary = new TextBlock { Text = "Select files or a folder, then Preview. Preview does not write outputs.", TextWrapping = TextWrapping.Wrap }; footer.Children.Add(summary);
         var progressBar = new ProgressBar { Name = "BatchProgress", Height = 6, Margin = new Thickness(0, 4, 0, 4), Visibility = Visibility.Collapsed };
         footer.Children.Add(progressBar);
-        var progress = new Progress<BatchProgress>(value =>
+        int workGeneration=0;
+        IProgress<BatchProgress> progress = null!;
+        IProgress<BatchProgress> CreateProgress(int generation) => new Progress<BatchProgress>(value =>
         {
             if (Dispatcher.HasShutdownStarted) return;
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                if (!IsVisible || running?.IsCancellationRequested == true || progressBar.Visibility != Visibility.Visible) return;
+                if (!IsVisible || generation!=workGeneration || running is null || running.IsCancellationRequested || progressBar.Visibility != Visibility.Visible) return;
+                progressBar.IsIndeterminate=false;
                 progressBar.Maximum = Math.Max(1, value.Total); progressBar.Value = value.Completed;
                 summary.Text = $"{value.Stage}: {value.Completed}/{value.Total} — {Path.GetFileName(value.Input)}";
             }));
@@ -206,7 +209,7 @@ internal sealed class BatchProcessDialog : Window
         async Task Work(Func<CancellationToken, Task> work)
         {
             if (running != null) return;
-            using var cancellation = new CancellationTokenSource(); running = cancellation;
+            using var cancellation = new CancellationTokenSource(); running = cancellation;progress=CreateProgress(++workGeneration);
             controls.IsEnabled = false; actions.IsEnabled = false; clearFiles.IsEnabled = false; stop.IsEnabled = true;
             progressBar.Visibility = Visibility.Visible; progressBar.IsIndeterminate = true;
             try { await work(cancellation.Token); }

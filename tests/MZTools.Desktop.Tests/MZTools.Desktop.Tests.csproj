@@ -19,4 +19,5 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup><None Include="../native/portaudio_fake.c" Link="native/portaudio_fake.c" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="Fixtures/export-standard-gaps.json" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

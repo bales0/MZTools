@@ -35,7 +35,16 @@ public sealed partial class DiskVisualWindow : Window
     private readonly Button cancel=new() { Content="Cancel operation", IsEnabled=false };
     private CancellationTokenSource? work;
     private int revision;
-    private bool updating, closed;
+    private bool updating, closed, closeApproved, closePending;
+    private readonly List<Task> pendingTasks=[];
+    private Task TrackWork(Task task){pendingTasks.RemoveAll(t=>t.IsCompleted);pendingTasks.Add(task);return task;}
+    private async void CloseAfterWork(object? sender,WindowClosingEventArgs e)
+    {
+        if(closeApproved)return;e.Cancel=true;if(closePending)return;closePending=true;
+        if(work is not null)model.Documents.Cancel();work?.Cancel();detailWork?.Cancel();
+        try{await Task.WhenAll(pendingTasks.ToArray());closeApproved=true;Avalonia.Threading.Dispatcher.UIThread.Post(Close);}
+        catch(Exception error)when(error is not OutOfMemoryException){status.Text=error.Message;closePending=false;}
+    }
     private int selectedTrack;
     private DskSectorAddress? selected;
     private string[] relatedKeys=Array.Empty<string>();
@@ -82,7 +91,7 @@ public sealed partial class DiskVisualWindow : Window
         var issueDetails=new Button {Content="Finding details…",Margin=new Thickness(5)}; issueDetails.Click+=(_,_)=>ShowSelectionDetails(); filters.Children.Add(issueDetails);
         issueView.Children.Add(issues); Tab("Issues",issueView);
         Tab("Statistics",statistics); Tab("Tracks",tracks);
-        cancel.Click+=(_,_)=>work?.Cancel();
+        cancel.Click+=(_,_)=>{if(work is null)return;this.model.Documents.Cancel();cancel.IsEnabled=false;status.Text="Cancelling report export…";};
         var footer=new DockPanel(); Grid.SetRow(footer,3); root.Children.Add(footer);
         DockPanel.SetDock(cancel,Dock.Right); footer.Children.Add(cancel); footer.Children.Add(status);
         Columns(tracks,("Track","PhysicalIndex"),("Slot C","SlotCylinder"),("Slot side","SlotSide"),("Declared C","DeclaredCylinder"),("Declared H","DeclaredSide"),("Missing","Missing"),("Sectors","SectorCount"),("Stored B","StoredBytes"),("Declared B","DeclaredBytes"),("Padding B","PaddingBytes"),("Issues","IssueCount"),("Descriptor R order","DescriptorSequence"));
@@ -117,7 +126,7 @@ public sealed partial class DiskVisualWindow : Window
             menu.Opened+=(_,_)=>{raw.IsEnabled=selectionKeys.Count>0;import.IsEnabled=Session.CanEditHex&&!Session.HasDraft&&!this.model.Documents.IsBusy;ToolTip.SetTip(import,Session.HasProjection?Session.CanEditHex?"Import selected sector bytes with Core validation and preview. Apply or Cancel pending edits first.":"Import is unavailable: this image is read-only or write-protected.":"Import is unavailable: no safe decoded filesystem projection exists for this physical image.");hexItem.IsEnabled=selected!=null;owner.IsEnabled=CurrentSector()?.Owners.Count>0;};
         }
         Opened+=(_,_)=>RefreshFloatingAndMfm();
-        Session.PropertyChanged+=EditorChanged;
+        Session.PropertyChanged+=EditorChanged;Closing+=CloseAfterWork;
         Closed+=(_,_)=> { Session.PropertyChanged-=EditorChanged; closed=true; work?.Cancel(); detailWork?.Cancel(); generatedCache?.Dispose(); floatingDetails?.Close(); };
         SetSnapshot(model);SyncSelection(Session.SelectedSector?.Track??0,Session.SelectedSector?.Sector.Address,Session.FileSelection,Session.SectorSelection);
     }
@@ -299,18 +308,20 @@ public sealed partial class DiskVisualWindow : Window
             tabs.SelectedIndex=1; trackCanvas.Fit(); details.Text=i.Explanation+"\n\n"+details.Text;
         } else { details.Text=i.Explanation; OpenFloatingDetails(); }
     }
-    private async Task ExportReport() {
+    private Task ExportReport()=>TrackWork(ExportReportCore());
+    private async Task ExportReportCore() {
         if(work!=null)return;
-        var choice=await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions{Title="Export visual analysis",SuggestedFileName="disk-analysis.txt",FileTypeChoices=[new("Text"){Patterns=["*.txt"]},new("CSV"){Patterns=["*.csv"]},new("JSON"){Patterns=["*.json"]}]});
-        string? path=choice?.TryGetLocalPath();if(path==null||closed)return;var snapshot=this.snapshot;
+        var choice=await NativePickerOwner.RunAsync(this,()=>StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions{Title="Export visual analysis",SuggestedFileName="disk-analysis.txt",FileTypeChoices=[new("Text"){Patterns=["*.txt"]},new("CSV"){Patterns=["*.csv"]},new("JSON"){Patterns=["*.json"]}]}));
+        string? path=choice?.TryGetLocalPath();if(path==null||closed||closePending)return;var snapshot=this.snapshot;
         await model.Documents.ExecuteAsync(async ct=>{using var cancellation=CancellationTokenSource.CreateLinkedTokenSource(ct);work=cancellation;cancel.IsEnabled=true;status.Text="Preparing diagnostic report…";
             try{string format=System.IO.Path.GetExtension(path).ToLowerInvariant() switch{".json"=>"json",".csv"=>"csv",_=>"txt"};string report=await Task.Run(()=>DskVisualReport.Export(snapshot,format,cancellation.Token),cancellation.Token);await model.Documents.WriteExportAsync(new Dictionary<string,byte[]>{[path]=System.Text.Encoding.UTF8.GetBytes(report)},cancellation.Token);if(!closed)status.Text="Diagnostic report saved: "+path;return true;}
             finally{work=null;cancel.IsEnabled=false;}});
-        if(model.Documents.HasError)status.Text=model.Documents.Error;
+        if(model.Documents.HasError)status.Text=model.Documents.Error;else if(model.Documents.Phase==OperationPhase.Cancelled)status.Text=model.Documents.Status;
     }
-    private async Task ExportSectors() {
+    private Task ExportSectors()=>TrackWork(ExportSectorsCore());
+    private async Task ExportSectorsCore() {
         var sectors=snapshot.Sectors.Where(s=>selectionKeys.Contains(s.Address)).ToArray();if(sectors.Length==0)return;
-        string? path=await new DesktopDialogs(this).PickDiskOutputAsync("Export selected sectors","selected-sectors.bin");if(path==null)return;
+        string? path=await new DesktopDialogs(this).PickDiskOutputAsync("Export selected sectors","selected-sectors.bin");if(path==null||closed||closePending)return;
         await model.Documents.ExecuteAsync(async ct=>{await model.Documents.WriteExportAsync(new Dictionary<string,byte[]>{[path]=sectors.SelectMany(s=>s.Data).ToArray()},ct);return true;});
     }
     private bool ApplyEditorSelection(IEnumerable<DskSectorAddress> keys,DskSectorAddress? focus) {

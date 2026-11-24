@@ -5,6 +5,7 @@
       <TextBlock Text="Properties" Classes="section" />
       <TextBlock Text="{Binding ActiveTape.SelectedRow.Origin}" Classes="muted" TextWrapping="Wrap" />
       <TextBlock Text="Selected record is hidden by the filter." IsVisible="{Binding ActiveTape.SelectedHidden}" TextWrapping="Wrap" Classes="muted" />
+        <TextBlock Text="{Binding ActiveTape.DescriptionWarning}" IsVisible="{Binding ActiveTape.HasDescriptionWarning}" Foreground="DarkOrange" TextWrapping="Wrap" AutomationProperties.Name="Description code warning" />
       <StackPanel x:Name="MetadataEditor" Spacing="6" IsEnabled="{Binding CanEditMetadata}">
         <TextBlock Text="Name · SHARP, up to 16 characters" Classes="muted" />
         <TextBox x:Name="RecordName" Text="{Binding ActiveTape.Name, Mode=TwoWay}" AutomationProperties.Name="Record name" />
@@ -14,6 +15,11 @@
         <TextBox Text="{Binding ActiveTape.LoadAddress, Mode=TwoWay}" AutomationProperties.Name="Load address" />
         <TextBlock Text="Execute address · hexadecimal" Classes="muted" />
         <TextBox Text="{Binding ActiveTape.ExecuteAddress, Mode=TwoWay}" AutomationProperties.Name="Execute address" />
+        <TextBlock Text="Description · physical MZF header bytes" Classes="muted" />
+        <TextBox x:Name="RecordDescription" Text="{Binding ActiveTape.Description, Mode=TwoWay}" IsReadOnly="{Binding !ActiveTape.CanEditDescription}" TextWrapping="Wrap" AcceptsReturn="True" MinHeight="60" MaxHeight="140" AutomationProperties.Name="MZF Description" />
+        <TextBlock Text="{Binding ActiveTape.DescriptionByteCount}" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding ActiveTape.DescriptionPolicy}" Classes="muted" TextWrapping="Wrap" />
+        <Button Content="Edit entire MZF in HEX…" Click="EditMzfHex" IsEnabled="{Binding ActiveTape.CanEditMzfBytes}" HorizontalAlignment="Left" />
         <TextBlock Text="Tape profile / speed" Classes="muted" />
         <ComboBox ItemsSource="{Binding ActiveTape.Profiles}" SelectedItem="{Binding ActiveTape.Profile, Mode=TwoWay}" HorizontalAlignment="Stretch" AutomationProperties.Name="Tape profile" />
         <WrapPanel Orientation="Horizontal" Margin="0,8,0,0">

@@ -60,6 +60,8 @@
                            Text="22 050 Hz has lower timing resolution and may not play reliably with very fast loader profiles."/>
             </StackPanel>
 
+            <local:TapeExportGapControl x:Name="gapOptionsControl"/>
+
             <StackPanel x:Name="layoutOptionsPanel" Margin="0,14,0,0">
                 <TextBlock Text="Output layout:" Margin="0,0,0,4"/>
                 <RadioButton x:Name="unionRadioButton"

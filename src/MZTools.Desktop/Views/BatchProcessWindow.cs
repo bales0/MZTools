@@ -83,7 +83,7 @@ public sealed class BatchProcessWindow : Window
         {
             if(e.PropertyName==nameof(DocumentCoordinator.Status)&&Model.Documents.IsBusy)summary.Text=Model.Documents.Status;
             if(e.PropertyName is nameof(DocumentCoordinator.ProgressFraction) or nameof(DocumentCoordinator.HasProgress)){progress.Value=Model.Documents.ProgressFraction;progress.IsIndeterminate=!Model.Documents.HasProgress;}
-            if(e.PropertyName==nameof(DocumentCoordinator.IsBusy))States();error.Text=Model.Documents.Error;
+            if(e.PropertyName is nameof(DocumentCoordinator.IsBusy) or nameof(DocumentCoordinator.IsWorking) or nameof(DocumentCoordinator.CanCancel))States();error.Text=Model.Documents.Error;
         };
         Closing+=(_,e)=>{if(closeApproved)return;e.Cancel=true;if(closeRequested)return;closeRequested=true;States();Model.Documents.Cancel();scanCancellation?.Cancel();foreach(var child in OwnedWindows.ToArray())child.Close();_=CloseSafely();};
         Closed+=(_,_)=>{closed=true;version++;scanCancellation?.Cancel();scanCancellation?.Dispose();};Invalidate();
@@ -128,7 +128,7 @@ public sealed class BatchProcessWindow : Window
     }
     private void States()
     {
-        bool busy=Model.Documents.IsBusy||closeRequested;parameters.IsEnabled=!busy;clear.IsEnabled=!busy;preview.IsEnabled=!busy;execute.IsEnabled=!busy&&current&&Session?.CanExecute==true;details.IsEnabled=!busy&&current&&table.SelectedItem is BatchRowView;report.IsEnabled=!busy&&current&&Session is not null;stop.IsEnabled=Model.Documents.IsBusy;progress.IsVisible=Model.Documents.IsBusy;
+        bool busy=Model.Documents.IsBusy||closeRequested;parameters.IsEnabled=!busy;clear.IsEnabled=!busy;preview.IsEnabled=!busy;execute.IsEnabled=!busy&&current&&Session?.CanExecute==true;details.IsEnabled=!busy&&current&&table.SelectedItem is BatchRowView;report.IsEnabled=!busy&&current&&Session is not null;stop.IsEnabled=Model.Documents.CanCancel;progress.IsVisible=Model.Documents.IsWorking;
     }
     internal async Task PreviewAsync()
     {
@@ -153,11 +153,11 @@ public sealed class BatchProcessWindow : Window
     private async Task ExportAsync()
     {
         if(!current||Session is not{} session)return;
-        var file=await StorageProvider.SaveFilePickerAsync(new(){Title="Export TXT / CSV / JSON report",SuggestedFileName="batch.txt",ShowOverwritePrompt=false,FileTypeChoices=[new("Text"){Patterns=["*.txt"]},new("CSV"){Patterns=["*.csv"]},new("JSON"){Patterns=["*.json"]}]});
+        var file=await NativePickerOwner.RunAsync(this,()=>StorageProvider.SaveFilePickerAsync(new(){Title="Export TXT / CSV / JSON report",SuggestedFileName="batch.txt",ShowOverwritePrompt=false,FileTypeChoices=[new("Text"){Patterns=["*.txt"]},new("CSV"){Patterns=["*.csv"]},new("JSON"){Patterns=["*.json"]}]}));
         if(file?.TryGetLocalPath() is not{} path||!current||Session!=session)return;string format=Path.GetExtension(path).TrimStart('.').ToLowerInvariant();if(format is not ("txt" or "csv" or "json")){Model.Documents.ReportError("Choose a .txt, .csv or .json report.");return;}
         await Model.Documents.ExecuteAsync(async ct=>{await Model.Documents.WriteExportAsync(new Dictionary<string,byte[]>{[path]=Encoding.UTF8.GetBytes(BatchProcessService.Report(session.Preview,format))},ct);return true;});
     }
-    private async Task<string?> PickFolder(string title)=>(await StorageProvider.OpenFolderPickerAsync(new(){Title=title,AllowMultiple=false})).FirstOrDefault()?.TryGetLocalPath();
+    private async Task<string?> PickFolder(string title)=>(await NativePickerOwner.RunAsync(this,()=>StorageProvider.OpenFolderPickerAsync(new(){Title=title,AllowMultiple=false}))).FirstOrDefault()?.TryGetLocalPath();
     private async Task CloseSafely()
     {
         await Model.Documents.WaitForIdleAsync();await Task.WhenAll(pendingScans);foreach(var child in OwnedWindows.ToArray())child.Close();if(await Model.Documents.CloseAllAsync()){closeApproved=true;Close();}else closeRequested=false;

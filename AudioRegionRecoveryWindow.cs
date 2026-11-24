@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using System;
 using System.Globalization;
 using System.IO;
@@ -91,7 +91,7 @@ internal sealed partial class AudioRegionRecoveryWindow : Window
         InitializePreview(top, tabs);
         InitializeHeaderless(top, tabs, footer);
         InitializeComparison(tabs);
-        scan.Click += async (_, _) => await Scan(); cancel.Click += (_, _) => { work?.Cancel(); previewWork?.Cancel(); zoomWork?.Cancel(); wavWork?.Cancel(); };
+        scan.Click += async (_, _) => await Scan(); cancel.Click += (_, _) => { cancel.IsEnabled=false;status.Text="Cancelling…";work?.Cancel(); previewWork?.Cancel(); zoomWork?.Cancel(); wavWork?.Cancel(); };
         exportWave.Click += async (_, _) => await ChooseWaveExport(); waveform.SelectionChanged += UpdateWaveExport;
         programs.SelectionChanged += (_, _) => saveProgram.IsEnabled = work == null && wavWork == null && programs.SelectedItem != null;
         candidates.SelectionChanged += (_, _) => UpdateCandidateActions();
@@ -138,7 +138,7 @@ internal sealed partial class AudioRegionRecoveryWindow : Window
             options.Validate(transform.Mix ? 1 : source.ChannelCount);
             await RefreshPreview();
             cancellation.Token.ThrowIfCancellationRequested();
-            var reporter = new Progress<WavAnalysisProgress>(p => { if (!closed && work == cancellation) { status.Text = p.Stage + $" — {p.Fraction:P0}"; progress.Value = p.Fraction; } });
+            var reporter = new Progress<WavAnalysisProgress>(p => { if (!closed && work == cancellation && !cancellation.IsCancellationRequested) { status.Text = p.Stage + $" — {p.Fraction:P0}"; progress.Value = p.Fraction; } });
             var result = await Task.Run(() =>
             {
                 var file = new FileInfo(source.Source);

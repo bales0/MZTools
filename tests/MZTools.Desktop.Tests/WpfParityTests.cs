@@ -100,7 +100,7 @@ public sealed class WpfParityTests
             Assert.Equal(new[]{"Tools ▾","Open...","Add...","Export...","View","Delete","Compression...","Save","Save As...","Close","↑","↓","New ▾"},toolbar.Children.OfType<Button>().Where(b=>b.IsVisible).Select(b=>b.Content));
             Assert.All(toolbar.Children.OfType<Button>().Where(b=>b.IsVisible),b=>Assert.Equal(28,b.Height));
             var table=window.GetVisualDescendants().OfType<TableView>().Single(t=>t.Name=="RecordsTable");
-            Assert.Equal(new[]{"Type","File name","Size","Size(Hex)","Trailing","Start","Exec","Compression","Description","Loader","Speed"},table.Columns.Select(c=>c.Header));
+            Assert.Equal(new[]{"Type","File name","Size","Size(Hex)","Trailing","Start","Exec","Compression","Compressed / original","Description","Loader","Speed"},table.Columns.Select(c=>c.Header));
             Assert.All(table.GetVisualDescendants().OfType<TextBox>().Where(t=>!t.GetVisualAncestors().Any(v=>v is ComboBox)),t=>Assert.True(t.IsReadOnly,$"Editable: {t.Text} ({t.Name})"));
             window.GetVisualDescendants().OfType<RecordWorkspace>().Single().ShowInspector(window);Dispatcher.UIThread.RunJobs();var properties=Assert.Single(window.OwnedWindows);Assert.Equal("Properties",properties.Title);
             var input=properties.GetVisualDescendants().OfType<TextBox>().Single(t=>AutomationProperties.GetName(t)=="Record name");input.Text="RENAMED";model.ApplyMetadataCommand.Execute(null);Dispatcher.UIThread.RunJobs();properties.Close();Dispatcher.UIThread.RunJobs();

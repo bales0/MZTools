@@ -34,9 +34,8 @@ namespace MZTools
         private async Task RefreshPreviewAsync()
         {
             previewCancellation?.Cancel();
-            previewCancellation?.Dispose();
-            previewCancellation = new CancellationTokenSource();
-            CancellationTokenSource cancellation = previewCancellation;
+            using var cancellation = new CancellationTokenSource();
+            previewCancellation = cancellation;
             CancellationToken token = previewCancellation.Token;
             PackedRecord = null;
             SelectedCompression = null;
@@ -45,7 +44,7 @@ namespace MZTools
 
             if (!compressionControl.TryGetOptions(out MzfCompressionOptions options, out string error))
             {
-                previewTextBlock.Text = error;
+                previewTextBlock.Text = error;previewCancellation=null;
                 return;
             }
 
@@ -67,14 +66,11 @@ namespace MZTools
                 SelectedCompression = result.AppliedOptions;
                 int sectors = 1 + (result.PackedSize + Mz800IplDskWriter.SectorSize - 1) /
                     Mz800IplDskWriter.SectorSize;
-                int savedPercent = result.OriginalSize == 0
-                    ? 0
-                    : (int)Math.Round((1.0 - (double)result.PackedSize / result.OriginalSize) * 100);
                 string algorithm = options.Algorithm == MzfCompressionAlgorithm.Auto
                     ? $"Auto selected: {FormatAppliedOptions(result.AppliedOptions)}"
                     : $"Compression: {FormatAppliedOptions(result.AppliedOptions)}";
                 previewTextBlock.Text =
-                    $"{algorithm}\nPacked: {result.PackedSize} B   Saved: {savedPercent}%\n" +
+                    $"{algorithm}\n{MzfCompressionSizes.Describe(result.PackedSize,result.OriginalSize)}\n" +
                     $"LOAD ${result.Record.Header.MzfStart:X4}   EXEC ${result.Record.Header.MzfExec:X4}   Sectors: {sectors}";
                 saveButton.IsEnabled = true;
             }
@@ -92,6 +88,7 @@ namespace MZTools
             {
                 if (ReferenceEquals(previewCancellation, cancellation))
                 {
+                    previewCancellation=null;
                     previewProgressBar.Visibility = Visibility.Collapsed;
                 }
             }
@@ -128,7 +125,6 @@ namespace MZTools
         protected override void OnClosed(EventArgs e)
         {
             previewCancellation?.Cancel();
-            previewCancellation?.Dispose();
             base.OnClosed(e);
         }
     }

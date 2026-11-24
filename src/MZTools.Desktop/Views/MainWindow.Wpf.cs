@@ -74,7 +74,7 @@ public sealed partial class MainWindow
     {
         if(!wpfLayout)return;
         if(quickDiskInspector is not null&&quickDiskInspector.Session!=Model.ActiveTape)quickDiskInspector.Close();
-        Title=Model.Documents.Active is{} doc ? "MZTools — "+doc.Title : "MZTools";
+        Title=Model.Documents.Active is{} doc ? ApplicationCaption+" — "+doc.Title : ApplicationCaption;
         DocumentTabs.IsVisible=Model.Documents.Documents.Count>1;
         if(DocumentTabs.Parent is Grid tabGrid && tabGrid.Parent is Border tabBorder)tabBorder.IsVisible=DocumentTabs.IsVisible;
         BodyGrid.ColumnDefinitions[0].Width=new GridLength(0);

@@ -204,9 +204,16 @@ public sealed partial class RecorderModel : Observable,IAsyncDisposable
         backend=factory.Create(BackendIndex,Raw,EngineConversion);Live=null;foreach(var model in EdgeModels)model.Reset("New capture — set a fresh session-local zero.");NotifyEdges();SelectionStart=SelectionEnd=null;Changed(nameof(SelectionStart));Changed(nameof(SelectionEnd));Changed(nameof(SelectionSummary));
         await recorder.StartAsync(backend,new(Device.Id,Format,AllowFallback),recording,ct,overwrite);Status=recording is null?"Monitoring · no archive writer":"Recording · archive has priority over preview";
     });
-    public Task StopAsync()=>RunAsync(async _=>{await recorder.StopAsync();Status="Stopped and finalized. Inspect integrity and diagnostics before using output.";});
-    public Task DiscardAsync()=>RunAsync(async _=>{await recorder.DiscardAsync();Status="Current run discarded; earlier recordings retained.";});
-    public void Cancel()=>pending?.Cancel();
+    public Task StopAsync()=>RunAsync(async _=>{await recorder.StopAsync();Status="Stopped and finalized. Inspect integrity and diagnostics before using output.";},cancellable:false);
+    public Task DiscardAsync()=>RunAsync(async _=>{await recorder.DiscardAsync();Status="Current run discarded; earlier recordings retained.";},cancellable:false);
+    private bool operationCancellable;
+    public bool CanCancelOperation=>IsBusy&&operationCancellable&&pending is {IsCancellationRequested:false};
+    public bool ShowOperationCancel=>IsBusy&&operationCancellable;
+    public void Cancel()
+    {
+        if(!CanCancelOperation)return;pending!.Cancel();Status="Cancelling… Waiting for the input operation to stop safely.";
+        Changed(nameof(CanCancelOperation));
+    }
     public double ClipThreshold {get;set;}=100;
     public void ResetClipping()
     {
@@ -246,9 +253,9 @@ public sealed partial class RecorderModel : Observable,IAsyncDisposable
         catch(Exception ex)when(ex is not OutOfMemoryException){if(!disposed){Error=ex.Message;foreach(var model in EdgeModels)model.Reset("Invalid or unavailable analysis settings; waiting for a fresh measurement.");NotifyEdges();}}
         finally{refreshing=false;finished.TrySetResult();}
     }
-    private async Task RunAsync(Func<CancellationToken,Task> action)
+    private async Task RunAsync(Func<CancellationToken,Task> action,bool cancellable=true)
     {
-        if(IsBusy||disposed)return;var finished=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);operationFinished=finished;IsBusy=true;pending=CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);Error="";
+        if(IsBusy||disposed)return;var finished=new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);operationFinished=finished;operationCancellable=cancellable;pending=CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);IsBusy=true;Error="";
         try{await action(pending.Token);}catch(OperationCanceledException){Status="Cancelled. Accepted archive data is retained and finalized by the session.";}catch(Exception ex)when(ex is not OutOfMemoryException){Error=ex.Message;}
         finally{pending.Dispose();pending=null;IsBusy=false;NotifyState();finished.TrySetResult();}
     }
@@ -257,7 +264,7 @@ public sealed partial class RecorderModel : Observable,IAsyncDisposable
         if(lastDisplayChannels!=DisplayChannels){lastDisplayChannels=DisplayChannels;ChannelMode=0;PulseChannel=0;Changed(nameof(Channels));Changed(nameof(PulseChannel));Changed(nameof(PulseMaximumChannel));}
         var history=recorder.Recordings;
         if(lastState!=recorder.State){lastState=recorder.State;if(lastState is CaptureSessionState.Completed or CaptureSessionState.Failed){var report=recorder.LatestReport;Status=$"{lastState} · {report?.Integrity} · {report?.Reason}. Inspect report and loss counters.";}}if(history.Count!=recordings.Count||history.LastOrDefault()!=recordings.LastOrDefault()){recordings=history;Changed(nameof(Recordings));}
-        foreach(var name in new[]{nameof(IsActive),nameof(CanConfigure),nameof(CanStart),nameof(CanMonitor),nameof(CanDiscard),nameof(CanStop),nameof(Statistics),nameof(DiagnosticsSummary),nameof(Processing),nameof(PulseDistributions),nameof(PulseStreams),nameof(PulseDetails),nameof(AlignmentDetails),nameof(AlignmentChannels),nameof(CanSaveAlignment),nameof(PulseMaximumChannel),nameof(Stereo),nameof(StereoRows),nameof(PulseTiming),nameof(RecentPulses)})Changed(name);
+        foreach(var name in new[]{nameof(CanCancelOperation),nameof(ShowOperationCancel),nameof(IsActive),nameof(CanConfigure),nameof(CanStart),nameof(CanMonitor),nameof(CanDiscard),nameof(CanStop),nameof(Statistics),nameof(DiagnosticsSummary),nameof(Processing),nameof(PulseDistributions),nameof(PulseStreams),nameof(PulseDetails),nameof(AlignmentDetails),nameof(AlignmentChannels),nameof(CanSaveAlignment),nameof(PulseMaximumChannel),nameof(Stereo),nameof(StereoRows),nameof(PulseTiming),nameof(RecentPulses)})Changed(name);
         if(SelectedRecording is null&&Recordings.Count>0)SelectedRecording=Recordings[^1];
     }
     public ValueTask DisposeAsync(){lock(disposalGate)return new(disposal??=DisposeCoreAsync());}

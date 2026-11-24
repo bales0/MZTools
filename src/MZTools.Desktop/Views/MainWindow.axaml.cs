@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -14,6 +15,9 @@ namespace MZTools.Desktop.Views;
 
 public sealed partial class MainWindow : Window
 {
+    private static readonly string ApplicationCaption="MZTools "+
+        (typeof(MainWindow).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0]
+            ??typeof(MainWindow).Assembly.GetName().Version?.ToString(3)??"");
     private bool closeApproved;
     private Window? inspectorDetail;
     private PropertyForm? detailForm;
@@ -24,7 +28,7 @@ public sealed partial class MainWindow : Window
     public MainWindow(ShellViewModel? model):this(model,null){}
     internal MainWindow(ShellViewModel? model,DesktopPreferences? preferences)
     {
-        InitializeComponent();Preferences=preferences;if(preferences is not null){Width=preferences.Width;Height=preferences.Height;}
+        InitializeComponent();Title=ApplicationCaption;Preferences=preferences;if(preferences is not null){Width=preferences.Width;Height=preferences.Height;}
         var dialogs = new DesktopDialogs(this);
         Model = model ?? new ShellViewModel(new(new MediaDocumentLoader(dialogs), dialogs, new()), async text =>
         {

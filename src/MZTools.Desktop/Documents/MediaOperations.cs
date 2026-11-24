@@ -3,7 +3,7 @@ namespace MZTools.Desktop.Documents;
 public sealed record CompressionChoice(string Mode, string Direction = "Forward", bool Quick = false, bool Embedded = false, int Skip = 0);
 public sealed record ExportChoice(string Path, string Format, bool SelectedOnly = true, bool Separate = false,
     bool Sidecar = true, bool PreserveTrailing = true, string Machine = "Mz800", int CpmProfile = 0,
-    string NativeMode = "Mz800Monitor", int ComCompression = 0, bool Multipart = false);
+    string NativeMode = "Mz800Monitor", int ComCompression = 0, bool Multipart = false, TapeExportGapOptions? Gaps = null, int WavSampleRate = 44100);
 public sealed record MediaPreview(string Report, long Revision, IReadOnlyList<string> Files);
 internal sealed record RecordPreview(string Report, long Revision, IReadOnlyList<TapeRecord> Records)
 {
@@ -87,7 +87,7 @@ internal static class MediaOperations
                     var options = new MzfCompressionOptions(Enum.Parse<MzfCompressionAlgorithm>(choice.Mode),
                         Enum.Parse<CompressionDirection>(choice.Direction), choice.Quick, choice.Embedded, choice.Skip);
                     var compressed = MzfCompressionService.Compress(records[index], options, target, cancellation);
-                    records[index] = compressed.Record; lines.Add(CompressionDescription.Describe(compressed.AppliedOptions));
+                    records[index] = compressed.Record; lines.Add(CompressionDescription.Describe(compressed.AppliedOptions));lines.Add(MzfCompressionSizes.Describe(compressed.PackedSize,compressed.OriginalSize));
                 }
                 lines.Add($"#{index + 1}: {before:N0} → {records[index].Body.DataSize:N0} B");
             }
@@ -117,7 +117,7 @@ internal static class MediaOperations
                 string temporary = System.IO.Path.Combine(System.IO.Path.GetTempPath(),"mztools-export-"+Guid.NewGuid().ToString("N")+extension);
                 sourceFiles.Add(path,temporary);outputs.Add(path,[]);
                 await Task.Run(()=>SharpTapeExporter.Export(temporary,subset,Enum.Parse<SharpTapeOutputFormat>(choice.Format),
-                    Enum.Parse<SharpTapeMachine>(choice.Machine),cancellationToken:cancellation),cancellation);
+                    Enum.Parse<SharpTapeMachine>(choice.Machine),wavSampleRate:choice.WavSampleRate,cancellationToken:cancellation,gaps:choice.Gaps),cancellation);
             }
             else if (choice.Format == "Com")
             {
@@ -142,6 +142,12 @@ internal static class MediaOperations
             }
         }
         reports.Insert(0, string.Join("\n", outputs.Select(p => $"{p.Key} · {(sourceFiles.TryGetValue(p.Key,out var source) ? new FileInfo(source).Length : p.Value.LongLength):N0} B")));
+        if(choice.Format is "Wav" or "Lep" or "L16")
+        {
+            var gap=choice.Gaps??TapeExportGapOptions.Legacy;
+            reports.Add(gap.Description+"\n"+(choice.Separate?"Separate files: one start/end pause per file; no between-file pause.":"Combined output: one start/end pause; one pause between adjacent programs.")+
+                $"\nAdditional pauses: approximately {gap.TotalMilliseconds(records.Count,choice.Separate)*(choice.Format=="L16"?1.008:1)/1000d:0.###} s.");
+        }
         reports.Add("Export creates separate artifacts. The active path, modified state and source are unchanged.");
         return new(string.Join("\n\n", reports), outputs, sourceFiles);
         }

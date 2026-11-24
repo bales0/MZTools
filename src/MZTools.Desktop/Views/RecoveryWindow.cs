@@ -88,10 +88,10 @@ public sealed class RecoveryWindow : Window
         from.Text=Seconds(first);to.Text=Seconds(last);
         var scan=Button(range,"Run deeper analysis",async()=>await ScanAsync(refScope.SelectedIndex==0),"RunDeeperAnalysis");scan.Bind(IsEnabledProperty,new Binding("!Documents.IsBusy"));
         var cancel=new Button{Content="Cancel analysis",Margin=new Thickness(5),IsEnabled=false};cancelButton=cancel;
-        cancel.Click+=(_,_)=>{previewTimer.Stop();previewWork?.Cancel();Model.Documents.Cancel();};range.Children.Add(cancel);
-        Model.Documents.PropertyChanged+=(_,e)=>{if(e.PropertyName==nameof(DocumentCoordinator.IsBusy))UpdateCancelState();};
+        cancel.Click+=(_,_)=>{previewTimer.Stop();previewWork?.Cancel();Model.Documents.Cancel();UpdateCancelState();};range.Children.Add(cancel);
+        Model.Documents.PropertyChanged+=(_,e)=>{if(e.PropertyName is nameof(DocumentCoordinator.IsBusy) or nameof(DocumentCoordinator.CanCancel))UpdateCancelState();};
         top.Children.Add(alignment);
-        var progress=new ProgressBar{Height=6,Minimum=0,Maximum=1,Foreground=Avalonia.Media.Brushes.Green};progress.Bind(ProgressBar.ValueProperty,new Binding("Documents.ProgressFraction"));top.Children.Add(progress);
+        var progress=new ProgressBar{Height=6,Minimum=0,Maximum=1,Foreground=Avalonia.Media.Brushes.Green};progress.Bind(ProgressBar.ValueProperty,new Binding("Documents.ProgressFraction"));progress.Bind(IsVisibleProperty,new Binding("Documents.IsWorking"));progress.Bind(ProgressBar.IsIndeterminateProperty,new Binding("!Documents.HasProgress"));top.Children.Add(progress);
         var error=new TextBlock{TextWrapping=Avalonia.Media.TextWrapping.Wrap,Foreground=Avalonia.Media.Brushes.Firebrick,Margin=new Thickness(5)};error.Bind(TextBlock.TextProperty,new Binding("Documents.Error"));error.Bind(IsVisibleProperty,new Binding("Documents.HasError"));top.Children.Add(error);
         var status=new TextBlock{Text="Results are a separate preview. The source recording and current analysis remain unchanged. Raw candidates may have a failed checksum and are not complete MZF programs.",TextWrapping=Avalonia.Media.TextWrapping.Wrap,Margin=new Thickness(5)};top.Children.Add(status);
         var inputStatus=new TextBlock{TextWrapping=Avalonia.Media.TextWrapping.Wrap};inputStatus.Bind(TextBlock.TextProperty,new Binding("ActiveAudio.AnalysisInputStatus"));top.Children.Add(inputStatus);
@@ -171,7 +171,7 @@ public sealed class RecoveryWindow : Window
         Closing+=async(_,e)=>
         {
             if(approved)return;e.Cancel=true;if(closing)return;closing=true;previewTimer.Stop();Model.Documents.Cancel();previewWork?.Cancel();await previewTask;
-            while(Model.Documents.IsBusy)await Task.Delay(20);
+            await Model.Documents.WaitForIdleAsync();
             Session.ResetDraft();Session.MarkExported();if(await Model.Documents.CloseAllAsync()){approved=true;Close();}
         };
         Closed+=(_,_)=>{previewTimer.Stop();editors.DataContext=null;};
@@ -218,7 +218,7 @@ public sealed class RecoveryWindow : Window
         {if(!closing&&!Model.Documents.IsBusy&&previewWork==request)Model.Documents.ReportError(error.Message);}
         finally{if(previewWork==request)previewWork=null;request.Dispose();UpdateCancelState();}
     }
-    private void UpdateCancelState(){if(cancelButton is not null)cancelButton.IsEnabled=Model.Documents.IsBusy||previewWork is not null;}
+    private void UpdateCancelState(){if(cancelButton is not null)cancelButton.IsEnabled=Model.Documents.CanCancel||previewWork is {IsCancellationRequested:false};}
     private string SettingsKey()=>JsonSerializer.Serialize(inputs.Keys.ToDictionary(key=>key,Read))+"|"+from.Text+"|"+to.Text+"|"+referenceScopeIndex;
     private void RefreshHistogram()
     {

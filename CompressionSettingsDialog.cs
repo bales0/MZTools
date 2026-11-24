@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -34,9 +35,9 @@ internal sealed class CompressionSettingsDialog : Window
         Closed += (_, _) => { version++; cancellation?.Cancel(); };
         async Task Preview()
         {
-            int current = ++version; cancellation?.Cancel(); cancellation?.Dispose(); cancellation = new(); var token = cancellation.Token;
+            int current = ++version; cancellation?.Cancel(); using var request=new CancellationTokenSource();cancellation=request;var token=request.Token;
             SelectedOptions = null; PreparedResults = []; apply.IsEnabled = false; progress.Visibility = Visibility.Collapsed;
-            if (!settings.TryGetOptions(out var options, out string error)) { status.Text = error; return; }
+            if (!settings.TryGetOptions(out var options, out string error)) { status.Text = error;cancellation=null; return; }
             progress.Visibility = Visibility.Visible;
             try
             {
@@ -54,14 +55,14 @@ internal sealed class CompressionSettingsDialog : Window
                 {
                     if (current != version) return;
                     SelectedOptions = options; PreparedResults = prepared;
-                    status.Text = $"Ready: {prepared.Count} program(s), {size:N0} bytes.\n{CompressionOptionsControl.Describe(options)}";
+                    status.Text = $"Ready: {prepared.Count} program(s).\n{MzfCompressionSizes.Describe((int)size,prepared.Sum(r=>r.OriginalSize))}\n{CompressionOptionsControl.Describe(options)}";
                     progress.Visibility = Visibility.Collapsed;
                     apply.IsEnabled = prepared.Count > 0;
                 });
             }
             catch (OperationCanceledException) { }
             catch (Exception e) { await Dispatcher.InvokeAsync(() => { if (current == version) status.Text = e.Message; }); }
-            finally { await Dispatcher.InvokeAsync(() => { if (current == version) progress.Visibility = Visibility.Collapsed; }); }
+            finally { await Dispatcher.InvokeAsync(() => { if (current == version) {cancellation=null;progress.Visibility = Visibility.Collapsed;} }); }
         }
         settings.OptionsChanged += async (_, _) => await Preview();
         Loaded += async (_, _) => await Preview();

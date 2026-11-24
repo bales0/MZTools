@@ -85,9 +85,8 @@ internal sealed class NativeComDialog : Window
         {
             int version = ++analysisVersion;
             analysisCancellation?.Cancel();
-            analysisCancellation?.Dispose();
-            analysisCancellation = new CancellationTokenSource();
-            var token = analysisCancellation.Token;
+            using var request=new CancellationTokenSource();analysisCancellation=request;
+            var token = request.Token;
             result = null; export.IsEnabled = false; import.IsEnabled = false;
             progress.Visibility = Visibility.Collapsed;
             void Unavailable(string reason)
@@ -134,7 +133,7 @@ internal sealed class NativeComDialog : Window
             }
             catch (OperationCanceledException) { }
             catch (Exception e) { await Dispatcher.InvokeAsync(() => { if (version == analysisVersion) { report.Text = e.ToString(); Unavailable(NativeComFeedback.ConversionProblem(e.Message)); } }); }
-            finally { await Dispatcher.InvokeAsync(() => { if (version == analysisVersion) progress.Visibility = Visibility.Collapsed; }); }
+            finally { await Dispatcher.InvokeAsync(() => { if (version == analysisVersion) {analysisCancellation=null;progress.Visibility = Visibility.Collapsed;} }); }
         }
         profiles.SelectionChanged += (_, _) => Analyze(); modes.SelectionChanged += (_, _) => Analyze(); ceiling.TextChanged += (_, _) => Analyze();
         compression.OptionsChanged += (_, _) => Analyze();

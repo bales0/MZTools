@@ -96,9 +96,8 @@ namespace MZTools
         private async Task RefreshPreviewAsync()
         {
             previewCancellation?.Cancel();
-            previewCancellation?.Dispose();
-            previewCancellation = new CancellationTokenSource();
-            CancellationTokenSource cancellation = previewCancellation;
+            using var cancellation = new CancellationTokenSource();
+            previewCancellation = cancellation;
             CancellationToken token = cancellation.Token;
             BuildResult = null;
             saveButton.IsEnabled = false;
@@ -112,7 +111,7 @@ namespace MZTools
                 capacityTextBlock.Text =
                     $"Logical disk capacity: {Mz800DskImage.LogicalSectorCount} sectors / " +
                     $"{Mz800DskImage.LogicalSectorCount * Mz800DskImage.SectorSize:N0} B.";
-                progressBar.Visibility = Visibility.Collapsed;
+                progressBar.Visibility = Visibility.Collapsed;previewCancellation=null;
                 return;
             }
 
@@ -127,6 +126,7 @@ namespace MZTools
                         $"Analyzing {index + 1}/{Entries.Count}: {row.MenuName} ({row.Compression})...";
                     await Task.Yield();
                     MzfCompressionResult result = await row.PrepareAsync(token);
+                    token.ThrowIfCancellationRequested();
                     inputs.Add(new MultiGameIplInput(
                         result.Record,
                         row.MenuName,
@@ -177,6 +177,7 @@ namespace MZTools
                 updatingRows = false;
                 if (ReferenceEquals(previewCancellation, cancellation))
                 {
+                    previewCancellation=null;
                     progressBar.Visibility = Visibility.Collapsed;
                 }
             }
@@ -492,7 +493,6 @@ namespace MZTools
         protected override void OnClosed(EventArgs e)
         {
             previewCancellation?.Cancel();
-            previewCancellation?.Dispose();
             base.OnClosed(e);
         }
     }

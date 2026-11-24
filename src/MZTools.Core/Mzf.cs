@@ -201,6 +201,9 @@ namespace MZTools
             MetadataOrigin = metadataOrigin;
         }
 
+        internal MzfDescriptionInspection? DescriptionEditRisk { get; set; }
+        internal IReadOnlyDictionary<string,string?>? SourceFingerprints { get; set; }
+        internal TapeProfile? SourceProfile { get; set; }
         public byte[] RawHeader { get; }
 
         public MZQFileHeader Header { get; set; }
@@ -252,7 +255,7 @@ namespace MZTools
             body.MzfBody = CloneArray(body.MzfBody);
             body.Crc = CloneArray(body.Crc);
             body.TrailingData = CloneArray(body.TrailingData);
-            return new TapeRecord(RawHeader, header, body, Profile, MetadataOrigin);
+            return new TapeRecord(RawHeader, header, body, Profile, MetadataOrigin) { DescriptionEditRisk=DescriptionEditRisk,SourceFingerprints=SourceFingerprints,SourceProfile=SourceProfile };
         }
 
         public static TapeRecord FromLegacy(MZQFileHeader header, MZQFileBody body)
@@ -469,6 +472,7 @@ namespace MZTools
 
         public TapeRecord ReadStandaloneMzf(string filePath)
         {
+            var fingerprints=MzfRecordEditing.CaptureSources(filePath);
             using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             using var reader = new BinaryReader(stream);
             TapeRecord record = ReadMzfRecord(reader);
@@ -480,6 +484,9 @@ namespace MZTools
                 record.Body = body;
             }
             SetPosition(stream);
+            foreach(var entry in fingerprints)
+                if(AtomicFileTransaction.Hash(entry.Key)!=entry.Value)throw new IOException("MZF source or sidecar changed while opening.");
+            record.SourceFingerprints=fingerprints;
             return record;
         }
 
@@ -646,6 +653,7 @@ namespace MZTools
             string path = GetSidecarPath(mzfPath);
             if (!File.Exists(path))
             {
+                record.SourceProfile=record.Profile;
                 return null;
             }
 
@@ -655,6 +663,7 @@ namespace MZTools
                 record.MetadataOrigin = SingleRecordOrigin(mzfPath);
             }
 
+            record.SourceProfile=record.Profile;
             return path;
         }
 
@@ -681,6 +690,19 @@ namespace MZTools
         }
 
         public static byte[] SerializeMqi(IReadOnlyList<TapeRecord> records) => SerializeMti(records);
+
+        internal static byte[] SerializeMfiForSave(TapeRecord record)
+        {
+            if(record.SourceProfile==record.Profile&&record.SourceFingerprints is {} fingerprints)
+                foreach(var entry in fingerprints)
+                    if(Path.GetExtension(entry.Key).ToLowerInvariant() is ".mfi" or ".m2i"&&entry.Value!=null)
+                    {
+                        byte[] bytes=File.ReadAllBytes(entry.Key);
+                        if(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes))!=entry.Value)throw new IOException("MZF sidecar changed before saving.");
+                        return bytes;
+                    }
+            return SerializeMfi(record);
+        }
 
         public static byte[] SerializeMfi(TapeRecord record) =>
             Encoding.ASCII.GetBytes(SerializeProfile(record.Profile));
@@ -796,10 +818,18 @@ namespace MZTools
             };
             if (writeSidecar)
             {
-                files[sidecarPath] = SidecarService.SerializeMfi(record);
+                files[sidecarPath] = SidecarService.SerializeMfiForSave(record);
             }
 
-            WriteAtomically(files);
+            var expected=files.Keys.ToDictionary(Path.GetFullPath,AtomicFileTransaction.Hash,AtomicFileTransaction.PathComparer);
+            if(record.SourceFingerprints is {} source)foreach(var entry in source)expected[entry.Key]=entry.Value;
+            AtomicFileTransaction.Write(files,expected,beforeCommit:()=>
+            {
+                if(record.SourceFingerprints is {} fingerprints)foreach(var entry in fingerprints)
+                    if(AtomicFileTransaction.Hash(entry.Key)!=entry.Value)throw new IOException("The MZF source or sidecar changed: "+entry.Key);
+            });
+            record.SourceFingerprints=MzfRecordEditing.CaptureSources(path);
+            record.SourceProfile=record.Profile;
             if (!preserveTrailing)
             {
                 record.RemoveTrailingData();
@@ -921,6 +951,7 @@ namespace MZTools
         {
             foreach (TapeRecord record in records)
             {
+                record.DescriptionEditRisk=null;
                 if (sidecarWritten)
                 {
                     record.MetadataOrigin = persistedOrigin;

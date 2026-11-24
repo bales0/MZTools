@@ -80,6 +80,7 @@ namespace MZTools
             InitializeComponent();
             tapeOptionsPanel.Visibility = Visibility.Collapsed;
             Title = "Tape export options";
+            waveformOptionsPanel.MaxWidth=560;
             headingTextBlock.Text = $"{extension.TrimStart('.').ToUpperInvariant()} save options";
             sampleRateOptionsPanel.Visibility = extension.Equals(".wav", StringComparison.OrdinalIgnoreCase)
                 ? Visibility.Visible
@@ -116,12 +117,16 @@ namespace MZTools
 
         internal bool SeparateFiles => separateRadioButton.IsChecked == true;
 
+        internal TapeExportGapOptions ExportGaps=>gapOptionsControl.Read();
+
         internal int WavSampleRate => sampleRateComboBox.SelectedIndex == 1
             ? SharpTapeExporter.WavLowSampleRate
             : SharpTapeExporter.WavSampleRate;
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
+            if(waveformOptionsPanel.Visibility==Visibility.Visible)
+            {try{_ = ExportGaps;}catch(InvalidOperationException gapError){MessageBox.Show(this,gapError.Message,"Invalid gaps",MessageBoxButton.OK,MessageBoxImage.Warning);return;}}
             if (compressionOptionsControl.Visibility == Visibility.Visible &&
                 !compressionOptionsControl.TryGetOptions(out _, out string error))
             {
@@ -150,9 +155,8 @@ namespace MZTools
             }
 
             previewCancellation?.Cancel();
-            previewCancellation?.Dispose();
-            previewCancellation = new CancellationTokenSource();
-            CancellationTokenSource cancellation = previewCancellation;
+            using var cancellation = new CancellationTokenSource();
+            previewCancellation = cancellation;
             CancellationToken token = previewCancellation.Token;
             PackedRecords = Array.Empty<TapeRecord>();
             saveButton.IsEnabled = false;
@@ -161,7 +165,7 @@ namespace MZTools
 
             if (!compressionOptionsControl.TryGetOptions(out MzfCompressionOptions options, out string error))
             {
-                compressionPreviewTextBlock.Text = error;
+                compressionPreviewTextBlock.Text = error;previewCancellation=null;
                 return;
             }
 
@@ -295,6 +299,7 @@ namespace MZTools
             {
                 if (ReferenceEquals(previewCancellation, cancellation))
                 {
+                    previewCancellation=null;
                     compressionPreviewProgressBar.Visibility = Visibility.Collapsed;
                 }
             }
@@ -357,7 +362,6 @@ namespace MZTools
         protected override void OnClosed(EventArgs e)
         {
             previewCancellation?.Cancel();
-            previewCancellation?.Dispose();
             base.OnClosed(e);
         }
     }

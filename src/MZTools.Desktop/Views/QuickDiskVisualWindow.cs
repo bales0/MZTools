@@ -91,7 +91,7 @@ public sealed class QuickDiskVisualWindow:Window
                 }
                 else
                 {
-                    var folders=await StorageProvider.OpenFolderPickerAsync(new Avalonia.Platform.Storage.FolderPickerOpenOptions{Title="Export selected QD regions — one binary file per region",AllowMultiple=false});
+                    var folders=await NativePickerOwner.RunAsync(this,()=>StorageProvider.OpenFolderPickerAsync(new Avalonia.Platform.Storage.FolderPickerOpenOptions{Title="Export selected QD regions — one binary file per region",AllowMultiple=false}));
                     if(folders.Count==0)return false;string folder=folders[0].TryGetLocalPath()??throw new NotSupportedException("A local directory is required.");
                     for(int i=0;i<chosen.Length;i++){ct.ThrowIfCancellationRequested();var region=chosen[i];string name=$"{i+1:D3}_{region.Kind}_{region.Start:X}",path=System.IO.Path.Combine(folder,name+".bin");int suffix=2;while(File.Exists(path)||Directory.Exists(path))path=System.IO.Path.Combine(folder,name+$"_{suffix++}.bin");outputs.Add(path,snapshot.Layout.GetBlockBytes(region));}
                 }

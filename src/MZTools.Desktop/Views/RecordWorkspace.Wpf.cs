@@ -24,8 +24,10 @@ public sealed partial class RecordWorkspace
     private void OpenWpfHex()
     {
         if(observed?.SelectedRow is not{} row||TopLevel.GetTopLevel(this) is not Window owner)return;
-        new HexViewWindow(row,observed.Model.Format==TapeDocumentFormat.Qdf).Show(owner);
+        new HexViewWindow(row,observed).Show(owner);
     }
+    private void Properties(object? sender,RoutedEventArgs e)
+    {if(observed?.SelectedRow is not null&&TopLevel.GetTopLevel(this) is Window owner)ShowInspector(owner);}
     private void ViewHex(object? sender,RoutedEventArgs e){OpenWpfHex();}
     private void ChangeSpeed(object? sender,SelectionChangedEventArgs e)
     {

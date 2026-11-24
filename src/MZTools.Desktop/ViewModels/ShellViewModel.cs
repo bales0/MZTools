@@ -88,7 +88,7 @@ public sealed partial class ShellViewModel : Observable
         SaveCommand = new(async () => { await documents.SaveAsync(); }, () => !documents.IsBusy && documents.Active is { CanSave: true, IsReadOnly: false, IsModified: true } && ActiveTape?.HasDraft != true && ActiveDisk?.HasDraft != true);
         SaveAsCommand = new(async () => { await documents.SaveAsync(true); }, () => !documents.IsBusy && documents.Active is { CanSaveAs: true } && ActiveTape?.HasDraft != true && ActiveDisk?.HasDraft != true);
         CloseCommand = new(async () => { await documents.CloseAsync(); }, () => !documents.IsBusy && HasDocument);
-        CancelCommand = new(() => { documents.Cancel(); return Task.CompletedTask; }, () => documents.IsBusy);
+        CancelCommand = new(() => { documents.Cancel(); return Task.CompletedTask; }, () => documents.CanCancel);
         CopyReportCommand = new(async () =>
         {
             try { await copyText(Report); }

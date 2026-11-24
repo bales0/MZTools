@@ -31,7 +31,7 @@ public sealed partial class MainWindow
         // Reports/phase readiness are developer diagnostics, not normal navigation.
         Navigation.ItemsSource = Model.Modules.Where(m => m.Name != "Reports").ToArray();
         NavigationContext.IsVisible = false;
-        Title = "MZTools";
+        Title = ApplicationCaption;
         var marketingTagline = this.GetVisualDescendants().OfType<TextBlock>()
             .FirstOrDefault(t => t.Text == "Tape / QuickDisk / Disks / Audio");
         if (marketingTagline is not null) marketingTagline.IsVisible = false;

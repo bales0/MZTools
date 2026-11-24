@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -193,6 +193,7 @@ internal sealed partial class AudioRegionRecoveryWindow
             if (previewWork == cancellation)
             {
                 previewWork = null; progress.IsIndeterminate = false;
+                if(!closed&&work is null&&cancellation.IsCancellationRequested)status.Text="Preview cancelled. Previous preview retained.";
                 UpdateWaveExport();
                 if (work == null) cancel.IsEnabled = false;
             }

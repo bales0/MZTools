@@ -44,7 +44,7 @@ internal sealed class QuickDiskVisualInspectorWindow : Window
         void Button(string text,Action action) {var button=new Button {Content=text,Margin=new Thickness(3),Padding=new Thickness(8,4,8,4)};button.Click+=(_,_)=>action();tools.Children.Add(button);}
         Button("Fit",()=>surfaceCanvas.Fit());Button("Selected regions",()=> {showMfm.IsChecked=true;canvas.FitSelection();});Button("Zoom +",()=>surfaceCanvas.ZoomBy(2));Button("Zoom −",()=>surfaceCanvas.ZoomBy(.5));
         Button("Hex selected region…",OpenHex);Button("Export report…",async()=>await Export());Button("Copy summary",()=>Clipboard.SetText(snapshot.Layout.Summary));
-        cancelExport.Click+=(_,_)=>exportWork?.Cancel();tools.Children.Add(cancelExport);
+        cancelExport.Click+=(_,_)=>{if(exportWork is null)return;cancelExport.IsEnabled=false;status.Text="Cancelling export…";exportWork.Cancel();};tools.Children.Add(cancelExport);
         DockPanel.SetDock(status,Dock.Bottom);root.Children.Add(status);root.Children.Add(tabs);
         void Tab(string name,UIElement content)=>tabs.Items.Add(new TabItem {Header=name,Content=content});
         Tab("Disk Surface",CreateSurfaceView());Tab("Regions",regions);Tab("Files",files);Tab("Findings",findings);Tab("Statistics",statistics);
